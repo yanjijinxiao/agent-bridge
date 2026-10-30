@@ -156,7 +156,30 @@ Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输�
 
 连接每 15 秒 ping/pong，单帧最大 1 MiB，每方向最多 256 个在途请求。历史可分页；超限明确报错。协议版本不匹配拒绝连接，不猜测兼容字段。
 
-Codex 写调用只允许 `run`、`steer`、`submitThreadMessage`、`stop`；只读支持 `listSessionCatalog`、inspect、snapshot、history/page、runtime、models、limits、turn lifecycle 和 receipt。目录请求通过 `execution.call` 发送，在获准配对后才查询本机，不在注册时公开全部会话。B 在执行前验证目标是本地普通会话，并核对该会话真实 cwd；受限模式额外固定 thread。不提供任意命令执行 RPC。
+Codex 执行写调用允许 `run`、`steer`、`submitThreadMessage`、`stop`；会话管理写调用见下节。只读支持 `listSessionCatalog`、inspect、snapshot、history/page、runtime、models、limits、turn lifecycle 和 receipt。目录请求通过 `execution.call` 发送，在获准配对后才查询本机，不在注册时公开全部会话。B 在执行前验证目标是本地普通会话，并核对该会话真实 cwd；受限模式额外固定 thread。不提供任意命令执行 RPC。
+
+### 本机项目与会话管理
+
+两端更新后，注册信息通过 `management: { version: 1 }` 声明能力。除上述执行方法外，允许 `createThread`、`renameThread`、`archiveThread`、`unarchiveThread`，以及仅限已归档会话的 `deleteThread`；聊天中不开放永久删除命令。`listProjects` 从获准设备读取原生项目目录，Gateway 不检查远端路径在服务器上是否存在。旧 Connector 的管理请求会明确提示升级。
+
+```text
+/project                      查看本机原生项目及 C 编号
+/new C1                       在选中项目新建原生空会话并绑定
+/new                          在当前项目新建
+/new --standalone             在当前设备的私有目录新建无项目会话
+/session rename 探探测试       重命名当前原生会话
+/session archive              归档当前原生会话并解除当前聊天绑定
+/sessions archived            查看已归档会话
+/session restore R1           恢复列表中的会话并绑定
+```
+
+项目查询只提供目录和选择能力，项目新增、重命名、删除仍不在本次范围内。创建采用原生 `thread/start`，不会发送 `turn/start`，下一条消息才启动任务，也不会覆盖设备的默认模型。项目工作目录必须匹配设备端确认的项目根目录，或同项目现有会话的工作树；独立会话固定放在 `stateDir/workspaces/`，不接受 Gateway 任意指定路径。未绑定时若只有一个已配对设备，可直接新建该设备的独立会话；多个设备时要求先选择来源。
+
+重命名、归档和恢复要求聊天 `controller` 权限；运行中、空闲状态不明或有待执行原生队列的会话不会被归档。归档遵循 Codex 原生生命周期及子会话处理规则，其他入口也会看到归档结果；它与 `/leave` 的“仅解除当前聊天绑定”不同。恢复可使用编号，或 `/session restore 会话ID --host 主机ID`，编号有效期为 15 分钟。固定会话授权只能管理该 thread，不能新建其他会话；归档后重连仍能查询并恢复它。
+
+每次管理写入都使用稳定源消息身份并持久记录意图、原生创建 ID 和结果。断线后状态不明的写入不自动重放，可刷新会话目录核对；重复的已完成操作返回原结果。管理与文件能力均不扩大既有用户、聊天和设备授权。
+
+App 的项目 ID 与原生 app-server 的项目 ID 可能不同。设备端按现有 App 保存的精确 host/home 映射统一目录与会话身份，再将写入转换为原生 ID；不按同名或相同目录推断项目身份。
 
 ### 会话附件传输
 
@@ -175,17 +198,19 @@ Codex 写调用只允许 `run`、`steer`、`submitThreadMessage`、`stop`；只�
 - 已知未提交的离线错误按现有逻辑保留和重试。发送后状态不明、或原生已接受的输入不自动重发。重连恢复的是连接，不能宣称任意故障下“恰好一次执行”。可用 `/inbox`、`/history` 核对结果。
 - 独立 app-server daemon / Desktop 的执行可以在 Gateway 观察连接断开后继续；Gateway 仅在其接受回执持久化后允许安全分离观察。`exec` 属于客户端进程生命周期，不获得这一豁免。
 - 默认沿用 B 的模型、effort、认证和本地资源配置。A 的全局模型默认值不覆盖它；聊天中显式设置的 `/model` 或 `/effort` 仍会传给 B。
-- 每个客户端连接一个本地 Codex profile，支持在钉钉中选择和切换已有普通会话，可选固定到单个 thread。主要验证 macOS/Linux 的绝对路径；不自动创建新会话，也不附着任意终端进程。
-- 本版本不启用动态工具、原生队列、目标、生命周期修改、自动系统错误恢复和项目管理。后端能力明确关闭或拒绝这些操作；不能回退到服务器本地执行。
+- 每个客户端连接一个本地 Codex profile，支持选择、创建、重命名、归档和恢复普通会话，可选固定到单个 thread。主要验证 macOS/Linux 的绝对路径；不附着任意终端进程。
+- 本版本不启用动态工具、原生队列操作、目标、自动系统错误恢复和原生项目增删改。后端能力明确关闭或拒绝这些操作；不能回退到服务器本地执行。
 - Web 管理的远程发送入口尚未接入用户级 Peer 授权；通过钉钉等已有渠道的 `handleMessage` 路径使用本功能。已启动任务期间的审批/问答已做回调适配；独立外部任务的审批和断线期间错过的回调还需后续补齐。
 
 ## 6. 验证
 
 ```sh
 npm run typecheck
-node --test --test-timeout=20000 --import tsx test/peer-transport.test.ts test/peer-execution.test.ts test/peer-bridge.test.ts test/peer-files.test.ts
+node --test --test-timeout=20000 --import tsx test/peer-transport.test.ts test/peer-execution.test.ts test/peer-bridge.test.ts test/peer-files.test.ts test/peer-management.test.ts
 ```
 
 这些自动化测试实际建立回环 WebSocket，经过真实 RPC、注册、配对、BridgeService、授权、持久回执和文件分块传输，Codex 使用模拟后端。
 
 2026-10-30 的实机联调使用 macOS Codex App/0.163.0 daemon、远端 Linux 容器 Gateway 和钉钉测试机器人：附件进入本机后读出了预设标识；同一文件通过输出动作回传，钉钉中出现文件消息及确认回复。传输内部执行 SHA-256 校验。DWS 的消息查询未返回该机器人文件的资源 ID，因此尚未通过 DWS 再次下载钉钉端文件进行独立校验。真实审批、其他平台和故障注入仍不在这次实机验证范围内。
+
+同日管理联调验证了本机项目目录、原生空会话创建（创建后 0 个模型轮次）、重命名、归档、按 R 编号恢复，以及恢复后继续同一原生会话并收到固定回复。另通过 `/new --standalone` 在 Mac Connector 私有目录新建并自动绑定了无项目会话。项目身份映射修复有独立回归，在项目中新建会话并自动绑定的完整路径另由真实 WebSocket + 模拟后端集成测试覆盖。

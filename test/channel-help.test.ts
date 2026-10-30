@@ -39,7 +39,10 @@ test("focused session help describes policies, permissions and backend limits", 
   const command = parseCommand("/h session")!;
   const text = channelHelpText([], command.arg);
   assert.equal(command.name, "help");
-  assert.equal(chunkText(text).length, 1);
+  assert.ok(chunkText(text).length <= 2, "focused help remains bounded after native session management commands");
+  assert.match(text, /\/sessions archived/);
+  assert.match(text, /\/session restore R编号/);
+  assert.match(text, /\/session rename/);
   assert.match(text, /保留空项目，默认每页 10 项/);
   assert.match(text, /\/sessions size 50/);
   assert.match(text, /\/follow \[on\|off\|sync\]/);

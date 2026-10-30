@@ -70,6 +70,7 @@ import {
   type CodexThreadPersistence,
   type CodexThreadRuntimeStatus,
   type CodexThreadState,
+  type CodexThreadCreateInput,
   type CodexTurnStatus,
   type CodexUserInputAnswer,
   type CodexUserInputHandler,
@@ -613,23 +614,24 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     };
     // Do not load threads or start a second app-server just to discover what
     // Desktop already indexes, including hosts with no saved project.
-    const catalog = readDesktopSessionCatalog(this.options.codexHome, this.options.hostId, input);
-    if (catalog) return catalog;
+    const catalog = input.persistence === "archived" ? undefined : readDesktopSessionCatalog(this.options.codexHome, this.options.hostId, input);
+    if (catalog && input.persistence !== "all") return catalog;
     await this.ensureConnected();
     try {
       const persistence = input.persistence ?? "active", limit = input.limit ?? Infinity;
       const listed: CodexThreadState[] = [];
-      if (persistence !== "archived") listed.push(...await this.listThreadsByPersistence(input, false, limit, true));
+      if (persistence !== "archived") listed.push(...(catalog?.threads ?? await this.listThreadsByPersistence(input, false, limit, true)));
       if (persistence !== "active") listed.push(...await this.listThreadsByPersistence(input, true, limit, true));
       const threads = [...new Map(listed.map(state => [state.threadId, state])).values()]
         .sort((left, right) => (right.updatedAt ?? "").localeCompare(left.updatedAt ?? "")).slice(0, limit);
-      return { backend: this.id, source: "app-server-storage", hostIds: [this.options.hostId ?? "local"], complete: true,
+      return { backend: this.id, source: catalog?.source ?? "app-server-storage", hostIds: catalog?.hostIds ?? [this.options.hostId ?? "local"], complete: catalog?.complete ?? true,
         threads: threads.map(state => ({ ...state,
           // A private reader's notLoaded/idle says nothing about Desktop.
           runtimeStatus: this.options.transport?.mode === "remote-daemon" || state.runtimeStatus === "active" || state.runtimeStatus === "systemError"
             ? state.runtimeStatus : "unknown"
         })),
-        warnings: ["Codex App 目录不可用；当前显示 app-server 存储中符合 App 筛选规则的会话，不保证与 App 侧栏完全一致。ChatGPT 聊天不支持绑定。"] };
+        warnings: catalog?.warnings ?? [persistence === "archived" ? "已归档会话来自原生 app-server 存储；恢复后可重新绑定。"
+          : "Codex App 目录不可用；当前显示 app-server 存储中符合 App 筛选规则的会话，不保证与 App 侧栏完全一致。ChatGPT 聊天不支持绑定。"] };
     } finally { await this.recyclePrivateTransportIfIdle(); }
   }
 
@@ -654,10 +656,58 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       .slice(0, limit);
   }
 
-  async archiveThread(threadId: string): Promise<void> {
+  async createThread(input: CodexThreadCreateInput): Promise<CodexThreadState> {
+    if (!input.cwd || !path.isAbsolute(input.cwd)) throw new Error("A confirmed absolute workspace is required to create a thread");
+    this.operationLeases++;
+    let threadId: string | undefined;
+    try {
+      await this.ensureConnected();
+      // Metadata-only creation selects an existing native project. Never let a
+      // stale selection create a replacement project as ordinary execution can.
+      let projectId: string | undefined;
+      if (input.projectId) {
+        const canonicalId = this.projectIdentity();
+        const project = (await this.requestProjects()).find(project => project.id === input.projectId || canonicalId(project.id) === input.projectId);
+        if (!project) throw new Error("The selected native project no longer exists");
+        projectId = project.id;
+      } else if (input.projectName) throw new Error("Select an existing native project by identity");
+      input.assertCurrent?.();
+      const response = await this.request("thread/start", compactObject({ cwd: input.cwd, ephemeral: false, approvalPolicy: "never",
+        ...(projectId ? { projectId } : input.projectBinding === "none" ? { projectId: null } : {}) })) as Record<string, unknown>;
+      const thread = response.thread as Record<string, unknown> | undefined;
+      if (!thread || typeof thread.id !== "string") throw new Error("Codex did not return the new thread identity");
+      threadId = thread.id; this.subscribedThreads.add(threadId);
+      await input.onThreadCreated?.(threadId);
+      if (input.projectBinding === "none" && thread.projectId) {
+        input.assertCurrent?.(); await this.request("thread/metadata/update", { threadId, projectId: "" }); thread.projectId = null;
+      }
+      const title = cleanThreadTitle(input.title);
+      if (title) { input.assertCurrent?.(); await this.request("thread/name/set", { threadId, name: title }); }
+      const state = this.sessionMembership()(parseThreadState({ ...thread, cwd: input.cwd, ...(title ? { name: title } : {}) }, "active"));
+      this.threadStates.set(threadId, state); return state;
+    } finally {
+      if (threadId) await this.unsubscribeThread(threadId);
+      this.operationLeases--; await this.recyclePrivateTransportIfIdle();
+    }
+  }
+
+  async renameThread(threadId: string, title: string, assertCurrent?: () => void): Promise<CodexThreadState> {
+    if (title.trim().length > 120) throw new Error("Thread name must contain at most 120 characters");
+    const name = cleanThreadTitle(title);
+    if (!name) throw new Error("A nonempty thread name is required");
+    const state = await this.inspectThread(threadId);
+    if (!["active", "archived"].includes(state.persistence) || state.internal) throw new Error("Thread is unavailable");
     await this.ensureConnected();
     try {
-      await this.request("thread/archive", { threadId });
+      assertCurrent?.(); await this.request("thread/name/set", { threadId, name });
+      const updated = { ...state, title: name }; this.threadStates.set(threadId, updated); return updated;
+    } finally { await this.recyclePrivateTransportIfIdle(); }
+  }
+
+  async archiveThread(threadId: string, assertCurrent?: () => void): Promise<void> {
+    await this.ensureConnected();
+    try {
+      assertCurrent?.(); await this.request("thread/archive", { threadId });
       this.threadStates.set(threadId, {
         threadId,
         persistence: "archived",
@@ -669,9 +719,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     }
   }
 
-  async unarchiveThread(threadId: string): Promise<CodexThreadState> {
+  async unarchiveThread(threadId: string, assertCurrent?: () => void): Promise<CodexThreadState> {
     await this.ensureConnected();
     try {
+      assertCurrent?.();
       const response = await this.request("thread/unarchive", { threadId }) as Record<string, unknown>;
       const thread = response.thread === undefined ? undefined : nativeThread(response, threadId);
       const state = thread ? this.sessionMembership()(parseThreadState(thread, "active")) : await this.inspectThread(threadId);
@@ -682,10 +733,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     }
   }
 
-  async deleteThread(threadId: string): Promise<void> {
+  async deleteThread(threadId: string, assertCurrent?: () => void): Promise<void> {
     await this.ensureConnected();
     try {
-      await this.request("thread/delete", { threadId });
+      assertCurrent?.(); await this.request("thread/delete", { threadId });
       this.threadStates.set(threadId, {
         threadId,
         persistence: "missing",
@@ -746,6 +797,14 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     return desktopSessionMembership(this.options.codexHome, this.options.hostId, legacyWorkspaceFallback);
   }
 
+  private projectIdentity(): (id: string) => string {
+    const membership = this.sessionMembership();
+    // Reuse only the explicit host/home alias map. No thread assignment or
+    // workspace inference may turn a project name/path into another identity.
+    return id => membership({ threadId: "", projectId: id, projectMembership: "assigned",
+      persistence: "active", runtimeStatus: "unknown", activeFlags: [] }).projectId ?? id;
+  }
+
   private async findListedThread(threadId: string, archived: boolean): Promise<Record<string, unknown> | undefined> {
     let cursor: string | undefined;
     const seenCursors = new Set<string>();
@@ -789,6 +848,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       this.projectCatalogSupported = false;
       return undefined;
     }
+    const canonicalId = this.projectIdentity();
     const select = (catalog: AppServerProject[]) => {
       const explicit = projectId ? catalog.find(project => project.id === (legacy?.nativeId ?? projectId)) : undefined;
       if (explicit) return explicit;
@@ -845,9 +905,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         this.projectCatalogSupported = false;
         projects = [];
       }
+      const canonicalId = this.projectIdentity();
       return {
         backend: "app-server",
-        projects
+        projects: projects.map(project => ({ ...project, id: canonicalId(project.id) }))
       };
     } finally {
       await this.recyclePrivateTransportIfIdle();

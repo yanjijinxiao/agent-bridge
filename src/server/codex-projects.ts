@@ -228,6 +228,17 @@ export function mergeCodexProjectCandidates(
 }
 
 /** Converts the selected backend's catalog without silently mixing sources. */
+export function projectCandidatesFromPeerCatalog(catalog: CodexProjectCatalog, hostId: string): readonly CodexProjectCandidate[] {
+  // These roots belong to another machine. Never resolve/stat them on Gateway
+  // or combine them with Gateway's Desktop project registry.
+  return catalog.projects.flatMap(project => {
+    const roots = [...new Set(project.roots.filter(root => path.posix.isAbsolute(root) && !root.includes("\0")))];
+    return roots.length ? [{ projectId: project.id, projectKind: "remote" as const, hostId,
+      name: project.name, workspace: roots[0], rootPaths: roots, available: true,
+      lastUsedAt: project.lastUsedAt ?? new Date(0).toISOString(), sessionCount: project.sessionCount ?? 0 }] : [];
+  });
+}
+
 export function projectCandidatesFromBackendCatalog(
   catalog: CodexProjectCatalog,
   codexHome = path.join(os.homedir(), ".codex")

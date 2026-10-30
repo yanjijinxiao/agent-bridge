@@ -302,6 +302,14 @@ export type CodexRunResult = {
   raw: string;
 };
 
+/** Create persisted metadata only; a subsequent ordinary message starts work. */
+export type CodexThreadCreateInput = {
+  cwd?: string; title?: string; projectId?: string; projectName?: string;
+  projectBinding?: "none"; standalone?: boolean; sourceThreadId?: string; clientUserMessageId?: string;
+  assertCurrent?: () => void;
+  onThreadCreated?: (threadId: string) => Promise<void> | void;
+};
+
 export type CodexDynamicToolCall = {
   callId: string;
   threadId: string;
@@ -555,6 +563,8 @@ export interface CodexThreadContinuation {
 
 /** Every backend implements this boundary; unavailable operations reject explicitly. */
 export interface CodexBackendControls {
+  createThread?(input: CodexThreadCreateInput): Promise<CodexThreadState>;
+  renameThread?(threadId: string, title: string, assertCurrent?: () => void): Promise<CodexThreadState>;
   readonly systemErrorLifecycleRecovery?: boolean;
   recoverSystemError?(input: CodexSystemRecoveryInput, hostId?: string): Promise<CodexSystemRecoveryResult>;
   getHistory(threadId: string): Promise<CodexHistoryMessage[]>;
@@ -573,9 +583,9 @@ export interface CodexBackendControls {
   inspectThread(threadId: string): Promise<CodexThreadState>;
   listThreads(input?: CodexThreadListInput): Promise<CodexThreadState[]>;
   listSessionCatalog(input?: CodexThreadListInput): Promise<CodexSessionCatalog>;
-  archiveThread(threadId: string): Promise<void>;
-  unarchiveThread(threadId: string): Promise<CodexThreadState>;
-  deleteThread(threadId: string): Promise<void>;
+  archiveThread(threadId: string, assertCurrent?: () => void): Promise<void>;
+  unarchiveThread(threadId: string, assertCurrent?: () => void): Promise<CodexThreadState>;
+  deleteThread(threadId: string, assertCurrent?: () => void): Promise<void>;
 }
 
 export type CodexMetadataObservation = { includeTurns: false; timeoutMs: number; purpose?: "status" };
@@ -606,6 +616,8 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
   unobserveThreadInteractions?(threadId: string, hostId: string, consumerId?: string): Promise<void>;
   interactionSubscriptionReady?(threadId: string, hostId: string): boolean;
   serverIdentity?(hostId?: string): Promise<{ processId: number }>;
+  createThread?(input: CodexThreadCreateInput, hostId?: string): Promise<CodexThreadState>;
+  renameThread?(threadId: string, title: string, hostId?: string, assertCurrent?: () => void, clientUserMessageId?: string): Promise<CodexThreadState>;
   detachIndependentObservations?(): void;
   hasRestartBlockingWork?(): boolean;
   isIndependentObservation?(scope: CodexExecutionScope): boolean;
@@ -649,9 +661,9 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
   inspectThread(threadId: string, hostId?: string, observation?: CodexMetadataObservation): Promise<CodexThreadState>;
   listThreads(input?: CodexThreadListInput, hostId?: string): Promise<CodexThreadState[]>;
   listSessionCatalog(input?: CodexThreadListInput, hostId?: string): Promise<CodexSessionCatalog>;
-  archiveThread(threadId: string, hostId?: string): Promise<void>;
-  unarchiveThread(threadId: string, hostId?: string): Promise<CodexThreadState>;
-  deleteThread(threadId: string, hostId?: string): Promise<void>;
+  archiveThread(threadId: string, hostId?: string, assertCurrent?: () => void, clientUserMessageId?: string): Promise<void>;
+  unarchiveThread(threadId: string, hostId?: string, assertCurrent?: () => void, clientUserMessageId?: string): Promise<CodexThreadState>;
+  deleteThread(threadId: string, hostId?: string, assertCurrent?: () => void, clientUserMessageId?: string): Promise<void>;
   close(): void | Promise<void>;
 }
 

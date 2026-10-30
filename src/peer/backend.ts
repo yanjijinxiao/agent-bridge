@@ -31,7 +31,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       input?.clientUserMessageId ?? crypto.randomUUID()])).digest("hex") : undefined;
     let acceptedTurnId: string | undefined;
     const scope: { hostId: string; threadId: string; turnId?: string; independent: boolean; controller: AbortController } | undefined = write
-      ? { hostId, threadId: input?.threadId ?? String(args[0]), independent: describe(hostId).independent, controller: new AbortController() } : undefined;
+      ? { hostId, threadId: method === "createThread" ? "new" : input?.threadId ?? String(args[0]), independent: describe(hostId).independent, controller: new AbortController() } : undefined;
     if (scope) operations.add(scope);
     const callback = async (name: string, values: unknown[]): Promise<unknown> => {
       if (!["assertCurrent", "onThreadCreated", "onTurnStarted", "onDelta", "onProgress", "onRecovery", "onApproval", "onApprovalResult", "onUserInput", "onUserInputResult"].includes(name))
@@ -44,7 +44,10 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         if (scope && (!event.status || event.status === "inProgress")) scope.turnId = event.turnId;
         return null;
       }
-      if (name === "onThreadCreated" && values[0] !== scope?.threadId) throw new PeerError("scope", "The exported native thread cannot be replaced");
+      if (name === "onThreadCreated") {
+        if (method === "createThread" && scope?.threadId === "new" && typeof values[0] === "string" && values[0]) scope.threadId = values[0];
+        else if (values[0] !== scope?.threadId) throw new PeerError("scope", "The exported native thread cannot be replaced");
+      }
       if (name === "onApproval" || name.startsWith("onApprovalResult") || name === "onUserInput" || name === "onUserInputResult") {
         const request = values[0] as { threadId?: string; turnId?: string; hostId?: string };
         if (!request || request.threadId !== scope?.threadId) throw new PeerError("scope", "Invalid native interaction scope");
@@ -81,6 +84,14 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
   const unsupported = (capability: keyof typeof EXEC_BACKEND_CAPABILITIES, hostId: string) => {
     throw new CodexBackendCapabilityError(capability, describe(hostId).info.id);
   };
+  const manage = async <T>(method: string, input: Record<string, any>, hostId: string): Promise<T> => {
+    const description = describe(hostId);
+    if (!description.management) throw new PeerError("unsupported", "设备尚未启用会话管理，请更新 Connector。");
+    if (!(method === "renameThread" ? description.info.capabilities.threadNaming : description.info.capabilities.threadLifecycle))
+      throw new PeerError("unsupported", "当前设备后端不支持这项会话管理操作。");
+    if (method === "createThread" && description.thread) throw new PeerError("scope", "固定会话授权不能新建其他会话。");
+    return invoke<T>(method, [input], hostId, true, input);
+  };
   const overrides: Partial<CodexBridgeBackend> = {
     backendInfo(hostId) { return registry.isPeer(hostId) ? describe(hostId!).info : local.backendInfo(hostId); },
     run: input => route("run", [input], input.hostId, true, input),
@@ -108,12 +119,19 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       }
       const state = await invoke("inspectThread", [description.thread.threadId], host!) as CodexThreadState;
       const visible = (!input?.cwd || input.cwd === state.cwd) && (!input?.projectId || input.projectId === state.projectId)
-        && (!input?.unassigned || state.projectMembership === "none") && (input?.persistence !== "archived");
+        && (!input?.unassigned || state.projectMembership === "none")
+        && (input?.persistence === "all" || state.persistence === (input?.persistence ?? "active"));
       return { backend: description.info.id, source: description.info.id === "exec" ? "cli-rollouts" : "app-server-storage",
         threads: visible ? [state] : [], hostIds: [host!], complete: true, warnings: [] };
     },
     async listThreads(input, host) { return registry.isPeer(host) ? (await overrides.listSessionCatalog!(input, host)).threads : local.listThreads(input, host); },
-    async listProjects(host, observation) { return registry.isPeer(host) ? { backend: describe(host!).info.id, projects: [] } : local.listProjects(host, observation); },
+    async listProjects(host, observation) {
+      if (!registry.isPeer(host)) return local.listProjects(host, observation);
+      const description = describe(host!);
+      if (description.thread) return { backend: description.info.id, projects: [] };
+      if (!description.management) throw new PeerError("unsupported", "设备尚未启用项目目录，请更新 Connector。");
+      return invoke<import("../codex/backend.js").CodexProjectCatalog>("listProjects", [], host!);
+    },
     async warmUp(cwd, host) { if (!registry.isPeer(host)) await local.warmUp(cwd, host); },
     stageAttachments: async (files, input) => {
       if (registry.isPeer(input.hostId)) {
@@ -141,9 +159,19 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     async getGoal(id, host) { return registry.isPeer(host) ? unsupported("goals", host!) : local.getGoal(id, host); },
     async setGoal(id, value, host, guard) { return registry.isPeer(host) ? unsupported("goals", host!) : local.setGoal(id, value, host, guard); },
     async clearGoal(id, host, guard) { if (registry.isPeer(host)) unsupported("goals", host!); else await local.clearGoal(id, host, guard); },
-    async archiveThread(id, host) { if (registry.isPeer(host)) unsupported("threadLifecycle", host!); else await local.archiveThread(id, host); },
-    async unarchiveThread(id, host) { return registry.isPeer(host) ? unsupported("threadLifecycle", host!) : local.unarchiveThread(id, host); },
-    async deleteThread(id, host) { if (registry.isPeer(host)) unsupported("threadLifecycle", host!); else await local.deleteThread(id, host); },
+    createThread: (input, host) => registry.isPeer(host) ? manage("createThread", input, host!) : native("createThread", [input, host]),
+    renameThread: (id, title, host, assertCurrent, clientUserMessageId) => registry.isPeer(host)
+      ? manage("renameThread", { threadId: id, title, assertCurrent, clientUserMessageId }, host!) : native("renameThread", [id, title, host, assertCurrent]),
+    async archiveThread(id, host, assertCurrent, clientUserMessageId) {
+      if (registry.isPeer(host)) await manage("archiveThread", { threadId: id, assertCurrent, clientUserMessageId }, host!);
+      else await local.archiveThread(id, host, assertCurrent);
+    },
+    unarchiveThread: (id, host, assertCurrent, clientUserMessageId) => registry.isPeer(host)
+      ? manage("unarchiveThread", { threadId: id, assertCurrent, clientUserMessageId }, host!) : local.unarchiveThread(id, host, assertCurrent),
+    async deleteThread(id, host, assertCurrent, clientUserMessageId) {
+      if (registry.isPeer(host)) await manage("deleteThread", { threadId: id, assertCurrent, clientUserMessageId }, host!);
+      else await local.deleteThread(id, host, assertCurrent);
+    },
     recoverSystemError: (input, host) => registry.isPeer(host) ? Promise.resolve({ status: "unsupported", reason: "owner-unsupported" })
       : local.recoverSystemError ? local.recoverSystemError(input, host) : Promise.resolve({ status: "unsupported" }),
     readThreadProvenance: (id, host) => registry.isPeer(host) ? Promise.resolve(undefined) : local.readThreadProvenance?.(id, host) ?? Promise.resolve(undefined),

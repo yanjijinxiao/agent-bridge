@@ -1,8 +1,9 @@
 import fs from "node:fs";
+import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import type { TestContext } from "node:test";
-import { APP_SERVER_BACKEND_CAPABILITIES, type CodexBridgeBackend, type CodexRunnerInput, type CodexThreadState } from "../src/codex/backend.js";
+import { APP_SERVER_BACKEND_CAPABILITIES, type CodexBridgeBackend, type CodexRunnerInput, type CodexThreadState, type CodexProject, type CodexThreadCreateInput } from "../src/codex/backend.js";
 import { PeerExecutionService, type PeerExecutionOptions } from "../src/peer/execution-service.js";
 import { PeerRegistry } from "../src/peer/registry.js";
 import { withPeerBackend } from "../src/peer/backend.js";
@@ -18,6 +19,7 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
     persistence: "active", runtimeStatus: "idle", activeFlags: [], projectMembership: "none" };
   const runs: CodexRunnerInput[] = [], stops: string[] = [];
   const threads = [thread];
+  const projects: CodexProject[] = [], management: Array<{ method: string; threadId: string }> = [];
   let run: (input: CodexRunnerInput) => Promise<any> = async input => {
     input.assertCurrent?.();
     await input.onTurnStarted?.({ threadId: input.threadId!, turnId: "native-turn" });
@@ -36,8 +38,28 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
     async steer(input: any) { input.assertCurrent?.(); return { status: "accepted", threadId: thread.threadId, turnId: "native-turn" }; },
     async submitThreadMessage(input: any) { input.assertCurrent?.(); return { status: "accepted", threadId: thread.threadId, turnId: "native-turn" }; },
     async stop(id: string, _host?: string, guard?: () => void) { guard?.(); stops.push(id); return { stopped: true, threadId: id }; },
-    async listSessionCatalog() { return { backend: "app-server", source: "app-server-storage", threads: options.device ? structuredClone(threads) : [], hostIds: ["local"], complete: true, warnings: [] }; },
-    async listProjects() { return { backend: "app-server", projects: [] }; }, async warmUp() {},
+    async listSessionCatalog(input: any = {}) { return { backend: "app-server", source: "app-server-storage", threads: options.device
+      ? structuredClone(threads.filter(t => input.persistence === "all" || t.persistence === (input.persistence ?? "active"))) : [], hostIds: ["local"], complete: true, warnings: [] }; },
+    async listProjects() { return { backend: "app-server", projects: structuredClone(projects) }; }, async warmUp() {},
+    async createThread(input: CodexThreadCreateInput) {
+      input.assertCurrent?.();
+      const state: CodexThreadState = { threadId: crypto.randomUUID(), cwd: input.cwd, title: input.title, persistence: "active", runtimeStatus: "idle", activeFlags: [],
+        projectId: input.projectId, projectMembership: input.projectId ? "assigned" : "none" };
+      threads.push(state); management.push({ method: "create", threadId: state.threadId });
+      await input.onThreadCreated?.(state.threadId); return { ...state };
+    },
+    async renameThread(id: string, title: string, _host?: string, guard?: () => void) {
+      guard?.(); const state = threads.find(t => t.threadId === id)!; state.title = title; management.push({ method: "rename", threadId: id }); return { ...state };
+    },
+    async archiveThread(id: string, _host?: string, guard?: () => void) {
+      guard?.(); threads.find(t => t.threadId === id)!.persistence = "archived"; management.push({ method: "archive", threadId: id });
+    },
+    async unarchiveThread(id: string, _host?: string, guard?: () => void) {
+      guard?.(); const state = threads.find(t => t.threadId === id)!; state.persistence = "active"; management.push({ method: "restore", threadId: id }); return { ...state };
+    },
+    async deleteThread(id: string, _host?: string, guard?: () => void) {
+      guard?.(); threads.find(t => t.threadId === id)!.persistence = "missing"; management.push({ method: "delete", threadId: id });
+    },
     hasInFlightWork: () => false, hasRestartBlockingWork: () => false, isIndependentObservation: () => false,
     async close() {}
   } as unknown as CodexBridgeBackend;
@@ -57,12 +79,12 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
   const ticket = await next.promise;
   // Gateway-local execution is a trap: remote routing must never execute here.
   const local = new Proxy(backend, { get(target, key) {
-    if (key === "run" || key === "stop" || key === "steer" || key === "submitThreadMessage") return () => { throw Error("Gateway-local write"); };
+    if (["run", "stop", "steer", "submitThreadMessage", "createThread", "renameThread", "archiveThread", "unarchiveThread", "deleteThread"].includes(String(key))) return () => { throw Error("Gateway-local write"); };
     return Reflect.get(target, key);
   } });
   const facade = withPeerBackend(local, registry);
   t.after(async () => { client.close(); registry.close(); await server.close(); fs.rmSync(root, { recursive: true, force: true }); });
-  return { root, backend, facade, registry, server, client, ticket, thread, threads, runs, stops,
+  return { root, backend, facade, registry, server, client, ticket, thread, threads, projects, management, runs, stops,
     get serverConnection() { return serverConnection; }, get clientConnection() { return clientConnection; },
     set run(value: typeof run) { run = value; },
     bind: (who = principal, guard = () => {}) => registry.connect(ticket.code, who, guard),

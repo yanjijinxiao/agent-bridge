@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -36,6 +38,43 @@ test("an unconfirmed turn/start receipt neither closes the transport nor repeats
 });
 
 const fixturesDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
+
+test("creates and names persisted empty threads without running a model turn", async t => {
+  const runner = new AppServerCodexRunner({ requestTimeoutMs: 2000, transport: {
+    command: process.execPath, args: [path.join(fixturesDir, "fake-codex-app-server.mjs"), "--lifecycle-only"], mode: "remote-daemon"
+  } });
+  t.after(() => runner.close());
+  const created: string[] = [];
+  await assert.rejects(runner.createThread({ cwd: "/tmp/project", projectId: "stale-project", projectName: "Do not recreate" }), /no longer exists/);
+  assert.equal((await runner.createThread({ cwd: "/tmp/project", projectId: "project-native" })).projectId, "project-native");
+  const state = await runner.createThread({ cwd: "/tmp/project", title: "Connector empty session", projectBinding: "none",
+    onThreadCreated: id => { created.push(id); }, assertCurrent() {} });
+  assert.equal(state.threadId, "thread-new"); assert.equal(state.cwd, "/tmp/project"); assert.equal(state.title, "Connector empty session");
+  assert.deepEqual(created, ["thread-new"]);
+  const renamed = await runner.renameThread(state.threadId, "Renamed without running", () => {});
+  assert.equal(renamed.title, "Renamed without running");
+  await assert.rejects(runner.archiveThread(state.threadId, () => { throw Error("Changed binding"); }), /Changed binding/);
+  assert.equal((await runner.inspectThread(state.threadId)).persistence, "active");
+  await runner.archiveThread(state.threadId);
+  assert.equal((await runner.unarchiveThread(state.threadId)).persistence, "active");
+});
+
+test("project discovery, worktree creation and inspection share exact Desktop migration identities", async t => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-project-identity-"));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(home, ".codex-global-state.json"), JSON.stringify({
+    "local-projects": { legacy: { id: "legacy", rootPaths: ["/tmp/project"] }, wrong: { id: "wrong", rootPaths: ["/tmp/project"] } },
+    "app-server-project-id-by-legacy-project-id-by-host": { [`local:${home}`]: { legacy: "project-native" }, "local:/other-home": { wrong: "project-native" } }
+  }));
+  const runner = new AppServerCodexRunner({ codexHome: home, hostId: "local", requestTimeoutMs: 2000, transport: {
+    command: process.execPath, args: [path.join(fixturesDir, "fake-codex-app-server.mjs"), "--lifecycle-only"], mode: "remote-daemon"
+  } });
+  t.after(() => runner.close());
+  assert.equal((await runner.listProjects()).projects[0].id, "legacy");
+  const state = await runner.createThread({ cwd: "/tmp/existing-worktree", projectId: "legacy" });
+  assert.equal(state.projectId, "legacy");
+  assert.equal((await runner.inspectThread(state.threadId)).projectId, "legacy");
+});
 
 test("ordinary execution inspection gets metadata and one item-free turn, without full history or prompt submission", async t => {
   const runner = new AppServerCodexRunner({ requestTimeoutMs: 2000, transport: {

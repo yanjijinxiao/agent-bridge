@@ -13,12 +13,13 @@ export const grantSchema = z.object({ id: z.string().uuid(), principal: principa
 export type PeerGrant = z.infer<typeof grantSchema>;
 const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/),
   thread: z.object({ threadId: z.string().min(1), cwd: z.string().min(1), title: z.string().optional(),
-    persistence: z.literal("active"), internal: z.literal(false).optional() }).passthrough().optional(),
+    persistence: z.enum(["active", "archived"]), internal: z.literal(false).optional() }).passthrough().optional(),
   label: z.string().min(1).max(80).optional(),
   files: z.object({ version: z.literal(1) }).strict().optional(),
+  management: z.object({ version: z.literal(1) }).strict().optional(),
   info: z.object({ id: z.enum(["exec", "app-server"]), capabilities: z.record(z.string(), z.boolean()) }),
   independent: z.boolean() }).strict();
-export type PeerDescription = { profileId: string; label?: string; files?: { version: 1 }; thread?: CodexThreadState & { cwd: string };
+export type PeerDescription = { profileId: string; label?: string; files?: { version: 1 }; management?: { version: 1 }; thread?: CodexThreadState & { cwd: string };
   info: { id: CodexBackendId; capabilities: CodexBackendCapabilities }; independent: boolean };
 type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection };
 const samePrincipal = (a: PeerPrincipal, b: PeerPrincipal) => a.accountId === b.accountId && a.conversationId === b.conversationId && a.actorId === b.actorId;

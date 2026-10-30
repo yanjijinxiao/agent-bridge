@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
+import fs from "node:fs";
 import { z } from "zod";
 import { assertCodexThreadRunnable, CodexBackendCapabilityError, CodexTurnExecutionError,
   type CodexBridgeBackend, type CodexRunnerInput, type CodexInputReceipt, type CodexThreadState } from "../codex/backend.js";
@@ -10,9 +11,10 @@ import { grantSchema, type PeerGrant, type PeerDescription } from "./registry.js
 import { PeerReceipts } from "./receipts.js";
 import { PeerConnection, PeerError } from "./rpc.js";
 import { FILE_METHODS, PeerFiles } from "./files.js";
+import { MANAGEMENT_METHODS, PeerManagement } from "./management.js";
 
 const callSchema = z.object({ grant: grantSchema, method: z.enum(["listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "getHistory", "getHistoryPage",
-  "getRuntimeInfo", "listModels", "getAccountRateLimits", "run", "steer", "submitThreadMessage", "stop", "receipt", ...FILE_METHODS]),
+  "getRuntimeInfo", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "receipt", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
   args: z.array(z.unknown()).max(4), operationId: z.string().regex(/^[a-f0-9]{64}$/).optional() }).strict();
 const runSchema = z.object({ threadId: z.string(), cwd: z.string(), prompt: z.string().max(500_000), clientUserMessageId: z.string().optional(),
   developerInstructions: z.string().optional(), threadTitle: z.string().optional(), model: z.string().optional(), effort: z.string().optional(),
@@ -36,24 +38,28 @@ export class PeerExecutionService {
   private grants: PeerGrant[];
   private readonly receipts: PeerReceipts;
   private readonly files: PeerFiles;
+  private readonly management: PeerManagement;
   private constructor(private readonly options: PeerExecutionOptions, description: PeerDescription) {
     this.description = description;
     this.grants = z.array(grantSchema).parse(readJsonFile(path.join(options.stateDir, "grants.json"), []));
     this.receipts = new PeerReceipts(path.join(options.stateDir, "receipts.json"));
     this.files = new PeerFiles(options.stateDir, (id, write) => this.readState(id, write));
+    this.management = new PeerManagement(options.backend, options.stateDir, this.receipts);
   }
   static async create(options: PeerExecutionOptions): Promise<PeerExecutionService> {
     if (!/^[\w-]{1,80}$/.test(options.profileId)) throw new Error("Invalid peer profile ID");
     const state = options.threadId ? await options.backend.inspectThread(options.threadId) : undefined;
     if (state) {
-      assertCodexThreadRunnable(state);
-      if (state.internal || state.persistence !== "active" || !state.cwd || !path.isAbsolute(state.cwd)) throw new Error("Select an existing active Codex thread with a confirmed local cwd");
+      if (state.persistence === "active") assertCodexThreadRunnable(state);
+      if (state.internal || !["active", "archived"].includes(state.persistence) || !state.cwd || !path.isAbsolute(state.cwd)) throw new Error("Select an existing ordinary Codex thread with a confirmed local cwd");
     }
     const info = options.backend.backendInfo();
     const capabilities = { ...info.capabilities, dynamicTools: false, structuredOutput: false, nativeQueue: false,
-      goals: false, threadLifecycle: false, projectCatalog: false, projects: false, threadNaming: false };
+      goals: false, projectCatalog: !options.threadId && info.capabilities.projectCatalog,
+      projects: !options.threadId && info.capabilities.projects };
     return new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
       files: { version: 1 },
+      management: { version: 1 },
       thread: state ? { ...state, cwd: state.cwd! } : undefined,
       info: { id: info.id, capabilities }, independent: options.independent === true });
   }
@@ -73,6 +79,7 @@ export class PeerExecutionService {
         throw new PeerError("access", "This chat/session grant was not approved on this device");
       try {
         if ((FILE_METHODS as readonly string[]).includes(call.method)) return await this.files.call(call.grant, connection, call.method, call.args[0]);
+        if ((MANAGEMENT_METHODS as readonly string[]).includes(call.method)) return await this.management.call(call.grant, connection, call.method, call.args[0], call.operationId);
         return await this.execute(connection, call);
       }
       catch (error) {
@@ -103,9 +110,27 @@ export class PeerExecutionService {
       switch (method) {
         case "listSessionCatalog": {
           if (call.grant.scope !== "device") throw new PeerError("access", "Device catalog access was not approved");
-          const catalog = await backend.listSessionCatalog(catalogSchema.parse(args[0] ?? {}));
-          return { ...catalog, hostIds: [], threads: catalog.threads.filter(state => !state.internal && state.persistence === "active"
-            && state.cwd && path.isAbsolute(state.cwd)) };
+          const input = catalogSchema.parse(args[0] ?? {}), catalog = await backend.listSessionCatalog(input);
+          const threads = new Map(catalog.threads.map(s => [s.threadId, s]));
+          // A newly created empty thread can precede Desktop's catalog sync.
+          for (const id of this.receipts.createdThreads()) if (!threads.has(id)) {
+            try { threads.set(id, await backend.inspectThread(id)); } catch { /* Native catalog remains usable. */ }
+          }
+          return { ...catalog, hostIds: [], threads: [...threads.values()].filter(state => !state.internal
+            && (input.persistence === "all" ? ["active", "archived"].includes(state.persistence) : state.persistence === (input.persistence ?? "active"))
+            && state.cwd && path.isAbsolute(state.cwd) && (!input.cwd || state.cwd === input.cwd)
+            && (!input.projectId || state.projectId === input.projectId) && (!input.unassigned || !state.projectId)) };
+        }
+        case "listProjects": {
+          if (call.grant.scope !== "device") throw new PeerError("access", "Project catalog requires a device grant");
+          const catalog = await backend.listProjects();
+          return { ...catalog, projects: catalog.projects.flatMap(project => {
+            const roots = [...new Set(project.roots.flatMap(root => {
+              try { if (!path.isAbsolute(root)) return []; const actual = fs.realpathSync(root); return fs.statSync(actual).isDirectory() ? [actual] : []; }
+              catch { return []; }
+            }))];
+            return roots.length ? [{ ...project, roots }] : [];
+          }) };
         }
         case "listModels": return backend.listModels();
         case "getAccountRateLimits": return backend.getAccountRateLimits();

@@ -101,6 +101,9 @@ function historyTurns(activeTurnId) {
 
 rl.on("line", (line) => {
   const message = JSON.parse(line);
+  if (process.argv.includes("--lifecycle-only") && message.method === "turn/start") {
+    fail(message.id, "Lifecycle-only management must not start a model turn"); return;
+  }
 
   if (message.method?.startsWith("thread/queue/")) {
     if (process.argv.includes("--without-queue-api")) {
@@ -459,6 +462,8 @@ rl.on("line", (line) => {
             : message.params.threadId === "removed" ? { projectId: null }
               : message.params.threadId === "malformed" ? { projectId: 42 } : {} : {}),
         cwd: "/tmp/project",
+        projectId: threadProjects.get(message.params.threadId) ?? null,
+        name: threadNames.get(message.params.threadId) ?? null,
         path: `/tmp/fake-codex-home/sessions/${message.params.threadId}.jsonl`,
         status: { type: "idle" },
         turns: []
@@ -504,6 +509,8 @@ rl.on("line", (line) => {
               : message.params.threadId === "malformed" ? { projectId: 42 } : {} : {}),
         cwd: "/tmp/project",
         path: `/tmp/fake-codex-home/sessions/${message.params.threadId}.jsonl`,
+        projectId: threadProjects.get(message.params.threadId) ?? null,
+        name: threadNames.get(message.params.threadId) ?? null,
         status: message.params.threadId === "thread-system-error"
           ? { type: "systemError" }
           : activeTurnId

@@ -13,7 +13,7 @@ import { assertCapacityResume, assertCodexThreadRunnable, assertQueueAdmissionCu
 import type { CodexAppServerBackend, CodexBridgeBackend, CodexCapacityResumeInput, CodexExecutionScope,
   CodexHistoryPageInput, CodexMetadataObservation, CodexNativeQueue, CodexQueuedRunInput, CodexQueueAddInput,
   CodexRunnerInput, CodexRunResult, CodexSteerInput, CodexSystemRecoveryInput, CodexThreadGoalStatus,
-  CodexThreadListInput, CodexThreadMessageInput, EphemeralCodexRunnerInput } from "./backend.js";
+  CodexThreadCreateInput, CodexThreadListInput, CodexThreadMessageInput, EphemeralCodexRunnerInput } from "./backend.js";
 import type { NativeInteractionObserver } from "./interactions.js";
 import { NativeInteractionFanout } from "./interaction-fanout.js";
 
@@ -237,9 +237,21 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
   getGoal(threadId: string, hostId?: string) { return this.appServerFor(hostId).getGoal(threadId); }
   async setGoal(threadId: string, input: { objective?: string; status?: CodexThreadGoalStatus; tokenBudget?: number }, hostId?: string, assertCurrent?: () => void) { assertCurrent?.(); this.mutating(threadId, hostId); return this.appServerFor(hostId).setGoal(threadId, input, assertCurrent); }
   async clearGoal(threadId: string, hostId?: string, assertCurrent?: () => void) { assertCurrent?.(); this.mutating(threadId, hostId); return this.appServerFor(hostId).clearGoal(threadId, assertCurrent); }
-  archiveThread(threadId: string, hostId?: string) { this.mutating(threadId, hostId); return this.appServerFor(hostId).archiveThread(threadId); }
-  unarchiveThread(threadId: string, hostId?: string) { this.mutating(threadId, hostId); return this.appServerFor(hostId).unarchiveThread(threadId); }
-  deleteThread(threadId: string, hostId?: string) { this.mutating(threadId, hostId); return this.appServerFor(hostId).deleteThread(threadId); }
+  async createThread(input: CodexThreadCreateInput, hostId?: string) {
+    const backend = this.appServerFor(hostId);
+    if (!backend.createThread) throw new CodexBackendCapabilityError("threadLifecycle", backend.id);
+    input.assertCurrent?.();
+    return backend.createThread(input);
+  }
+  async renameThread(threadId: string, title: string, hostId?: string, assertCurrent?: () => void) {
+    const backend = this.appServerFor(hostId);
+    if (!backend.renameThread) throw new CodexBackendCapabilityError("threadNaming", backend.id);
+    assertCurrent?.(); this.mutating(threadId, hostId);
+    return backend.renameThread(threadId, title, assertCurrent);
+  }
+  archiveThread(threadId: string, hostId?: string, assertCurrent?: () => void) { assertCurrent?.(); this.mutating(threadId, hostId); return this.appServerFor(hostId).archiveThread(threadId, assertCurrent); }
+  unarchiveThread(threadId: string, hostId?: string, assertCurrent?: () => void) { assertCurrent?.(); this.mutating(threadId, hostId); return this.appServerFor(hostId).unarchiveThread(threadId, assertCurrent); }
+  deleteThread(threadId: string, hostId?: string, assertCurrent?: () => void) { assertCurrent?.(); this.mutating(threadId, hostId); return this.appServerFor(hostId).deleteThread(threadId, assertCurrent); }
   backendInfo(hostId?: string) { const backend = this.appServerFor(hostId); return { id: backend.id, capabilities: backend.capabilities }; }
   observeThreadInteractions(threadId: string, hostId: string, observer: NativeInteractionObserver, consumerId = "gateway") {
     const backend = this.appServerFor(hostId);
