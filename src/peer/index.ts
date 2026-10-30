@@ -38,7 +38,7 @@ async function main(): Promise<void> {
       approve: grant => {
         const answer = questions.then(async () => {
           if (!process.stdin.isTTY) return false;
-          console.log(`\n设备访问申请：${JSON.stringify(grant.principal)}\n范围：${config.threadId ? JSON.stringify(config.threadId) : "此 Codex profile 的普通会话（列出、选择、查看历史及执行任务）"}`);
+          console.log(`\n设备访问申请：${JSON.stringify(grant.principal)}\n范围：${config.threadId ? JSON.stringify(config.threadId) : "此 Codex profile 的普通会话（列出、选择、查看历史及执行任务）"}\n文件：接收聊天附件；回传所选会话工作目录或其附件目录中的文件。`);
           return (await terminal.question("允许这个用户在此聊天中访问上述本机会话？输入 yes 确认：")).trim() === "yes";
         });
         questions = answer.catch(() => {}); return answer;

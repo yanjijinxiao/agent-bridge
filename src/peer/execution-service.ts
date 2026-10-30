@@ -9,9 +9,10 @@ import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import { grantSchema, type PeerGrant, type PeerDescription } from "./registry.js";
 import { PeerReceipts } from "./receipts.js";
 import { PeerConnection, PeerError } from "./rpc.js";
+import { FILE_METHODS, PeerFiles } from "./files.js";
 
 const callSchema = z.object({ grant: grantSchema, method: z.enum(["listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "getHistory", "getHistoryPage",
-  "getRuntimeInfo", "listModels", "getAccountRateLimits", "run", "steer", "submitThreadMessage", "stop", "receipt"]),
+  "getRuntimeInfo", "listModels", "getAccountRateLimits", "run", "steer", "submitThreadMessage", "stop", "receipt", ...FILE_METHODS]),
   args: z.array(z.unknown()).max(4), operationId: z.string().regex(/^[a-f0-9]{64}$/).optional() }).strict();
 const runSchema = z.object({ threadId: z.string(), cwd: z.string(), prompt: z.string().max(500_000), clientUserMessageId: z.string().optional(),
   developerInstructions: z.string().optional(), threadTitle: z.string().optional(), model: z.string().optional(), effort: z.string().optional(),
@@ -34,10 +35,12 @@ export class PeerExecutionService {
   readonly description: PeerDescription;
   private grants: PeerGrant[];
   private readonly receipts: PeerReceipts;
+  private readonly files: PeerFiles;
   private constructor(private readonly options: PeerExecutionOptions, description: PeerDescription) {
     this.description = description;
     this.grants = z.array(grantSchema).parse(readJsonFile(path.join(options.stateDir, "grants.json"), []));
     this.receipts = new PeerReceipts(path.join(options.stateDir, "receipts.json"));
+    this.files = new PeerFiles(options.stateDir, (id, write) => this.readState(id, write));
   }
   static async create(options: PeerExecutionOptions): Promise<PeerExecutionService> {
     if (!/^[\w-]{1,80}$/.test(options.profileId)) throw new Error("Invalid peer profile ID");
@@ -50,10 +53,12 @@ export class PeerExecutionService {
     const capabilities = { ...info.capabilities, dynamicTools: false, structuredOutput: false, nativeQueue: false,
       goals: false, threadLifecycle: false, projectCatalog: false, projects: false, threadNaming: false };
     return new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
+      files: { version: 1 },
       thread: state ? { ...state, cwd: state.cwd! } : undefined,
       info: { id: info.id, capabilities }, independent: options.independent === true });
   }
   attach(connection: PeerConnection): void {
+    connection.onClose(() => this.files.close(connection));
     connection.handle("binding.approve", async value => {
       const grant = grantSchema.parse(value);
       const allowedScope = this.description.thread ? grant.threadId === this.description.thread.threadId && !grant.scope : grant.scope === "device";
@@ -66,7 +71,10 @@ export class PeerExecutionService {
       const call = callSchema.parse(value);
       if (!this.grants.some(g => JSON.stringify(g) === JSON.stringify(call.grant)))
         throw new PeerError("access", "This chat/session grant was not approved on this device");
-      try { return await this.execute(connection, call); }
+      try {
+        if ((FILE_METHODS as readonly string[]).includes(call.method)) return await this.files.call(call.grant, connection, call.method, call.args[0]);
+        return await this.execute(connection, call);
+      }
       catch (error) {
         if (error instanceof PeerError) throw error;
         if (error instanceof CodexCommunicationError) throw new PeerError("codex-communication", "Codex communication was not confirmed", {

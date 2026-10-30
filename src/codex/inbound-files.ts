@@ -6,6 +6,7 @@ import type { AppServerTransport } from "./app-server-transport.js";
 export type CodexInboundFile = { path: string; label: string; kind: "image" | "file" | "video" | "audio" };
 export type StageInboundFiles = (files: CodexInboundFile[], options: {
   hostId?: string; scope: string; maxBytes: number;
+  accountId?: string; conversationId?: string; threadId?: string;
 }) => Promise<CodexInboundFile[]>;
 
 /** Fixed receiver: no filenames or paths interpolated into a shell command. */

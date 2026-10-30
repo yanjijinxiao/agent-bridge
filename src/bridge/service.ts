@@ -2581,7 +2581,8 @@ export class BridgeService {
 
   private async stagePromptItems(items: PromptBufferItem[], session: ManagedSession, message: ChannelMessage): Promise<PromptBufferItem[]> {
     return stageTurnAttachments(this.runner, items, { accountId: this.options.accountId,
-      conversationId: message.senderId, sessionId: session.id, hostId: this.sessionHostId(session), maxBytes: this.options.config.maxInboundBytes });
+      conversationId: message.senderId, sessionId: session.id, threadId: session.threadId,
+      hostId: this.sessionHostId(session), maxBytes: this.options.config.maxInboundBytes });
   }
 
   private async promptItemsFromMessageWithNotice(message: ChannelMessage): Promise<PromptBufferItem[] | undefined> {
@@ -2835,7 +2836,7 @@ export class BridgeService {
         }
         for (const action of journaled ? [] : parsed.actions.send) {
           if (!stillBound()) break;
-          await this.sendLocalMedia(message.senderId, action, this.sessionHostId(session), stillBound);
+          await this.sendLocalMedia(message.senderId, action, this.sessionHostId(session), stillBound, session.threadId);
         }
         await this.options.onTurnCompleted?.({
           senderId: message.senderId,
@@ -2930,7 +2931,7 @@ export class BridgeService {
     }
     for (const action of parsed.actions.send) {
       if (!binding.current()) break;
-      await this.sendLocalMedia(session.senderId, action, native.hostId, binding.current);
+      await this.sendLocalMedia(session.senderId, action, native.hostId, binding.current, native.threadId);
     }
   }
 
@@ -2942,7 +2943,7 @@ export class BridgeService {
     const binding = sessionExecutionScope(this.options.stateStore, session);
     if (!binding.current()) throw new CodexInterventionError("Result application binding changed");
     if (action.kind === "remember") this.options.stateStore.rememberKnowledge(action.value, session.projectId, session.id);
-    else if (!await this.sendLocalMedia(session.senderId, action.value, native.hostId, binding.current))
+    else if (!await this.sendLocalMedia(session.senderId, action.value, native.hostId, binding.current, native.threadId))
       throw new Error("Result media delivery was not confirmed");
   }
 
@@ -3051,15 +3052,24 @@ export class BridgeService {
   }
 
   private async sendLocalMedia(senderId: string, action: { type: "image" | "file" | "video"; path: string }, hostId = "local",
-    isCurrent: () => boolean = () => true): Promise<boolean> {
-    let lease: import("../codex/output-files.js").OutputFileLease | undefined;
+    isCurrent: () => boolean = () => true, threadId?: string): Promise<boolean> {
+    let lease: import("../codex/output-files.js").OutputFileLease | import("../codex/outbound-files.js").OutboundFile | undefined;
     try {
       if (this.audienceSuspended || !isCurrent()) return false;
       if (this.channel.capabilities.outbound[action.type] !== "available") {
         await this.reply(senderId, `当前渠道暂不支持直接发送 ${action.type} 文件：${path.basename(action.path)}`);
         return false;
       }
-      if (hostId !== "local") {
+      if (hostId.startsWith("peer:")) {
+        const session = this.executionSession(senderId);
+        if (!this.options.accountId || !threadId || session?.threadId !== threadId || this.sessionHostId(session) !== hostId
+          || !this.runner.fetchOutboundFile) throw new Error("Remote output has no current session binding or transfer transport");
+        const binding = sessionExecutionScope(this.options.stateStore, session);
+        if (!binding.current()) throw new Error("Remote output binding changed");
+        lease = await this.runner.fetchOutboundFile({ hostId, threadId, accountId: this.options.accountId,
+          conversationId: senderId, path: action.path, maxBytes: this.options.config.maxInboundBytes });
+        if (!binding.current()) throw new Error("Remote output binding changed; file was not sent");
+      } else if (hostId !== "local") {
         if (!this.runner.fetchOutputFile) {
           await this.reply(senderId, `远程执行器没有文件回传端口：${path.basename(action.path)}。请通过项目 Web IDE 下载。`);
           return false;

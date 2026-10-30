@@ -6,6 +6,7 @@ import {
   buildPromptParts,
   buildPromptPreview,
   parsePrompt,
+  PEER_FILE_DELIVERY_INSTRUCTIONS,
   stripBridgeInstructions
 } from "../src/bridge/format.js";
 
@@ -52,6 +53,13 @@ test("removes bridge-only instructions from displayed history", () => {
     "旧会话消息"
   );
   assert.equal(stripBridgeInstructions("普通历史消息"), "普通历史消息");
+});
+
+test("Connector file policy stays out of native user messages while ordinary text remains intact", () => {
+  const parts = buildPromptParts("把附件发回来", [], "DingTalk");
+  assert.equal(stripBridgeInstructions([parts.developerInstructions, PEER_FILE_DELIVERY_INSTRUCTIONS, parts.prompt].join("\n\n")), parts.prompt);
+  const ordinary = `请解释这段文字：${PEER_FILE_DELIVERY_INSTRUCTIONS}`;
+  assert.equal(stripBridgeInstructions(ordinary), ordinary);
 });
 
 test("injects private knowledge without exposing it in displayed history", () => {

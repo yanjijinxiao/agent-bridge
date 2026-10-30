@@ -63,7 +63,7 @@ test("the exported thread/cwd and unsupported native features cannot be substitu
   await assert.rejects(f.as(() => f.facade.run(f.input({ threadId: "another" }))), /selected thread/);
   await assert.rejects(f.as(() => f.facade.run(f.input({ cwd: "/another" }))), /working directory/);
   await assert.rejects(async () => f.as(() => f.facade.addQueuedSubmission!({ threadId: f.thread.threadId, prompt: "x", clientUserMessageId: "q" }, f.ticket.hostId)), CodexBackendCapabilityError);
-  await assert.rejects(f.as(() => f.facade.stageAttachments!([{ kind: "file", label: "x", path: "/gateway-only/x" }], { hostId: f.ticket.hostId, scope: "x", maxBytes: 100 })), /不支持附件/);
+  await assert.rejects(f.as(() => f.facade.stageAttachments!([{ kind: "file", label: "x", path: "/gateway-only/x" }], { hostId: f.ticket.hostId, scope: "x", maxBytes: 100 })), /selected chat and thread/);
   assert.equal(f.runs.length, 0);
   await f.as(() => f.facade.steer({ threadId: f.thread.threadId, prompt: "follow-up" }, f.ticket.hostId)); // Optional cwd is filled from the scoped export.
   await f.as(() => f.facade.stop(f.thread.threadId, f.ticket.hostId, () => {})); assert.deepEqual(f.stops, [f.thread.threadId]);

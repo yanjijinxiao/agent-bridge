@@ -15,9 +15,10 @@ const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/
   thread: z.object({ threadId: z.string().min(1), cwd: z.string().min(1), title: z.string().optional(),
     persistence: z.literal("active"), internal: z.literal(false).optional() }).passthrough().optional(),
   label: z.string().min(1).max(80).optional(),
+  files: z.object({ version: z.literal(1) }).strict().optional(),
   info: z.object({ id: z.enum(["exec", "app-server"]), capabilities: z.record(z.string(), z.boolean()) }),
   independent: z.boolean() }).strict();
-export type PeerDescription = { profileId: string; label?: string; thread?: CodexThreadState & { cwd: string };
+export type PeerDescription = { profileId: string; label?: string; files?: { version: 1 }; thread?: CodexThreadState & { cwd: string };
   info: { id: CodexBackendId; capabilities: CodexBackendCapabilities }; independent: boolean };
 type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection };
 const samePrincipal = (a: PeerPrincipal, b: PeerPrincipal) => a.accountId === b.accountId && a.conversationId === b.conversationId && a.actorId === b.actorId;
@@ -86,6 +87,20 @@ export class PeerRegistry implements PeerBridgePort {
     const host = this.entries.get(hostId);
     if (!host) throw new PeerConnectionError(false);
     return host.description;
+  }
+  invokeFile<T>(hostId: string, method: string, payload: unknown,
+    scope: { accountId: string; conversationId: string; threadId: string }): Promise<T> {
+    const principal = peerPrincipal.getStore();
+    // Uploads require an authenticated chat. Recovered output delivery must
+    // still match its exact account, conversation and exported thread.
+    if ((method.startsWith("fileUpload") && !principal) || (principal
+      && (principal.accountId !== scope.accountId || principal.conversationId !== scope.conversationId)))
+      throw new PeerError("access", "File transfer has no authorized chat identity");
+    const grant = this.grants.find(g => g.hostId === hostId && g.principal.accountId === scope.accountId
+      && g.principal.conversationId === scope.conversationId && (!principal || samePrincipal(g.principal, principal))
+      && (g.scope === "device" || g.threadId === scope.threadId));
+    if (!grant) throw new PeerError("access", "This chat is not authorized to transfer files for the selected session");
+    return peerPrincipal.run(grant.principal, () => this.invoke<T>(hostId, method, [payload]));
   }
   async invoke<T>(hostId: string, method: string, args: unknown[], write = false,
     operationId?: string, callback?: (name: string, args: unknown[]) => Promise<unknown>, signal?: AbortSignal): Promise<T> {

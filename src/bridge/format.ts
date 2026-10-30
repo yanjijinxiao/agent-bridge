@@ -29,6 +29,7 @@ const BRIDGE_COPY_INSTRUCTIONS = [
   "Copying must not submit an answer, execute a command, grant permission or select an option. Do not ask the user to copy secrets into IM."
 ].join("\n");
 const BRIDGE_IDE_INSTRUCTIONS = "Gateway owns the automatic project Web IDE footer. Do not append an ‘打开项目 Web IDE’ footer or infer one from cwd, remembered URLs or another session. Explicitly requested links may be discussed normally.";
+export const PEER_FILE_DELIVERY_INSTRUCTIONS = "Connector file delivery rule: save generated files to be sent to the user inside the current session workspace. Use absolute paths in codex-im-gateway-actions. Received attachment paths may also be returned. Files outside those directories cannot be transferred.";
 const KNOWLEDGE_CONTEXT_START = "[codex-weixin-private-knowledge]";
 const KNOWLEDGE_CONTEXT_END = "[/codex-weixin-private-knowledge]";
 export type AttachmentSource = "WeChat" | "Web" | "DingTalk" | "Feishu" | "WeCom" | "IM";
@@ -133,6 +134,7 @@ export function parsePrompt(text: string): { text: string; attachments: PromptAt
     new RegExp(`^${escapeRegExp(KNOWLEDGE_CONTEXT_START)}[\\s\\S]*?${escapeRegExp(KNOWLEDGE_CONTEXT_END)}\\s*`),
     ""
   );
+  if (normalized.startsWith(PEER_FILE_DELIVERY_INSTRUCTIONS)) normalized = normalized.slice(PEER_FILE_DELIVERY_INSTRUCTIONS.length).trim();
   normalized = stripCodexDesktopAttachmentEnvelope(normalized);
   const attachments: PromptAttachment[] = [];
   const visibleText = projectAssistantProse(normalized, prose => prose.replace(

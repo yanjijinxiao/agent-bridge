@@ -6,6 +6,7 @@ import { CodexCommunicationError } from "../codex/communication-error.js";
 import { PeerRegistry } from "./registry.js";
 import { PeerConnectionError, PeerError } from "./rpc.js";
 import { peerPrincipal } from "./context.js";
+import { downloadPeerFile, uploadPeerFiles } from "./files.js";
 
 /** Remote host routing decorates the existing facade; channel code continues
  * to use the same execution contract, including source/approval callbacks. */
@@ -115,8 +116,27 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     async listProjects(host, observation) { return registry.isPeer(host) ? { backend: describe(host!).info.id, projects: [] } : local.listProjects(host, observation); },
     async warmUp(cwd, host) { if (!registry.isPeer(host)) await local.warmUp(cwd, host); },
     stageAttachments: async (files, input) => {
-      if (registry.isPeer(input.hostId)) { if (files.length) throw new PeerError("unsupported", "第一版远程连接暂不支持附件传输，请使用文字。"); return []; }
+      if (registry.isPeer(input.hostId)) {
+        if (!files.length) return [];
+        if (!input.accountId || !input.conversationId || !input.threadId) throw new PeerError("scope", "Attachment staging requires a selected chat and thread");
+        const principal = peerPrincipal.getStore();
+        if (!principal || principal.accountId !== input.accountId || principal.conversationId !== input.conversationId
+          || !registry.hosts(principal).includes(input.hostId!)) throw new PeerError("access", "File transfer has no authorized chat identity");
+        if (!describe(input.hostId!).files) throw new PeerError("unsupported", "设备尚未启用文件传输，请更新 Connector。");
+        const scope = { accountId: input.accountId, conversationId: input.conversationId, threadId: input.threadId };
+        return uploadPeerFiles(files, input.scope, input.threadId, input.maxBytes,
+          (method, payload) => registry.invokeFile(input.hostId!, method, payload, scope));
+      }
       return local.stageAttachments ? local.stageAttachments(files, input) : [...files];
+    },
+    fetchOutboundFile: async input => {
+      if (registry.isPeer(input.hostId)) {
+        if (!describe(input.hostId).files) throw new PeerError("unsupported", "设备尚未启用文件传输，请更新 Connector。");
+        return downloadPeerFile(input.threadId, input.path, input.maxBytes,
+          (method, payload) => registry.invokeFile(input.hostId, method, payload, input));
+      }
+      if (local.fetchOutboundFile) return local.fetchOutboundFile(input);
+      throw new PeerError("unsupported", "This execution host has no output file transfer transport");
     },
     async getGoal(id, host) { return registry.isPeer(host) ? unsupported("goals", host!) : local.getGoal(id, host); },
     async setGoal(id, value, host, guard) { return registry.isPeer(host) ? unsupported("goals", host!) : local.setGoal(id, value, host, guard); },

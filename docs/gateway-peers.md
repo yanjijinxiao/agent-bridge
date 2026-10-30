@@ -23,7 +23,7 @@ npm run build:bridge
 
 B 需能以当前系统用户正常运行本地 Codex。已有会话会在设备配对后显示在钉钉中，按标题、目录和编号选择即可。CLI 与 App 继续由项目已有的本地 `CodexBackendRouter` 识别和路由；本功能不把远程进程注入一个正在运行的交互式 CLI 终端。A 的远程设备列表查询和执行转发不依赖 A 上安装 Codex。
 
-如果目标来自 App，需要 B 上已有的 Desktop 适配支持、相同用户和正确的 `CODEX_HOME`。这版网络测试使用模拟 Codex，尚未完成两台实机及特定版本 App 的联调。
+如果目标来自 App，需要 B 上已有的 Desktop 适配支持、相同用户和正确的 `CODEX_HOME`。已在 macOS Codex App/独立 app-server 与 Linux 容器 Gateway 之间完成设备配对、会话选择、文字往返和文件收发联调；其他系统、版本和真实审批仍需分别验证。
 
 ## 2. 设备凭据与服务器入口
 
@@ -126,7 +126,7 @@ R2  开发网关        /Users/me/project-b
 
 远端对话适配器目前是可嵌入 API，测试已分别接到监听端和拨号端的真实 `BridgeService`。配置文件和 CLI 首先覆盖“机器人 → 远端 Codex”的执行器场景，尚未提供对话客户端的管理 UI 或独立交互 CLI。
 
-Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输层不理解第三方 SDK，执行层继续使用统一后端接口；代码预览/文件服务需要单独的受限能力接口，这一版没有实现。
+Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输层不理解第三方 SDK，执行层继续使用统一后端接口。会话附件传输已接入；Web IDE、通用文件浏览和代码只读预览链接仍需独立适配。
 
 ### 协议 v1
 
@@ -150,10 +150,24 @@ Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输�
 | `execution.callback` | B → A，携带 operationId 的进度、原生接受、审批、问答和写前绑定校验 |
 | `conversation.input` | 远端对话端 → ChannelAdapter，文本消息与源消息 ID；身份取本地配置 |
 | `conversation.output` | ChannelAdapter → 远端对话端，回复和投递回执 |
+| `fileUploadBegin/Chunk/Finish` | `execution.call` 内的文件上传操作，把聊天附件分块存到获准设备的专用目录 |
+| `fileDownloadBegin/Chunk` | `execution.call` 内的文件下载操作，读取所选会话目录中的输出文件 |
+| `fileClose` | 释放当前连接、授权所拥有的传输；未完成的上传删除临时文件 |
 
 连接每 15 秒 ping/pong，单帧最大 1 MiB，每方向最多 256 个在途请求。历史可分页；超限明确报错。协议版本不匹配拒绝连接，不猜测兼容字段。
 
-写调用只允许 `run`、`steer`、`submitThreadMessage`、`stop`；只读支持 `listSessionCatalog`、inspect、snapshot、history/page、runtime、models、limits、turn lifecycle 和 receipt。目录请求通过 `execution.call` 发送，在获准配对后才查询本机，不在注册时公开全部会话。B 在执行前验证目标是本地普通会话，并核对该会话真实 cwd；受限模式额外固定 thread。不提供任意命令执行 RPC。
+Codex 写调用只允许 `run`、`steer`、`submitThreadMessage`、`stop`；只读支持 `listSessionCatalog`、inspect、snapshot、history/page、runtime、models、limits、turn lifecycle 和 receipt。目录请求通过 `execution.call` 发送，在获准配对后才查询本机，不在注册时公开全部会话。B 在执行前验证目标是本地普通会话，并核对该会话真实 cwd；受限模式额外固定 thread。不提供任意命令执行 RPC。
+
+### 会话附件传输
+
+两端均需更新到包含文件传输的版本。注册信息中的 `files: { version: 1 }` 声明能力；旧 Connector 的文字路径继续可用，尝试传文件时明确提示更新，不会把设备路径当作 Gateway 本地路径读取。
+
+- 入站：复用渠道下载和附件校验，再以 256 KiB 分块传给 B。上传必须有当前聊天用户身份，并匹配其设备授权和所选 thread。B 自行决定存储位置：`stateDir/files/inbound/<授权>/<thread摘要>/<会话摘要>/`，文件名带 SHA-256，重复传输复用已核对内容。完成前只写私有 `.part` 文件。
+- 出站：模型继续使用 `codex-im-gateway-actions` 的 `send` 动作。B 只允许读取所选会话真实工作目录内、或该授权和 thread 的入站附件目录内的普通文件。解析真实路径，拒绝指向目录外的符号链接、相对路径及特殊文件；不允许读取其他聊天的附件。生成在临时目录等其他位置的文件，需先保存到会话工作目录再发送。
+- Gateway 收到完整文件并核对 SHA-256 后，才交给原有渠道 `sendMedia`；发送完成或失败均清理 Gateway 临时副本。传输期间切换或退出绑定，则不向旧聊天发送文件。文件输出沿用既有结果动作回执，未知渠道投递不自动重复。
+- 单文件上限取 Gateway `maxInboundBytes` 和 100 MiB 中较小值；仍遵守渠道本身的限制。每个 Connector 最多 8 个活跃传输、合计 200 MiB 声明大小，每个传输最长 5 分钟。单帧仍为 1 MiB。校验失败、过期或连接关闭会释放文件描述符并清理未完成上传。
+- 断线后重新上传从头开始，按内容去重复用完整文件；尚无跨连接断点续传。已完成附件保留，供本机会话继续使用。传输不替代本机 Codex 的沙箱和审批，也不提供公网下载 URL。
+- 能否发送图片、视频或文件由渠道能力决定。例如当前钉钉适配器支持出站文件，图片和视频的原生发送能力仍受其适配状态限制。
 
 ## 5. 可靠性与范围
 
@@ -162,14 +176,16 @@ Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输�
 - 独立 app-server daemon / Desktop 的执行可以在 Gateway 观察连接断开后继续；Gateway 仅在其接受回执持久化后允许安全分离观察。`exec` 属于客户端进程生命周期，不获得这一豁免。
 - 默认沿用 B 的模型、effort、认证和本地资源配置。A 的全局模型默认值不覆盖它；聊天中显式设置的 `/model` 或 `/effort` 仍会传给 B。
 - 每个客户端连接一个本地 Codex profile，支持在钉钉中选择和切换已有普通会话，可选固定到单个 thread。主要验证 macOS/Linux 的绝对路径；不自动创建新会话，也不附着任意终端进程。
-- 本版本不传输附件/远端生成文件，不启用动态工具、原生队列、目标、生命周期修改、自动系统错误恢复和项目管理。后端能力明确关闭或拒绝这些操作；不能回退到服务器本地执行。
+- 本版本不启用动态工具、原生队列、目标、生命周期修改、自动系统错误恢复和项目管理。后端能力明确关闭或拒绝这些操作；不能回退到服务器本地执行。
 - Web 管理的远程发送入口尚未接入用户级 Peer 授权；通过钉钉等已有渠道的 `handleMessage` 路径使用本功能。已启动任务期间的审批/问答已做回调适配；独立外部任务的审批和断线期间错过的回调还需后续补齐。
 
 ## 6. 验证
 
 ```sh
 npm run typecheck
-node --test --test-timeout=20000 --import tsx test/peer-transport.test.ts test/peer-execution.test.ts test/peer-bridge.test.ts
+node --test --test-timeout=20000 --import tsx test/peer-transport.test.ts test/peer-execution.test.ts test/peer-bridge.test.ts test/peer-files.test.ts
 ```
 
-这些测试实际建立回环 WebSocket，经过真实 RPC、注册、配对、BridgeService、授权和持久回执，Codex 使用模拟后端。跨两台机器、实际钉钉和 CLI/App 的联调属于下一阶段部署验证。
+这些自动化测试实际建立回环 WebSocket，经过真实 RPC、注册、配对、BridgeService、授权、持久回执和文件分块传输，Codex 使用模拟后端。
+
+2026-10-30 的实机联调使用 macOS Codex App/0.163.0 daemon、远端 Linux 容器 Gateway 和钉钉测试机器人：附件进入本机后读出了预设标识；同一文件通过输出动作回传，钉钉中出现文件消息及确认回复。传输内部执行 SHA-256 校验。DWS 的消息查询未返回该机器人文件的资源 ID，因此尚未通过 DWS 再次下载钉钉端文件进行独立校验。真实审批、其他平台和故障注入仍不在这次实机验证范围内。

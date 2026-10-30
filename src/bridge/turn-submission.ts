@@ -4,18 +4,21 @@ import { communicationError, isCodexCommunicationFailure } from "../codex/commun
 import type { CodexImGatewayConfig } from "../state/config.js";
 import type { KnowledgeEntry } from "../state/knowledge.js";
 import type { ManagedProject, ManagedSession } from "../state/runtime-state.js";
-import { buildPromptParts, buildPromptPreview, type AttachmentSource } from "./format.js";
+import { buildPromptParts, buildPromptPreview, PEER_FILE_DELIVERY_INSTRUCTIONS, type AttachmentSource } from "./format.js";
 import type { PromptBufferItem } from "./prompt-buffer.js";
 import type { InboundReceiptJournal } from "./inbound-receipts.js";
 
 export async function stageTurnAttachments(runner: CodexBridgeBackend, items: PromptBufferItem[], options: {
-  accountId?: string; conversationId: string; sessionId: string; hostId?: string; maxBytes: number;
+  accountId?: string; conversationId: string; sessionId: string; threadId?: string; hostId?: string; maxBytes: number;
 }): Promise<PromptBufferItem[]> {
   const files = items.filter((item): item is Exclude<PromptBufferItem, { kind: "text" }> => item.kind !== "text");
   if (!files.length || !options.hostId || options.hostId === "local") return items;
   if (!runner.stageAttachments) throw Error("当前远端后端未实现附件转存，消息未提交；请在远端提供可读取的文件。");
   const staged = await runner.stageAttachments(files, { hostId: options.hostId,
-    scope: JSON.stringify([options.accountId, options.conversationId, options.sessionId]), maxBytes: options.maxBytes });
+    scope: JSON.stringify([options.accountId, options.conversationId, options.sessionId]), maxBytes: options.maxBytes,
+    ...(options.hostId?.startsWith("peer:") ? {
+      accountId: options.accountId, conversationId: options.conversationId, threadId: options.threadId
+    } : {}) });
   if (staged.length !== files.length || staged.some(file => !file.path.startsWith("/"))) throw Error("Remote backend did not stage every attachment");
   let index = 0;
   return items.map(item => item.kind === "text" ? item : { ...item, path: staged[index++].path });
@@ -29,10 +32,12 @@ export async function prepareTurnSubmission(input: {
 }): Promise<CodexRunnerInput> {
   const { session, project, config } = input, hostId = session.hostId ?? project?.hostId;
   const items = await stageTurnAttachments(input.runner, input.items, { accountId: input.accountId,
-    conversationId: input.conversationId, sessionId: session.id, hostId, maxBytes: config.maxInboundBytes });
+    conversationId: input.conversationId, sessionId: session.id, threadId: session.threadId, hostId, maxBytes: config.maxInboundBytes });
   const parts = buildPromptParts(input.text, items, input.source, input.knowledge);
   const generic = /^(?:会话\s*\d+|新会话|Codex 会话(?:\s+[\da-f-]+)?)$/i.test(session.title.trim());
   return { ...parts, cwd: session.workspace, hostId,
+    ...(hostId?.startsWith("peer:") ? { developerInstructions: parts.developerInstructions
+      + `\n\n${PEER_FILE_DELIVERY_INSTRUCTIONS}` } : {}),
     projectId: session.projectBinding ? undefined : project?.sourceProjectId,
     projectName: session.projectBinding ? undefined : project?.name,
     projectRoots: session.projectBinding ? undefined : project?.rootPaths ?? (project ? [project.workspace] : undefined),
