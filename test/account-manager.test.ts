@@ -20,9 +20,11 @@ import { accountStatePaths, resolveStatePaths } from "../src/state/paths.js";
 import { RuntimeStateStore } from "../src/state/runtime-state.js";
 import { listRetainedAccounts, loadAccount, saveAccount } from "../src/weixin/accounts.js";
 import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.js";
+import { APP_SERVER_BACKEND_CAPABILITIES, EXEC_BACKEND_CAPABILITIES } from "../src/codex/backend.js";
 import type { NormalizedWeixinMessage } from "../src/weixin/messages.js";
 
 function setup(t: test.TestContext, options: { taskboardClient?: object; taskCards?: boolean; llmWiki?: object; root?: string;
+  config?: Partial<ReturnType<typeof defaultConfig>>;
   adapterFactory?: ConstructorParameters<typeof AccountManager>[0]["adapterFactory"] } = {}) {
   const root = options.root ?? fs.mkdtempSync(path.join(os.tmpdir(), "codex-weixin-manager-"));
   t.after(async () => { await manager.stopAll(); fs.rmSync(root, { recursive: true, force: true }); });
@@ -106,7 +108,7 @@ function setup(t: test.TestContext, options: { taskboardClient?: object; taskCar
   const manager = new AccountManager({
     paths,
     adapterFactory: options.adapterFactory,
-    configProvider: () => ({ ...defaultConfig(root), taskboardEnabled: Boolean(options.taskboardClient) }),
+    configProvider: () => ({ ...defaultConfig(root), taskboardEnabled: Boolean(options.taskboardClient), ...options.config }),
     taskboardClientFactory: () => options.taskboardClient as never,
     llmWiki: (options.llmWiki ? { close() {}, ...options.llmWiki } : undefined) as never,
     clientFactory: (account) => ({
@@ -303,6 +305,38 @@ test("web unbind removes only the selected account/chat edge and immediately ref
   await assert.rejects(f.manager.unbindSession("account-one", first.id, expected), /绑定已改变/);
   assert.equal(store.getBoundSession("chat-one")?.id, stale.id);
   assert.equal(f.currentlyFollowed.has("shared-thread"), true);
+});
+
+test("an exec Gateway delivers Connector results using the peer's live-follow capability", async t => {
+  const f = setup(t, { config: { codexBackend: "exec", streamReplies: false } });
+  const peerHost = "peer:laptop:work";
+  const reads: string[] = [];
+  Object.assign(f.runner, {
+    backendInfo: (hostId?: string) => hostId === peerHost
+      ? { id: "app-server", capabilities: APP_SERVER_BACKEND_CAPABILITIES }
+      : { id: "exec", capabilities: EXEC_BACKEND_CAPABILITIES },
+    async readThreadSnapshot(threadId: string, hostId?: string) {
+      assert.equal(hostId, peerHost, "The Gateway's exec backend must not be followed");
+      reads.push(threadId);
+      return { state: { threadId, persistence: "active", runtimeStatus: "idle", activeFlags: [] }, turns: [] };
+    }
+  });
+  await f.manager.startAccount("account-one", false);
+  const bridge = f.bridges.get("account-one")!;
+  const local = bridge.stateStore.createSession("local-chat", f.root, "Local exec");
+  bridge.stateStore.setSessionThread(local.id, "local-thread");
+  const peer = bridge.stateStore.createSession("peer-chat", "/device-only/workspace", "Connector", undefined, "session", undefined,
+    { standalone: true, hostId: peerHost });
+  bridge.stateStore.setSessionThread(peer.id, "peer-thread");
+  const session = bridge.stateStore.getSession(peer.id)!;
+  assert.equal(bridge.sessionFollow!.status(bridge.stateStore.getSession(local.id)!).status, "disabled");
+  assert.equal((await bridge.sessionFollow!.synchronize(session)).status, "synced");
+  assert.deepEqual(reads, ["peer-thread"]);
+  await bridge.onTurnStarted!(session, "peer-turn");
+  assert.equal(await bridge.deliverTurnResult!(session, "peer-turn", "Connector answer"), true);
+  assert.ok(f.sent.some(message => message.toUserId === "peer-chat" && message.text === "Connector answer"));
+  assert.equal(await bridge.deliverTurnResult!(session, "peer-turn", "Connector answer"), true);
+  assert.equal(f.sent.filter(message => message.text === "Connector answer").length, 1, "Acknowledged results must not be sent twice");
 });
 
 test("account manager routes follow sync through the shared hub and rejects an old binding", async t => {

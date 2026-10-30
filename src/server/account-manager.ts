@@ -2102,7 +2102,6 @@ export class AccountManager {
   }
 
   private threadSubscriptions(): ThreadSubscription[] {
-    if (this.runner?.backendInfo?.().capabilities.liveFollow === false || this.configProvider().codexBackend === "exec") return [];
     const result: ThreadSubscription[] = [];
     for (const [accountId, entry] of this.entries) {
       // A temporary reconnect is not an unsubscribe. Keep persistent delivery
@@ -2111,6 +2110,9 @@ export class AccountManager {
       const store = entry.store;
       for (const session of store.listSessions()) {
         const hostId = session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local";
+        // A pure Gateway may use exec locally while its Connector supports
+        // native following. Delivery capability belongs to the execution host.
+        if (hostId === "local" && this.configProvider().codexBackend === "exec") continue;
         if (this.runner?.backendInfo?.(hostId).capabilities.liveFollow === false) continue;
         const managed = this.isSessionResponding(accountId, session.id);
         if (!session.threadId && !managed) continue;
