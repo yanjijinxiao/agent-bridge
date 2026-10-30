@@ -238,6 +238,8 @@ CODEX_IM_GATEWAY_OPEN=0
 
 ## 文档
 
+- [Gateway 双向连接、远程 Codex 与钉钉配对](./docs/gateway-peers.md)
+
 - [消息渠道与任务通知配置](./docs/channel-setup.md)
 - [Codex 后端架构](./docs/codex-backends.md)
 - [统一 IM 渠道接口与能力矩阵](./docs/im-channel-architecture.md)

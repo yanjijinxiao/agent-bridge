@@ -23,6 +23,7 @@ export function serverHelpText(): string {
     "  CODEX_IM_GATEWAY_PORT       Local Web port (default: 8787)",
     "  CODEX_IM_GATEWAY_STATE_DIR  State directory (default: ~/.codex-im-gateway)",
     "  CODEX_IM_GATEWAY_OPEN=0     Do not open the browser automatically",
+    "  CODEX_IM_GATEWAY_PEER_CONFIG  Optional peer listener JSON file",
     "",
     "Legacy CODEX_CHANNEL_BRIDGE_* and CODEX_WEIXIN_* variables remain supported."
   ].join("\n");

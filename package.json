@@ -54,7 +54,9 @@
     "taskboard:start": "npm run start --workspace=codex-taskboard",
     "taskboard:taskctl": "npm run taskctl --workspace=codex-taskboard --",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --test-concurrency=4 --test-timeout=120000 --import tsx test/*.test.ts"
+    "test": "node --test --test-concurrency=4 --test-timeout=120000 --import tsx test/*.test.ts",
+    "peer": "node dist/peer/index.js",
+    "peer:dev": "tsx src/peer/index.ts"
   },
   "engines": {
     "node": ">=22"
@@ -69,6 +71,7 @@
     "marked": "^18.0.6",
     "open": "^10.1.0",
     "qrcode": "^1.5.4",
+    "ws": "^8.22.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -76,6 +79,7 @@
     "@types/qrcode": "^1.5.5",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
+    "@types/ws": "^8.18.2",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "tsx": "^4.19.2",

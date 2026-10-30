@@ -1,4 +1,6 @@
 import { withChannelWriteLeases } from "../bridge/channel-write-leases.js";
+import { PeerRegistry } from "../peer/registry.js";
+import { withPeerBackend } from "../peer/backend.js";
 import { AdmissionService } from "../bridge/admission.js";
 import crypto from "node:crypto";
 import { migrateCardBootstrap } from "./migrate-card-bootstrap.js";
@@ -275,6 +277,7 @@ export type AccountManagerOptions = {
     pauseForRestart(): void;
     resumeAfterCancelledRestart(): void;
   };
+  peerRegistry?: PeerRegistry;
   adapterFactory?: ChannelAdapterFactory;
   paths: StatePaths;
   configProvider?: () => CodexImGatewayConfig;
@@ -780,6 +783,7 @@ export class AccountManager {
       inboundReferences: new InboundReferenceStore(path.join(statePaths.inboundDir, "references.json")),
       userInputFilePath: path.join(this.options.paths.runtimeDir, account.accountId, "user-input.json"),
       runner,
+      peer: this.options.peerRegistry,
       listCodexModels: scope => this.getCodexModels(scope),
       getCodexBalance: hostId => this.getCodexBalance(hostId),
       listCodexProjects: () => this.listCodexProjects(runner),
@@ -1302,6 +1306,7 @@ export class AccountManager {
   }
 
   async getCodexModels(scope?: CodexRuntimeQuery): Promise<CodexModelOption[]> {
+    if (scope?.hostId?.startsWith("peer:")) return this.runnerFor().listModels(scope.hostId);
     let models: CodexModelOption[] = [];
     try {
       models = await this.runnerFor().listModels(scope?.hostId);
@@ -1971,7 +1976,8 @@ export class AccountManager {
 
   private runnerFor(config = this.configProvider()): CodexBridgeBackend {
     if (this.runner) return this.runner;
-    const runner = this.runnerFactory(config);
+    const native = this.runnerFactory(config);
+    const runner = this.options.peerRegistry ? withPeerBackend(native, this.options.peerRegistry) : native;
     this.runner = runner;
     runner.warmUp(this.options.paths.root).catch((error: unknown) => {
       console.warn("[codex-im-gateway] Codex app-server warm-up failed", {

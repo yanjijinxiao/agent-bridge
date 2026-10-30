@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import path from "node:path";
+import { PeerRegistry } from "../peer/registry.js";
+import { loadPeerListener, listenGatewayPeers } from "../peer/runtime.js";
 import { fileURLToPath } from "node:url";
 
 import open from "open";
@@ -26,14 +29,17 @@ async function main(): Promise<void> {
   const paths = resolveStatePaths(stateDir);
   const config = loadConfig(paths);
   const processLock = acquireServiceProcessLock(paths.root);
+  const peerConfig = loadPeerListener(process.env.CODEX_IM_GATEWAY_PEER_CONFIG);
+  const peers = peerConfig ? new PeerRegistry(path.join(paths.runtimeDir, "peer-grants.json")) : undefined;
   let accountManager: AccountManager;
   const taskboard = new TaskboardLifecycle(paths.taskboardDir, undefined, () => accountManager.taskboardNativeBackend());
-  accountManager = new AccountManager({ paths, restartParticipant: taskboard });
+  accountManager = new AccountManager({ paths, restartParticipant: taskboard, peerRegistry: peers });
+  let peerServer: Awaited<ReturnType<typeof listenGatewayPeers>>;
   let server: Awaited<ReturnType<typeof startLocalHttpServer>> | undefined;
   let shutdownTask: Promise<void> | undefined;
   let restartScheduled = false;
   const shutdown = () => shutdownTask ??= cleanupResources([
-    () => accountManager.stopAll(), () => server?.close(), () => taskboard.close()
+    () => accountManager.stopAll(), () => peerServer?.close(), () => server?.close(), () => taskboard.close()
   ], "Gateway 部分资源清理失败，其余资源已继续清理", () => processLock.release());
   const exitAfterShutdown = () => void shutdown().then(() => process.exit(0), error => {
     console.error(`[codex-im-gateway] shutdown failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -61,6 +67,7 @@ async function main(): Promise<void> {
     timer.unref();
   };
   try {
+    if (peers) peerServer = await listenGatewayPeers(peerConfig, peers);
     await taskboard.apply(config);
     if (accountManager.releaseStatus().prepared) taskboard.pauseForRestart();
     server = await startLocalHttpServer({ paths, accountManager, port, onUpdateInstalled: scheduleRestart,
@@ -74,6 +81,7 @@ async function main(): Promise<void> {
 
   console.log(`codex-im-gateway is running at ${server.url}`);
   console.log(`State directory: ${paths.root}`);
+  if (peerServer) console.log(`Gateway peer ingress: ${peerServer.url}`);
   if (config.taskboardEnabled) console.log(`Taskboard is available at ${config.taskboardUrl}`);
   if ((process.env.CODEX_IM_GATEWAY_OPEN
     ?? process.env.CODEX_CHANNEL_BRIDGE_OPEN

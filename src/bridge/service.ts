@@ -1,4 +1,5 @@
 import { withChannelWriteLeases } from "./channel-write-leases.js";
+import { peerPrincipal, type PeerBridgePort } from "../peer/context.js";
 import { AdmissionService, admissionPrincipal } from "./admission.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
@@ -149,6 +150,7 @@ type ProjectSessionChoice = {
 };
 
 export type BridgeServiceOptions = {
+  peer?: PeerBridgePort;
   inputReceipts?: InboundReceiptJournal;
   ideApprovals?: IDEApprovalService;
   admission?: AdmissionService;
@@ -376,7 +378,9 @@ export class BridgeService {
   }
 
   async handleMessage(message: ChannelMessage): Promise<void> {
-    return this.restartWork.run(() => this.handleMessageNow(message));
+    return peerPrincipal.run({ accountId: this.options.accountId ?? "standalone",
+      conversationId: message.replyTargetId ?? message.senderId, actorId: message.senderId },
+      () => this.restartWork.run(() => this.handleMessageNow(message)));
   }
 
   private async handleMessageNow(message: ChannelMessage): Promise<void> {
@@ -568,6 +572,26 @@ export class BridgeService {
       }
     }
     switch (command.name) {
+      case "connect": {
+        if (!this.options.peer) { await this.reply(message.senderId, "此 Gateway 尚未启用远程设备接入。"); return; }
+        const guard = this.conversationControlGuard(message.senderId, "participant");
+        const principal = peerPrincipal.getStore()!;
+        if (!command.arg.trim()) {
+          const hosts = this.options.peer.hosts(principal);
+          await this.reply(message.senderId, copyableChoices(hosts.length ? "选择已配对设备，查看可绑定的会话。" : "请先启动本机客户端，再发送 /connect 加上本机显示的配对码。",
+            hosts.map(host => ({ label: this.options.peer!.label(host), value: `/sessions --host ${host}` }))));
+          return;
+        }
+        await this.reply(message.senderId, "正在请求本机确认设备访问，请在本机终端核对聊天与申请人。");
+        const target = await this.options.peer.connect(command.arg, principal, guard);
+        guard();
+        if (target.threadId) await this.bindCatalogSession(message.senderId, target.threadId, target.hostId);
+        else {
+          await this.reply(message.senderId, `设备已配对：${target.label}\n请在下面选择要绑定的会话；选中后，聊天消息才会发往该会话。`);
+          await this.handleSessionCommand(message.senderId, `--host ${target.hostId}`);
+        }
+        return;
+      }
       case "ide": {
         const session = this.executionSession(message.senderId);
         const url = session && await this.options.ideEntry?.(session);
@@ -1421,6 +1445,12 @@ export class BridgeService {
     const actorId = this.actor.getStore() ?? senderId;
     const key = JSON.stringify([senderId, actorId]);
     let input = arg.trim();
+    const principal = peerPrincipal.getStore();
+    const pairedHosts = principal ? this.options.peer?.hosts(principal) ?? [] : [];
+    const currentHost = this.sessionHostId(this.executionSession(senderId));
+    const hostFilter = /^--host\s+(\S+)$/i.exec(input)?.[1] ?? (!input
+      ? currentHost?.startsWith("peer:") && pairedHosts.includes(currentHost) ? currentHost : pairedHosts.length === 1 ? pairedHosts[0] : undefined
+      : undefined);
     let resized = false;
     let listing = this.sessionLists.get(key);
     if (/^size(?:\s|$)/i.test(input)) {
@@ -1477,7 +1507,7 @@ export class BridgeService {
       const requested = /(?:^|\s)page\s+(\d+)$/i.exec(input);
       if (!resized) listing.page = requested ? Number(requested[1]) - 1 : listing.page + (/^prev$/i.test(input) ? -1 : 1);
       listing.page = Math.min(Math.max(0, Math.ceil(listing.items.length / listing.pageSize) - 1), Math.max(0, listing.page));
-    } else if (input && !/^(all|unbound|unassigned|project|search\s+.+)$/i.test(input)) {
+    } else if (input && !hostFilter && !/^(all|unbound|unassigned|project|search\s+.+)$/i.test(input)) {
       const direct = /^(\S+)(?:\s+--host\s+(\S+))?$/.exec(input);
       if (!direct) { await this.reply(senderId, "用法：/sessions [all|unbound|project|search 关键词|more|prev]；/session <会话ID> [--host 主机ID]"); return; }
       await this.bindCatalogSession(senderId, direct[1], direct[2]); return;
@@ -1487,7 +1517,7 @@ export class BridgeService {
       if (projectOnly && !activeProject) { await this.reply(senderId, copyableChoices("当前没有选择项目，可以选择已有会话或项目。", [{ label: "查看已有会话", value: "/sessions" }, { label: "选择项目", value: "/project" }])); return; }
       const query = /^search\s+(.+)$/i.exec(input)?.[1].toLocaleLowerCase();
       const unassigned = /^(unbound|unassigned)$/i.test(input);
-      const hosts = new Set(["local"]);
+      const hosts = new Set(hostFilter ? [hostFilter] : ["local", ...pairedHosts]);
       const warnings: string[] = [];
       const incompleteHosts = new Map<string, string>();
       let purposes = new SessionPurposeIndex();
@@ -1495,16 +1525,16 @@ export class BridgeService {
       catch { warnings.push("会话用途配置无法读取，本次未隐藏探活记录；请检查 session-purposes.json 后刷新。"); }
       const hiddenProbes = new Set<string>();
       const catalogInput = { persistence: "active" as const, ...(projectOnly ? { cwd: activeProject!.workspace, projectId: activeProject!.sourceProjectId } : {}), ...(unassigned ? { unassigned: true } : {}) };
-      const firstHost = projectOnly ? activeProject?.hostId ?? "local" : "local";
+      const firstHost = hostFilter ?? (projectOnly ? activeProject?.hostId ?? "local" : "local");
       // Resolve the catalog backend before optional project-name enrichment.
       // In auto mode a failed enrichment must not select a different backend.
       const firstCatalog = this.runner.listSessionCatalog?.(catalogInput, firstHost);
       if (firstCatalog) await firstCatalog.catch(() => undefined); // Report once in the host loop below.
       let projectCatalog: readonly CodexProjectCandidate[] = [];
-      try { projectCatalog = await this.codexProjectCandidates(); }
+      try { if (!hostFilter) projectCatalog = await this.codexProjectCandidates(); }
       catch { warnings.push("项目目录暂不可用，项目名称及远程主机列表可能不完整；仍保留可读取的会话。"); }
       if (projectOnly) { hosts.clear(); hosts.add(activeProject?.hostId ?? "local"); }
-      else if (this.options.config.codexBackend !== "exec") {
+      else if (!hostFilter && this.options.config.codexBackend !== "exec") {
         for (const p of projectCatalog) if (p.hostId) hosts.add(p.hostId);
         if (!projectCatalog.length) for (const p of this.options.stateStore.listProjects()) if (p.hostId) hosts.add(p.hostId);
       }
@@ -1523,7 +1553,7 @@ export class BridgeService {
             warnings.push(...catalog.warnings);
             if (!catalog.complete) incompleteHosts.set(hostId, "会话目录尚未同步完整");
             if (!catalog.complete && !catalog.warnings.length) warnings.push(`${hostId} 的会话目录尚未同步完整，请稍后刷新。`);
-            if (!projectOnly && catalog.backend === "app-server") for (const host of catalog.hostIds) hosts.add(host);
+            if (!hostFilter && !projectOnly && catalog.backend === "app-server") for (const host of catalog.hostIds) hosts.add(host);
           }
           for (const state of states) {
             if (state.persistence !== "active" || state.internal || (unassigned && state.projectId)) continue;
@@ -1547,7 +1577,7 @@ export class BridgeService {
       const activeGroupId = activeProject?.sourceProjectId ? JSON.stringify([activeProject.hostId ?? "local", activeProject.sourceProjectId]) : undefined;
       const displayProjects = projectOnly ? projectCatalog.filter(p => JSON.stringify([p.hostId ?? "local", p.projectId]) === activeGroupId) : projectCatalog;
       const items = sessionCatalogItems(ordered, displayProjects, { includeEmpty: !query && !unassigned, incompleteHosts, activeGroupId });
-      listing = { rows: ordered, items, page: 0, pageSize: this.options.stateStore.getSessionPageSize(senderId, actorId), createdAt: Date.now(), label: projectOnly ? `项目 ${activeProject!.name}` : unassigned ? "无项目" : query ? `搜索：${query}` : "全部", warnings: [...new Set(warnings)] };
+      listing = { rows: ordered, items, page: 0, pageSize: this.options.stateStore.getSessionPageSize(senderId, actorId), createdAt: Date.now(), label: hostFilter ? this.options.peer?.label(hostFilter) ?? sessionHostLabel(hostFilter) : projectOnly ? `项目 ${activeProject!.name}` : unassigned ? "无项目" : query ? `搜索：${query}` : "全部", warnings: [...new Set(warnings)] };
       for (const [k,v] of this.sessionLists) if (Date.now() - v.createdAt > 15 * 60_000) this.sessionLists.delete(k);
       this.sessionLists.set(key, listing);
     }
@@ -1570,7 +1600,7 @@ export class BridgeService {
       const current = active?.threadId === state.threadId && this.sessionHostId(active) === hostId;
       const name = state.title || codexSessionCandidatePreview(codexThreadStateCandidate(state, state.cwd ?? "")) || "未命名";
       const status = projectSessionChoiceStateLabel({ title: name, updatedAt: state.updatedAt ?? "", candidate: codexThreadStateCandidate(state, state.cwd ?? "") });
-      const attribution = nextSection === "pinned" ? item.group?.label ?? (hostId === "local" ? "无项目" : sessionHostLabel(hostId))
+      const attribution = hostId.startsWith("peer:") ? `${this.options.peer?.label(hostId) ?? hostId} · ${compactTableCell(state.cwd ?? "", 40)}` : nextSection === "pinned" ? item.group?.label ?? (hostId === "local" ? "无项目" : sessionHostLabel(hostId))
         : nextSection === "other" && hostId !== "local" ? sessionHostLabel(hostId) : "";
       const shortStatus = status.replace("Desktop 已打开", "已打开").replace("上次执行失败", "上次失败").replace("上次已停止", "已停止").replace("状态未知", "未知");
       lines.push(`　[R${item.number}] ${current ? "【当前】 " : ""}${escapeTableMarkdown(compactTableCell(name, 48))} · ${shortStatus}${attribution ? ` · ${escapeTableMarkdown(compactTableCell(attribution, 64))}` : ""}`);
@@ -1583,7 +1613,7 @@ export class BridgeService {
         ...(pageRows.length ? [{ label: "选择会话模板（将“编号”替换为列表数字）", value: "/session R编号" }] : []),
         ...(listing.page > 0 ? [{ label: "上一页", value: "/sessions prev" }] : []),
         ...(start + listing.pageSize < listing.items.length ? [{ label: "下一页", value: "/sessions more" }] : [])],
-      choices: [...pageRows.map(({row: {state,hostId}, number}): ChannelChoice => ({ label: `R${number}`, command: "session", arg: `${state.threadId} --host ${hostId}`, copyValue: `/session R${number}` })),
+      choices: [...pageRows.map(({row: {state,hostId}, number}): ChannelChoice => ({ label: `R${number}${hostId.startsWith("peer:") ? ` ${compactTableCell(state.title ?? "未命名", 20)}` : ""}`, command: "session", arg: `${state.threadId} --host ${hostId}`, copyValue: `/session R${number}` })),
         ...(listing.page > 0 ? [{ label: "上一页", command: "sessions" as const, arg: "prev" }] : []),
         ...(start + listing.pageSize < listing.items.length ? [{ label: "下一页", command: "sessions" as const, arg: "more" }] : [])] }));
   }
@@ -1634,7 +1664,8 @@ export class BridgeService {
     const canFollow = this.runner.backendInfo?.(hostId).capabilities.liveFollow ?? this.options.config.codexBackend !== "exec";
     if (!canFollow) store.setSessionFollow(session.id, false);
     store.setInteractionMode(senderId, "session");
-    await this.reply(senderId, `已绑定会话：${session.title}\n\n主机：${hostId}\n\n工作目录：${state.cwd}\n\n下一条消息将继续这个会话；/history 查看历史，/leave 退出绑定。`);
+    const location = hostId.startsWith("peer:") && this.options.peer ? `设备：${this.options.peer.label(hostId)}` : `主机：${hostId}`;
+    await this.reply(senderId, `已绑定会话：${session.title}\n\n${location}\n\n工作目录：${state.cwd}\n\n下一条消息将继续这个会话；/history 查看历史，/leave 退出绑定。`);
     await this.handleHistoryCommand(senderId, "6");
   }
 
@@ -3198,8 +3229,8 @@ export class BridgeService {
       console.warn(`Codex runtime info unavailable: ${error instanceof Error ? error.message : String(error)}`);
     }
     return {
-      model: session?.model ?? this.options.config.model ?? runtime.model,
-      effort: session?.effort ?? this.options.config.effort ?? runtime.effort,
+      model: session?.model ?? (this.sessionHostId(session)?.startsWith("peer:") ? undefined : this.options.config.model) ?? runtime.model,
+      effort: session?.effort ?? (this.sessionHostId(session)?.startsWith("peer:") ? undefined : this.options.config.effort) ?? runtime.effort,
       provider: runtime.provider
     };
   }

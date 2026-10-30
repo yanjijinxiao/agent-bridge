@@ -1,0 +1,8 @@
+{
+  "url": "wss://gateway.example.com/gateway/v1/peer",
+  "nodeId": "my-laptop",
+  "label": "我的笔记本",
+  "tokenFile": "./my-laptop.token",
+  "profileId": "work",
+  "backend": "app-server"
+}

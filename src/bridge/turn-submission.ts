@@ -38,7 +38,9 @@ export async function prepareTurnSubmission(input: {
     projectRoots: session.projectBinding ? undefined : project?.rootPaths ?? (project ? [project.workspace] : undefined),
     projectBinding: session.projectBinding === "none" ? "none" : undefined, threadId: session.threadId || undefined,
     threadTitle: (generic ? buildPromptPreview(input.text, input.items) : session.title) ?? session.title,
-    queueKey: session.threadId || session.id, model: session.model ?? config.model, effort: session.effort ?? config.effort,
+    queueKey: session.threadId || session.id,
+    model: session.model ?? (hostId?.startsWith("peer:") ? undefined : config.model),
+    effort: session.effort ?? (hostId?.startsWith("peer:") ? undefined : config.effort),
     collaborationMode: session.collaborationMode === "plan" ? "plan" : undefined };
 }
 

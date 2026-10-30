@@ -14,7 +14,7 @@ test("startup failure still closes HTTP, optional services and the lock if accou
   const helperFile=new URL("../src/server/cleanup.ts",import.meta.url);
   const helper=fs.existsSync(helperFile)?ts.transpileModule(fs.readFileSync(helperFile,"utf8"),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText.replace(/\bexport\s+/g,""):"";
   const closed:string[]=[];
-  const context=vm.createContext({console,process:{env:{CODEX_IM_GATEWAY_OPEN:"0"},pid:123},fileURLToPath:()=>"/fixture",preferredStateDir:()=>"/tmp/unused",resolveStatePaths:()=>({root:"/tmp/unused",taskboardDir:"/tmp/unused/taskboard"}),loadConfig:()=>({taskboardEnabled:true}),
+  const context=vm.createContext({console,path,loadPeerListener:()=>undefined,process:{env:{CODEX_IM_GATEWAY_OPEN:"0"},pid:123},fileURLToPath:()=>"/fixture",preferredStateDir:()=>"/tmp/unused",resolveStatePaths:()=>({root:"/tmp/unused",taskboardDir:"/tmp/unused/taskboard"}),loadConfig:()=>({taskboardEnabled:true}),
     acquireServiceProcessLock:()=>({release(){closed.push("lock");}}),AccountManager:class{releaseStatus(){return {prepared:false};}async startAll(){throw Error("startup failed");}async stopAll(){closed.push("accounts");throw Error("cleanup failed");}},
     TaskboardLifecycle:class{async apply(){}async close(){closed.push("taskboard");}},startLocalHttpServer:async()=>({url:"http://fixture",async close(){closed.push("http");}})});
   vm.runInContext(helper+output+"\nglobalThis.auditMain=main;",context);
