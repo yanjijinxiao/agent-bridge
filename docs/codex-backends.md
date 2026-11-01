@@ -114,7 +114,7 @@ An active-writer error is not a backend fallback. It remains inside the app-serv
 
 `SessionFollowPort` (`src/bridge/session-follow.ts`) is the application boundary between channel commands and persistent delivery. `BridgeService` handles `/follow`, `/follow on|off|sync` and status presentation; `AccountManager` resolves the account + session binding and verifies it is still active. `ThreadEventHub` owns subscriptions, synchronization health, read cursors and card checkpoints. IM adapters only implement presentation and acknowledge transport delivery. No DingTalk-only synchronization implementation or second binding flow is introduced.
 
-Both background recovery and explicit synchronization use the selected backend's existing read-only `readThreadSnapshot(threadId, hostId)` contract. CLI's `liveFollow: false` is honored before synchronization. An explicit sync never calls start, resume, steer or stop, does not enable disabled following, and respects `/stream off`. Repeating `/follow on` performs a new synchronization even when the setting is already on.
+Both background recovery and explicit synchronization use the native adapter's existing read-only `readThreadSnapshot(threadId, hostId)` contract. Desktop and CLI deployments have the same native follow capability; the retired exec runner's limitations are not a selectable production mode. An explicit sync never calls start, resume, steer or stop, does not enable disabled following, and respects `/stream off`. Repeating `/follow on` performs a new synchronization even when the setting is already on.
 
 Targeted reads have a 25-second deadline and do not wait for unrelated subscriptions. Concurrent manual requests for a binding are coalesced; a newer read supersedes late background results, and binding changes invalidate delivery. Persisted health distinguishes successful sync, unconfirmed runtime, backend timeout/failure, and card delivery failure. Runtime `notLoaded`/`unknown` and orphan Desktop UI turns never count as successful synchronization. Safe structured diagnostics include host/thread identity and an error category, never provider payloads or credentials.
 
@@ -124,12 +124,18 @@ Activity cards restore from their saved handles even when all progress entries a
 
 The app-server protocol implementation is independent of its transport:
 
-- `auto`: use the managed daemon when `~/.codex/packages/standalone/current/codex` exists; otherwise use a persistent private stdio child.
-- `daemon`: idempotently start the managed daemon, then relay JSONL to its native control WebSocket. A missing managed standalone install fails before a turn starts with an actionable error.
+- `auto`: prefer the managed standalone daemon; otherwise use the configured Codex command's daemon. Legacy custom wrapper commands whose executable name is not `codex` retain their explicit private-stdio compatibility behavior.
+- `daemon`: idempotently start the managed or configured daemon, then relay JSONL to its native control WebSocket. An unavailable service fails before a turn starts; it does not create another executor as fallback.
 - `stdio`: run `codex app-server` with its default stdio transport.
 - remote projects: use the registered Codex Desktop host and an SSH relay to its app-server control socket.
 
 This separation keeps daemon lifecycle and remote transport concerns out of JSON-RPC request handling.
+
+## Native project membership and IDE
+
+Native thread responses normalize `projectId` into assigned, explicit-none, or unknown membership. The discriminator and ID travel together through inspection, catalogs, follow snapshots and lifecycle responses. Desktop presentation can translate an exact migration alias or ordering preference; it cannot restore a native projectless chat.
+
+IDE link enrichment and browser/proxy/upgrade access use the same asynchronous native membership refresh. Their synchronous projection reads the reconciled Gateway edge instead of consulting a second Desktop-only authority. This also works when no Desktop app or GUI registry exists. Existing project/worktree entry identity, browser grants and full-root authorization remain separate from the transport used to read native state.
 
 ## Extending the interface
 

@@ -54,7 +54,6 @@ import type {
   CodexRuntimeInfo
 } from "../codex/backend.js";
 import type { CodexThreadState } from "../codex/backend.js";
-import { desktopSessionMembership } from "../codex/desktop-session-membership.js";
 import { localProjectsAtWorkspace, nativeProjectForManaged } from "../state/project-identity.js";
 import { assertCodexThreadRunnable, capacityFailureScope, CodexTurnExecutionError } from "../codex/backend.js";
 import { CodexAppServerGateway } from "../codex/app-server-gateway.js";
@@ -1007,19 +1006,11 @@ export class AccountManager {
       let project = store.getProject(session.projectId); if (!project) return;
       const hostId = session.hostId ?? project.hostId ?? "local";
       if (hostId !== (project.hostId ?? "local") || (project.projectKind === "remote" && hostId === "local")) return;
-      // Cheap fresh Desktop membership check also protects already-issued local
-      // URLs and proxy requests. cwd is never supplied as membership evidence.
-      if (hostId === "local" && session.threadId && project.sourceProjectId && this.configProvider().codexBackend !== "exec") {
-        const state = desktopSessionMembership()( { threadId: session.threadId, persistence: "active", runtimeStatus: "unknown", activeFlags: [] });
-        if (!this.observeThreadMembership(hostId, state)) return;
-        // Stopped accounts have disk-backed ephemeral stores, not a shared
-        // running store. Re-read after reconciliation in either lifecycle.
-        session = this.storeFor(accountId).getSession(sessionId);
-        if (!session?.projectId || session.projectBinding === "none") return;
-        project = this.storeFor(accountId).getProject(session.projectId); if (!project) return;
-      }
-      // Desktop can change project membership while Gateway is running. Read
-      // its full root set, not just the thread cwd; never mix hosts or backends.
+      // This synchronous projection uses Gateway's managed edge. freshEntry
+      // and every browser/proxy/upgrade access recheck native membership through
+      // refreshIDEWorkspace before granting access. Desktop UI state must not
+      // override that observation or become mandatory on a CLI-only host.
+      // Preserve the project's full root set, not just the thread cwd.
       const nativeProject = this.configProvider().codexBackend === "exec" ? undefined
         : this.ideProjects().find(candidate => (candidate.hostId ?? "local") === hostId
           && (project.sourceProjectId ? candidate.projectId === project.sourceProjectId : candidate.workspace === project.workspace));

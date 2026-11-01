@@ -2623,6 +2623,7 @@ function parseThreadState(
   const preview = typeof thread.preview === "string" && thread.preview.trim()
     ? boundedText(thread.preview.replace(/\s+/g, " "), 240)
     : extractLastUserMessageFromTurn(latestTurn);
+  const projectId = typeof thread.projectId === "string" && thread.projectId.trim() ? thread.projectId : undefined;
   return {
     threadId,
     persistence,
@@ -2637,7 +2638,11 @@ function parseThreadState(
       ? { activeTurnId: latestTurn.id }
       : {}),
     ...(typeof thread.cwd === "string" ? { cwd: thread.cwd } : {}),
-    ...(typeof thread.projectId === "string" ? { projectId: thread.projectId } : {}),
+    ...(projectId ? { projectId } : {}),
+    // Native membership is an explicit protocol fact. ID translation and IDE
+    // access consume this discriminator as well as the ID; an omitted field
+    // from an older/partial response is not evidence of project removal.
+    projectMembership: projectId ? "assigned" : thread.projectId === null ? "none" : "unknown",
     ...(typeof thread.name === "string" && thread.name.trim() ? { title: thread.name.trim() } : {}),
     ...(preview ? { preview } : {}),
     ...(updatedAt ? { updatedAt } : {})

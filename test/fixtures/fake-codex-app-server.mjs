@@ -412,6 +412,14 @@ rl.on("line", (line) => {
   }
 
   if (message.method === "thread/list") {
+    if (process.argv.includes("--native-membership-shapes")) {
+      respond(message.id, { data: message.params.archived ? [] : [
+        { id: "assigned", cwd: "/tmp/project", projectId: "native-project", status: { type: "idle" } },
+        { id: "removed", cwd: "/tmp/project", projectId: null, status: { type: "idle" } },
+        { id: "omitted", cwd: "/tmp/project", status: { type: "idle" } },
+        { id: "malformed", cwd: "/tmp/project", projectId: 42, status: { type: "idle" } }
+      ], nextCursor: null }); return;
+    }
     const data = message.params?.archived
       ? [...archivedThreads].map((id) => ({
         id,
@@ -442,6 +450,10 @@ rl.on("line", (line) => {
     respond(message.id, {
       thread: {
         id: message.params.threadId,
+        ...(process.argv.includes("--native-membership-shapes")
+          ? message.params.threadId === "assigned" ? { projectId: "native-project" }
+            : message.params.threadId === "removed" ? { projectId: null }
+              : message.params.threadId === "malformed" ? { projectId: 42 } : {} : {}),
         cwd: "/tmp/project",
         path: `/tmp/fake-codex-home/sessions/${message.params.threadId}.jsonl`,
         status: { type: "idle" },
@@ -482,6 +494,10 @@ rl.on("line", (line) => {
     respond(message.id, {
       thread: {
         id: message.params.threadId,
+        ...(process.argv.includes("--native-membership-shapes")
+          ? message.params.threadId === "assigned" ? { projectId: "native-project" }
+            : message.params.threadId === "removed" ? { projectId: null }
+              : message.params.threadId === "malformed" ? { projectId: 42 } : {} : {}),
         cwd: "/tmp/project",
         path: `/tmp/fake-codex-home/sessions/${message.params.threadId}.jsonl`,
         status: message.params.threadId === "thread-system-error"

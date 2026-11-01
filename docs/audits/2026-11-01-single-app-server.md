@@ -1,5 +1,7 @@
 # Single native App Server review
 
+Follow-up: the live native-to-IDE boundary had two regressions despite the release's passing protocol suite and retained grants/bindings. See [the retained-feature review and real native regression evidence](2026-11-01-ide-native-regression.md). The deployment section below records the pre-migration state; it must not be read as current service status.
+
 This replaces the fixed Desktop/headless business split in the preceding release. The requested boundary is one complete native protocol implementation. Hosts differ by service transport and deployment, not by enabled operations or fallback executor.
 
 ## Reviewed scope

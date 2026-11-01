@@ -1,9 +1,84 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import test from "node:test";
 import { CodexAppServerGateway } from "../src/codex/app-server-gateway.js";
+import { AccountManager } from "../src/server/account-manager.js";
+import { RuntimeStateStore } from "../src/state/runtime-state.js";
+import { resolveStatePaths, accountStatePaths } from "../src/state/paths.js";
+import { saveAccount } from "../src/weixin/accounts.js";
+import { withIDEEntry } from "../src/ide/completion.js";
 import { sharedNativeCore, message, tool, until } from "./fixtures/shared-native-core.mjs";
 
 const native = { skip: !process.env.CODEX_NATIVE_QUEUE_TEST_BIN, timeout: 30000 };
+
+test("real native project membership reaches IDE enrichment with the existing stable project identity", native, async t => {
+  const f = await sharedNativeCore(t), desktop = await f.rpc("desktop_ide");
+  const workspace = fs.realpathSync(f.root);
+  const { project } = await desktop.request("project/create", { name: "Native project", roots: [{ path: workspace }], idempotencyKey: "isolated-ide-project" });
+  const { thread } = await desktop.request("thread/start", { cwd: workspace, projectId: project.id });
+  await desktop.request("turn/start", { threadId: thread.id, input: [{ type: "text", text: "initialize", text_elements: [] }] });
+  await until(() => desktop.events.some(m => m.method === "turn/completed"));
+  const backend = f.runner(), gateway = new CodexAppServerGateway({ appServerBackend: backend });
+  t.after(() => gateway.close());
+  const paths = resolveStatePaths(path.join(f.root, "gateway-state"));
+  saveAccount(paths, { accountId: "account", token: "isolated-fixture", baseUrl: "http://localhost" });
+  const store = new RuntimeStateStore(accountStatePaths(paths, "account"));
+  const hostId = "remote:isolated";
+  const managed = store.createProject("Existing project", workspace, { sourceProjectId: "desktop-project", hostId, projectKind: "remote" });
+  const session = store.createSession("group", workspace, "Task", managed.id);
+  store.setSessionThread(session.id, thread.id);
+  const manager = new AccountManager({ paths,
+    ideProjectsProvider: () => [{ projectId: "desktop-project", hostId, workspace,
+      name: "Existing project", projectKind: "remote", available: true, sessionCount: 1, lastUsedAt: "" }],
+    runnerFactory: () => ({ async warmUp() {}, inspectThread: (id: string) => gateway.inspectThread(id),
+      listProjects: () => gateway.listProjects() }) as never });
+  manager.ide.configStore.save({ ...manager.ide.config(), enabled: true,
+    hosts: [{ hostId, enabled: true, binary: "code-server" }] });
+  const original = manager.ide.entry("account", session.id)!;
+  const observed = await gateway.inspectThread(thread.id);
+  assert.equal(observed.projectId, project.id);
+  assert.equal(observed.projectMembership, "assigned");
+  const fresh = await manager.ide.freshEntry("account", session.id);
+  assert.equal(fresh?.url, original.url, "transport migration must preserve the project URL and existing authorization identity");
+  assert.match(withIDEEntry("完整答复", fresh?.url), /\[打开项目 Web IDE\]/);
+  assert.equal(new RuntimeStateStore(accountStatePaths(paths, "account")).getSession(session.id)!.projectId, managed.id);
+  assert.equal(f.calls.length, 1, "membership and IDE reads never submit or repeat a task");
+  await desktop.request("thread/metadata/update", { threadId: thread.id, projectId: "" });
+  const independent = await gateway.inspectThread(thread.id);
+  assert.equal(independent.projectId, undefined);
+  assert.equal(independent.projectMembership, "none", "explicit removal cannot inherit stale Desktop or Gateway membership");
+  assert.equal(await manager.ide.freshEntry("account", session.id), undefined);
+  assert.throws(() => manager.ide.resolve(original.id), /失效/);
+  assert.equal(f.calls.length, 1);
+});
+
+test("a CLI-only native service provides a local project IDE without any Desktop membership registry", native, async t => {
+  const f = await sharedNativeCore(t), desktop = await f.rpc("headless_ide"), workspace = fs.realpathSync(f.root);
+  const { project } = await desktop.request("project/create", { name: "Server project", roots: [{ path: workspace }], idempotencyKey: "headless-ide-project" });
+  const { thread } = await desktop.request("thread/start", { cwd: workspace, projectId: project.id });
+  await desktop.request("turn/start", { threadId: thread.id, input: [{ type: "text", text: "initialize", text_elements: [] }] });
+  await until(() => desktop.events.some(m => m.method === "turn/completed"));
+  const gateway = new CodexAppServerGateway({ appServerBackend: f.runner() });
+  t.after(() => gateway.close());
+  const paths = resolveStatePaths(path.join(f.root, "gateway-state"));
+  saveAccount(paths, { accountId: "account", token: "isolated-fixture", baseUrl: "http://localhost" });
+  const store = new RuntimeStateStore(accountStatePaths(paths, "account"));
+  const managed = store.createProject("Server project", workspace, { sourceProjectId: project.id, hostId: "local" });
+  const session = store.createSession("group", workspace, "Task", managed.id);
+  store.setSessionThread(session.id, thread.id);
+  const manager = new AccountManager({ paths, ideProjectsProvider: () => [],
+    runnerFactory: () => ({ async warmUp() {}, inspectThread: (id: string) => gateway.inspectThread(id) }) as never });
+  manager.ide.configStore.save({ ...manager.ide.config(), enabled: true, hosts: [{ hostId: "local", enabled: true, binary: "code-server" }] });
+  const entry = await manager.ide.freshEntry("account", session.id);
+  assert.ok(entry, "confirmed native assignment must not depend on a Desktop UI registry");
+  assert.equal(manager.ide.resolve(entry.id).projectId, managed.id);
+  assert.equal(new RuntimeStateStore(accountStatePaths(paths, "account")).getSession(session.id)!.projectId, managed.id);
+  await desktop.request("thread/metadata/update", { threadId: thread.id, projectId: "" });
+  assert.equal(await manager.ide.freshEntry("account", session.id), undefined);
+  assert.throws(() => manager.ide.resolve(entry.id), /失效/);
+  assert.equal(f.calls.length, 1);
+});
 
 test("one native core provides creation, unloaded continuation, goals, lifecycle, catalog and queue for both peers", native, async t => {
   const f = await sharedNativeCore(t), desktop = await f.rpc("desktop");

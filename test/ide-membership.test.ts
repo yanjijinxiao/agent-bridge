@@ -175,17 +175,19 @@ test("Gateway owns one semantic IDE footer; projectless results remove stale foo
   assert.equal(withIDEEntry(example), example, "model-authored examples are not Gateway footers");
 });
 
-test("IDE resolution re-reads disk-backed membership when its account is stopped", t => {
+test("fresh IDE resolution re-reads disk-backed native membership when its account is stopped", async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cig-stopped-membership-")), paths = resolveStatePaths(root);
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   saveAccount(paths, { accountId: "account", token: "fixture", baseUrl: "http://localhost" });
   const accountPaths = accountStatePaths(paths, "account"), store = new RuntimeStateStore(accountPaths);
   const project = store.createProject("project", "/project", { sourceProjectId: "native-project", hostId: "local" });
   const session = store.createSession("chat", "/project", "task", project.id); store.setSessionThread(session.id, "native-thread");
-  const manager = new AccountManager({ paths });
-  // Isolate the lifecycle regression from the developer's Desktop registry.
-  const observer = manager as unknown as { observeThreadMembership(): boolean };
-  observer.observeThreadMembership = () => { new RuntimeStateStore(accountPaths).reconcileThreadProject("native-thread", "local", undefined); return true; };
-  assert.equal(manager.ideWorkspace("account", session.id), undefined);
+  const manager = new AccountManager({ paths, ideProjectsProvider: () => [], runnerFactory: () => ({
+    async warmUp() {}, async inspectThread() { return { threadId: "native-thread", persistence: "active", runtimeStatus: "idle",
+      activeFlags: [], cwd: "/project", projectMembership: "none" }; }
+  }) as never });
+  manager.ide.configStore.save({ ...manager.ide.config(), enabled: true, hosts: [{ hostId: "local", enabled: true, binary: "code-server" }] });
+  assert.ok(manager.ideWorkspace("account", session.id));
+  assert.equal(await manager.ide.freshEntry("account", session.id), undefined);
   assert.equal(new RuntimeStateStore(accountPaths).getSession(session.id)!.projectBinding, "none");
 });
