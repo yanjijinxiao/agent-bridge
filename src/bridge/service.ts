@@ -275,6 +275,7 @@ export class BridgeService {
     );
     this.runner = options.runner ?? new CodexBackendRouter({
       backend: options.config.codexBackend,
+      executionOwner: options.config.codexExecutionOwner,
       appServerTransport: options.config.codexAppServerTransport,
       codexBin: options.config.codexBin,
       execSandbox: options.config.codexExecSandbox

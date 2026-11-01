@@ -92,6 +92,21 @@ test("migrates the legacy inbound limit and never exceeds 100 MiB", (t) => {
   assert.equal(loadConfig(paths, "/tmp/project").maxInboundBytes, 25 * 1024 * 1024);
 });
 
+test("execution owner is an explicit persisted deployment choice and invalid values cannot change it", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-owner-config-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const paths = resolveStatePaths(root);
+  assert.equal(loadConfig(paths).codexExecutionOwner, "headless", "a CLI-only install needs no Desktop");
+  fs.writeFileSync(paths.configPath, JSON.stringify({ codexBackend: "app-server" }));
+  assert.equal(loadConfig(paths).codexExecutionOwner, undefined, "an upgrade cannot silently migrate old execution ownership");
+  saveConfig(paths, { ...defaultConfig(root), codexExecutionOwner: "desktop" });
+  assert.equal(loadConfig(paths).codexExecutionOwner, "desktop", "socket availability is not a deployment selector");
+  fs.writeFileSync(paths.configPath, JSON.stringify({ codexExecutionOwner: "desktpo" }));
+  const before = fs.readFileSync(paths.configPath, "utf8");
+  assert.throws(() => loadConfig(paths), /codexExecutionOwner/);
+  assert.equal(fs.readFileSync(paths.configPath, "utf8"), before);
+});
+
 test("enables process progress by default while preserving an explicit opt-out", (t) => {
   const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-weixin-config-progress-"));
   t.after(() => fs.rmSync(stateDir, { recursive: true, force: true }));

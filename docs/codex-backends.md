@@ -2,20 +2,23 @@
 
 Gateway treats Codex CLI and Codex app-server as two implementations of one backend boundary, including discovery and controls, not just turn execution. Channel, Web, account, project, and intent code depend on the stable `CodexBridgeBackend` facade rather than a concrete runner.
 
-```text
-Channel / Web / AccountManager
-              |
-       CodexBridgeBackend
-              |
-       CodexBackendRouter
-       /                 \
-CodexExecRunner      AppServerCodexRunner
- codex exec          JSON-RPC thread/turn API
-                           |
-                 daemon proxy or stdio child
-                           |
-          Desktop relay only for an owned writer
-```
+The facade is `Channel / Web / AccountManager → CodexBridgeBackend → CodexBackendRouter`. Its fixed deployment selection is separate from the native transport.
+
+## Fixed execution ownership
+
+`codexExecutionOwner` explicitly chooses `desktop` or `headless`. It is not inferred from process count, the current presence of an IPC socket, a project name or a failed read. Both production router factories propagate it. New installations default to headless; an existing config with no field retains legacy routing until an explicit migration. Invalid values fail configuration loading without rewriting the file. Selecting `codexBackend: exec` remains an explicit independent CLI deployment.
+
+- **Desktop**: execution, ordinary busy-thread messages, capacity continuation and guarded stops go only through Desktop's follower connection. Read preflight/snapshots use that same live owner. No-client-found, disconnection, timeout and ambiguous submission receipts cannot fall through to a second executor. The transport inbox retains proved-unsubmitted input; accepted/uncertain input is not replayed.
+- **Headless**: native CLI App Server owns execution, approvals and events. Desktop is neither discovered nor refreshed, even when the same home contains stale Desktop catalogs or project assignments. Session discovery and membership use native storage. A foreign writer lock remains an explicit failure, without a Desktop or exec retry. The default daemon transport has an independent lifetime; explicit private stdio retains its documented restart limitation.
+- **Remote desktop hosts**: the follower discovery and snapshots use the exact host ID. Native remote follower requests use the host envelope and incremented protocol version. A local or another host's same-ID snapshot cannot authorize input or supply its result. Remote completion is observed from the Desktop host snapshot, not a local rollout. A CLI-only server running its own Gateway selects headless instead; it needs no GUI.
+
+The installed Desktop follower protocol supports existing loaded threads, not `thread/start` or loading an unowned thread. Desktop mode therefore rejects IM creation, unloaded execution, dynamic Bridge tools, ephemeral classifiers, strict expected-turn steering, goal changes and lifecycle writes; capabilities and settings disclose these limits. Ordinary native conversation input remains available. The Gateway does not edit Desktop's global launch flags or restart the app to manufacture a shared transport.
+
+Read-only project/history observers may use separate native connections. These do not acquire a thread writer, resume a task, answer Desktop approvals or authorize execution takeover. Native queue add/list/delete retains the atomic native store; Desktop admission uses enqueue-only and the actual owner consumes the queue. Gateway never drains a Desktop queue through a private runner. Exact accepted terminal receipts can still be reconciled from native lifecycle evidence after a Desktop window disappears.
+
+Gateway restart detaches only its observations. Existing independent native tasks keep their thread/turn IDs; source receipts and bindings are retained. Fixed execution mode does not change the narrow submission/answer/delivery handoff gate, and does not make a private stdio executor independent.
+
+The remaining sections describe common native contracts and the legacy routing retained only for configurations that have not selected an execution owner.
 
 ## Scoped approvals share one authority
 

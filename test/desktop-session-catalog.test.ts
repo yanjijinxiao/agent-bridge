@@ -131,6 +131,22 @@ test("older App fallback traverses native pages and labels storage/status proven
   assert.match(catalog.warnings.join("\n"), /不保证与 App 侧栏完全一致/);
 });
 
+test("headless App Server ignores stale Desktop catalogs and project assignments", async t => {
+  const { home, add } = fixture(t); add("desktop-only");
+  fs.writeFileSync(path.join(home, ".codex-global-state.json"), JSON.stringify({
+    "local-projects": { legacy: { id: "legacy", rootPaths: ["/tmp/shared"] } },
+    "thread-project-assignments": { first: { projectId: "legacy" } }
+  }));
+  const runner = new AppServerCodexRunner({ codexHome: home, catalogSource: "native", transport: {
+    command: process.execPath, args: [path.resolve("test/fixtures/fake-codex-catalog.mjs")] } });
+  t.after(() => runner.close());
+  const catalog = await runner.listSessionCatalog({ persistence: "active" });
+  assert.equal(catalog.source, "app-server-storage"); assert.deepEqual(catalog.warnings, []);
+  assert.ok(catalog.threads.some(thread => thread.threadId === "first"));
+  assert.equal(catalog.threads.some(thread => thread.threadId === "desktop-only"), false);
+  assert.notEqual((await runner.inspectThread("first")).projectId, "legacy");
+});
+
 test("auto session discovery pins App even when concurrent project enrichment fails", async t => {
   let rejectProjects!: (error: Error) => void;
   let cliCalls = 0;

@@ -88,6 +88,8 @@ export type {
 export type { AppServerTransport } from "./app-server-transport.js";
 
 export type AppServerRunnerOptions = {
+  /** Headless deployments use native storage, never a stale Desktop catalog. */
+  catalogSource?: "desktop" | "native";
   codexHome?: string;
   hostId?: string;
   codexBin?: string;
@@ -589,6 +591,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   async listSessionCatalog(input: CodexThreadListInput = {}): Promise<CodexSessionCatalog> {
+    if (this.options.catalogSource === "native") return {
+      backend: this.id, source: "app-server-storage", hostIds: [this.options.hostId ?? "local"], complete: true,
+      threads: await this.listThreads(input), warnings: []
+    };
     // Do not load threads or start a second app-server just to discover what
     // Desktop already indexes, including hosts with no saved project.
     const catalog = readDesktopSessionCatalog(this.options.codexHome, this.options.hostId, input);
@@ -719,6 +725,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private sessionMembership(legacyWorkspaceFallback = false): (state: CodexThreadState) => CodexThreadState {
+    if (this.options.catalogSource === "native") return state => state;
     // A remote transport without a host identity must not consume local membership.
     if (this.options.transport?.mode === "remote-daemon" && !this.options.hostId) return (state) => state;
     return desktopSessionMembership(this.options.codexHome, this.options.hostId, legacyWorkspaceFallback);

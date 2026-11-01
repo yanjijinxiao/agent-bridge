@@ -312,13 +312,22 @@
               </select>
             </label>
             <label>
+              <span>会话执行入口</span>
+              <select id="executionOwnerInput" name="codexExecutionOwner">
+                <option value="">保留原路由（尚未迁移）</option>
+                <option value="desktop">Codex 桌面端（须运行并打开目标会话）</option>
+                <option value="headless">CLI App Server（无界面服务器）</option>
+              </select>
+              <small class="field-hint">入口固定；断连时保留消息，不切换执行器。桌面模式目前不支持通过 IM 新建或加载会话。</small>
+            </label>
+            <label>
               <span>App server 连接</span>
               <select id="appServerTransportInput" name="codexAppServerTransport">
                 <option value="auto">自动（优先 daemon）</option>
                 <option value="daemon">Daemon</option>
                 <option value="stdio">独立 stdio 进程</option>
               </select>
-              <small class="field-hint">仅影响 app-server 后端；自动模式在 daemon 不可用时回退到 stdio。</small>
+              <small class="field-hint">用于 CLI 执行及只读查询；daemon 连接失败不会自动创建私有执行进程。</small>
             </label>
             <label>
               <span>运行中消息的默认策略</span>

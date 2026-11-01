@@ -23,6 +23,7 @@ import type {
   CodexTurnStatus
 } from "./backend.js";
 import { parseThreadHistory } from "./app-server-runner.js";
+import { observeOwnerTurn } from "./native-turn-lifecycle.js";
 import { desktopSessionMembership } from "./desktop-session-membership.js";
 import {
   CodexSessionCompletionMonitor,
@@ -45,7 +46,7 @@ type ObservationStage = "connect" | "initialize" | "discovery" | "snapshot" | "d
 export type DesktopOwnerObservationDiagnostic = {
   timestamp: string;
   backend: "desktop";
-  hostId: "local";
+  hostId: string;
   threadId: string;
   observationId: string;
   phase: "preflight";
@@ -63,6 +64,8 @@ export type DesktopOwnerObservationDiagnostic = {
 };
 
 export type DesktopCodexRunnerOptions = {
+  /** The Desktop host id, not an SSH address inferred from cwd. */
+  hostId?: string;
   socketPath?: string;
   codexHome?: string;
   timeoutMs?: number;
@@ -93,6 +96,9 @@ type CompletionWaiter = {
 export class DesktopCodexRunner implements CodexThreadContinuation {
   readonly id = "desktop-relay" as const;
   private readonly socketPath: string;
+  private readonly hostId: string;
+  private readonly completionPollIntervalMs: number;
+  private readonly remoteObservationShutdown = new AbortController();
   private readonly requestTimeoutMs: number;
   private readonly busyRetryDelayMs: number;
   private readonly completions = new Map<string, CodexSessionCompletion>();
@@ -130,7 +136,7 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
       // Live IPC can omit projectId even for a project-backed task. Normalize
       // through the same fresh Desktop membership adapter as App/catalog reads;
       // explicit projectless assignments and ambiguous roots remain unassigned.
-      return { ...observation.snapshot, state: desktopSessionMembership(this.codexHome, "local", true)(observation.snapshot.state) };
+      return { ...observation.snapshot, state: desktopSessionMembership(this.codexHome, this.hostId, true)(observation.snapshot.state) };
     } catch (error) {
       // Discovery is read-only. An unanswered discovery is not proof of an
       // idle Desktop task; the caller may only fall back to the app-server's
@@ -140,7 +146,7 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
         if (Date.now() - last > 60_000) {
           this.unavailableOwnerLogTimes.set(threadId, Date.now());
           console.info(`[codex-im-gateway] owner discovery ${JSON.stringify({ timestamp: new Date().toISOString(),
-            backend: "desktop", hostId: "local", threadId, operation: error.operation, code: error.code,
+            backend: "desktop", hostId: this.hostId, threadId, operation: error.operation, code: error.code,
             outcome: "no-live-owner", messageSubmitted: false })}`);
         }
         return undefined;
@@ -157,6 +163,8 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
   }
 
   constructor(options: DesktopCodexRunnerOptions = {}) {
+    this.hostId = options.hostId ?? "local";
+    this.completionPollIntervalMs = options.completionPollIntervalMs ?? 1_000;
     this.codexHome = options.codexHome;
     this.socketPath = options.socketPath ?? path.join(os.homedir(), ".codex", "ipc", "ipc.sock");
     this.requestTimeoutMs = options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
@@ -188,14 +196,14 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
           new Error("Desktop owner observation timed out"));
       }
       const attemptBudgetMs = Math.max(1, Math.min(this.observationTimeoutMs * attempt, deadline - performance.now()));
-      const connection = new DesktopIpcConnection(this.socketPath, this.requestTimeoutMs);
+      const connection = new DesktopIpcConnection(this.socketPath, this.requestTimeoutMs, this.hostId);
       this.observationConnections.add(connection);
       const release = () => { connection.close(); this.observationConnections.delete(connection); };
       const stages = new ObservationStages();
       const report = (outcome: DesktopOwnerObservationDiagnostic["outcome"], error?: unknown) => {
         // Whitelist identifiers and timing only: never log IPC payloads or raw errors.
         const event: DesktopOwnerObservationDiagnostic = {
-          timestamp: new Date().toISOString(), backend: "desktop", hostId: "local", threadId,
+          timestamp: new Date().toISOString(), backend: "desktop", hostId: this.hostId, threadId,
           observationId, phase: "preflight", operation: "thread/owner-snapshot", attempt, maxAttempts: 2,
           stage: stages.stage, stageDurationsMs: stages.durations(),
           elapsedMs: Math.round(performance.now() - started), attemptBudgetMs: Math.round(attemptBudgetMs), totalBudgetMs,
@@ -205,7 +213,7 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
         try { this.onObservationDiagnostic(event); } catch { /* Diagnostics cannot change delivery semantics. */ }
       };
       try {
-        const snapshot = await observeDesktopOwner(connection, threadId, attemptBudgetMs, stages);
+        const snapshot = await observeDesktopOwner(connection, threadId, this.hostId, attemptBudgetMs, stages);
         if (this.closed) throw new Error("Codex Desktop runner is closed");
         if (attempt > 1) report("recovered");
         return { connection, snapshot, release };
@@ -243,7 +251,7 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
     let acceptedTurnId: string | undefined;
     this.activeThreads.add(input.threadId);
     try {
-      await this.ensureMonitorReady();
+      if (this.hostId === "local") await this.ensureMonitorReady();
       await input.onProgress?.("当前会话由 Codex Desktop 持有，已转交桌面端继续执行。");
       const request = resume ? { threadId: input.threadId, input: [], clientUserMessageId: resume.clientUserMessageId,
         turnTrigger: "capacity_retry_automatic" } : compactObject({
@@ -304,7 +312,9 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
       }
       acceptedTurnId = turnId;
       await input.onTurnStarted?.({ threadId: input.threadId, turnId });
-      const completion = await this.waitForCompletion(input.threadId, turnId, input.onProgress);
+      const completion = this.hostId === "local"
+        ? await this.waitForCompletion(input.threadId, turnId, input.onProgress)
+        : await this.waitForRemoteCompletion(input.threadId, turnId, input.onProgress);
       if (!completion.success) throw new CodexTurnExecutionError(completion.outcome === "interrupted" ? "interrupted" : "failed", completion.text, completion.failureCode);
       return {
         threadId: input.threadId,
@@ -329,6 +339,7 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
       socketPath: this.socketPath,
       timeoutMs: Math.min(this.requestTimeoutMs, 30_000),
       threadId: target,
+      hostId: this.hostId,
       expectedTurnId,
       assertCurrent
     });
@@ -388,13 +399,13 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
    */
   async refreshTaskList(threadId?: string): Promise<void> {
     if (this.closed) return;
-    const connection = new DesktopIpcConnection(this.socketPath, this.requestTimeoutMs);
+    const connection = new DesktopIpcConnection(this.socketPath, this.requestTimeoutMs, this.hostId);
     try {
       await connection.initialize();
       if (threadId) {
         await connection.broadcast("thread-unarchived", 1, {
           conversationId: threadId,
-          hostId: "local"
+          hostId: this.hostId
         });
       }
       await connection.broadcast("query-cache-invalidate", 0, {
@@ -406,6 +417,7 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
   }
 
   detachIndependentObservations(): void {
+    this.remoteObservationShutdown.abort();
     for (const [key, waiter] of this.waiters) {
       const [threadId, turnId] = key.split("\n");
       waiter.reject(new CodexCommunicationError("observation", "turn/observe", threadId, turnId));
@@ -432,6 +444,34 @@ export class DesktopCodexRunner implements CodexThreadContinuation {
       this.monitor.start();
     }
     await this.monitor.ready();
+  }
+
+  /** Remote rollouts are not local files. Observe the same Desktop-host turn;
+   * never attach a second native executor or read a same-id local rollout. */
+  private async waitForRemoteCompletion(threadId: string, turnId: string,
+    onProgress?: CodexRunnerInput["onProgress"]): Promise<CodexSessionCompletion> {
+    let lastProgress = "";
+    while (!this.closed && !this.remoteObservationShutdown.signal.aborted) {
+      const snapshot = await this.readThreadSnapshot(threadId);
+      if (!snapshot) throw new CodexCommunicationError("observation", "desktop/turn-observe", threadId, turnId);
+      const turn = snapshot.turns.find(turn => turn.id === turnId);
+      const progress = turn?.messages.filter(message => message.role === "assistant" && message.kind === "progress").at(-1)?.text;
+      if (progress && progress !== lastProgress) { lastProgress = progress; await onProgress?.(progress); }
+      const observed = observeOwnerTurn(snapshot, threadId, turnId);
+      if (turn?.status === "failed" && snapshot.state.lastTurnFailure?.turnId === turnId) {
+        observed.status = "failed"; observed.failureCode = snapshot.state.lastTurnFailure.code;
+      }
+      if (["completed", "failed", "interrupted"].includes(observed.status)) return {
+        sessionId: threadId, turnId, workspace: snapshot.state.cwd ?? "", taskTitle: snapshot.state.title ?? "",
+        text: observed.text || (observed.status === "completed" ? "任务已完成。" : "原生任务已结束。"),
+        success: observed.status === "completed", outcome: observed.status as "completed" | "failed" | "interrupted",
+        failureCode: observed.failureCode, completedAt: new Date().toISOString()
+      };
+      try { await sleep(this.completionPollIntervalMs, undefined,
+        { signal: AbortSignal.any([this.observationShutdown.signal, this.remoteObservationShutdown.signal]) }); }
+      catch { throw new CodexCommunicationError("observation", "desktop/turn-observe", threadId, turnId); }
+    }
+    throw new CodexCommunicationError("observation", "desktop/turn-observe", threadId, turnId);
   }
 
   private waitForCompletion(
@@ -530,7 +570,7 @@ class ObservationStages {
 }
 
 /** Every attempt has one deadline, not a new timeout for each RPC/stage. */
-async function observeDesktopOwner(connection: DesktopIpcConnection, threadId: string, timeoutMs: number,
+async function observeDesktopOwner(connection: DesktopIpcConnection, threadId: string, hostId: string, timeoutMs: number,
   stages: ObservationStages): Promise<CodexThreadSnapshot> {
   let timer: NodeJS.Timeout | undefined;
   const deadline = performance.now() + timeoutMs;
@@ -540,7 +580,7 @@ async function observeDesktopOwner(connection: DesktopIpcConnection, threadId: s
     return await Promise.race([(async () => {
       await connection.initialize(() => stages.next("initialize"));
       stages.next("discovery");
-      await connection.request("thread-owner-discovery", 1, { conversationId: threadId, hostId: "local" });
+      await connection.request("thread-owner-discovery", 1, { conversationId: threadId, hostId });
       stages.next("snapshot");
       const owner = await connection.followSnapshot(threadId);
       stages.next("decode");
@@ -599,8 +639,8 @@ async function sendFollowerStartTurn(input: FollowerRequest): Promise<unknown> {
   }
 }
 
-async function sendFollowerInterrupt(input: { socketPath: string; timeoutMs: number; threadId: string; expectedTurnId?: string; assertCurrent?: () => void }): Promise<void> {
-  const connection = new DesktopIpcConnection(input.socketPath, input.timeoutMs);
+async function sendFollowerInterrupt(input: { socketPath: string; timeoutMs: number; threadId: string; hostId: string; expectedTurnId?: string; assertCurrent?: () => void }): Promise<void> {
+  const connection = new DesktopIpcConnection(input.socketPath, input.timeoutMs, input.hostId);
   try {
     await connection.initialize();
     input.assertCurrent?.();
@@ -636,7 +676,8 @@ class DesktopIpcConnection {
 
   constructor(
     private readonly socketPath: string,
-    private readonly timeoutMs: number
+    private readonly timeoutMs: number,
+    private readonly hostId = "local"
   ) {}
 
   async initialize(onConnected?: () => void): Promise<void> {
@@ -663,7 +704,9 @@ class DesktopIpcConnection {
           type: "request",
           requestId,
           sourceClientId: this.clientId,
-          version,
+          version: this.hostId !== "local" && method.startsWith("thread-follower-")
+            ? (method === "thread-follower-interrupt-turn" ? 5 : version + 1) : version,
+          ...(this.hostId !== "local" && method.startsWith("thread-follower-") ? { hostId: this.hostId } : {}),
           method,
           params
         });
@@ -691,7 +734,7 @@ class DesktopIpcConnection {
       }, this.timeoutMs);
       this.snapshotWaiter = { threadId, resolve, reject, timer };
       void this.broadcast("thread-stream-following-changed", 1, {
-        conversationId: threadId, hostId: "local", following: true
+        conversationId: threadId, hostId: this.hostId, following: true
       }).catch((error) => { this.failSnapshot(error); });
     });
   }
@@ -769,9 +812,8 @@ class DesktopIpcConnection {
   private handleMessage(message: IpcMessage): void {
     if (message.type === "broadcast" && message.method === "thread-stream-state-changed") {
       const params = recordValue(message.params);
-      // This connection observes only the local owner; a remote broadcast with
-      // the same conversation ID must never authorize a local write.
-      if (params?.hostId !== undefined && params.hostId !== "local") return;
+      // Missing host is the legacy local envelope, never an arbitrary host.
+      if ((params?.hostId ?? "local") !== this.hostId) return;
       const change = recordValue(params?.change);
       const state = recordValue(change?.conversationState);
       if (typeof params?.conversationId === "string" && change?.type === "snapshot" && state) {

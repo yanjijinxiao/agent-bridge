@@ -481,6 +481,7 @@ export class AccountManager {
     this.bridgeFactory = options.bridgeFactory ?? ((input) => new BridgeService(input));
     this.runnerFactory = options.runnerFactory ?? ((config) => new CodexBackendRouter({
       backend: config.codexBackend,
+      executionOwner: config.codexExecutionOwner,
       appServerTransport: config.codexAppServerTransport,
       codexBin: config.codexBin,
       execSandbox: config.codexExecSandbox,

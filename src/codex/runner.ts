@@ -52,6 +52,8 @@ export type CodexBackend = "auto" | "app-server" | "exec";
 
 export type CodexBackendRouterOptions = {
   backend: CodexBackend;
+  /** Fixed deployment authority. Omitted only by legacy embedded callers. */
+  executionOwner?: "desktop" | "headless";
   appServerTransport?: AppServerConnectionMode;
   codexBin?: string;
   execSandbox?: CodexExecSandbox;
@@ -85,6 +87,7 @@ export class CodexBackendRouter implements CodexBridgeBackend {
   private readonly desktop: Pick<DesktopCodexRunner, "run" | "steer" | "stop" | "close"> &
     Partial<Pick<DesktopCodexRunner, "refreshTaskList" | "readThreadSnapshot" | "inspectThread" | "submitThreadMessage" | "resumeAfterCapacity" | "detachIndependentObservations">>;
   private readonly remoteAppServers = new Map<string, CodexAppServerBackend>();
+  private readonly remoteDesktopRunners = new Map<string, DesktopCodexRunner>();
   private readonly remoteTransports = new Map<string, ReturnType<typeof resolveRemoteCodexTransport>>();
   private readonly runTails = new Map<string, Promise<void>>();
   private readonly desktopOwnedThreads = new Set<string>();
@@ -97,6 +100,8 @@ export class CodexBackendRouter implements CodexBridgeBackend {
   private appServerRuns = 0;
   private readonly restartRuns = new Set<{ scope?: CodexExecutionScope }>();
   private get selectedBackend() { return this.options.backend === "auto" ? this.selectedAutoBackend ?? "app-server" : this.options.backend; }
+  private get desktopMode() { return this.selectedBackend !== "exec" && this.options.executionOwner === "desktop"; }
+  private get headlessMode() { return this.selectedBackend !== "exec" && this.options.executionOwner === "headless"; }
 
   constructor(private readonly options: CodexBackendRouterOptions) {
     const requestedTransport = options.appServerTransport ?? "auto";
@@ -111,6 +116,7 @@ export class CodexBackendRouter implements CodexBridgeBackend {
       codexBin: options.codexBin ?? "codex"
     });
     this.appServer = options.appServerBackend ?? new AppServerCodexRunner({
+      catalogSource: options.executionOwner === "headless" ? "native" : "desktop",
       codexHome: options.codexHome,
       codexBin: options.codexBin,
       requestTimeoutMs: options.timeoutMs,
@@ -129,6 +135,7 @@ export class CodexBackendRouter implements CodexBridgeBackend {
       ...(options.codexHome ? { socketPath: path.join(options.codexHome, "ipc", "ipc.sock") } : {})
     });
     const metadataConnection = options.metadataConnectionFactory ?? (hostId => new AppServerCodexRunner({
+      catalogSource: options.executionOwner === "headless" ? "native" : "desktop",
       codexHome: options.codexHome, codexBin: options.codexBin, hostId,
       metadataOnly: true,
       requestTimeoutMs: options.timeoutMs, sandbox: options.execSandbox,
@@ -140,6 +147,7 @@ export class CodexBackendRouter implements CodexBridgeBackend {
     // history gets a replaceable observer, never the accepted task's connection.
     if (options.historyConnectionFactory || !options.appServerBackend) {
       this.historyReader = new CodexHistoryReader(options.historyConnectionFactory ?? (hostId => new AppServerCodexRunner({
+        catalogSource: options.executionOwner === "headless" ? "native" : "desktop",
         codexHome: options.codexHome, codexBin: options.codexBin, hostId,
         historyOnly: true,
         requestTimeoutMs: Math.min(options.timeoutMs ?? 15_000, 15_000), sandbox: options.execSandbox,
@@ -192,6 +200,8 @@ export class CodexBackendRouter implements CodexBridgeBackend {
 
   async steer(input: CodexSteerInput, hostId?: string): Promise<CodexSteerResult> {
     this.options.onThreadMutation?.(input.threadId, hostId ?? "local");
+    if (this.desktopMode) return this.desktopFor(hostId).steer(input);
+    if (this.headlessMode) return this.appServerFor(hostId).steer(input);
     if (isRemoteHost(hostId)) return this.appServerFor(hostId).steer(input);
     if (this.selectedBackend === "exec") return this.exec.steer(input);
     const state = await this.inspectThread(input.threadId);
@@ -220,9 +230,9 @@ export class CodexBackendRouter implements CodexBridgeBackend {
       throw new CodexInterventionError("原生队列已有输入，容量恢复未抢先执行。");
     }
     input.assertCurrent();
-    const owner = snapshot.state.executionOwner === "desktop" ? this.desktop : this.appServerFor(input.hostId);
+    const owner = snapshot.state.executionOwner === "desktop" ? this.desktopFor(input.hostId) : this.appServerFor(input.hostId);
     if (!owner.resumeAfterCapacity) throw new CodexInterventionError("当前执行者不支持空输入容量恢复，未切换执行者。");
-    const independent = owner === this.desktop || this.appServerFor(input.hostId).executionLifetime === "independent";
+    const independent = snapshot.state.executionOwner === "desktop" || this.appServerFor(input.hostId).executionLifetime === "independent";
     return owner.resumeAfterCapacity({ ...input, onTurnStarted: async event => {
       await input.onTurnStarted(event);
       if (independent && (event.status === undefined || event.status === "inProgress"))
@@ -234,6 +244,7 @@ export class CodexBackendRouter implements CodexBridgeBackend {
     // Undo only a durable recovery-owned lifecycle write, even if the user
     // has since switched bindings/backend. No task is run by this compensation.
     if (input.lifecycle?.restoring) return this.appServerFor(hostId).recoverSystemError!(input);
+    if (this.desktopMode) return { status: "unsupported", reason: "owner-unsupported" };
     if (this.selectedBackend === "exec") return { status: "unsupported", reason: "owner-unsupported" };
     const snapshot = await this.readThreadSnapshot(input.threadId, hostId);
     input.assertCurrent();
@@ -255,9 +266,10 @@ export class CodexBackendRouter implements CodexBridgeBackend {
       throw new CodexInterventionError("目标会话没有可确认的活动任务，消息未提交；未启动或排队新任务。");
     }
     input.assertCurrent?.();
-    if (!isRemoteHost(hostId) && state.executionOwner === "desktop") {
-      if (!this.desktop.submitThreadMessage) throw new CodexInterventionError("当前 Desktop 适配器不支持普通会话消息，未提交。");
-      return this.desktop.submitThreadMessage(input);
+    if (state.executionOwner === "desktop") {
+      const desktop = this.desktopFor(hostId);
+      if (!desktop.submitThreadMessage) throw new CodexInterventionError("当前 Desktop 适配器不支持普通会话消息，未提交。");
+      return desktop.submitThreadMessage(input);
     }
     // Other owners retain official compare-and-steer, with no foreign writer
     // fallback if ownership or turn identity changes during the request.
@@ -304,8 +316,6 @@ export class CodexBackendRouter implements CodexBridgeBackend {
     // Queue metadata can be read without owning the thread. Consumption is a
     // writer operation and must never steal a Desktop owner's execution.
     const backend = this.nativeQueue(input.hostId);
-    const state = await this.inspectThread(input.threadId, input.hostId);
-    if (!input.observeOnly) assertCodexThreadRunnable(state);
     if (input.observeOnly) {
       const turnId = input.acceptedTurnId;
       if (!turnId) throw new CodexInterventionError("只读结果恢复缺少已接收轮次，未启动任务。");
@@ -316,14 +326,22 @@ export class CodexBackendRouter implements CodexBridgeBackend {
       if (observed.status !== "completed") throw new CodexTurnExecutionError(observed.status, "原生轮次已确认结束", observed.failureCode);
       return { threadId: input.threadId, turnId, text: observed.text || "任务已完成。", raw: "" };
     }
+    const state = await this.inspectThread(input.threadId, input.hostId);
+    assertCodexThreadRunnable(state);
     if (state.executionOwner === "desktop") throw new Error("Desktop 正在持有此会话，原生队列等待实际持有者消费；Gateway 不接管任务。");
     const watched = this.observationInput({ ...input, prompt: "" }, lease, backend.executionLifetime === "independent");
     return backend.runQueuedSubmission({ ...input, onTurnStarted: watched.onTurnStarted });
   }
 
   async readTurnLifecycle(threadId: string, turnId: string, hostId?: string): Promise<CodexTurnObservation> {
-    const observed = observeOwnerTurn(await this.readThreadSnapshot(threadId, hostId), threadId, turnId);
-    if (observed.source !== "unknown") return observed;
+    try {
+      const observed = observeOwnerTurn(await this.readThreadSnapshot(threadId, hostId), threadId, turnId);
+      if (observed.source !== "unknown") return observed;
+    } catch (error) {
+      // A persisted accepted turn can finish while its Desktop window is
+      // unavailable. Native lifecycle evidence is read-only, never a takeover.
+      if (!this.desktopMode || !isCodexCommunicationFailure(error)) throw error;
+    }
     const backend = this.appServerFor(hostId);
     return backend.readNativeTurnLifecycle ? backend.readNativeTurnLifecycle(threadId, turnId) : { status: "unknown", source: "unknown" };
   }
@@ -334,6 +352,15 @@ export class CodexBackendRouter implements CodexBridgeBackend {
 
   private async runImmediately(input: CodexRunnerInput, lease: { scope?: CodexExecutionScope }): Promise<CodexRunResult> {
     input.assertCurrent?.();
+    if (this.desktopMode) {
+      if (!input.threadId) throw new CodexInterventionError("桌面执行入口目前只支持已有且已在 Codex App 打开的会话。请先在 App 新建并绑定；Gateway 未另起执行器。");
+      try {
+        return await this.desktopFor(input.hostId).run(this.observationInput(withInlineDeveloperInstructions(input), lease, true));
+      } catch (error) {
+        if (error instanceof CodexOwnerUnavailableError) throw desktopUnavailable(input.threadId, error);
+        throw error; // In particular, an uncertain write is never replayed elsewhere.
+      }
+    }
     if (isRemoteHost(input.hostId)) {
       if (this.selectedBackend === "exec") {
         throw new Error(
@@ -350,6 +377,7 @@ export class CodexBackendRouter implements CodexBridgeBackend {
       }
       return this.exec.run(withInlineDeveloperInstructions(input));
     }
+    if (this.headlessMode) return this.runOnAppServer(input, lease);
     // Read and write must target the same owner. A private app-server can read
     // a Desktop rollout as notLoaded even when Desktop is actively working.
     if (input.threadId && this.desktopOwnedThreads.has(input.threadId)) {
@@ -430,6 +458,14 @@ export class CodexBackendRouter implements CodexBridgeBackend {
   async stop(threadId?: string, hostId?: string, assertCurrent?: () => void): Promise<CodexStopResult> {
     assertCurrent?.();
     if (threadId) this.options.onThreadMutation?.(threadId, hostId ?? "local");
+    if (this.desktopMode) {
+      if (!threadId) return "not-active";
+      const owner = await this.inspectThread(threadId, hostId);
+      assertCurrent?.();
+      if (owner.runtimeStatus !== "active" || !owner.activeTurnId) return "not-active";
+      return this.desktopFor(hostId).stop(threadId, owner.activeTurnId, assertCurrent);
+    }
+    if (this.headlessMode) return this.appServerFor(hostId).stop(threadId, assertCurrent);
     if (isRemoteHost(hostId)) {
       return this.appServerFor(hostId).stop(threadId, assertCurrent);
     }
@@ -449,6 +485,7 @@ export class CodexBackendRouter implements CodexBridgeBackend {
   }
 
   async runEphemeral(input: EphemeralCodexRunnerInput): Promise<CodexRunResult> {
+    if (this.desktopMode) throw new CodexInterventionError("桌面执行入口不提供临时分类会话；未启动独立执行器。");
     if (this.selectedBackend === "exec") return Promise.reject(new CodexBackendCapabilityError("structuredOutput", "exec"));
     const lease = {};
     this.restartRuns.add(lease);
@@ -497,10 +534,16 @@ export class CodexBackendRouter implements CodexBridgeBackend {
   }
 
   private async readThreadSnapshotOnce(threadId: string, hostId?: string): Promise<CodexThreadSnapshot> {
+    if (this.desktopMode) {
+      const snapshot = await this.desktopFor(hostId).readThreadSnapshot?.(threadId);
+      if (!snapshot || !confirmedDesktopObservation(threadId, snapshot.state)) throw desktopUnavailable(threadId);
+      return snapshot;
+    }
     if (this.selectedBackend === "exec") {
       return this.backendForSharedOperation(hostId).readThreadSnapshot(threadId);
     }
     if (isRemoteHost(hostId)) return this.readAppServerSnapshot(threadId, hostId);
+    if (this.headlessMode) return this.readAppServerSnapshot(threadId, hostId);
     let state: CodexThreadState;
     try { state = await this.readMetadata(threadId); }
     catch (error) {
@@ -577,16 +620,19 @@ export class CodexBackendRouter implements CodexBridgeBackend {
     assertCurrent?: () => void
   ): Promise<CodexThreadGoal | undefined> {
     assertCurrent?.();
+    this.assertNativeMutationSupported("目标修改");
     this.options.onThreadMutation?.(threadId, hostId ?? "local");
     return this.backendForSharedOperation(hostId).setGoal(threadId, input, assertCurrent);
   }
 
   async clearGoal(threadId: string, hostId?: string, assertCurrent?: () => void): Promise<void> {
     assertCurrent?.();
+    this.assertNativeMutationSupported("目标修改");
     await this.backendForSharedOperation(hostId).clearGoal(threadId, assertCurrent);
   }
 
   inspectThread(threadId: string, hostId?: string, observation?: CodexMetadataObservation): Promise<CodexThreadState> {
+    if (this.desktopMode && observation?.purpose === "status") return this.desktopStatus(threadId, hostId, observation.timeoutMs);
     // Project authorization needs current host-scoped membership, not an entire
     // history or Desktop writer ownership.
     if (observation) return this.observeOnce(observation.purpose === "status" ? "status" : "membership", threadId, hostId, () => this.selectedBackend === "exec"
@@ -595,7 +641,31 @@ export class CodexBackendRouter implements CodexBridgeBackend {
     return this.observeOnce("inspect", threadId, hostId, () => this.inspectThreadOnce(threadId, hostId));
   }
 
+  private async desktopStatus(threadId: string, hostId: string | undefined, timeoutMs: number): Promise<CodexThreadState> {
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      // Share only an in-flight owner read. A timed-out status call does not
+      // kill that read, resume a private thread or replace its executor.
+      return await Promise.race([this.inspectThread(threadId, hostId), new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new CodexCommunicationError("preflight", "desktop/status", threadId,
+          undefined, new Error("Desktop status observation timed out"))), Math.max(1, timeoutMs));
+      })]);
+    } finally { if (timer) clearTimeout(timer); }
+  }
+
   private async inspectThreadOnce(threadId: string, hostId?: string): Promise<CodexThreadState> {
+    if (this.desktopMode) {
+      const state = await this.desktopFor(hostId).inspectThread?.(threadId);
+      if (!state || !confirmedDesktopObservation(threadId, state)) throw desktopUnavailable(threadId);
+      return state;
+    }
+    if (this.headlessMode) {
+      const state = isRemoteHost(hostId)
+        ? await this.metadataReader.inspect(threadId, hostId, { includeTurns: false, timeoutMs: 5_000 })
+        : await this.readMetadata(threadId);
+      return state.runtimeStatus === "active" && !state.activeTurnId
+        ? this.appServerFor(hostId).inspectThread(threadId) : state;
+    }
     let desktopObserved = false;
     try {
       if (isRemoteHost(hostId) || this.selectedBackend === "exec") {
@@ -663,18 +733,21 @@ export class CodexBackendRouter implements CodexBridgeBackend {
   }
 
   async archiveThread(threadId: string, hostId?: string): Promise<void> {
+    this.assertNativeMutationSupported("归档会话");
     this.options.onThreadMutation?.(threadId, hostId ?? "local");
     await this.backendForSharedOperation(hostId).archiveThread(threadId);
     if (!isRemoteHost(hostId)) await this.refreshDesktopTaskList();
   }
 
   async unarchiveThread(threadId: string, hostId?: string): Promise<CodexThreadState> {
+    this.assertNativeMutationSupported("恢复归档会话");
     const state = await this.backendForSharedOperation(hostId).unarchiveThread(threadId);
     if (!isRemoteHost(hostId)) await this.refreshDesktopTaskList(threadId);
     return state;
   }
 
   async deleteThread(threadId: string, hostId?: string): Promise<void> {
+    this.assertNativeMutationSupported("删除会话");
     this.options.onThreadMutation?.(threadId, hostId ?? "local");
     await this.backendForSharedOperation(hostId).deleteThread(threadId);
     if (!isRemoteHost(hostId)) await this.refreshDesktopTaskList();
@@ -698,21 +771,41 @@ export class CodexBackendRouter implements CodexBridgeBackend {
 
   detachIndependentObservations(): void {
     this.desktop.detachIndependentObservations?.();
+    for (const desktop of this.remoteDesktopRunners.values()) desktop.detachIndependentObservations();
     this.appServer.detachIndependentObservations?.();
     for (const backend of this.remoteAppServers.values()) backend.detachIndependentObservations?.();
   }
 
   async close(): Promise<void> {
     const stopping = [this.metadataReader.close(), this.statusReader.close(), this.historyReader?.close(), this.appServer.close(), this.exec.close(), this.desktop.close(),
+      ...[...this.remoteDesktopRunners.values()].map(runner => runner.close()),
       ...[...this.remoteAppServers.values()].map(runner => runner.close())];
     this.remoteAppServers.clear();
+    this.remoteDesktopRunners.clear();
     this.remoteTransports.clear();
     await Promise.all(stopping);
   }
 
   backendInfo(hostId?: string) {
-    const backend = this.backendForSharedOperation(hostId);
-    return { id: backend.id, capabilities: backend.capabilities };
+    const backend = this.desktopMode ? this.appServer : this.backendForSharedOperation(hostId);
+    return { id: backend.id, capabilities: this.desktopMode ? { ...backend.capabilities,
+      dynamicTools: false, turnSteering: false, goals: false, threadNaming: false, projects: false, threadLifecycle: false
+    } : backend.capabilities, ...(this.options.executionOwner ? { executionOwner: this.options.executionOwner } : {}) };
+  }
+
+  private assertNativeMutationSupported(operation: string): void {
+    if (this.desktopMode) throw new CodexInterventionError(`桌面转发接口暂不支持${operation}，请在 Codex App 中操作；未切换执行器。`);
+  }
+
+  private desktopFor(hostId = "local"): typeof this.desktop {
+    if (hostId === "local") return this.desktop;
+    let runner = this.remoteDesktopRunners.get(hostId);
+    if (!runner) {
+      runner = new DesktopCodexRunner({ hostId, timeoutMs: this.options.timeoutMs, codexHome: this.options.codexHome,
+        ...(this.options.codexHome ? { socketPath: path.join(this.options.codexHome, "ipc", "ipc.sock") } : {}) });
+      this.remoteDesktopRunners.set(hostId, runner);
+    }
+    return runner;
   }
 
   private appServerFor(hostId?: string): CodexAppServerBackend {
@@ -722,6 +815,7 @@ export class CodexBackendRouter implements CodexBridgeBackend {
     if (existing) return existing;
     const transport = this.remoteTransport(hostId);
     const runner = new AppServerCodexRunner({
+      catalogSource: this.options.executionOwner === "headless" ? "native" : "desktop",
       codexHome: this.options.codexHome,
       hostId,
       transport,
@@ -747,6 +841,7 @@ export class CodexBackendRouter implements CodexBridgeBackend {
   }
 
   private async refreshDesktopTaskList(threadId?: string): Promise<void> {
+    if (this.headlessMode) return;
     try {
       await this.desktop.refreshTaskList?.(threadId);
     } catch (error) {
@@ -765,6 +860,10 @@ export { CodexBackendRouter as HybridCodexRunner };
 function isActiveWriterError(error: unknown): boolean {
   const detail = error instanceof Error ? error.message : String(error);
   return /already has an active writer/i.test(detail);
+}
+
+function desktopUnavailable(threadId: string, cause: unknown = new CodexOwnerUnavailableError()): CodexCommunicationError {
+  return new CodexCommunicationError("preflight", "desktop/thread-owner", threadId, undefined, cause);
 }
 
 function isDesktopSteerCandidateError(error: unknown): boolean {
