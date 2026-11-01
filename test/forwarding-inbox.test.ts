@@ -277,3 +277,31 @@ for (const phase of ["received", "submitting", "accepted"] as const) test(`abrup
     f.restart().start(); await settle(); assert.equal(f.writes.length, phase === "received" ? 1 : 0);
     assert.equal(Object.keys(f.saved()).length, phase === "submitting" ? 1 : 0);
   });
+
+for (const restart of [false,true]) test(`an uncertain prior input does not lock later independent messages, restart=${restart}`,async t=>{
+ const f=fixture(t);f.action=async m=>{f.writes.push(m);f.receipts.submitting({sessionId:'session',threadId:'thread'});if(m.id===input.id)throw Error('lost acknowledgement');f.receipts.accepted('thread','next');};
+ await assert.rejects(f.inbox.receive(input));if(restart)f.restart();
+ await f.inbox.receive({...input,id:'later',text:'status follow-up'});
+ assert.deepEqual(f.writes.map(m=>m.id),[input.id,'later']);
+ assert.equal(f.receipts.receipt(input.id)?.phase,'unconfirmed');assert.equal(f.receipts.receipt('later')?.phase,'handled');
+ assert.equal(f.inbox.items('room').length,1);assert.equal(f.inbox.items('room')[0].retryable,false);
+ f.restart();f.advance();f.inbox.start();await settle();assert.equal(f.writes.filter(m=>m.id===input.id).length,1);
+ assert.equal(f.notices.some(s=>s.includes('等待前一条输入')),false);
+});
+
+test('a live unacknowledged handoff keeps order until it settles, then its unknown receipt does not hold the chat',async t=>{
+ const f=fixture(t),entered=Promise.withResolvers<void>(),release=Promise.withResolvers<void>();
+ f.action=async m=>{f.writes.push(m);f.receipts.submitting({sessionId:'session',threadId:'thread'});
+  if(m.id===input.id){entered.resolve();await release.promise;throw Error('lost acknowledgement');}f.receipts.accepted('thread','later-turn');};
+ const first=assert.rejects(f.inbox.receive(input));await entered.promise;
+ await f.inbox.receive({...input,id:'later'});assert.deepEqual(f.writes.map(m=>m.id),[input.id]);
+ release.resolve();await first;f.advance();f.inbox.start();await settle();
+ assert.deepEqual(f.writes.map(m=>m.id),[input.id,'later']);assert.equal(f.receipts.receipt(input.id)?.phase,'unconfirmed');
+});
+
+test('a safely held prior input remains available without blocking the current binding',async t=>{
+ const f=fixture(t);f.action=async m=>{f.writes.push(m);if(m.id===input.id)throw Error('attachment preparation rejected');f.receipts.accepted('thread','later');};
+ await assert.rejects(f.inbox.receive(input));assert.equal(f.inbox.items('room')[0].state,'held');
+ f.restart();await f.inbox.receive({...input,id:'later'});assert.deepEqual(f.writes.map(m=>m.id),[input.id,'later']);
+ assert.equal(f.inbox.items('room')[0].state,'held');assert.equal(f.inbox.items('room')[0].retryable,true);
+});

@@ -220,9 +220,13 @@ export class ForwardingInbox {
       // completion. Explicit Gateway controls (/status, /stop, approvals) bypass
       // this transport ordering so they remain available during a long task.
       const conversation = row.message.replyTargetId ?? row.message.senderId;
-      const preceding = Object.entries(this.rows).slice(0, Object.keys(this.rows).indexOf(key)).some(([, prior]) => prior.automatic
+      const preceding = Object.entries(this.rows).slice(0, Object.keys(this.rows).indexOf(key)).some(([priorKey, prior]) => prior.automatic
         && (prior.message.replyTargetId ?? prior.message.senderId) === conversation && equal(prior.target, row.target)
-        && !["accepted", "handled"].includes(this.options.receipts.receipt(prior.message.id)?.phase ?? "received"));
+        && !["accepted", "handled"].includes(this.options.receipts.receipt(prior.message.id)?.phase ?? "received")
+        // A retained unknown/held record is an audit obligation, not a live
+        // handoff. Preserve it without replaying it or locking this chat forever.
+        && (this.processing.has(priorKey) || prior.state === "pending"
+          && (this.options.receipts.receipt(prior.message.id)?.phase ?? "received") === "received"));
       if (row.automatic && preceding) {
         row.nextAt = this.now() + (this.options.retryMs ?? 2000); this.save();
         await this.inform(row, "消息已保存，等待前一条输入完成转发交接；无需重发。"); return;
