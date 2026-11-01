@@ -9,6 +9,7 @@ import { rolloutIdentity } from "./rollout-identity.js";
 import { readNativeTurnLifecycle, observeOwnerTurn, readNativeThreadProvenance } from "./native-turn-lifecycle.js";
 import { communicationError, isCodexCommunicationFailure, CodexCommunicationError } from "./communication-error.js";
 import { parseUserInputRequest } from "./user-input.js";
+import { automaticApprovalProgress } from "./approval-progress.js";
 import { parseMcpForm, mcpFormResponse, safeElicitationUrl, type McpForm } from "./elicitation.js";
 import type { CodexUserInputResultHandler, CodexUserInputResult } from "./backend.js";
 import type { CodexApprovalRequest, CodexApprovalResult, CodexApprovalResultHandler } from "./approval.js";
@@ -1577,6 +1578,16 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private handleNotification(method: string, params: Record<string, unknown>, raw: string): void {
+    if (method === "item/autoApprovalReview/started" || method === "item/autoApprovalReview/completed") {
+      const { threadId, turnId } = params;
+      if (this.options.metadataOnly || this.options.historyOnly || typeof threadId !== "string" || typeof turnId !== "string"
+        || this.activeTurns.get(threadId) !== turnId) return;
+      const key = turnKey(threadId, turnId);
+      if (!this.turnStreams.has(key) && !this.expectedTurnThreads.has(threadId)) return;
+      const progress = automaticApprovalProgress(method, params);
+      if (progress) this.emitProgress(key, progress);
+      return;
+    }
     if (method === "error") {
       const { threadId, turnId } = params;
       // Error notifications are not completion events. Only the native active

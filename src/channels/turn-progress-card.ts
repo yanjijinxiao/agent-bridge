@@ -31,7 +31,9 @@ function progressParts(input: ProgressFacts) {
   const status = {
     running: "",
     "waiting-input": "等待你的回答，任务尚未完成",
-    "waiting-approval": "等待你的审批，任务尚未完成",
+    // The runtime flag also covers native automatic review. Only a concrete
+    // approval request can establish that the recipient needs to act.
+    "waiting-approval": "等待权限审批结果，任务尚未完成",
     recovering: "正在恢复原任务，尚未确认完成",
     unconfirmed: "执行状态待确认，未重发或停止原任务"
   }[input.activity];

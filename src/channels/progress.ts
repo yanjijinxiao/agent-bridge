@@ -608,7 +608,7 @@ export class ChannelTurnTextStream {
     }
     sections.push(this.communicationNotice ? "_只读核对原会话中；未重发消息或停止原任务_"
       : this.recoveryNotice ? "_保留本张进度卡；等待 Codex 后续进展或最终状态_"
-      : `_已运行 ${formatTurnElapsed(Date.now() - this.startedAt)}${this.activity === "waiting-input" || this.activity === "waiting-approval" ? " · 等待你的操作" : " · 长任务会持续执行"}_\n\n停止当前任务（会中断执行）：\n\n${copyBlock("/stop")}`);
+      : `_已运行 ${formatTurnElapsed(Date.now() - this.startedAt)}${this.activity === "waiting-input" ? " · 等待你的操作" : this.activity === "waiting-approval" ? " · 等待审批结果" : " · 长任务会持续执行"}_\n\n停止当前任务（会中断执行）：\n\n${copyBlock("/stop")}`);
     if (this.activityMetadata) sections.push(turnStatusHeading(this.visibleActivity()));
     return sections.join("\n\n");
   }

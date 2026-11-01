@@ -615,6 +615,19 @@ rl.on("line", (line) => {
     if (prompt === "delayed-turn-receipt") {
       setTimeout(() => respond(message.id, { turn: completedTurn(turnId, "inProgress") }), 150);
     } else respond(message.id, { turn: completedTurn(turnId, "inProgress") });
+    if (approvalKind === "automatic") {
+      const threadId = message.params.threadId;
+      send({ method: "turn/started", params: { threadId, turn: completedTurn(turnId, "inProgress") } });
+      const params = { threadId, turnId, reviewId: "review-one", targetItemId: "item-one",
+        action: { type: "applyPatch", files: ["PRIVATE_ACTION"] }, review: { status: "inProgress", rationale: "PRIVATE_REVIEW" } };
+      send({ method: "item/autoApprovalReview/started", params: { ...params, turnId: "foreign-turn" } });
+      send({ method: "item/autoApprovalReview/started", params });
+      send({ method: "item/autoApprovalReview/completed", params: { ...params, review: { status: "denied", rationale: "PRIVATE_REVIEW" } } });
+      send({ method: "turn/completed", params: { threadId, turn: completedTurn(turnId, "completed") } });
+      activeTurns.delete(threadId);
+      send({ method: "item/autoApprovalReview/started", params }); // A late review cannot reopen the turn.
+      return;
+    }
     if (["command", "file", "permissions", "mcp", "mcp-form", "mcp-persist"].includes(approvalKind)) {
       const approvalId = `approval-${turnId}`;
       pendingApprovals.set(approvalId, {
