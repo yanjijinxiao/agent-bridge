@@ -2074,7 +2074,8 @@ export class AccountManager {
     const bindings = this.listSessions().filter(session => session.active).map(session => ({
       accountId: session.accountId, sessionId: session.id, title: session.title, binding: session.binding
     }));
-    return { bindings, unsupported: this.interactionRouting.diagnostics() };
+    return { bindings, unsupported: this.interactionRouting.diagnostics(),
+      desktopRequestMonitor: this.codexDesktopRequestMonitor?.observationHealth?.() ?? { connected: false, threads: [] } };
   }
 
   listApprovals() {

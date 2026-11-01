@@ -5,7 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { CodexDesktopApprovalMonitor, type CodexDesktopApprovalMonitorOptions } from "../src/server/codex-desktop-approval-monitor.js";
+import { CodexDesktopApprovalMonitor, type CodexDesktopApproval, type CodexDesktopApprovalMonitorOptions } from "../src/server/codex-desktop-approval-monitor.js";
+import { ChannelApprovalController } from "../src/bridge/approval.js";
 
 test("forwards a followed Codex Desktop approval to the channel and returns its decision", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-desktop-approval-"));
@@ -191,7 +192,7 @@ async function approvalFixture(t: test.TestContext, options: Partial<CodexDeskto
   const socketPath = path.join(root, "ipc.sock");
   const messages: Array<Record<string, unknown>> = [];
   const results: string[] = [];
-  const approvals: unknown[] = [];
+  const approvals: CodexDesktopApproval[] = [];
   const sockets = new Set<net.Socket>();
   let peer!: net.Socket;
   const server = net.createServer(socket => {
@@ -249,6 +250,118 @@ async function approvalFixture(t: test.TestContext, options: Partial<CodexDeskto
   };
   return { monitor, snapshot, patches, respond, peer, results, approvals, messages, decisionMessages, nativeRequest };
 }
+
+test("a lost initial follow recovers a later owner's permission request through IM without a reconnect or duplicate decision", async t => {
+  const notices: Array<{ text: string }> = [];
+  const controller = new ChannelApprovalController(async (_recipient, notice) => { notices.push(notice); });
+  t.after(() => controller.declineAll("group"));
+  const f = await approvalFixture(t, { snapshotRetryDelayMs: 15,
+    onApproval: approval => controller.request("group", approval.request),
+    onResult: (approval, result) => controller.reportResult("group", approval.request, result) });
+  assert.equal(f.monitor.observationHealth().connected, true);
+  assert.equal(f.monitor.observationHealth().threads[0].snapshotReceived, false);
+  await waitFor(() => f.messages.filter(m => m.method === "thread-stream-following-changed").length >= 2);
+  assert.equal(f.messages.filter(m => m.method === "initialize").length, 1);
+  assert.equal(notices.length, 0, "missing source state cannot invent an approval");
+  const permissions = { fileSystem: { entries: [{ path: { type: "path", path: "/tmp/isolated-output" }, access: "write" }] } };
+  const request = { ...f.nativeRequest, method: "item/permissions/requestApproval",
+    params: { ...f.nativeRequest.params, permissions } };
+  f.snapshot([request]); f.snapshot([request]);
+  await waitFor(() => notices.length === 1);
+  assert.equal(f.monitor.observationHealth().threads[0].snapshotReceived, true);
+  assert.match(notices[0].text, /申请额外权限/);
+  assert.match(notices[0].text, /```text\n\/approve A1 session\n```/);
+  assert.equal(f.messages.filter(m => m.type === "request" && m.method !== "initialize").length, 0,
+    "observing and displaying the request must not grant permissions");
+  controller.decide("group", "A1 session", "accept");
+  const method = "thread-follower-permissions-request-approval-response";
+  await waitFor(() => f.messages.some(m => m.method === method));
+  const decision = f.messages.find(m => m.method === method)!;
+  assert.deepEqual(decision.params, { conversationId: "thread-one", requestId: 42,
+    response: { permissions, scope: "session" } });
+  writeFrame(f.peer, { type: "response", requestId: decision.requestId, method,
+    resultType: "success", result: { ok: true } });
+  await waitFor(() => f.results.includes("confirmed"));
+  f.snapshot([request]);
+  await new Promise(resolve => setTimeout(resolve, 50));
+  assert.equal(f.messages.filter(m => m.method === method).length, 1);
+});
+
+test("a valid empty snapshot stops missing-snapshot probes", async t => {
+  const f = await approvalFixture(t, { snapshotRetryDelayMs: 15 });
+  f.snapshot([]);
+  await new Promise(resolve => setTimeout(resolve, 30));
+  const follows = f.messages.filter(m => m.method === "thread-stream-following-changed").length;
+  await new Promise(resolve => setTimeout(resolve, 80));
+  assert.equal(f.messages.filter(m => m.method === "thread-stream-following-changed").length, follows);
+  assert.equal(f.approvals.length, 0);
+});
+
+test("unfollow and stop cancel missing-snapshot probes without submitting a request", async t => {
+  const f = await approvalFixture(t, { snapshotRetryDelayMs: 15 });
+  await waitFor(() => f.messages.filter(m => m.method === "thread-stream-following-changed").length >= 2);
+  f.monitor.setFollowedThreads([]);
+  await new Promise(resolve => setTimeout(resolve, 30));
+  const follows = f.messages.filter(m => m.method === "thread-stream-following-changed").length;
+  f.monitor.stop();
+  await new Promise(resolve => setTimeout(resolve, 80));
+  assert.equal(f.messages.filter(m => m.method === "thread-stream-following-changed").length, follows);
+  assert.equal(f.approvals.length, 0); assert.equal(f.decisionMessages().length, 0);
+});
+
+test("a patch without an initial snapshot cannot authorize an approval", async t => {
+  const f = await approvalFixture(t);
+  f.patches([{ op: "add", path: ["requests", 0], value: f.nativeRequest }]);
+  await new Promise(resolve => setTimeout(resolve, 30));
+  assert.equal(f.approvals.length, 0); assert.equal(f.decisionMessages().length, 0);
+  assert.ok(f.messages.filter(m => m.method === "thread-stream-following-changed").length >= 2);
+  f.snapshot(); await waitFor(() => f.approvals.length === 1);
+});
+
+test("snapshot recovery stays host-scoped and does not poll a healthy local twin", async t => {
+  const f = await approvalFixture(t, { snapshotRetryDelayMs: 15 });
+  f.snapshot([]);
+  await waitFor(() => f.monitor.observationHealth().threads[0].snapshotReceived);
+  const localFollows = () => f.messages.filter(m => m.method === "thread-stream-following-changed" && (m.params as { hostId: string }).hostId === "local").length;
+  const before = localFollows();
+  const remote = "remote-host";
+  f.monitor.followThread("thread-one", remote);
+  await waitFor(() => f.messages.filter(m => m.method === "thread-stream-following-changed" && (m.params as { hostId: string }).hostId === remote).length >= 2);
+  assert.equal(localFollows(), before);
+  writeFrame(f.peer, { type: "broadcast", method: "thread-stream-state-changed", params: {
+    conversationId: "thread-one", hostId: remote,
+    change: { type: "snapshot", conversationState: { requests: [f.nativeRequest] } }
+  } });
+  await waitFor(() => f.approvals.length === 1);
+  assert.equal(f.approvals[0].hostId, remote);
+  assert.equal(f.decisionMessages()[0].hostId, remote);
+  f.respond("success"); await waitFor(() => f.results.includes("confirmed"));
+});
+
+test("invalid and unrelated snapshots cannot complete a missing subscription", async t => {
+  const f = await approvalFixture(t, { snapshotRetryDelayMs: 15 });
+  writeFrame(f.peer, { type: "broadcast", method: "thread-stream-state-changed", params: {
+    conversationId: "thread-one", change: { type: "snapshot", conversationState: { requests: {} } }
+  } });
+  writeFrame(f.peer, { type: "broadcast", method: "thread-stream-state-changed", params: {
+    conversationId: "other-thread", change: { type: "snapshot", conversationState: { requests: [] } }
+  } });
+  await waitFor(() => f.messages.filter(m => m.method === "thread-stream-following-changed").length >= 2);
+  assert.equal(f.monitor.observationHealth().threads[0].snapshotReceived, false);
+  assert.equal(f.approvals.length, 0);
+  f.snapshot([]);
+  await waitFor(() => f.monitor.observationHealth().threads[0].snapshotReceived);
+});
+
+test("a disconnected initial subscription is rebuilt on a fresh connection", async t => {
+  const f = await approvalFixture(t, { snapshotRetryDelayMs: 15, reconnectDelayMs: 15 });
+  f.peer.destroy();
+  await waitFor(() => f.messages.filter(m => m.method === "initialize").length === 2);
+  await waitFor(() => f.messages.filter(m => m.method === "thread-stream-following-changed").length >= 2);
+  assert.equal(f.approvals.length, 0);
+  f.snapshot(); await waitFor(() => f.decisionMessages().length === 1);
+  f.respond("success"); await waitFor(() => f.results.includes("confirmed"));
+});
 
 for (const kind of ["command", "file", "permissions"] as const) test(`Desktop preserves ${kind} session scope on its native IPC method`, async t => {
   const f = await approvalFixture(t, { onApproval: () => "session" });

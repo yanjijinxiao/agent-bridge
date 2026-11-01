@@ -53,6 +53,8 @@ export type CodexDesktopRequestMonitorOptions = {
   decisionTimeoutMs?: number;
   /** Read-only fresh-snapshot probes for interactions not yet routed to IM. */
   deferredRetryDelayMs?: number;
+  /** Retry an unanswered initial subscription without starting or resuming a thread. */
+  snapshotRetryDelayMs?: number;
   onApproval: (approval: CodexDesktopApproval) => Promise<CodexApprovalDecision | undefined>;
   onResult?: (approval: CodexDesktopApproval, result: ApprovalDeliveryResult) => Promise<void> | void;
   onUserInput?: (input: CodexDesktopUserInput) => Promise<CodexUserInputAnswer | undefined>;
@@ -81,6 +83,8 @@ export class CodexDesktopRequestMonitor {
   private readonly deferredRequests = new Map<string, number>();
   private readonly retryReady = new Set<string>();
   private readonly retryProbes = new Map<string, number>();
+  private readonly missingSnapshots = new Map<string, { attempts: number; retryAt: number }>();
+  private snapshotTimer?: NodeJS.Timeout;
   private deferredTimer?: NodeJS.Timeout;
   private readonly pendingDecisions = new Map<string, {
     method: string; expectedTurnId?: string; resolve: () => void; reject: (error: Error) => void; timer: NodeJS.Timeout;
@@ -110,6 +114,7 @@ export class CodexDesktopRequestMonitor {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = undefined;
     this.clearDeferred();
+    this.clearSnapshotProbes();
     this.socket?.destroy();
     this.socket = undefined;
     this.clientId = undefined;
@@ -139,12 +144,14 @@ export class CodexDesktopRequestMonitor {
       this.followedThreads.delete(scope);
       this.requestSnapshots.delete(scope);
       this.retryProbes.delete(scope);
+      this.missingSnapshots.delete(scope);
       if (this.clientId) this.sendFollow(threadId, false, hostId);
       for (const [key, approval] of this.activeRequests) {
         if (approval.request.threadId === threadId && (approval.hostId ?? "local") === hostId) this.withdraw(key, approval, true);
       }
     }
     for (const { threadId, hostId } of next.values()) this.followThread(threadId, hostId);
+    this.scheduleSnapshotProbe();
     // Route changes require a fresh native snapshot, not a send from cached UI.
     for (const [key, approval] of this.activeRequests) {
       if (this.processingRequests.has(key)) this.rerouteRequests.add(key);
@@ -176,6 +183,7 @@ export class CodexDesktopRequestMonitor {
       this.connectionTimer = undefined;
       this.frames.reset();
       this.clearDeferred();
+      this.clearSnapshotProbes();
       this.failPendingDecisions();
       for (const [key, request] of this.activeRequests) this.withdraw(key, request, true);
       this.requestSnapshots.clear();
@@ -264,6 +272,8 @@ export class CodexDesktopRequestMonitor {
         turns: Array.isArray(state.turns) ? state.turns : [], turnHistory: state.turnHistory,
         threadRuntimeStatus: state.threadRuntimeStatus };
       this.requestSnapshots.set(scope, snapshot);
+      this.missingSnapshots.delete(scope);
+      this.scheduleSnapshotProbe();
       this.retryProbes.delete(scope);
       this.processSnapshot(threadId, snapshot, hostId, true);
       return;
@@ -275,7 +285,18 @@ export class CodexDesktopRequestMonitor {
       return ["cwd", "requests", "turns", "turnHistory", "threadRuntimeStatus"].includes(String(patchPath[0]));
     });
     if (!relevant.length) return;
-    const snapshot = applyDesktopStatePatches(this.requestSnapshots.get(scope) ?? { requests: [] }, relevant);
+    const base = this.requestSnapshots.get(scope);
+    if (!base) {
+      // A patch has meaning only relative to a confirmed snapshot. It cannot
+      // establish an actionable request on a guessed empty source state.
+      const now = Date.now();
+      if ((this.retryProbes.get(scope) ?? 0) <= now) {
+        this.retryProbes.set(scope, now + Math.max(1_000, this.options.snapshotRetryDelayMs ?? 5_000));
+        this.sendFollow(threadId, true, hostId);
+      }
+      return;
+    }
+    const snapshot = applyDesktopStatePatches(base, relevant);
     if (!snapshot) {
       console.warn("[codex-im-gateway] ignored invalid Desktop pending-request state patch");
       // The base may now be out of date. Suspend pending local handlers and
@@ -566,6 +587,7 @@ export class CodexDesktopRequestMonitor {
   }
 
   private sendFollow(threadId: string, following: boolean, hostId: string): void {
+    if (!this.clientId || !this.socket?.writable) return;
     this.send({
       type: "broadcast",
       method: "thread-stream-following-changed",
@@ -573,6 +595,49 @@ export class CodexDesktopRequestMonitor {
       params: { conversationId: threadId, hostId, following },
       version: 1
     });
+    const scope = followKey(threadId, hostId);
+    if (following && !this.requestSnapshots.has(scope) && !this.missingSnapshots.has(scope)) {
+      this.missingSnapshots.set(scope, { attempts: 0, retryAt: Date.now() + Math.max(5, this.options.snapshotRetryDelayMs ?? 5_000) });
+    } else if (!following) this.missingSnapshots.delete(scope);
+    this.scheduleSnapshotProbe();
+  }
+
+  /** Socket readiness is not proof that the native owner supplied a snapshot. */
+  observationHealth() {
+    return { connected: Boolean(this.clientId && this.socket?.writable),
+      threads: [...this.followedThreads].map(([scope, target]) => ({ ...target,
+        snapshotReceived: this.requestSnapshots.has(scope),
+        probeAttempts: this.missingSnapshots.get(scope)?.attempts ?? 0 })) };
+  }
+
+  private scheduleSnapshotProbe(): void {
+    if (this.snapshotTimer) clearTimeout(this.snapshotTimer);
+    this.snapshotTimer = undefined;
+    if (!this.started || !this.clientId || !this.socket?.writable || !this.missingSnapshots.size) return;
+    const next = Math.min(...[...this.missingSnapshots.values()].map(value => value.retryAt));
+    this.snapshotTimer = setTimeout(() => {
+      this.snapshotTimer = undefined;
+      const now = Date.now(), initialDelay = Math.max(5, this.options.snapshotRetryDelayMs ?? 5_000);
+      const due = [...this.missingSnapshots].filter(([, value]) => value.retryAt <= now)
+        .sort((a, b) => a[1].retryAt - b[1].retryAt).slice(0, 4);
+      for (const [scope, pending] of due) {
+        const target = this.followedThreads.get(scope);
+        if (!target || this.requestSnapshots.has(scope)) { this.missingSnapshots.delete(scope); continue; }
+        pending.attempts++;
+        pending.retryAt = now + Math.min(30_000, initialDelay * 2 ** Math.min(pending.attempts, 10));
+        // Only renew observation. Never resume, start a turn, submit an input,
+        // synthesize an approval, or repeat an approval decision to recover it.
+        this.sendFollow(target.threadId, true, target.hostId);
+      }
+      this.scheduleSnapshotProbe();
+    }, Math.max(25, next - Date.now()));
+    this.snapshotTimer.unref();
+  }
+
+  private clearSnapshotProbes(): void {
+    if (this.snapshotTimer) clearTimeout(this.snapshotTimer);
+    this.snapshotTimer = undefined;
+    this.missingSnapshots.clear();
   }
 
   private send(message: IpcMessage): void {
