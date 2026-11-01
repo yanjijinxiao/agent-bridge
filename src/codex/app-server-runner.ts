@@ -593,7 +593,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   async listSessionCatalog(input: CodexThreadListInput = {}): Promise<CodexSessionCatalog> {
     if (this.options.catalogSource === "native") return {
       backend: this.id, source: "app-server-storage", hostIds: [this.options.hostId ?? "local"], complete: true,
-      threads: await this.listThreads(input), warnings: []
+      threads: await this.listThreads({ persistence: "active", ...input }), warnings: []
     };
     // Do not load threads or start a second app-server just to discover what
     // Desktop already indexes, including hosts with no saved project.

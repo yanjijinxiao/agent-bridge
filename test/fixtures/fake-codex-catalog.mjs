@@ -15,7 +15,9 @@ for await (const line of readline.createInterface({ input: process.stdin })) {
   else if (m.method === "thread/list") {
     if (m.params.projectId) throw new Error("Desktop UI project IDs must not become native project filters");
     const page = Number(m.params.cursor ?? 0);
-    result = { data: pages[page], nextCursor: page === 0 ? "1" : null };
+    result = process.argv.includes("--separate-archived") && m.params.archived
+      ? { data: [thread("archived-native")], nextCursor: null }
+      : { data: pages[page], nextCursor: page === 0 ? "1" : null };
   } else throw new Error("Unexpected catalog operation: " + m.method);
   process.stdout.write(JSON.stringify({ id: m.id, result }) + "\n");
 }

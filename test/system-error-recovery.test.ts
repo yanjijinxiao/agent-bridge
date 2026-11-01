@@ -202,9 +202,10 @@ test("an obsolete failed turn is retired during native-unload waiting", async t 
   f.snapshot().state.lastTurnFailure!.turnId = "different";
   await f.manager.request(scope); assert.equal(f.manager.status(scope)?.phase, "cancelled");
 });
-test("Desktop ownership never falls back to a private stdio state reset", async () => {
-  const router = Object.create(CodexBackendRouter.prototype) as any; let privateReads = 0;
-  Object.defineProperty(router, "selectedBackend", { value: "app-server" }); const snapshot = failed(); snapshot.state.executionOwner = "desktop";
+test("Desktop ownership never falls back to a private stdio state reset", async t => {
+  const router = new CodexBackendRouter({ backend: "app-server", appServerBackend: { close() {} } as never,
+    desktopRunner: { close() {} } as never }) as any; let privateReads = 0;
+  t.after(() => router.close()); const snapshot = failed(); snapshot.state.executionOwner = "desktop";
   router.readThreadSnapshot = async () => snapshot; router.appServerFor = () => { privateReads++; throw Error("wrong owner"); };
   assert.equal((await router.recoverSystemError({ threadId: "thread", failedTurnId: "failed", assertCurrent() {} })).status, "unsupported");
   assert.equal(privateReads, 0);

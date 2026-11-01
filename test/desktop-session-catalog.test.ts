@@ -138,12 +138,13 @@ test("headless App Server ignores stale Desktop catalogs and project assignments
     "thread-project-assignments": { first: { projectId: "legacy" } }
   }));
   const runner = new AppServerCodexRunner({ codexHome: home, catalogSource: "native", transport: {
-    command: process.execPath, args: [path.resolve("test/fixtures/fake-codex-catalog.mjs")] } });
+    command: process.execPath, args: [path.resolve("test/fixtures/fake-codex-catalog.mjs"), "--separate-archived"] } });
   t.after(() => runner.close());
-  const catalog = await runner.listSessionCatalog({ persistence: "active" });
+  const catalog = await runner.listSessionCatalog();
   assert.equal(catalog.source, "app-server-storage"); assert.deepEqual(catalog.warnings, []);
   assert.ok(catalog.threads.some(thread => thread.threadId === "first"));
   assert.equal(catalog.threads.some(thread => thread.threadId === "desktop-only"), false);
+  assert.equal(catalog.threads.some(thread => thread.threadId === "archived-native"), false, "unqualified native discovery defaults to active sessions");
   assert.notEqual((await runner.inspectThread("first")).projectId, "legacy");
 });
 
