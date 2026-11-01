@@ -216,7 +216,7 @@ export class NativeQueueCoordinator {
         const state = await backend.inspectThread(r.threadId, r.hostId);
         const terminalObservation = r.status === "completed" && observing;
         if (terminalObservation && (state.activeTurnId === r.turnId && state.runtimeStatus === "active" || r.lifecycleVersion !== 2)) continue;
-        if (!terminalObservation && (state.executionOwner === "desktop" || (!observing && state.runtimeStatus === "active") || state.pendingTurnWithoutId
+        if (!terminalObservation && (state.runtimeStatus === "active" || state.pendingTurnWithoutId
           || state.runtimeStatus === "unknown" || state.runtimeStatus === "systemError" || state.persistence !== "active")) continue;
         await execute(structuredClone(r), () => {
           if (r.status !== "queued") throw new Error("Queued receipt changed before dispatch");

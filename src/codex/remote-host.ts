@@ -29,7 +29,7 @@ const SAFE_SSH_TARGET = /^[A-Za-z0-9._:@%+\-[\]]+$/;
 
 /**
  * Resolves a Codex Desktop host id to an SSH process that relays JSONL stdio
- * to the remote Desktop app-server control WebSocket.
+ * to the remote native App Server control WebSocket. No GUI is required there.
  */
 export function resolveRemoteCodexTransport(
   hostId: string,

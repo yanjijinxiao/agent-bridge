@@ -23,12 +23,12 @@ for(const mode of ["stdio","daemon-proxy","remote-daemon"] as const) test(`${mod
  assert.ok(methods.includes("thread/queue/add"));assert.doesNotMatch(methods.join("\n"),/thread\/resume|turn\/start|turn\/steer|thread\/queue\/start|settings/);
 });
 
-test("backend chooses external admission from a fresh confirmed Desktop owner",async t=>{
+test("unified queue admission does not select a UI-specific enqueue mode",async t=>{
  const inputs:CodexQueueAddInput[]=[],owner={threadId:"thread",persistence:"active",runtimeStatus:"active",executionOwner:"desktop",activeFlags:[],activeTurnId:"current"};
  const app={capabilities:APP_SERVER_BACKEND_CAPABILITIES,async inspectThread(){return{...owner,runtimeStatus:"notLoaded",executionOwner:undefined};},async addQueuedSubmission(x:CodexQueueAddInput){inputs.push(x);return{id:"q",clientUserMessageId:x.clientUserMessageId,input:[]};},async listQueuedSubmissions(){return{data:[]};},async deleteQueuedSubmission(){return true;},async runQueuedSubmission(){assert.fail("admission must not consume");},close(){}};
  const router=new CodexBackendRouter({backend:"app-server",appServerBackend:app as never,desktopRunner:{async inspectThread(){return owner;},close(){}} as never});t.after(()=>router.close());
  await router.addQueuedSubmission({threadId:"thread",prompt:"queue",clientUserMessageId:"origin"});
- assert.equal(inputs.length,1);assert.equal(inputs[0].enqueueOnly,true);assert.equal(inputs[0].clientUserMessageId,"origin");
+ assert.equal(inputs.length,1);assert.equal(inputs[0].enqueueOnly,undefined);assert.equal(inputs[0].clientUserMessageId,"origin");
 });
 
 test("the IM /queue entry accepts Desktop ownership and stores only its native receipt",async t=>{

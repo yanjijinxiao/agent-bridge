@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import type { AppServerTransport } from "./app-server-transport.js";
-import { resolveCodexCommand } from "./exec-runner.js";
+import { resolveCodexCommand } from "./codex-command.js";
 import { APP_SERVER_SOCKET_RELAY } from "./app-server-socket-relay.js";
 
 export type AppServerConnectionMode = "auto" | "daemon" | "stdio";

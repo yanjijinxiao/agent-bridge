@@ -150,7 +150,6 @@ export function parseCommand(
 
 export type ChannelHelpContext = {
   backendCapabilities?: CodexBackendCapabilities;
-  desktopOwned?: boolean;
   taskboardAvailable?: boolean;
 };
 
@@ -169,7 +168,6 @@ export function channelHelpText(capabilities: readonly ChannelCommandCapability[
     const token = /^\/(\w+)/.exec(line)?.[1];
     const command = CHANNEL_COMMAND_REGISTRY.find(item => item.name === token);
     if (token === "task" && context.taskboardAvailable === false) return `${line}【需启用 Taskboard】`;
-    if (token === "steer" && context.desktopOwned) return `${line}【当前 Desktop 转发不支持此操作，请在 App 中操作或使用共享 App Server】`;
     if (command && "capability" in command && context.backendCapabilities?.[command.capability] === false) {
       return `${line}【当前后端不支持】`;
     }

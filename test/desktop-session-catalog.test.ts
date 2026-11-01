@@ -105,18 +105,11 @@ test("App catalog visibility rules are structural, never task-title heuristics",
     assert.equal(isDesktopCatalogThread(thread), false);
 });
 
-test("App router reads Desktop catalog without starting app-server; CLI uses only its own rollouts", async t => {
-  const { home, add } = fixture(t); add("desktop-only");
-  fs.mkdirSync(path.join(home, "sessions"));
-  fs.writeFileSync(path.join(home, "sessions", "cli.jsonl"), JSON.stringify({ type: "session_meta", payload: { id: "cli-only", cwd: home, source: "exec" } }) + "\n");
-  const app = new CodexBackendRouter({ backend: "app-server", codexHome: home, codexBin: "/must-not-execute" });
-  const cli = new CodexBackendRouter({ backend: "exec", codexHome: home, codexBin: "/must-not-execute" });
-  t.after(() => { app.close(); cli.close(); });
-  assert.deepEqual((await app.listSessionCatalog()).threads.map(t => t.threadId), ["desktop-only"]);
-  const result = await cli.listSessionCatalog({ persistence: "active" });
-  assert.equal(result.source, "cli-rollouts");
-  assert.deepEqual(result.threads.map(t => t.threadId), ["cli-only"]);
-  assert.throws(() => cli.listSessionCatalog({}, "remote"), /纯 CLI/);
+test("unified catalog reads native authority rather than choosing Desktop or CLI storage",async t=>{
+ const {home,add}=fixture(t);add('stale-desktop');
+ const {unifiedBackend}=await import('./fixtures/unified-backend.js');const f=unifiedBackend(t);
+ assert.deepEqual((await f.gateway.listSessionCatalog()).threads.map(s=>s.threadId),['thread']);
+ assert.deepEqual(f.calls.map(c=>c.method),['listSessionCatalog']);
 });
 
 test("older App fallback traverses native pages and labels storage/status provenance", async t => {
@@ -234,4 +227,19 @@ test("native pin order supersedes stale legacy pins, remains host scoped, and re
   assert.equal(rows.find(r => r.threadId === "one")!.catalogOrder!.recency, 800);
   assert.equal(rows.find(r => r.threadId === "two")!.catalogOrder!.manualIndex, 0);
   assert.equal(rows.find(r => r.threadId === "one")!.catalogOrder!.manualIndex, 1);
+});
+
+test('native presentation retains pins and exact migration aliases without reviving stale project membership',async t=>{
+ const {nativeSessionPresentation}=await import('../src/codex/desktop-session-membership.js');const {home}=fixture(t);
+ fs.writeFileSync(path.join(home,'.codex-global-state.json'),JSON.stringify({
+  'local-projects':{legacy:{id:'legacy',rootPaths:['/repo']}},
+  'app-server-project-id-by-legacy-project-id-by-host':{[`local:${home}`]:{legacy:'native-project'}},
+  'thread-project-assignments':{thread:{projectId:'legacy'}},'pinned-thread-ids':['thread']
+ }));
+ const native={threadId:'thread',persistence:'active' as const,runtimeStatus:'active' as const,activeTurnId:'turn',activeFlags:[],projectMembership:'none' as const};
+ const projectless=nativeSessionPresentation(home)(native);
+ assert.equal(projectless.projectId,undefined);assert.equal(projectless.projectMembership,'none');assert.equal(projectless.activeTurnId,'turn');assert.equal(projectless.catalogOrder?.pinnedIndex,0);
+ const assigned=nativeSessionPresentation(home)({...native,projectId:'native-project',projectMembership:'assigned'});
+ assert.equal(assigned.projectId,'legacy');assert.equal(assigned.projectMembership,'assigned');
+ assert.equal(nativeSessionPresentation(home,'remote')({...native,projectId:'native-project',projectMembership:'assigned'}).projectId,'native-project');
 });

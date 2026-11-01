@@ -489,7 +489,7 @@ export class ThreadEventHub {
     const state = this.state(sub), activeId = snapshot.state.activeTurnId;
     const read = this.options.backend().readThreadProvenance;
     if (!read || sub.managed || state.provenanceVersion === 3 || this.provenanceRepairs.has(sub.key)
-      || Date.now() < (this.provenanceRetryAt.get(sub.key) ?? 0) || snapshot.state.executionOwner !== "desktop"
+      || Date.now() < (this.provenanceRetryAt.get(sub.key) ?? 0)
       || snapshot.state.runtimeStatus !== "active" || !activeId
       || !state.completed.length && !state.baseline?.length && !state.retired?.length && (!state.turnId || state.turnId === activeId)) return;
     const work = (async () => {
@@ -498,7 +498,7 @@ export class ThreadEventHub {
         || !provenance.turns.some(turn => turn.id === activeId && turn.status === "inProgress")) return;
       const fresh = await boundedRead(this.options.backend().readThreadSnapshot(sub.threadId, sub.hostId), this.options.readTimeoutMs ?? 25000);
       const active = fresh.turns.find(turn => turn.id === activeId && turn.status === "inProgress");
-      if (fresh.state.threadId !== sub.threadId || fresh.state.persistence !== "active" || fresh.state.executionOwner !== "desktop"
+      if (fresh.state.threadId !== sub.threadId || fresh.state.persistence !== "active"
         || fresh.state.runtimeStatus !== "active" || fresh.state.activeTurnId !== activeId || !active) return;
       await this.queue.run(sub.key, async () => {
         if (this.stopped || !this.isLive(sub) || state.provenanceVersion === 3

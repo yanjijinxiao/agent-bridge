@@ -304,21 +304,11 @@
           <h2>Codex</h2>
           <div class="field-grid">
             <label>
-              <span>后端</span>
-              <select id="backendInput" name="codexBackend">
-                <option value="auto">自动</option>
-                <option value="app-server">App server</option>
-                <option value="exec">CLI exec（不支持交互审批）</option>
+              <span>原生协议</span>
+              <select id="backendInput" name="codexBackend" disabled>
+                <option value="app-server">Codex App Server</option>
               </select>
-            </label>
-            <label>
-              <span>会话执行入口</span>
-              <select id="executionOwnerInput" name="codexExecutionOwner">
-                <option value="">保留原路由（尚未迁移）</option>
-                <option value="desktop">Codex 桌面端（须运行并打开目标会话）</option>
-                <option value="headless">CLI App Server（无界面服务器）</option>
-              </select>
-              <small class="field-hint">入口固定；断连时保留消息，不切换执行器。桌面模式目前不支持通过 IM 新建或加载会话。</small>
+              <small class="field-hint">桌面、CLI 与 Gateway 连接同一原生服务，使用完整的同一套接口。</small>
             </label>
             <label>
               <span>App server 连接</span>
@@ -327,7 +317,7 @@
                 <option value="daemon">Daemon</option>
                 <option value="stdio">独立 stdio 进程</option>
               </select>
-              <small class="field-hint">用于 CLI 执行及只读查询；daemon 连接失败不会自动创建私有执行进程。</small>
+              <small class="field-hint">连接方式不改变接口能力；daemon 断连不会切换执行器。stdio 私有进程不具备独立于 Gateway 的生命周期。</small>
             </label>
             <label>
               <span>运行中消息的默认策略</span>

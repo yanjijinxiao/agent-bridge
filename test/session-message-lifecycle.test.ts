@@ -104,7 +104,7 @@ for (const channel of ["dingtalk", "weixin", "feishu"] as const) {
   }
 }
 
-test("Desktop messages offer supported native queue actions; an orphan UI tail is not submitted", async t => {
+test("native conversations offer both guarded steering and queue; an orphan UI tail is not submitted", async t => {
   const f = fixture(t);
   f.store.setActiveMessagePolicy(f.session.id, "ask");
   f.setState({ executionOwner: "desktop" });
@@ -112,12 +112,12 @@ test("Desktop messages offer supported native queue actions; an orphan UI tail i
   assert.equal(f.cards.length, 1);
   const choices = f.cards[0].actionGroups.flat();
   assert.equal(choices.some(x => x.value.arg.endsWith(" queue")), true);
-  assert.equal(choices.some(x => x.value.arg.endsWith(" steer")), false);
+  assert.equal(choices.some(x => x.value.arg.endsWith(" steer")), true);
   await f.send("/policy queue");
   assert.equal(f.store.getSession(f.session.id)?.activeMessagePolicy, "queue");
   await f.send("/policy steer");
-  assert.match(f.texts.at(-1)!, /不支持安全介入.*策略未改变/);
-  assert.equal(f.store.getSession(f.session.id)?.activeMessagePolicy, "queue");
+  assert.match(f.texts.at(-1)!, /运行中消息处理方式：steer/);
+  assert.equal(f.store.getSession(f.session.id)?.activeMessagePolicy, "steer");
   await f.send("/policy ask");
   await f.send("补充一条");
   assert.equal(f.runs.length, 0);
@@ -132,7 +132,7 @@ test("Desktop messages offer supported native queue actions; an orphan UI tail i
 });
 
 for (const channel of ["dingtalk", "weixin", "feishu"] as const) {
-  test(`${channel}: ordinary busy Desktop input uses the native conversation port, not /steer or queue`, async t => {
+  test(`${channel}: ordinary busy input uses the same native conversation port on every client`, async t => {
     const f = fixture(t, channel, "app-server", true); f.setState({ executionOwner: "desktop" });
     await f.send("补充要求", "same-im-message");
     assert.equal(f.threadMessages.length, 1); assert.match(f.threadMessages[0].prompt, /补充要求/);
@@ -142,8 +142,8 @@ for (const channel of ["dingtalk", "weixin", "feishu"] as const) {
     f.restart(); await f.send("补充要求", "same-im-message");
     assert.equal(f.threadMessages.length, 1, "accepted native input is not replayed after restart");
     await f.send("/policy steer"); assert.match(f.texts.at(-1)!, /运行中消息处理方式：steer/);
-    await f.send("/steer 仅介入指定任务"); assert.match(f.texts.at(-1)!, /不支持指定轮次的安全介入/);
-    assert.equal(f.threadMessages.length, 1); assert.equal(f.steers, 0); assert.equal(f.runs.length, 0);
+    await f.send("/steer 仅介入指定任务"); assert.match(f.texts.at(-1)!, /已介入/);
+    assert.equal(f.threadMessages.length, 1); assert.equal(f.steers, 1); assert.equal(f.runs.length, 0);
     assert.equal(f.queued.length, 0); assert.equal(f.cards.length, 0);
   });
   test(`${channel}: the default busy-message policy is steer, with no ask card or new turn`, async t => {
@@ -198,15 +198,11 @@ test("binding changes during native ordinary-message preflight invalidate the wr
   assert.equal(f.store.getSession(f.session.id)?.threadId, "thread");
 });
 
-test("default steer never silently falls back for Desktop or exec", async t => {
-  const desktop = fixture(t); desktop.setState({ executionOwner: "desktop" });
-  await desktop.send("补充要求");
-  assert.match(desktop.texts.at(-1)!, /不支持.*安全介入.*未提交/);
-  assert.equal(desktop.runs.length, 0); assert.equal(desktop.steers, 0);
-  const exec = fixture(t, "weixin", "exec");
-  await exec.send("补充要求");
-  assert.match(exec.texts.at(-1)!, /不支持.*消息未提交/);
-  assert.equal(exec.runs.length, 0);
+test("native steering ignores a legacy UI owner flag while unsupported capabilities remain explicit",async t=>{
+ const native=fixture(t);native.setState({executionOwner:'desktop'});await native.send('补充要求');
+ assert.equal(native.steers,1);assert.equal(native.runs.length,0);
+ const unsupported=fixture(t,'weixin','exec');await unsupported.send('补充要求');
+ assert.match(unsupported.texts.at(-1)!,/不支持.*消息未提交/);assert.equal(unsupported.runs.length,0);
 });
 
 test("/leave remains detached after restart; /new explicitly rebinds and refreshes following", async t => {

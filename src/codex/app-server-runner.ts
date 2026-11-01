@@ -13,12 +13,14 @@ import { automaticApprovalProgress } from "./approval-progress.js";
 import { parseMcpForm, mcpFormResponse, safeElicitationUrl, type McpForm } from "./elicitation.js";
 import type { CodexUserInputResultHandler, CodexUserInputResult } from "./backend.js";
 import type { CodexApprovalRequest, CodexApprovalResult, CodexApprovalResultHandler } from "./approval.js";
-import { desktopSessionMembership } from "./desktop-session-membership.js";
+import { desktopSessionMembership, nativeSessionPresentation } from "./desktop-session-membership.js";
+import type { NativeInteractionObserver, NativeApproval, NativeUserInput } from "./interactions.js";
+import { NativeAsyncQuestions } from "./native-async-questions.js";
 import { codexFailureCode, lastCodexTurnFailure, type CodexFailureCode } from "./turn-failure.js";
 import { codexTurnRecovery, codexRecoverySummary, type CodexTurnRecovery } from "./turn-recovery.js";
 import { readDesktopSessionCatalog, isDesktopCatalogThread } from "./desktop-session-catalog.js";
 
-import { resolveCodexCommand } from "./exec-runner.js";
+import { resolveCodexCommand } from "./codex-command.js";
 import { parseAccountRateLimits, type CodexAccountBalance } from "./account-balance.js";
 import {
   appServerApprovalResult,
@@ -106,6 +108,7 @@ type JsonRpcId = number | string;
 
 type PendingRequest = {
   method: string;
+  readOnly?: boolean;
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
   timer: NodeJS.Timeout;
@@ -162,7 +165,11 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private connectPromise?: Promise<void>;
   private initialized = false;
   private readonly approvalResults = new Map<string, CodexApprovalResultHandler>();
-  private readonly approvalRequests = new Map<string, { request: CodexApprovalRequest; submitted: boolean; notify?: CodexApprovalResultHandler }>();
+  private readonly approvalRequests = new Map<string, { request: CodexApprovalRequest; submitted: boolean; notify?: CodexApprovalResultHandler;
+    observer?: NativeInteractionObserver }>();
+  private readonly interactionObservers = new Map<string, NativeInteractionObserver>();
+  private readonly interactionRefreshThreads = new Set<string>();
+  private readonly asyncQuestions: NativeAsyncQuestions;
   private readonly observedApprovalIds = new Set<string>();
   private closed = false;
   private closePromise?: Promise<void>;
@@ -176,7 +183,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private readonly userInputHandlersByThread = new Map<string, CodexUserInputHandler>();
   private readonly userInputResultHandlersByThread = new Map<string, CodexUserInputResultHandler>();
   private readonly userInputRequests = new Map<string, { request: CodexUserInputRequest;
-    submitted: boolean; notify?: CodexUserInputResultHandler }>();
+    submitted: boolean; notify?: CodexUserInputResultHandler; observer?: NativeInteractionObserver }>();
   private readonly turnWaiters = new Map<string, TurnWaiter>();
   private readonly turnEvents = new Map<string, DiagnosticTail>();
   private readonly turnTexts = new Map<string, string>();
@@ -198,7 +205,11 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private readonly subscribedThreads = new Set<string>();
   private readonly unconfirmedStarts = new Set<string>();
 
-  constructor(private readonly options: AppServerRunnerOptions = {}) {}
+  constructor(private readonly options: AppServerRunnerOptions = {}) {
+    this.asyncQuestions = new NativeAsyncQuestions(options.hostId ?? "local",
+      (threadId, observer) => this.interactionObservers.get(threadId) === observer,
+      input => this.steer(input), threadId => this.interactionRefreshThreads.add(threadId));
+  }
 
   async run(input: CodexRunnerInput): Promise<CodexRunResult> {
     assertCodexProjectBinding(input);
@@ -266,10 +277,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           ...(input.threadId && !alreadySubscribed ? { excludeTurns: true } : {}),
           ...(input.threadId ? { threadId: input.threadId } : {}),
           ...(!input.threadId ? { ephemeral: input.ephemeral } : {}),
-          cwd: resume ? undefined : input.cwd,
+          cwd: input.threadId ? undefined : input.cwd,
           model: input.model,
           developerInstructions: input.developerInstructions,
-          approvalPolicy: resume ? undefined : input.queuedSubmissionId && input.onApproval ? "on-request" : "never",
           ...(!input.threadId && nativeProjectId ? { projectId: nativeProjectId } : {}),
           ...(!input.threadId && input.projectBinding === "none" ? { projectId: null } : {}),
           ...(!input.threadId && input.dynamicTools ? { dynamicTools: input.dynamicTools } : {})
@@ -337,9 +347,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       input: resume ? [] : [{ type: "text", text: input.prompt, text_elements: [] }],
       clientUserMessageId: input.clientUserMessageId,
       ...(resume ? { clientUserMessageId: resume.clientUserMessageId, turnTrigger: "capacity_retry_automatic" } : {}),
-      cwd: resume ? undefined : input.cwd,
-      approvalPolicy: resume ? undefined : input.onApproval ? "on-request" : "never",
-      sandboxPolicy: resume ? undefined : appServerSandboxPolicy(input.sandbox ?? this.options.sandbox),
+      cwd: input.threadId ? undefined : input.cwd,
+      sandboxPolicy: resume ? undefined : appServerSandboxPolicy(input.sandbox ?? (input.threadId ? undefined : this.options.sandbox)),
       model: input.model,
       effort: input.effort,
       outputSchema: input.outputSchema,
@@ -468,7 +477,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       this.releaseExpectedTurnThread(threadId);
       // A native queued turn may start before this turn's delivery finishes.
       // Keep its subscription (and approval requests) on the same connection.
-      if (![...this.nativeQueueOrigins.values()].some(origin => origin.threadId === threadId)
+      if (!this.interactionObservers.has(threadId) && ![...this.nativeQueueOrigins.values()].some(origin => origin.threadId === threadId)
         && !this.activeTurns.has(threadId) && !this.unconfirmedStarts.has(threadId)) await this.unsubscribeThread(threadId);
       await this.recyclePrivateTransportIfIdle();
     }
@@ -725,7 +734,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private sessionMembership(legacyWorkspaceFallback = false): (state: CodexThreadState) => CodexThreadState {
-    if (this.options.catalogSource === "native") return state => state;
+    if (this.options.catalogSource === "native") return nativeSessionPresentation(this.options.codexHome, this.options.hostId);
     // A remote transport without a host identity must not consume local membership.
     if (this.options.transport?.mode === "remote-daemon" && !this.options.hostId) return (state) => state;
     return desktopSessionMembership(this.options.codexHome, this.options.hostId, legacyWorkspaceFallback);
@@ -1082,8 +1091,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         expectedTurnId: turnId,
         ...(input.clientUserMessageId ? { clientUserMessageId: input.clientUserMessageId } : {})
       }) as Record<string, unknown>;
-      const acceptedTurnId = typeof response.turnId === "string" ? response.turnId : turnId;
-      return { status: "accepted", threadId: input.threadId, turnId: acceptedTurnId };
+      if (response.turnId !== turnId) throw new CodexCommunicationError("submission", "turn/steer", input.threadId, undefined,
+        { code: "InvalidAcknowledgement" });
+      return { status: "accepted", threadId: input.threadId, turnId };
     } catch (error) {
       throw normalizeSteerError(error, input.threadId, turnId);
     }
@@ -1114,8 +1124,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       // thread can auto-consume add, so subscribe before that external write.
       // Never reconfigure an already running turn to attach its queue.
       if (!this.subscribedThreads.has(input.threadId)) {
-        await this.request("thread/resume", compactObject({ threadId: input.threadId, excludeTurns: true,
-          ...(!this.activeTurns.has(input.threadId) && input.onApproval ? { approvalPolicy: "on-request" } : {}) }));
+        await this.request("thread/resume", { threadId: input.threadId, excludeTurns: true });
         this.subscribedThreads.add(input.threadId);
       }
       assertQueueAdmissionCurrent(input);
@@ -1405,9 +1414,60 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     if (this.executionLifetime === "gateway") return this.hasInFlightWork();
     // A daemon owns accepted turns. Protect RPC handoff and live synchronous
     // interactions, not the lifetime of its independently executing turns.
-    const reads = new Set(["initialize", "thread/read", "thread/list", "thread/turns/list", "thread/queue/list", "project/list", "config/read", "model/list", "account/read", "account/rateLimits/read", "thread/goal/get"]);
-    return this.unconfirmedStarts.size > 0 || this.approvalRequests.size > 0 || this.userInputRequests.size > 0
-      || [...this.pending.values()].some(request => !reads.has(request.method));
+    const reads = new Set(["initialize", "server/diagnostics", "thread/read", "thread/list", "thread/turns/list", "thread/queue/list", "project/list", "config/read", "model/list", "account/read", "account/rateLimits/read", "thread/goal/get"]);
+    return this.unconfirmedStarts.size > 0 || [...this.approvalRequests.values()].some(p => p.submitted)
+      || [...this.userInputRequests.values()].some(p => p.submitted)
+      || [...this.pending.values()].some(request => !request.readOnly && !reads.has(request.method));
+  }
+
+  async serverIdentity(): Promise<{ processId: number }> {
+    await this.ensureConnected();
+    const result = await this.request("server/diagnostics", {}) as { process?: { id?: unknown } };
+    if (!Number.isSafeInteger(result.process?.id) || Number(result.process?.id) <= 0) throw new Error("Invalid native server process identity");
+    return { processId: Number(result.process!.id) };
+  }
+
+  interactionSubscriptionReady(threadId: string): boolean {
+    return this.initialized && this.child?.exitCode === null && this.subscribedThreads.has(threadId)
+      && this.interactionObservers.has(threadId) && !this.interactionRefreshThreads.has(threadId);
+  }
+
+  /** Native resume subscribes to the SAME loaded core and replays its pending
+   * requests. No settings override and no user input are sent. */
+  async observeThreadInteractions(threadId: string, observer: NativeInteractionObserver): Promise<void> {
+    if (this.options.metadataOnly || this.options.historyOnly) throw new Error("Read-only observers cannot subscribe to interactions");
+    const previous = this.interactionObservers.get(threadId);
+    if (previous && previous !== observer) await this.unobserveThreadInteractions(threadId);
+    this.interactionObservers.set(threadId, observer);
+    if (this.interactionSubscriptionReady(threadId)) return;
+    await this.ensureConnected();
+    this.interactionRefreshThreads.delete(threadId);
+    try {
+      const result = await this.request("thread/resume", { threadId, excludeTurns: true }, 5_000, true) as { thread?: { id?: string } };
+      if (result.thread?.id !== threadId) throw new Error("Native interaction subscription identity mismatch");
+      if (this.interactionObservers.get(threadId) !== observer) return;
+      this.subscribedThreads.add(threadId);
+      const state = await this.inspectThread(threadId);
+      if (state.runtimeStatus === "active" && state.activeTurnId) {
+        this.activeTurns.set(threadId, state.activeTurnId);
+        const page = await this.request("thread/turns/list", { threadId, limit: 1, itemsView: "summary", sortDirection: "desc" }, 5_000) as { data?: Array<Record<string, unknown>> };
+        const turn = page.data?.find(t => t.id === state.activeTurnId && t.status === "inProgress");
+        if (turn && Array.isArray(turn.items) && this.interactionObservers.get(threadId) === observer)
+          this.asyncQuestions.observe(threadId, state.activeTurnId, turn.items, observer);
+      }
+    } catch (error) { this.interactionRefreshThreads.add(threadId); throw error; }
+  }
+
+  async unobserveThreadInteractions(threadId: string): Promise<void> {
+    const observer = this.interactionObservers.get(threadId);
+    this.interactionObservers.delete(threadId); this.interactionRefreshThreads.delete(threadId);
+    this.asyncQuestions.end(threadId);
+    for (const [key, request] of this.approvalRequests) if (request.observer === observer && request.request.threadId === threadId)
+      this.resolveApproval(key, request.submitted ? "failed" : "withdrawn");
+    for (const [key, request] of this.userInputRequests) if (request.observer === observer && request.request.threadId === threadId)
+      this.resolveUserInput(key, request.submitted ? "failed" : "withdrawn");
+    if (!this.expectedTurnThreads.has(threadId) && ![...this.nativeQueueOrigins.values()].some(o => o.threadId === threadId)
+      && this.subscribedThreads.has(threadId)) await this.unsubscribeThread(threadId);
   }
 
   detachIndependentObservations(): void {
@@ -1485,6 +1545,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         },
         capabilities: {
           experimentalApi: true,
+          mcpServerOpenaiFormElicitation: true,
           requestAttestation: false
         }
       }, Math.min(Math.max(this.options.requestTimeoutMs ?? 600_000, 5_000), 60_000));
@@ -1499,7 +1560,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private request(
     method: string,
     params: Record<string, unknown>,
-    timeoutMs = this.options.requestTimeoutMs ?? 600_000
+    timeoutMs = this.options.requestTimeoutMs ?? 600_000,
+    readOnly = false
   ): Promise<unknown> {
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
@@ -1513,7 +1575,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         // One missing RPC receipt is not a broken transport or a failed task.
         // Keep the connection alive for late execution/approval notifications.
       }, timeoutMs);
-      this.pending.set(id, { method, resolve, reject, timer });
+      this.pending.set(id, { method, resolve, reject, timer, readOnly });
       try {
         this.send({ id, method, params });
       } catch (error) {
@@ -1585,12 +1647,20 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private handleNotification(method: string, params: Record<string, unknown>, raw: string): void {
+    const observer = typeof params.threadId === "string" ? this.interactionObservers.get(params.threadId) : undefined;
+    if (observer && typeof params.turnId === "string" && this.activeTurns.get(String(params.threadId)) === params.turnId
+      && ["item/started", "item/completed"].includes(method)
+      && params.item && typeof params.item === "object") this.asyncQuestions.observe(String(params.threadId), params.turnId, [params.item], observer);
+    if (method === "turn/completed" && typeof params.threadId === "string") {
+      const turn = params.turn as { id?: string } | undefined;
+      if (turn?.id) this.asyncQuestions.end(params.threadId, turn.id);
+    }
     if (method === "item/autoApprovalReview/started" || method === "item/autoApprovalReview/completed") {
       const { threadId, turnId } = params;
       if (this.options.metadataOnly || this.options.historyOnly || typeof threadId !== "string" || typeof turnId !== "string"
         || this.activeTurns.get(threadId) !== turnId) return;
       const key = turnKey(threadId, turnId);
-      if (!this.turnStreams.has(key) && !this.expectedTurnThreads.has(threadId)) return;
+      if (!this.turnStreams.has(key) && !this.expectedTurnThreads.has(threadId) && !this.interactionObservers.has(threadId)) return;
       const progress = automaticApprovalProgress(method, params);
       if (progress) this.emitProgress(key, progress);
       return;
@@ -1922,6 +1992,16 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private queueTurnEvent(key: string, event: QueuedTurnEvent): void {
+    const [threadId, turnId] = key.split("\u0000");
+    const interested = this.expectedTurnThreads.has(threadId) || this.unconfirmedStarts.has(threadId)
+      || [...this.nativeQueueOrigins.values()].some(origin => origin.threadId === threadId);
+    if (!interested) {
+      const observer = this.interactionObservers.get(threadId);
+      const text = event.type === "progress" ? event.text : event.type === "recovery" ? codexRecoverySummary(event.recovery) : undefined;
+      if (observer?.onProgress && text && this.activeTurns.get(threadId) === turnId) void Promise.resolve(
+        observer.onProgress({ hostId: this.options.hostId ?? "local", threadId, turnId }, text)).catch(() => {});
+      return;
+    }
     const queued = this.queuedTurnEvents.get(key) ?? [];
     queued.push(event);
     this.queuedTurnEvents.set(key, queued);
@@ -1972,7 +2052,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const form = method === "mcpServer/elicitation/request" ? parseMcpForm(scoped) : undefined;
       if (form) { this.handleUserInputRequest(id, {}, form); return; }
       const request = parseAppServerApproval(method, scoped);
-      const handler = request ? this.approvalHandlersByThread.get(request.threadId) : undefined;
+      const observer = this.interactionObservers.get(threadId);
+      const envelope: NativeApproval | undefined = request ? { hostId: this.options.hostId ?? "local", requestId: id, method, request } : undefined;
+      const activeHandler = request ? this.approvalHandlersByThread.get(request.threadId) : undefined;
+      const handler = activeHandler ?? (envelope && observer ? () => observer.onApproval(envelope) : undefined);
       if (!request || !handler) {
         if (method === "mcpServer/elicitation/request") {
           const turnId = typeof scoped.turnId === "string" ? scoped.turnId : this.activeTurns.get(threadId);
@@ -1980,17 +2063,18 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           if (threadId && turnId) this.emitProgress(turnKey(threadId, turnId), url
             ? `当前工具需要在浏览器完成验证：${url}。打开页面不等于已批准或完成验证。`
             : "当前工具有尚未适配或需要安全认证的交互，未自动批准、未收集密码或验证码。请求保持待处理，请从原工具提供的安全页面处理。");
+          if (observer && turnId) void Promise.resolve(observer.onUnsupportedInteraction?.({
+            hostId: this.options.hostId ?? "local", threadId, turnId, requestId: id, method,
+            reason: url ? "authentication" : "schema-unsupported", ...(url ? { safeUrl: url } : {})
+          })).catch(() => {});
           console.warn("[codex-im-gateway] MCP interaction unsupported; native request retained, no payload logged");
           return;
         }
-        const fallback = request ?? {
-          kind: "command" as const,
-          threadId: "",
-          turnId: "",
-          itemId: ""
-        };
-        const reject = fallback.options?.some(o => o.id === "cancel") && !fallback.options.some(o => o.id === "decline") ? "cancel" : "decline";
-        this.send({ id, result: appServerApprovalResult(method, fallback, reject) });
+        // A shared core broadcasts to multiple clients. Missing local context
+        // never authorizes declining another client's native interaction.
+        if (observer && typeof params.turnId === "string") void observer.onUnsupportedInteraction?.({
+          hostId: this.options.hostId ?? "local", threadId, turnId: params.turnId, requestId: id, method, reason: "schema-unsupported"
+        });
         return;
       }
       const key = JSON.stringify([request.threadId, typeof id, id]);
@@ -2000,32 +2084,33 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const owner = this.child;
       request.hostId = this.options.hostId ?? "local";
       request.nativeKey = JSON.stringify(["app-server", owner?.pid, request.hostId, method, key]);
-      const pending = { request, submitted: false, notify: this.approvalResults.get(request.threadId) };
+      const pending = { request, submitted: false, observer: activeHandler ? undefined : observer,
+        notify: this.approvalResults.get(request.threadId) ?? (envelope && observer
+          ? (_request: CodexApprovalRequest, result: import("./approval.js").CodexApprovalResult) => observer.onResult?.(envelope, result) : undefined) };
       this.approvalRequests.set(key, pending);
-      Promise.resolve().then(() => this.child === owner && this.approvalRequests.get(key) === pending ? handler(request) : "decline" as const)
+      Promise.resolve().then(() => this.child === owner && this.approvalRequests.get(key) === pending ? handler(request) : undefined)
         .then((decision) => {
           if (this.child !== owner || this.approvalRequests.get(key) !== pending) return;
+          if (decision === undefined) {
+            this.approvalRequests.delete(key); this.observedApprovalIds.delete(key);
+            this.interactionRefreshThreads.add(request.threadId); return;
+          }
+          if (pending.observer && this.interactionObservers.get(threadId) !== pending.observer) {
+            this.resolveApproval(key, "withdrawn"); return;
+          }
           pending.submitted = true;
           this.send({ id, result: appServerApprovalResult(method, request, decision) });
         })
         .catch((error) => {
           this.resolveApproval(key, "failed");
-          if (this.child !== owner) return;
-          try {
-            const reject = request.options?.some(o => o.id === "cancel") && !request.options.some(o => o.id === "decline") ? "cancel" : "decline";
-            this.send({ id, result: appServerApprovalResult(method, request, reject) });
-          } catch (sendError) {
-            const approvalError = error instanceof Error ? error.message : String(error);
-            const transportError = sendError instanceof Error ? sendError.message : String(sendError);
-            console.warn(`Codex approval failed (${approvalError}) and decline could not be sent: ${transportError}`);
-          }
+          this.observedApprovalIds.delete(key); this.interactionRefreshThreads.add(threadId);
+          console.warn("[codex-im-gateway] approval route unavailable; native request retained without a synthetic decision");
         });
       return;
     }
     switch (message.method) {
       case "execCommandApproval":
       case "applyPatchApproval":
-        this.send({ id, result: { decision: "denied" } });
         return;
       case "item/tool/requestUserInput":
         this.handleUserInputRequest(id, message.params ?? {});
@@ -2037,6 +2122,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         this.send({ id, result: { currentTimeAt: Math.floor(Date.now() / 1_000) } });
         return;
       default:
+        if (typeof message.params?.threadId !== "string" || !this.expectedTurnThreads.has(message.params.threadId)) return;
         if (typeof message.params?.threadId === "string") {
           const turnId = this.activeTurns.get(message.params.threadId);
           if (turnId) this.emitProgress(turnKey(message.params.threadId, turnId), "当前任务遇到未支持的原生交互；已记录脱敏诊断，未代答或批准。");
@@ -2053,6 +2139,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const call = parseDynamicToolCall(params);
     const handler = call ? this.dynamicToolHandlersByThread.get(call.threadId) : undefined;
     if (!call || !handler) {
+      if (!call || !this.expectedTurnThreads.has(call.threadId)) return;
       this.send({
         id,
         result: {
@@ -2075,20 +2162,37 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private handleUserInputRequest(id: JsonRpcId, params: Record<string, unknown>, form?: McpForm): void {
     const parsed = form?.request ?? parseUserInputRequest(params);
     const request = parsed ? { ...parsed, requestId: id } : undefined;
-    const handler = request ? this.userInputHandlersByThread.get(request.threadId) : undefined;
+    const observer = this.interactionObservers.get(request?.threadId ?? String(params.threadId ?? ""));
+    const envelope: NativeUserInput | undefined = request ? { hostId: this.options.hostId ?? "local", requestId: id,
+      method: "item/tool/requestUserInput", request, ...(form ? { mcpForm: form } : {}) } : undefined;
+    const activeHandler = request ? this.userInputHandlersByThread.get(request.threadId) : undefined;
+    const handler = activeHandler ?? (envelope && observer?.onUserInput ? () => observer.onUserInput!(envelope) : undefined);
     if (!request || !handler) {
+      if (observer && typeof params.turnId === "string") void Promise.resolve(observer.onUnsupportedInteraction?.({
+        hostId: this.options.hostId ?? "local", threadId: String(params.threadId), turnId: params.turnId,
+        requestId: id, method: "item/tool/requestUserInput", reason: "schema-unsupported"
+      })).catch(() => {});
       console.warn("[codex-im-gateway] user-input request has no valid channel handler; left unanswered");
       return;
     }
     const key = JSON.stringify([request.threadId, typeof id, id]);
     if (this.userInputRequests.has(key)) return;
-    const pending = { request, submitted: false, notify: this.userInputResultHandlersByThread.get(request.threadId) };
+    const pending = { request, submitted: false, observer: activeHandler ? undefined : observer,
+      notify: this.userInputResultHandlersByThread.get(request.threadId)
+      ?? (envelope && observer ? (_request: CodexUserInputRequest, result: CodexUserInputResult) => observer.onUserInputResult?.(envelope, result) : undefined) };
     this.userInputRequests.set(key, pending);
     Promise.resolve().then(() => this.userInputRequests.get(key) === pending ? handler(request) : undefined).then(answers => {
-      if (answers === undefined || this.userInputRequests.get(key) !== pending) return;
+      if (this.userInputRequests.get(key) !== pending) return;
+      if (answers === undefined) { this.userInputRequests.delete(key); this.interactionRefreshThreads.add(request.threadId); return; }
+      if (pending.observer && this.interactionObservers.get(request.threadId) !== pending.observer) {
+        this.resolveUserInput(key, "withdrawn"); return;
+      }
       pending.submitted = true;
       this.send({ id, result: form ? mcpFormResponse(form, answers) : { answers } });
-    }).catch(() => this.resolveUserInput(key, "failed"));
+    }).catch(() => {
+      this.resolveUserInput(key, "failed");
+      this.interactionRefreshThreads.add(request.threadId);
+    });
   }
 
   private bindUserInputHandlers(threadId: string, input: Pick<CodexRunnerInput, "onUserInput" | "onUserInputResult" | "onApprovalResult">): void {
@@ -2123,6 +2227,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private failTransport(error: Error, kill: boolean): void {
+    this.asyncQuestions.disconnect();
     for (const [key, request] of this.approvalRequests) this.resolveApproval(key, request.submitted ? "failed" : "withdrawn");
     this.approvalResults.clear();
     const child = this.child;
@@ -2147,6 +2252,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     this.nativeQueueOrigins.clear();
     this.nativeTurnClients.clear();
     this.subscribedThreads.clear();
+    this.observedApprovalIds.clear();
     this.approvalHandlersByThread.clear();
     this.dynamicToolHandlersByThread.clear();
     this.userInputHandlersByThread.clear();
@@ -2558,6 +2664,7 @@ function unixTimestampToIso(value: unknown): string | undefined {
 function normalizeThreadOperationError(error: unknown, threadId: string): Error {
   if (error instanceof CodexThreadStateError) return error;
   const message = error instanceof Error ? error.message : String(error);
+  if (/already has an active writer/i.test(message)) return new CodexCommunicationError("preflight", "app-server/ownership", threadId, undefined, error);
   if (/archiv|unarchive|已归档/i.test(message)) {
     return new CodexThreadStateError(
       "archived",

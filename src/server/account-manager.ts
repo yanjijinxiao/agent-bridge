@@ -29,6 +29,7 @@ import { parseCommand } from "../bridge/channel-commands.js";
 import type { ChannelMessage } from "../channels/message.js";
 import { prepareTurnSubmission, TurnSubmission, TurnDeliveryError, TurnApplicationError } from "../bridge/turn-submission.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
+import { AppServerRequestMonitor, type NativeRequestMonitor } from "./app-server-request-monitor.js";
 import { InteractionRoutingJournal, type InteractionDestination, type InteractionRouteStatus } from "../bridge/interaction-routing.js";
 import { ThreadEventHub, type ThreadSubscription } from "./thread-event-hub.js";
 import { CapacityRecoveryCoordinator } from "./capacity-recovery.js";
@@ -56,7 +57,7 @@ import type { CodexThreadState } from "../codex/backend.js";
 import { desktopSessionMembership } from "../codex/desktop-session-membership.js";
 import { localProjectsAtWorkspace, nativeProjectForManaged } from "../state/project-identity.js";
 import { assertCodexThreadRunnable, capacityFailureScope, CodexTurnExecutionError } from "../codex/backend.js";
-import { CodexBackendRouter } from "../codex/runner.js";
+import { CodexAppServerGateway } from "../codex/app-server-gateway.js";
 import {
   LlmWikiMcpClientPool,
   type LlmWikiInspection
@@ -71,12 +72,7 @@ import {
   type CodexSessionCompletion,
   type CodexSessionTask
 } from "./codex-session-monitor.js";
-import {
-  CodexDesktopRequestMonitor,
-  type CodexDesktopApproval,
-  type CodexDesktopUserInput,
-  type CodexDesktopRequestMonitorOptions
-} from "./codex-desktop-request-monitor.js";
+import type { NativeApproval, NativeUserInput, NativeInteractionObserver } from "../codex/interactions.js";
 import type { CodexUserInputAnswer, CodexUserInputResult } from "../codex/backend.js";
 import {
   RuntimeStateStore,
@@ -291,11 +287,11 @@ export type AccountManagerOptions = {
     }
   ) => CodexSessionCompletionMonitor;
   codexDesktopApprovalMonitorFactory?: (
-    handlers: CodexDesktopRequestMonitorOptions
-  ) => CodexDesktopRequestMonitor;
+    handlers: NativeInteractionObserver
+  ) => NativeRequestMonitor;
   codexDesktopRequestMonitorFactory?: (
-    handlers: CodexDesktopRequestMonitorOptions
-  ) => CodexDesktopRequestMonitor;
+    handlers: NativeInteractionObserver
+  ) => NativeRequestMonitor;
   taskboardClientFactory?: (url: string) => TaskboardClient;
   llmWiki?: LlmWikiMcpClientPool;
   channelCapabilities?: ChannelCapabilityProvider;
@@ -309,8 +305,8 @@ export class AccountManager {
   readonly ide: WorkspaceIDEManager;
   readonly ideApprovals: IDEApprovalService;
   readonly admission: AdmissionService;
-  private readonly userInputRoutes = new WeakMap<CodexDesktopUserInput, { service: BridgeService; recipientId: string }>();
-  private readonly approvalRoutes = new WeakMap<CodexDesktopApproval, { service: BridgeService; recipientId: string }>();
+  private readonly userInputRoutes = new WeakMap<NativeUserInput, { service: BridgeService; recipientId: string }>();
+  private readonly approvalRoutes = new WeakMap<NativeApproval, { service: BridgeService; recipientId: string }>();
   private readonly sessionApprovalRoutes = new WeakMap<CodexApprovalRequest, { service: BridgeService; recipientId: string }>();
   private readonly interactionRouting: InteractionRoutingJournal;
   private readonly unresolvedInteractions = new Set<string>();
@@ -328,7 +324,7 @@ export class AccountManager {
   private readonly bridgeFactory: (input: ConstructorParameters<typeof BridgeService>[0]) => BridgeService;
   private readonly runnerFactory: (config: CodexImGatewayConfig) => CodexBridgeBackend;
   private readonly codexSessionMonitorFactory: NonNullable<AccountManagerOptions["codexSessionMonitorFactory"]>;
-  private readonly codexDesktopRequestMonitorFactory: NonNullable<AccountManagerOptions["codexDesktopRequestMonitorFactory"]>;
+  private readonly nativeRequestMonitorFactory: NonNullable<AccountManagerOptions["codexDesktopRequestMonitorFactory"]>;
   private readonly externalCodexTasks = new Map<string, CodexSessionTask>();
   private readonly membershipReads = new Map<string, Promise<CodexThreadState>>();
   private readonly ideProjectReads = new Map<string, Promise<CodexProjectCatalog>>();
@@ -350,7 +346,7 @@ export class AccountManager {
   private runtimeConfigurationChanging = false;
   private runner?: CodexBridgeBackend;
   private codexSessionMonitor?: CodexSessionCompletionMonitor;
-  private codexDesktopRequestMonitor?: CodexDesktopRequestMonitor;
+  private nativeRequestMonitor?: NativeRequestMonitor;
   private taskboard?: TaskboardClient;
   private taskboardController?: AbortController;
   private taskboardTask?: Promise<void>;
@@ -473,15 +469,14 @@ export class AccountManager {
         const entry = this.entries.get(binding.accountId)!;
         if (!entry.store!.expireBinding(binding.sessionId, binding.expected, this.configProvider().bindingIdleDays)) return;
         entry.service?.clearConversationBindingState?.(binding.expected.conversationId);
-        this.refreshDesktopRequestSubscriptions();
+        this.refreshNativeRequestSubscriptions();
         await this.threadEvents.refresh();
       }
     });
     this.adapterFactory = options.adapterFactory ?? channelFactoryWithLegacyOverrides(options);
     this.bridgeFactory = options.bridgeFactory ?? ((input) => new BridgeService(input));
-    this.runnerFactory = options.runnerFactory ?? ((config) => new CodexBackendRouter({
+    this.runnerFactory = options.runnerFactory ?? ((config) => new CodexAppServerGateway({
       backend: config.codexBackend,
-      executionOwner: config.codexExecutionOwner,
       appServerTransport: config.codexAppServerTransport,
       codexBin: config.codexBin,
       execSandbox: config.codexExecSandbox,
@@ -493,8 +488,8 @@ export class AccountManager {
     }));
     this.codexSessionMonitorFactory = options.codexSessionMonitorFactory
       ?? ((handlers) => new CodexSessionCompletionMonitor(handlers));
-    this.codexDesktopRequestMonitorFactory = options.codexDesktopRequestMonitorFactory ?? options.codexDesktopApprovalMonitorFactory
-      ?? ((handlers) => new CodexDesktopRequestMonitor(handlers));
+    this.nativeRequestMonitorFactory = options.codexDesktopRequestMonitorFactory ?? options.codexDesktopApprovalMonitorFactory
+      ?? ((handlers) => new AppServerRequestMonitor(() => this.runnerFor(this.configProvider()), handlers));
     this.taskboardClientFactory = options.taskboardClientFactory ?? ((url) => new TaskboardClient({ baseUrl: url }));
     this.llmWiki = options.llmWiki ?? new LlmWikiMcpClientPool();
     this.channelCapabilities = options.channelCapabilities ?? createInstalledSkillCapabilitiesProvider();
@@ -515,7 +510,7 @@ export class AccountManager {
       // Startup may initialize read/transport resources behind a release gate;
       // every IM/Web/queue native admission still checks assertRuntimeWritable.
       .map((account) => this.accountOperations.run(account.accountId, () => this.startAccountOwned(account.accountId, false))));
-    this.ensureCodexDesktopRequestMonitor();
+    this.ensureNativeRequestMonitor();
     this.ensureCodexSessionMonitor();
     this.threadEvents.start();
     this.capacityRecovery.start();
@@ -534,8 +529,8 @@ export class AccountManager {
       // Abort all ingress before waiting for any observer or journal cleanup.
       const accounts = [...this.entries.keys()].map(id => attempt(() => this.accountOperations.run(id, () => this.stopRuntime(id))));
       this.taskboardController?.abort();
-      await attempt(() => this.codexDesktopRequestMonitor?.stop());
-      this.codexDesktopRequestMonitor = undefined;
+      await attempt(() => this.nativeRequestMonitor?.stop());
+      this.nativeRequestMonitor = undefined;
       await attempt(() => this.codexSessionMonitor?.stop());
       this.codexSessionMonitor = undefined;
       this.externalCodexTasks.clear();
@@ -713,7 +708,7 @@ export class AccountManager {
             status: "failed" as const, failure: { code: "binding-changed" as const, message: "当前对话已切换绑定，未同步旧会话。" }
           };
           this.ensureCodexSessionMonitor();
-          this.refreshDesktopRequestSubscriptions();
+          this.refreshNativeRequestSubscriptions();
           return this.threadEvents.synchronize(JSON.stringify([account.accountId, session.id]), recovery);
         }
       },
@@ -723,14 +718,14 @@ export class AccountManager {
       },
       onSubscriptionsChanged: () => {
         this.ensureCodexSessionMonitor();
-        this.refreshDesktopRequestSubscriptions();
+        this.refreshNativeRequestSubscriptions();
         return this.threadEvents.refresh();
       },
       onTurnStarted: (session, turnId, status) => {
         this.rememberInteractionOrigin(account.accountId, session, turnId);
         if (status && status !== "inProgress") return;
         this.ensureCodexSessionMonitor();
-        this.refreshDesktopRequestSubscriptions();
+        this.refreshNativeRequestSubscriptions();
         return this.threadEvents.managedTurnStarted({
           key: JSON.stringify([account.accountId, session.id]),
           hostId: session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local",
@@ -783,7 +778,7 @@ export class AccountManager {
     this.entries.set(account.accountId, entry);
     this.bindingExpiry.start();
     this.ensureNativeQueueRecovery();
-    this.refreshDesktopRequestSubscriptions();
+    this.refreshNativeRequestSubscriptions();
 
     const normalizedMessage = (message: ChannelMessage): ChannelMessage => {
       const authorizedConversation = message.source === "native-menu"
@@ -862,7 +857,7 @@ export class AccountManager {
       try { entry.controller?.abort(); await entry.task; } catch (error) { errors.push(error); }
       finally { entry.status = "stopped"; entry.connection = { state: "stopped" }; }
     }
-    try { if (!this.stoppingAll) this.refreshDesktopRequestSubscriptions(); } catch (error) { errors.push(error); }
+    try { if (!this.stoppingAll) this.refreshNativeRequestSubscriptions(); } catch (error) { errors.push(error); }
     if (errors.length) throw new AggregateError(errors, "渠道账号停止时部分清理失败，其余资源已继续清理。");
   }
 
@@ -893,7 +888,7 @@ export class AccountManager {
       this.inputReceipts.delete(account.accountId);
       this.forwardingInboxes.delete(account.accountId);
       this.interactionRouting.reconcileBindings([], [account.accountId]);
-      this.refreshDesktopRequestSubscriptions();
+      this.refreshNativeRequestSubscriptions();
     });
   }
 
@@ -1323,7 +1318,7 @@ export class AccountManager {
     }
     const session = this.storeFor(accountId).createSession(senderId, targetWorkspace, title, project?.id);
     this.storeFor(accountId).setInteractionMode(senderId, "session");
-    this.refreshDesktopRequestSubscriptions();
+    this.refreshNativeRequestSubscriptions();
     return this.sessionSummary(accountId, session, true);
   }
 
@@ -1355,7 +1350,7 @@ export class AccountManager {
       throw new Error("此 IM 对话的投递身份尚未核验，请先在该对话向机器人发送消息，再设为提问入口。");
     }
     this.interactionRouting.setPrimary(this.interactionDestination(accountId, session));
-    this.refreshDesktopRequestSubscriptions();
+    this.refreshNativeRequestSubscriptions();
     return this.getSessionInteractionRoute(accountId, sessionId);
   }
 
@@ -1373,20 +1368,20 @@ export class AccountManager {
     }
     const session = store.activateSession(sessionId);
     store.setInteractionMode(session.senderId, session.mode === "qa" ? "qa" : "session");
-    this.refreshDesktopRequestSubscriptions();
+    this.refreshNativeRequestSubscriptions();
     return this.sessionSummary(accountId, session, true);
   }
 
   resetSession(accountId: string, sessionId: string): AccountSession {
     const session = this.storeFor(accountId).resetSession(sessionId);
-    this.refreshDesktopRequestSubscriptions();
+    this.refreshNativeRequestSubscriptions();
     return this.sessionSummary(accountId, session, this.isActive(accountId, session.id));
   }
 
   deleteSession(accountId: string, sessionId: string): void {
     this.storeFor(accountId).deleteSession(sessionId);
     this.respondingSessions.delete(sessionRuntimeKey(accountId, sessionId));
-    this.refreshDesktopRequestSubscriptions();
+    this.refreshNativeRequestSubscriptions();
   }
 
   async unbindSession(accountId: string, sessionId: string, expected: SessionBindingTarget): Promise<{ session: AccountSession; changed: boolean }> {
@@ -1394,7 +1389,7 @@ export class AccountManager {
     const result = store.unbindSession(sessionId, expected);
     if (result.changed) this.entries.get(accountId)?.service?.clearConversationBindingState?.(result.session.senderId);
     this.ensureCodexSessionMonitor();
-    this.refreshDesktopRequestSubscriptions();
+    this.refreshNativeRequestSubscriptions();
     await this.threadEvents.refresh();
     return { session: this.sessionSummary(accountId, result.session, false), changed: result.changed };
   }
@@ -1585,11 +1580,11 @@ export class AccountManager {
         onThreadCreated: (createdThreadId) => {
           if (stillCurrent()) binding.acceptThread(createdThreadId);
           this.ensureCodexSessionMonitor();
-          this.refreshDesktopRequestSubscriptions();
+          this.refreshNativeRequestSubscriptions();
         },
         onTurnStarted: ({ threadId, turnId }) => {
           if (stillCurrent()) this.rememberInteractionOrigin(accountId, { ...session, threadId }, turnId);
-          this.refreshDesktopRequestSubscriptions();
+          this.refreshNativeRequestSubscriptions();
           acceptedWork({ hostId: session.hostId ?? project?.hostId ?? "local", threadId, turnId });
         },
         onApproval: (request: CodexApprovalRequest) => this.requestSessionApproval(accountId, session, request),
@@ -1644,7 +1639,7 @@ export class AccountManager {
       if (error instanceof TurnDeliveryError) throw error;
       if (error instanceof TurnApplicationError || error instanceof CodexCommunicationError && error.submission !== "not-submitted") {
         this.ensureCodexSessionMonitor();
-        this.refreshDesktopRequestSubscriptions();
+        this.refreshNativeRequestSubscriptions();
         throw error; // Transport uncertainty is not a native task failure.
       }
       if (error instanceof CodexTurnExecutionError) await this.notifyProjectCompletion(
@@ -1893,7 +1888,7 @@ export class AccountManager {
     } else {
       this.respondingSessions.delete(key);
     }
-    this.refreshDesktopRequestSubscriptions();
+    this.refreshNativeRequestSubscriptions();
   }
 
   private runnerFor(config = this.configProvider()): CodexBridgeBackend {
@@ -1957,7 +1952,7 @@ export class AccountManager {
 
   private ensureCodexSessionMonitor(): void {
     if (this.codexSessionMonitor || !this.hasManagedProjects()) return;
-    this.ensureCodexDesktopRequestMonitor();
+    this.ensureNativeRequestMonitor();
     this.codexSessionMonitor = this.codexSessionMonitorFactory({
       onCompletion: (completion) => this.notifyExternalCodexCompletion(completion),
       onTaskChanged: (task) => this.updateExternalCodexTask(task),
@@ -1979,11 +1974,11 @@ export class AccountManager {
     const key = `${task.sessionId}\n${task.turnId}`;
     if (task.status === "running") {
       this.externalCodexTasks.set(key, task);
-      this.refreshDesktopRequestSubscriptions();
+      this.refreshNativeRequestSubscriptions();
       await this.threadEvents.started("local", task.sessionId, task.turnId, task.startedAt);
     } else {
       this.externalCodexTasks.delete(key);
-      this.refreshDesktopRequestSubscriptions();
+      this.refreshNativeRequestSubscriptions();
     }
   }
 
@@ -2020,15 +2015,16 @@ export class AccountManager {
     return result;
   }
 
-  private ensureCodexDesktopRequestMonitor(): void {
+  private ensureNativeRequestMonitor(): void {
     if (this.configProvider().codexBackend === "exec") return;
-    if (this.codexDesktopRequestMonitor || !this.hasManagedProjects()
+    if (this.nativeRequestMonitor || !this.hasManagedProjects()
       && !this.threadSubscriptions().some(binding => binding.enabled && binding.threadId)) return;
-    this.codexDesktopRequestMonitor = this.codexDesktopRequestMonitorFactory({
-      onApproval: (approval) => this.handleDesktopApproval(approval),
-      onResult: (approval, result) => this.reportDesktopApprovalResult(approval, result),
-      onUserInput: (input) => this.handleDesktopUserInput(input),
-      onUserInputResult: (input, result) => this.reportDesktopUserInputResult(input, result),
+    this.nativeRequestMonitor = this.nativeRequestMonitorFactory({
+      onProgress: (scope, text) => this.threadEvents.activity(scope.hostId, scope.threadId, scope.turnId, text),
+      onApproval: (approval) => this.handleNativeApproval(approval),
+      onResult: (approval, result) => this.reportNativeApprovalResult(approval, result),
+      onUserInput: (input) => this.handleNativeUserInput(input),
+      onUserInputResult: (input, result) => this.reportNativeUserInputResult(input, result),
       onObservedUserInputAnswers: async receipts => {
         await Promise.all([...this.entries.values()].map(entry => entry.service?.observeNativeUserInputAnswers?.(receipts)));
       },
@@ -2047,17 +2043,17 @@ export class AccountManager {
         return true;
       }
     });
-    this.codexDesktopRequestMonitor.start();
-    this.refreshDesktopRequestSubscriptions();
+    this.nativeRequestMonitor.start();
+    this.refreshNativeRequestSubscriptions();
   }
 
-  private refreshDesktopRequestSubscriptions(): void {
+  private refreshNativeRequestSubscriptions(): void {
     for (const entry of this.entries.values()) entry.service?.reconcileUserInputs?.();
     const configured = [...this.entries].flatMap(([accountId, entry]) => (loadAccount(this.options.paths, accountId).enabled === false ? [] : entry.store?.listSessions()
       .filter(session => entry.store!.getBoundSession(session.senderId)?.id === session.id && session.follow !== false && session.threadId)
       .map(session => this.interactionDestination(accountId, session)) ?? []));
     this.interactionRouting.reconcileBindings(configured, [...this.entries].filter(([, entry]) => entry.store).map(([id]) => id));
-    const monitor = this.codexDesktopRequestMonitor;
+    const monitor = this.nativeRequestMonitor;
     if (!monitor) return;
     const threadIds = this.threadSubscriptions()
       .filter((binding) => binding.enabled && binding.threadId)
@@ -2076,7 +2072,8 @@ export class AccountManager {
       accountId: session.accountId, sessionId: session.id, title: session.title, binding: session.binding
     }));
     return { bindings, unsupported: this.interactionRouting.diagnostics(),
-      desktopRequestMonitor: this.codexDesktopRequestMonitor?.observationHealth?.() ?? { connected: false, threads: [] } };
+      nativeRequestMonitor: this.nativeRequestMonitor?.observationHealth?.() ?? { connected: false, threads: [] },
+      desktopRequestMonitor: this.nativeRequestMonitor?.observationHealth?.() ?? { connected: false, threads: [] } };
   }
 
   listApprovals() {
@@ -2115,7 +2112,7 @@ export class AccountManager {
     if (session.threadId) this.interactionRouting.rememberTurn(this.interactionDestination(accountId, session), turnId);
   }
 
-  private async reportDesktopApprovalResult(approval: CodexDesktopApproval, result: ApprovalDeliveryResult): Promise<void> {
+  private async reportNativeApprovalResult(approval: NativeApproval, result: ApprovalDeliveryResult): Promise<void> {
     const route = this.approvalRoutes.get(approval);
     if (!route) return;
     this.approvalRoutes.delete(approval);
@@ -2172,7 +2169,7 @@ export class AccountManager {
     }));
   }
 
-  private async handleDesktopUserInput(input: CodexDesktopUserInput): Promise<CodexUserInputAnswer | undefined> {
+  private async handleNativeUserInput(input: NativeUserInput): Promise<CodexUserInputAnswer | undefined> {
     let binding: ThreadSubscription | undefined;
     {
       // The previous destination is durable even if the in-memory origin was
@@ -2205,14 +2202,14 @@ export class AccountManager {
     return answers;
   }
 
-  private async reportDesktopUserInputResult(input: CodexDesktopUserInput, result: CodexUserInputResult): Promise<void> {
+  private async reportNativeUserInputResult(input: NativeUserInput, result: CodexUserInputResult): Promise<void> {
     const route = this.userInputRoutes.get(input);
     if (!route) return;
     this.userInputRoutes.delete(input);
     await route.service.reportUserInputResult(route.recipientId, input.request, result);
   }
 
-  private async handleDesktopApproval(approval: CodexDesktopApproval): Promise<CodexApprovalDecision | undefined> {
+  private async handleNativeApproval(approval: NativeApproval): Promise<CodexApprovalDecision | undefined> {
     const hostId = approval.hostId ?? "local";
     const binding = this.interactionBinding(approval.request.threadId, approval.request.turnId, hostId);
     if (binding) {
@@ -2223,7 +2220,7 @@ export class AccountManager {
       const decision = await service.requestApproval(binding.recipientId, approval.request);
       if (!this.threadSubscriptions().some(candidate => candidate.key === binding.key && candidate.enabled
         && candidate.threadId === binding.threadId && candidate.hostId === hostId)) {
-        await this.reportDesktopApprovalResult(approval, "withdrawn");
+        await this.reportNativeApprovalResult(approval, "withdrawn");
         return undefined;
       }
       return decision;

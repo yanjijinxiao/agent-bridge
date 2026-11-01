@@ -44,13 +44,12 @@ test("only exact explicit native endings certify an unloaded turn; partial, guar
  save([meta,event("task_complete"),event("task_started")]);assert.equal((await readNativeTurnLifecycle(file,"thread","turn")).status,"unknown");
 });
 
-for(const status of ["inProgress","completed"] as const)test(`queue observation honors Desktop ${status} over foreign interrupted history without acquiring its writer`,async t=>{
- let executions=0;
- const app={capabilities:APP_SERVER_BACKEND_CAPABILITIES,async inspectThread(threadId:string){return{threadId,persistence:"active",runtimeStatus:"notLoaded",activeFlags:[]};},
-  async readThreadSnapshot(){return{state:{threadId:"thread",persistence:"active",runtimeStatus:"notLoaded",activeFlags:[]},turns:[{id:"turn",status:"interrupted",messages:[]}]};},
-  async addQueuedSubmission(){throw Error("must not add");},async listQueuedSubmissions(){return{data:[]};},async deleteQueuedSubmission(){return false;},async runQueuedSubmission(){executions++;throw Error("must not observe through foreign history");},close(){}};
- const router=new CodexBackendRouter({backend:"app-server",appServerBackend:app as never,desktopRunner:{async readThreadSnapshot(){return{state:{threadId:"thread",persistence:"active",executionOwner:"desktop",runtimeStatus:status==="inProgress"?"active":"idle",activeTurnId:status==="inProgress"?"turn":undefined,activeFlags:[]},turns:[{id:"turn",status,messages:[{role:"assistant",text:"OWNER_RESULT"}]}]};},close(){}} as never});t.after(()=>router.close());
- const pending=router.runQueuedSubmission({threadId:"thread",acceptedTurnId:"turn",observeOnly:true,cwd:"/tmp"});
- if(status==="inProgress")await assert.rejects(pending,CodexCommunicationError);else assert.equal((await pending).text,"OWNER_RESULT");
- assert.equal(executions,0);
+for(const status of ['inProgress','completed'] as const)test(`queue recovery uses the exact native ${status} receipt without consuming again`,async t=>{
+ let writes=0;const router=new CodexBackendRouter({appServerBackend:{
+  async readThreadSnapshot(){return {state:{threadId:'thread',persistence:'active',runtimeStatus:status==='inProgress'?'active':'idle',activeFlags:[],activeTurnId:status==='inProgress'?'turn':undefined},
+   turns:[{id:'turn',status,messages:[{role:'assistant',text:'NATIVE_RESULT'}]}]};},
+  async runQueuedSubmission(){writes++;throw Error('must not resubmit');},close(){}
+ } as never});t.after(()=>router.close());
+ const pending=router.runQueuedSubmission({threadId:'thread',acceptedTurnId:'turn',observeOnly:true,cwd:'/tmp'});
+ if(status==='inProgress')await assert.rejects(pending,CodexCommunicationError);else assert.equal((await pending).text,'NATIVE_RESULT');assert.equal(writes,0);
 });

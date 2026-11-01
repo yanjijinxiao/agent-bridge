@@ -37,7 +37,7 @@ test("approval decisions are conversation-scoped and report submission before ba
   await approvals.reportResult("room-two", approval, "confirmed");
   assert.equal(notices.length, 1);
   await approvals.reportResult("room-one", approval, "confirmed");
-  assert.match(notices[1]!, /Codex 已确认接收审批 A1/);
+  assert.match(notices[1]!, /Codex 已确认审批 A1 请求结束/);
   await approvals.reportResult("room-one", approval, "failed");
   assert.equal(notices.length, 2);
 });

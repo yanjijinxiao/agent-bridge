@@ -129,7 +129,7 @@ rl.on("line", (line) => {
         approvalPolicy: resumedApprovalPolicy };
     }
   }
-  if (message.method === "thread/resume") resumedApprovalPolicy = message.params.approvalPolicy ?? "never";
+  if (message.method === "thread/resume" && message.params.approvalPolicy !== undefined) resumedApprovalPolicy = message.params.approvalPolicy;
 
   if (message.method === "initialize") {
     if (message.jsonrpc) {
@@ -223,8 +223,8 @@ rl.on("line", (line) => {
 
   if (message.method === "thread/start") {
     lastThreadStartParams = message.params;
-    if (message.params?.approvalPolicy !== "never") {
-      fail(message.id, "approvalPolicy must be never");
+    if (message.params?.approvalPolicy !== undefined) {
+      fail(message.id, "thread/start must inherit the native approval policy");
       return;
     }
     ephemeralThreadStarted = message.params?.ephemeral === true;
@@ -525,9 +525,8 @@ rl.on("line", (line) => {
       return;
     }
     const approvalKind = prompt.startsWith("approval:") ? prompt.slice("approval:".length) : undefined;
-    const expectedApprovalPolicy = approvalKind ? "on-request" : "never";
-    if (message.params?.approvalPolicy !== expectedApprovalPolicy) {
-      fail(message.id, `turn approvalPolicy must be ${expectedApprovalPolicy}`);
+    if (message.params?.approvalPolicy !== undefined && message.params?.approvalPolicy !== resumedApprovalPolicy) {
+      fail(message.id, "turn/start must not derive an approval policy from a client callback");
       return;
     }
     if (prompt === "verify-danger-full-access"

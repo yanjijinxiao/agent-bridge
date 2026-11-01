@@ -16,84 +16,20 @@ import { resolveStatePaths } from "../src/state/paths.js";
 import { RuntimeStateStore } from "../src/state/runtime-state.js";
 
 async function fixture(t: test.TestContext) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-owner-recovery-"));
-  fs.mkdirSync(path.join(root, "sessions"));
-  const socketPath = path.join(root, "ipc.sock");
-  let discoveryError: string | undefined = "no-client-found";
-  let startError: string | undefined;
-  const methods: string[] = [];
-  const sockets = new Set<net.Socket>();
-  const server = net.createServer(socket => {
-    sockets.add(socket);
-    socket.on("close", () => sockets.delete(socket));
-    let buffer = Buffer.alloc(0);
-    socket.on("data", chunk => {
-      buffer = Buffer.concat([buffer, chunk]);
-      while (buffer.length >= 4) {
-        const length = buffer.readUInt32LE(0);
-        if (buffer.length < length + 4) return;
-        const m = JSON.parse(buffer.subarray(4, length + 4).toString());
-        buffer = buffer.subarray(length + 4);
-        methods.push(m.method);
-        const send = (message: object) => {
-          const payload = Buffer.from(JSON.stringify(message));
-          const header = Buffer.alloc(4); header.writeUInt32LE(payload.length);
-          socket.write(Buffer.concat([header, payload]));
-        };
-        const reply = (result: unknown, error?: string) => send({ type: "response", requestId: m.requestId,
-          ...(error ? { resultType: "error", error } : { resultType: "success", result }) });
-        if (m.method === "initialize") reply({ clientId: "recovery-reader" });
-        if (m.method === "thread-owner-discovery" && discoveryError !== "__timeout__") reply({}, discoveryError);
-        if (m.method === "thread-stream-following-changed") send({ type: "broadcast", method: "thread-stream-state-changed",
-          params: { conversationId: "original-thread", change: { type: "snapshot",
-            conversationState: { threadRuntimeStatus: { type: "idle" }, cwd: root, turns: [] } } } });
-        if (m.method === "thread-follower-start-turn") reply({}, startError);
-      }
-    });
-  });
-  await new Promise<void>((resolve, reject) => server.listen(socketPath, resolve).once("error", reject));
-  const desktop = new DesktopCodexRunner({ socketPath, codexHome: root, timeoutMs: 300 });
-  const state: CodexThreadState = { threadId: "original-thread", persistence: "active", runtimeStatus: "notLoaded",
-    activeFlags: [], cwd: root, title: "Original session" };
-  const runs: CodexRunnerInput[] = [];
-  let lockFailures = 0;
-  const app = {
-    id: "app-server", capabilities: APP_SERVER_BACKEND_CAPABILITIES,
-    async inspectThread() { return { ...state }; },
-    async readThreadSnapshot() { return { state: { ...state }, turns: [] }; },
-    async getHistoryPage() { return { messages: [] }; },
-    async getRuntimeInfo() { return {}; },
-    async run(input: CodexRunnerInput) {
-      runs.push(input);
-      assert.equal(input.threadId, "original-thread", "must resume the existing thread, never create another");
-      if (lockFailures-- > 0) throw new Error("thread already has an active writer");
-      await input.onTurnStarted?.({ threadId: input.threadId, turnId: "continued-turn" });
-      return { threadId: input.threadId, turnId: "continued-turn", text: "continued the original session", raw: "" };
-    },
-    close() {}
-  };
-  const router = new CodexBackendRouter({ backend: "app-server", codexHome: root,
-    appServerBackend: app as never, execBackend: { close() {} } as never, desktopRunner: desktop });
-  t.after(async () => {
-    await router.close();
-    for (const socket of sockets) socket.destroy();
-    await new Promise<void>(resolve => server.close(() => resolve()));
-    fs.rmSync(root, { recursive: true, force: true });
-  });
-  return { root, desktop, router, runs, methods, state,
-    ownerError(value: string | undefined) { discoveryError = value; },
-    startError(value: string) { startError = value; },
-    lockFailures(value: number) { lockFailures = value; } };
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'gateway-native-session-'));
+  const state:CodexThreadState={threadId:'original-thread',persistence:'active',runtimeStatus:'notLoaded',activeFlags:[],cwd:root,title:'Original session'};
+  const runs:CodexRunnerInput[]=[];let failure:Error|undefined;
+  const app={id:'app-server',capabilities:APP_SERVER_BACKEND_CAPABILITIES,
+    async inspectThread(){if(failure)throw failure;return {...state};},
+    async readThreadSnapshot(){if(failure)throw failure;return {state:{...state},turns:[]};},
+    async getHistoryPage(){return {messages:[]};},async getRuntimeInfo(){return {};},
+    async run(input:CodexRunnerInput){runs.push(input);if(failure)throw failure;
+      assert.equal(input.threadId,'original-thread');await input.onTurnStarted?.({threadId:input.threadId,turnId:'continued-turn'});
+      return {threadId:input.threadId,turnId:'continued-turn',text:'continued the original session',raw:''};},close(){}};
+  const router=new CodexBackendRouter({appServerBackend:app as never});
+  t.after(async()=>{await router.close();fs.rmSync(root,{recursive:true,force:true});});
+  return {root,router,runs,state,methods:[] as string[],available(){state.runtimeStatus='idle';},fail(value?:Error){failure=value;}};
 }
-
-test("no-client-found is a missing live owner, not a lost binding or a fatal backend error", async t => {
-  const f = await fixture(t);
-  assert.equal(await f.desktop.readThreadSnapshot("original-thread"), undefined);
-  assert.equal((await f.router.inspectThread("original-thread")).runtimeStatus, "notLoaded");
-  assert.equal((await f.router.readThreadSnapshot("original-thread")).state.persistence, "active");
-  assert.equal(f.runs.length, 0);
-  assert.ok(!f.methods.includes("thread-follower-start-turn"));
-});
 
 for (const channel of ["dingtalk", "weixin", "feishu"] as const) {
   test(`${channel}: a persisted unloaded binding survives sync and ordinary messages continue the same session`, async t => {
@@ -133,7 +69,7 @@ for (const channel of ["dingtalk", "weixin", "feishu"] as const) {
     assert.equal(store.getActiveSession("group")?.follow, true);
     assert.ok(texts.includes("continued the original session"));
     assert.ok(!f.methods.includes("thread-follower-start-turn"));
-    f.ownerError(undefined);
+    f.available();
     await hub.refresh();
     assert.equal(hub.status(session.id).status, "synced", "the retained subscription recovers when a live owner reappears");
     assert.equal(f.runs.length, 1, "background recovery is read-only");
@@ -143,67 +79,18 @@ for (const channel of ["dingtalk", "weixin", "feishu"] as const) {
   });
 }
 
-test("a vanished cached Desktop owner resumes the same thread through the guarded app-server", async t => {
-  const f = await fixture(t);
-  f.ownerError(undefined);
-  assert.equal((await f.router.inspectThread("original-thread")).executionOwner, "desktop");
-  f.ownerError("no-client-found");
-  const result = await f.router.run({ threadId: "original-thread", cwd: f.root, prompt: "ordinary message" });
-  assert.equal(result.threadId, "original-thread");
-  assert.equal(f.runs.length, 1);
-  assert.ok(!f.methods.includes("thread-follower-start-turn"));
+
+test('an unloaded native session continues without a UI owner discovery or another thread',async t=>{
+ const f=await fixture(t);assert.equal((await f.router.inspectThread('original-thread')).runtimeStatus,'notLoaded');
+ assert.equal((await f.router.run({threadId:'original-thread',cwd:f.root,prompt:'ordinary'})).threadId,'original-thread');assert.equal(f.runs.length,1);
 });
 
-test("a writer that disappears after resume-lock rejection permits one guarded retry, not a new thread", async t => {
-  const f = await fixture(t);
-  f.lockFailures(1);
-  const result = await f.router.run({ threadId: "original-thread", cwd: f.root, prompt: "ordinary message" });
-  assert.equal(result.threadId, "original-thread");
-  assert.equal(f.runs.length, 2);
-  assert.ok(!f.methods.includes("thread-follower-start-turn"));
+for(const failure of [new Error('thread already has an active writer'),new CodexCommunicationError('submission','turn/start','original-thread'),
+ new CodexCommunicationError('observation','turn/observe','original-thread','accepted')])test(`native ${failure.message} does not authorize replay or a replacement session`,async t=>{
+ const f=await fixture(t);f.fail(failure);await assert.rejects(f.router.run({threadId:'original-thread',cwd:f.root,prompt:'once'}));assert.equal(f.runs.length,1);
 });
 
-test("a persistent writer conflict stops recovery without looping or changing the binding", async t => {
-  const f = await fixture(t);
-  f.lockFailures(10);
-  await assert.rejects(f.router.run({ threadId: "original-thread", cwd: f.root, prompt: "ordinary" }), /active writer/);
-  assert.equal(f.runs.length, 2);
-});
-
-test("permission failures in discovery remain failures, never absence or resume permission", async t => {
-  const f = await fixture(t);
-  f.ownerError("forbidden private-token=NEVER_EXPOSE");
-  await assert.rejects(f.router.inspectThread("original-thread"), /forbidden/);
-  assert.equal(f.runs.length, 0);
-});
-
-test("failure after submission is never retried even if it says no-client-found", async t => {
-  const f = await fixture(t);
-  f.ownerError(undefined);
-  await f.router.inspectThread("original-thread");
-  f.startError("no-client-found");
-  await assert.rejects(f.router.run({ threadId: "original-thread", cwd: f.root, prompt: "ordinary" }), /start-turn failed/);
-  assert.equal(f.methods.filter(method => method === "thread-follower-start-turn").length, 1);
-  assert.equal(f.runs.length, 0);
-});
-
-test("an ambiguous accepted response without a turn id must not resume or resend", async t => {
-  const f = await fixture(t);
-  f.ownerError(undefined);
-  await f.router.inspectThread("original-thread");
-  await assert.rejects(f.router.run({ threadId: "original-thread", cwd: f.root, prompt: "ordinary" }),
-    error => error instanceof CodexCommunicationError && error.code === "invalid-receipt" && error.submission === "unconfirmed");
-  assert.equal(f.methods.filter(method => method === "thread-follower-start-turn").length, 1);
-  assert.equal(f.runs.length, 0);
-});
-
-test("a cached owner's discovery timeout is uncertain and cannot authorize resubmission", async t => {
-  const f = await fixture(t);
-  f.ownerError(undefined);
-  await f.router.inspectThread("original-thread");
-  f.ownerError("__timeout__");
-  await assert.rejects(f.router.run({ threadId: "original-thread", cwd: f.root, prompt: "ordinary" }),
-    error => error instanceof CodexCommunicationError && error.code === "timeout" && error.submission === "not-submitted");
-  assert.ok(!f.methods.includes("thread-follower-start-turn"));
-  assert.equal(f.runs.length, 0);
+test('permission and timeout failures remain unknown observations without resuming a task',async t=>{
+ const f=await fixture(t);for(const error of [new Error('permission denied'),new CodexCommunicationError('preflight','thread/read','original-thread')]){
+ f.fail(error);await assert.rejects(f.router.inspectThread('original-thread'));}assert.equal(f.runs.length,0);
 });

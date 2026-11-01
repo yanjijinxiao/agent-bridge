@@ -1,3 +1,4 @@
+import { AppServerCodexRunner } from "../src/codex/app-server-runner.js";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import net from "node:net";
@@ -358,19 +359,14 @@ test("Desktop systemError is authoritative, and no ordinary input or idle start 
   assert.equal(received.filter(m => /start-turn|steer-turn|interrupt-turn/.test(String(m.method))).length, 0);
 });
 
-test("Desktop catches a systemError transition after Router preflight without changing writer or replaying", async t => {
-  let broken = false, otherWrites = 0;
-  const { runner, received } = await desktopOwnerFixture(t, () => ({ threadRuntimeStatus: { type: broken ? "systemError" : "idle" },
-    turns: [] }));
-  const router = new CodexBackendRouter({ backend: "app-server", desktopRunner: runner,
-    appServerBackend: { async inspectThread() { return { threadId: "thread", persistence: "active", runtimeStatus: "notLoaded", activeFlags: [] }; },
-      async run() { otherWrites++; throw new Error("must not transfer writer"); }, close() {} } as never });
-  t.after(() => router.close());
-  assert.equal((await router.inspectThread("thread")).runtimeStatus, "idle");
-  broken = true;
-  await assert.rejects(router.run({ threadId: "thread", prompt: "new", cwd: "/tmp" }), e => e instanceof CodexThreadStateError && e.code === "system-error");
-  assert.equal(otherWrites, 0);
-  assert.equal(received.filter(m => /start-turn|steer-turn|interrupt-turn/.test(String(m.method))).length, 0);
+test("a native systemError transition is checked again by its protocol adapter before writing",async t=>{
+ const runner=new AppServerCodexRunner() as any;let broken=false,writes=0;
+ runner.ensureConnected=async()=>{};runner.recyclePrivateTransportIfIdle=async()=>{};
+ runner.inspectThread=async()=>({threadId:'thread',persistence:'active',runtimeStatus:broken?'systemError':'idle',activeFlags:[]});
+ runner.request=async()=>{writes++;throw Error('must not write');};
+ assert.equal((await runner.inspectThread('thread')).runtimeStatus,'idle');broken=true;
+ await assert.rejects(runner.run({threadId:'thread',cwd:'/tmp',prompt:'new'}),e=>e instanceof CodexThreadStateError&&e.code==='system-error');
+ assert.equal(writes,0);await runner.close();
 });
 
 test("a confirmed failed Desktop turn retains its public failure code without replay", async t => {

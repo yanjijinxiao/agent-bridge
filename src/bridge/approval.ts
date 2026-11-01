@@ -122,7 +122,7 @@ export class ChannelApprovalController {
     }
     this.journal.update(notice.id, { phase: result });
     const text = result === "confirmed"
-      ? `Codex 已确认接收审批 ${notice.id} 的决定。`
+      ? `Codex 已确认审批 ${notice.id} 请求结束；实际权限以原生工具当前状态为准。`
       : result === "withdrawn"
         ? `审批 ${notice.id} 已失效或已在 Codex 中处理，请以 Codex 当前状态为准。`
         : `审批 ${notice.id} 的决定未获 Codex 确认，不能确认已生效。请在 Codex 中检查；不要重复批准其他请求。`;

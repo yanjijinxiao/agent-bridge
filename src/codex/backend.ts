@@ -540,6 +540,10 @@ export interface CodexBackendControls {
 
 export type CodexMetadataObservation = { includeTurns: false; timeoutMs: number; purpose?: "status" };
 export interface CodexAppServerBackend extends CodexBackendAdapter, Partial<CodexNativeQueue> {
+  observeThreadInteractions?(threadId: string, observer: import("./interactions.js").NativeInteractionObserver): Promise<void>;
+  unobserveThreadInteractions?(threadId: string): Promise<void>;
+  interactionSubscriptionReady?(threadId: string): boolean;
+  serverIdentity?(): Promise<{ processId: number }>;
   readThreadProvenance?(threadId: string): Promise<CodexThreadProvenance | undefined>;
   readNativeTurnLifecycle?(threadId: string, turnId: string): Promise<CodexTurnObservation>;
   resumeAfterCapacity?(input: CodexCapacityResumeInput): Promise<CodexRunResult>;
@@ -550,6 +554,10 @@ export interface CodexAppServerBackend extends CodexBackendAdapter, Partial<Code
 
 /** Stable facade consumed by channels, Web, intent routing, and account management. */
 export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
+  observeThreadInteractions?(threadId: string, hostId: string, observer: import("./interactions.js").NativeInteractionObserver): Promise<void>;
+  unobserveThreadInteractions?(threadId: string, hostId: string): Promise<void>;
+  interactionSubscriptionReady?(threadId: string, hostId: string): boolean;
+  serverIdentity?(hostId?: string): Promise<{ processId: number }>;
   detachIndependentObservations?(): void;
   hasRestartBlockingWork?(): boolean;
   isIndependentObservation?(scope: CodexExecutionScope): boolean;

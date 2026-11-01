@@ -26,6 +26,8 @@ export function userFacingMessageHandlingError(error: unknown): string {
       : `[codex-im-gateway] ${codexFailureSummary(error.failureCode)}\n这是已确认的任务失败，不是钉钉投递失败；Gateway 未自动重试或换后端重发。`;
   }
   if (error instanceof CodexCommunicationError) {
+    if (error.operation === "app-server/ownership" && error.submission === "not-submitted")
+      return "[codex-im-gateway] 当前会话仍由另一个原生运行时持有，尚未完成共享服务连接。这条消息未提交，Gateway 未接管任务或换执行器重发。";
     if (error.submission === "not-submitted") {
       const stage = error.operation === "thread/read" ? "当前会话状态读取" : "提交准备通信";
       const reason = error.code === "timeout" ? "超时" : "失败";

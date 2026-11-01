@@ -1,3 +1,5 @@
+> Historical review. The desktop/headless routing design below was superseded by the single native App Server adapter; see `2026-11-01-single-app-server.md`.
+
 # Fixed execution owner review
 
 Scope: deployment configuration, both router construction sites, execution and control routing, Desktop local/remote IPC, metadata/history boundaries, native queue admission and result reconciliation, settings assets, documentation and upgrade compatibility.

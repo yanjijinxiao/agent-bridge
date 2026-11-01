@@ -26,12 +26,11 @@ function execution(t: test.TestContext, owner: "gateway" | "daemon" | "desktop",
     acknowledged.resolve(); await done.promise; active = false;
     return { threadId: "native", turnId: "turn", text: "done", raw: "" };
   };
-  const backend = { id: "app-server", executionLifetime: owner === "daemon" ? "independent" : "gateway",
+  const backend = { id: "app-server", executionLifetime: owner !== "gateway" ? "independent" : "gateway",
     capabilities: APP_SERVER_BACKEND_CAPABILITIES, async warmUp() {}, run,
     hasInFlightWork: () => active, hasRestartBlockingWork: () => owner === "gateway" && active, close() {} };
   const router = new CodexBackendRouter({ backend: "app-server", appServerBackend: backend as never,
     desktopRunner: { run, close() {}, async refreshTaskList() {} } as never });
-  if (owner === "desktop") (router as any).desktopOwnedThreads.add("native");
   const source = new RestartWork();
   const pending = source.run(async () => {
     const accepted = source.capture();
@@ -105,8 +104,10 @@ for (const mode of ["daemon-proxy", "remote-daemon"] as const) test(`${mode}: re
   inner.pending.set(1, { method: "thread/read" }); assert.equal(runner.hasRestartBlockingWork(), false);
   inner.pending.set(2, { method: "turn/start" }); assert.equal(runner.hasRestartBlockingWork(), true); inner.pending.delete(2);
   inner.unconfirmedStarts.add("thread"); assert.equal(runner.hasRestartBlockingWork(), true); inner.unconfirmedStarts.clear();
-  inner.userInputRequests.set("request", {}); assert.equal(runner.hasRestartBlockingWork(), true); inner.userInputRequests.clear();
-  inner.approvalRequests.set("request", {}); assert.equal(runner.hasRestartBlockingWork(), true); inner.approvalRequests.clear();
+  inner.userInputRequests.set("request", {submitted:false}); assert.equal(runner.hasRestartBlockingWork(), false);
+  inner.userInputRequests.set("request", {submitted:true}); assert.equal(runner.hasRestartBlockingWork(), true); inner.userInputRequests.clear();
+  inner.approvalRequests.set("request", {submitted:false}); assert.equal(runner.hasRestartBlockingWork(), false);
+  inner.approvalRequests.set("request", {submitted:true}); assert.equal(runner.hasRestartBlockingWork(), true); inner.approvalRequests.clear();
   inner.pending.clear(); inner.activeTurns.clear(); inner.operationLeases = 0; await runner.close();
 });
 

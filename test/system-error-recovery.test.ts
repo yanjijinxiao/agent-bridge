@@ -202,13 +202,10 @@ test("an obsolete failed turn is retired during native-unload waiting", async t 
   f.snapshot().state.lastTurnFailure!.turnId = "different";
   await f.manager.request(scope); assert.equal(f.manager.status(scope)?.phase, "cancelled");
 });
-test("Desktop ownership never falls back to a private stdio state reset", async t => {
-  const router = new CodexBackendRouter({ backend: "app-server", appServerBackend: { close() {} } as never,
-    desktopRunner: { close() {} } as never }) as any; let privateReads = 0;
-  t.after(() => router.close()); const snapshot = failed(); snapshot.state.executionOwner = "desktop";
-  router.readThreadSnapshot = async () => snapshot; router.appServerFor = () => { privateReads++; throw Error("wrong owner"); };
-  assert.equal((await router.recoverSystemError({ threadId: "thread", failedTurnId: "failed", assertCurrent() {} })).status, "unsupported");
-  assert.equal(privateReads, 0);
+test("state repair uses the same native protocol regardless of the thread's UI origin", async t => {
+  let resets=0;const input={threadId:'thread',failedTurnId:'failed',assertCurrent(){}};
+  const router=new CodexBackendRouter({appServerBackend:{async recoverSystemError(value:any){assert.equal(value,input);resets++;return {status:'recovered'};},close(){}} as never});
+  t.after(()=>router.close());assert.equal((await router.recoverSystemError(input)).status,'recovered');assert.equal(resets,1);
 });
 test("known routing and CONNECT errors have safe progress summaries", () => {
   assert.equal(codexFailureCode("workspace routing discovery failed"), "workspace-routing");

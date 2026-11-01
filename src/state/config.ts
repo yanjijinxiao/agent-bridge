@@ -35,8 +35,6 @@ export type CodexImGatewayConfig = {
   allowedWorkspaces: string[];
   codexBin: string;
   codexBackend: "auto" | "app-server" | "exec";
-  /** Deployment choice, never inferred from a temporarily missing Desktop socket. */
-  codexExecutionOwner?: "desktop" | "headless";
   codexAppServerTransport: AppServerConnectionMode;
   codexExecSandbox?: CodexExecSandbox;
   model?: string;
@@ -61,8 +59,7 @@ export function defaultConfig(cwd = defaultStateDir()): CodexImGatewayConfig {
     allowedSenderIds: [],
     allowedWorkspaces: [path.resolve(cwd)],
     codexBin: "codex",
-    codexBackend: "auto",
-    codexExecutionOwner: "headless",
+    codexBackend: "app-server",
     codexAppServerTransport: "auto",
     streamReplies: true,
     activeMessagePolicy: "steer",
@@ -77,9 +74,8 @@ export function defaultConfig(cwd = defaultStateDir()): CodexImGatewayConfig {
 
 export function loadConfig(paths: StatePaths, cwd?: string): CodexImGatewayConfig {
   const base = defaultConfig(cwd ?? paths.root);
-  const loaded = readJsonObjectFile<Partial<CodexImGatewayConfig>>(paths.configPath, {
-    codexExecutionOwner: base.codexExecutionOwner
-  });
+  const raw = readJsonObjectFile<Partial<CodexImGatewayConfig> & { codexExecutionOwner?: unknown }>(paths.configPath, {});
+  const { codexExecutionOwner: _retiredOwner, ...loaded } = raw;
   validateOperationalFields(loaded);
   const codexExecSandbox = parseCodexExecSandbox(loaded.codexExecSandbox);
   const defaultCwd = path.resolve(loaded.defaultCwd ?? base.defaultCwd);
@@ -89,8 +85,7 @@ export function loadConfig(paths: StatePaths, cwd?: string): CodexImGatewayConfi
     ...base,
     ...loaded,
     defaultCwd,
-    codexBackend: normalizeCodexBackend(loaded.codexBackend, base.codexBackend),
-    codexExecutionOwner: normalizeExecutionOwner(loaded.codexExecutionOwner),
+    codexBackend: "app-server",
     codexAppServerTransport: normalizeAppServerTransport(
       loaded.codexAppServerTransport,
       base.codexAppServerTransport
@@ -108,23 +103,6 @@ export function loadConfig(paths: StatePaths, cwd?: string): CodexImGatewayConfi
   };
 }
 
-function normalizeCodexBackend(
-  value: unknown,
-  fallback: CodexImGatewayConfig["codexBackend"]
-): CodexImGatewayConfig["codexBackend"] {
-  return value === "auto" || value === "app-server" || value === "exec" ? value : fallback;
-}
-
-function normalizeExecutionOwner(value: unknown): CodexImGatewayConfig["codexExecutionOwner"] {
-  // Existing installations must choose a migration explicitly. Merely
-  // upgrading Gateway or closing Desktop cannot change their execution owner.
-  if (value === undefined) return undefined;
-  if (value === "headless") return value;
-  if (value === "desktop") return value;
-  // A typo must not silently select another writer for existing conversations.
-  throw new Error("Invalid configuration field: codexExecutionOwner; expected desktop or headless; original file preserved");
-}
-
 function normalizeAppServerTransport(
   value: unknown,
   fallback: AppServerConnectionMode
@@ -135,9 +113,10 @@ function normalizeAppServerTransport(
 export function saveConfig(paths: StatePaths, config: CodexImGatewayConfig): void {
   validateOperationalFields(config);
   if (!validManagedTaskboardOrigin(config.taskboardUrl)) throw new Error("Invalid configuration field: taskboardUrl; expected an HTTP IPv4 loopback origin supported by the bundled server");
+  const { codexExecutionOwner: _retiredOwner, ...current } = config as CodexImGatewayConfig & { codexExecutionOwner?: unknown };
   writeJsonFile(paths.configPath, {
-    ...config,
-    codexExecutionOwner: normalizeExecutionOwner(config.codexExecutionOwner),
+    ...current,
+    codexBackend: "app-server",
     activeMessagePolicy: normalizeActiveMessagePolicy(config.activeMessagePolicy),
     bindingIdleDays: idleDays(config.bindingIdleDays),
     maxInboundBytes: normalizeInboundBytes(config.maxInboundBytes, MAX_INBOUND_BYTES)

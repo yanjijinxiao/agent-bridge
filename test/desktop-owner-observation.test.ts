@@ -266,12 +266,7 @@ test("Desktop start rechecks the source after owner observation and never writes
   assert.equal(f.writes().length, 0);
 });
 
-test("BackendRouter never wraps an exhausted Desktop observation in another retry chain", async t => {
-  const f = await fixture(t, { stage: "discovery", alwaysFail: true });
-  const router = new CodexBackendRouter({ backend: "app-server", desktopRunner: f.runner,
-    appServerBackend: { async inspectThread() { return { threadId: "thread", persistence: "active", runtimeStatus: "notLoaded", activeFlags: [] }; }, close() {} } as never });
-  t.after(() => router.close());
-  await assert.rejects(router.inspectThread("thread"), e => e instanceof CodexCommunicationError && e.submission === "not-submitted");
-  assert.equal(f.connections(), 2); assert.equal(f.writes().length, 0);
-  assert.equal(new Set(f.diagnostics.map(e => e.observationId)).size, 1);
+test("Gateway does not wrap a native observation failure in another executor retry", async t => {
+  let reads=0;const router=new CodexBackendRouter({appServerBackend:{async inspectThread(){reads++;throw new CodexCommunicationError('preflight','thread/read','thread');},close(){}} as never});
+  t.after(()=>router.close());await assert.rejects(router.inspectThread('thread'),CodexCommunicationError);assert.equal(reads,1);
 });

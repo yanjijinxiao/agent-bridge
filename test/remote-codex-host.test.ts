@@ -42,27 +42,9 @@ test("resolves a Codex Desktop host id through its managed SSH connection", () =
   }
 });
 
-test("rejects remote projects explicitly when codex exec is pinned", async (t) => {
-  let resolved = false;
-  const runner = new HybridCodexRunner({
-    backend: "exec",
-    codexBin: path.join(fixturesDir, "fake-codex-fallback.mjs"),
-    remoteTransportResolver() {
-      resolved = true;
-      throw new Error("must not resolve app-server transport");
-    }
-  });
-  t.after(() => runner.close());
-
-  await assert.rejects(
-    runner.run({
-      prompt: "remote-turn",
-      cwd: "/home/admin/project",
-      hostId: "remote-ssh-discovered:devbox"
-    }),
-    /codex exec backend cannot run a remote Codex Desktop project/i
-  );
-  assert.equal(resolved, false);
+test("retired exec selection fails before resolving any remote host",()=>{
+ let resolved=false;assert.throws(()=>new HybridCodexRunner({backend:'exec',remoteTransportResolver(){resolved=true;throw Error('unexpected');}}),/统一.*App Server/);
+ assert.equal(resolved,false);
 });
 
 test("routes remote project turns and history to a host-specific app-server transport", async (t) => {

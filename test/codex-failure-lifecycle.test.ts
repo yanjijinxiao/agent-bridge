@@ -51,16 +51,15 @@ test("only the failed tail contributes failure metadata, never an old error afte
   assert.equal(s.state.latestTurnStatus, "completed");
 });
 
-test("Router preserves Desktop systemError rather than substituting private notLoaded or falling back on writes", async t => {
+test("the unified adapter preserves native systemError without substituting another runtime", async t => {
   const state: CodexThreadState = { threadId: "thread", persistence: "active", runtimeStatus: "systemError", executionOwner: "desktop", activeFlags: [],
     lastTurnFailure: { turnId: "failed", code: "unintended-activity" } };
   let writes = 0;
   const write = async () => { writes++; throw new Error("must not write"); };
-  const router = new CodexBackendRouter({ backend: "app-server", appServerBackend: {
-    async inspectThread() { return { ...state, runtimeStatus: "notLoaded", executionOwner: undefined, lastTurnFailure: undefined }; },
-    async readThreadSnapshot() { throw new Error("must not hydrate a foreign error away"); }, run: write, steer: write, close() {}
-  } as never, desktopRunner: { async inspectThread() { return state; }, async readThreadSnapshot() { return { state, turns: [] }; },
-    run: write, submitThreadMessage: write, steer: write, close() {} } as never });
+  const router = new CodexBackendRouter({ appServerBackend: {
+    async inspectThread() { return state; }, async readThreadSnapshot() { return {state,turns:[]}; },
+    run:write, async steer(){assertCodexThreadRunnable(state);return write();},close(){}
+  } as never });
   t.after(() => router.close());
   const observed = await router.inspectThread("thread");
   assert.equal(observed.runtimeStatus, "systemError");

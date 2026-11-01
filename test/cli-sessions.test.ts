@@ -50,59 +50,17 @@ test("CLI catalog and paged public history are independent of Desktop and reject
   assert.equal((await store.list({ persistence: "active" })).length, 0);
   assert.equal((await store.inspect("main")).persistence, "archived");
 });
-test("every CLI control-plane command uses the CLI implementation or an explicit unsupported error", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-cli-route-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const foreign: string[] = [];
-  const forbidden = new Proxy({}, { get: (_target, key) => key === "close" ? () => { } : () => { foreign.push(String(key)); throw new Error("FORBIDDEN APP SERVER"); } });
-  const router = new CodexBackendRouter({ backend: "exec", codexHome: root, appServerBackend: forbidden as never, desktopRunner: forbidden as never });
-  t.after(() => router.close());
-  assert.equal((await router.listProjects()).backend, "exec");
-  assert.equal(router.backendInfo().id, "exec");
-  assert.equal(router.backendInfo().capabilities.history, true);
-  assert.equal(router.backendInfo().capabilities.liveFollow, false);
-  assert.deepEqual(await router.listThreads(), []);
-  assert.equal((await router.inspectThread("missing")).persistence, "missing");
-  assert.deepEqual(await router.getHistory("missing"), []);
-  assert.deepEqual((await router.readThreadSnapshot("missing")).turns, []);
-  assert.deepEqual((await router.getHistoryPage("missing")).messages, []);
-  await router.warmUp(root);
-  assert.equal(await router.stop(), "not-active");
-  for(const op of [() => router.getRuntimeInfo(root), () => router.listModels(), () => router.getAccountRateLimits(), () => router.getGoal("a"), () => router.setGoal("a", {}), () => router.clearGoal("a"), () => router.archiveThread("a"), () => router.unarchiveThread("a"), () => router.deleteThread("a"), () => router.steer({ threadId: "a", prompt: "hi" }), () => router.runEphemeral({ cwd: root, prompt: "hi" })]) {
-    await assert.rejects(op, CodexBackendCapabilityError);
-  }
-  assert.throws(() => router.listThreads({}, "remote"), /纯 CLI/);
-  assert.deepEqual(foreign, []);
+test("CLI-only installations use the same complete native controls", async t => {
+  const {unifiedBackend}=await import('./fixtures/unified-backend.js');const f=unifiedBackend(t);
+  await f.gateway.listModels();await f.gateway.getAccountRateLimits();await f.gateway.getGoal('thread');
+  await f.gateway.setGoal('thread',{objective:'goal'});await f.gateway.clearGoal('thread');
+  await f.gateway.archiveThread('thread');await f.gateway.unarchiveThread('thread');
+  await f.gateway.run({cwd:'/tmp',prompt:'new',dynamicTools:[{name:'tool',description:'test',inputSchema:{type:'object'}}]});
+  assert.equal(f.gateway.backendInfo().capabilities.dynamicTools,true);
+  assert.equal(f.gateway.backendInfo().capabilities.liveFollow,true);
+  assert.equal(f.calls.at(-1)!.args[0].dynamicTools[0].name,'tool');
 });
-test("CLI standalone chat supports runtime flags but rejects unsupported controls before changing state", async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-cli-chat-"));
-  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
-  fs.mkdirSync(path.join(home, "sessions"));
-  fs.writeFileSync(path.join(home, "sessions", "main.jsonl"), JSON.stringify({ type: "session_meta", payload: { id: "main", cwd: home, source: "cli" } }) + "\n");
-  const router = new CodexBackendRouter({ backend: "exec", codexHome: home });
-  t.after(() => router.close());
-  const store = new RuntimeStateStore(resolveStatePaths(path.join(home, "gateway")));
-  const replies: string[] = [];
-  const service = new BridgeService({
-    runner: router, stateStore: store,
-    config: { ...defaultConfig(home), codexBackend: "exec", allowedSenderIds: ["alice"] },
-    weixin: { async sendText(x) { replies.push(x.text); return { messageId: "m" }; } }
-  });
-  const send = (text: string) => service.handleMessage({ id: text, text, senderId: "alice", raw: {} });
-  await send("/session main");
-  assert.equal(store.getActiveProject("alice"), undefined);
-  assert.equal(store.getActiveSession("alice")?.follow, false);
-  await send("/model example-model");
-  assert.equal(store.getActiveSession("alice")?.model, "example-model");
-  for(const command of ["/follow on", "/plan on", "/goal", "/stream on"]) {
-    await assert.rejects(send(command), CodexBackendCapabilityError);
-  }
-  assert.equal(store.getActiveSession("alice")?.collaborationMode, undefined);
-  assert.equal(store.getActiveSession("alice")?.follow, false);
-  await send("/stream off");
-  assert.equal(store.getActiveSession("alice")?.streamReplies, false);
-  assert.equal(store.listProjects().length, 0);
-});
+
 test("CLI project discovery does not truncate its catalog to the last 2000 rollouts", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-cli-full-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

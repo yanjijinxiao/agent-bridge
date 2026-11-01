@@ -25,7 +25,7 @@ const directory=(t:any,prefix:string)=>{const d=fs.mkdtempSync(path.join(os.tmpd
 
 test('regression: the source guard is rechecked after backend serialization',async()=>{
  const entered=Promise.withResolvers<void>(),release=Promise.withResolvers<void>();let writes=0,checks=0,allowed=true;
- const router=new CodexBackendRouter({backend:'exec',execBackend:{async run(){writes++;if(writes===1){entered.resolve();await release.promise;}return{text:'done',raw:'',threadId:'thread',turnId:'turn'};},close(){}} as never});
+ const router=new CodexBackendRouter({backend:'app-server',appServerBackend:{async run(){writes++;if(writes===1){entered.resolve();await release.promise;}return{text:'done',raw:'',threadId:'thread',turnId:'turn'};},close(){}} as never});
  try{
   const first=router.run({prompt:'first',cwd:'/tmp',threadId:'thread'});await entered.promise;
   const second=new TurnSubmission().run(router,{prompt:'second',cwd:'/tmp',threadId:'thread'},()=>{checks++;assert.equal(allowed,true);});

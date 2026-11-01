@@ -81,9 +81,9 @@ test("native activity appearing during preparation prevents archive", async () =
   assert.equal((await n.wire.recoverSystemError(n.input)).reason, "changed"); assert.deepEqual(n.calls, []);
 });
 test("a pending restoration gate also blocks a Goal mutation that could start native work", async () => {
-  const router = Object.create(CodexBackendRouter.prototype) as any; let calls = 0;
-  router.options = { onThreadMutation() { throw Error("pending native restoration"); } };
-  router.backendForSharedOperation = () => ({ async setGoal() { calls++; } });
+  let calls = 0;
+  const router = new CodexBackendRouter({ onThreadMutation() { throw Error("pending native restoration"); },
+    appServerBackend: { async setGoal() { calls++; }, close() {} } as never });
   await assert.rejects(router.setGoal("thread", { status: "active" }, "remote"), /pending native restoration/);
   assert.equal(calls, 0);
 });

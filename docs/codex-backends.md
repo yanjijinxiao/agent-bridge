@@ -1,28 +1,45 @@
-# Codex backend architecture
+# Codex App Server architecture
 
-Gateway treats Codex CLI and Codex app-server as two implementations of one backend boundary, including discovery and controls, not just turn execution. Channel, Web, account, project, and intent code depend on the stable `CodexBridgeBackend` facade rather than a concrete runner.
+Gateway has one production implementation: `Channel / Web / AccountManager → CodexBridgeBackend → CodexAppServerGateway → AppServerCodexRunner → native App Server`. Desktop and Gateway are peer clients of the same native core. A CLI-only server runs the same native service and exposes the same operations. There is no Desktop follower execution path, exec fallback, owner discovery selector, or Desktop-specific disabled capability set in this facade.
 
-The facade is `Channel / Web / AccountManager → CodexBridgeBackend → CodexBackendRouter`. Its fixed deployment selection is separate from the native transport.
+## Service identity and deployment
 
-## Fixed execution ownership
+`codexBackend` is `app-server`. Loading older `auto`/`exec` values migrates this selector; loading/saving removes the retired `codexExecutionOwner` field. Direct construction with the retired exec adapter is rejected before execution. Legacy runner names reexport the same class for source compatibility; they do not construct another adapter.
 
-`codexExecutionOwner` explicitly chooses `desktop` or `headless`. It is not inferred from process count, the current presence of an IPC socket, a project name or a failed read. Both production router factories propagate it. New installations default to headless; an existing config with no field retains legacy routing until an explicit migration. Invalid values fail configuration loading without rewriting the file. Selecting `codexBackend: exec` remains an explicit independent CLI deployment.
+Each host has one selected transport and native core. On shared daemon transports, bounded metadata/status and bulk history have independent relay connections to the same endpoint. `server/diagnostics.process.id` identifies the native core; relay PIDs do not. On explicit private stdio, restricted read views share the execution connection instead of spawning reader cores. Stdio remains Gateway-owned and cannot provide independent task survival across Gateway shutdown. There is no fallback on daemon connection failure.
 
-- **Desktop**: execution, ordinary busy-thread messages, capacity continuation and guarded stops go only through Desktop's follower connection. Read preflight/snapshots use that same live owner. No-client-found, disconnection, timeout and ambiguous submission receipts cannot fall through to a second executor. The transport inbox retains proved-unsubmitted input; accepted/uncertain input is not replayed.
-- **Headless**: native CLI App Server owns execution, approvals and events. Desktop is neither discovered nor refreshed, even when the same home contains stale Desktop catalogs or project assignments. Session discovery and membership use native storage. A foreign writer lock remains an explicit failure, without a Desktop or exec retry. The default daemon transport has an independent lifetime; explicit private stdio retains its documented restart limitation.
-- **Remote desktop hosts**: the follower discovery and snapshots use the exact host ID. Native remote follower requests use the host envelope and incremented protocol version. A local or another host's same-ID snapshot cannot authorize input or supply its result. Remote completion is observed from the Desktop host snapshot, not a local rollout. A CLI-only server running its own Gateway selects headless instead; it needs no GUI.
+Desktop must itself attach to the selected native service. The installed Desktop build supports `CODEX_APP_SERVER_USE_LOCAL_DAEMON=1` when its native compatibility and configuration checks pass. Its previous private stdio core cannot be hot-migrated by restarting Gateway. Reconnect Desktop only after native work is idle, then verify that Desktop and Gateway use the same core. Keep existing thread IDs, source receipts, project aliases, browser grants and native permissions. Never force a writer lock, kill active work, or replay an input to move it. A CLI-only host needs the service and transport, not a Desktop installation.
 
-The installed Desktop follower protocol supports existing loaded threads, not `thread/start` or loading an unowned thread. Desktop mode therefore rejects IM creation, unloaded execution, dynamic Bridge tools, ephemeral classifiers, strict expected-turn steering, goal changes and lifecycle writes; capabilities and settings disclose these limits. Ordinary native conversation input remains available. The Gateway does not edit Desktop's global launch flags or restart the app to manufacture a shared transport.
+Old execution classes and private IPC DTO readers remain only as compatibility/test and migration material; production factories instantiate `CodexAppServerGateway` directly. They cannot be selected by runtime configuration. Historical audit documents describe their former behavior, not current deployment guarantees.
 
-Read-only project/history observers may use separate native connections. These do not acquire a thread writer, resume a task, answer Desktop approvals or authorize execution takeover. Native queue add/list/delete retains the atomic native store; Desktop admission uses enqueue-only and the actual owner consumes the queue. Gateway never drains a Desktop queue through a private runner. Exact accepted terminal receipts can still be reconciled from native lifecycle evidence after a Desktop window disappears.
+## Interface conformance
 
-Gateway restart detaches only its observations. Existing independent native tasks keep their thread/turn IDs; source receipts and bindings are retained. Fixed execution mode does not change the narrow submission/answer/delivery handoff gate, and does not make a private stdio executor independent.
+| Responsibility | Native contract | Verification |
+| --- | --- | --- |
+| New and existing sessions | thread/start, thread/resume; turn/start | Two real clients create/continue the same thread; unopened continuation works |
+| Ordinary input and strict intervention | turn/steer with expectedTurnId and stable source ID | No new turn/queue fallback; stale scope and unknown/cross-thread receipts rejected |
+| Stop and lifecycle | turn/interrupt; thread archive/unarchive/delete | Same selected host/core; no private IPC takeover |
+| Goals | thread/goal get/set/clear | Real paused goal creation, read and clear |
+| Queues | thread/queue add/list/delete/start | Native FIFO and exact client/turn receipts; one accepted input after reconnect |
+| Approvals and permissions | Native server request ID, offered decisions, serverRequest/resolved | Pending request replays after client restart with identical typed ID; absent local route never generates a denial |
+| Structured questions | tool requestUserInput, MCP typed forms, agent message questions | Native form types preserved; async reply uses guarded steering and exact accepted-answer evidence |
+| Dynamic tools and structured helpers | item/tool/call, ephemeral thread and output schema | Real isolated native tool call and structured model output |
+| Status, catalogs and history | Bounded thread/read, native lists and paged turns | Separate shared-core reader connections; no owner-discovery or stale-runtime substitution |
+| Restart | Durable native acceptance and read-only observation | Same native core and active turn continue after Gateway relay disconnect; input appears once |
 
-The remaining sections describe common native contracts and the legacy routing retained only for configurations that have not selected an execution owner.
+Existing native threads inherit their sandbox, reviewer, cwd and approval policy. A Gateway callback is not authorization to change native policy. New-thread defaults and explicit per-input overrides are separate. Read-only helpers explicitly use an ephemeral read-only thread. UI project aliases and pin/manual ordering are a presentation view over explicit native membership; stale Desktop assignments cannot revive removed membership or supply runtime authority.
+
+## Native interactions
+
+The native control connection also owns interaction subscriptions. `AppServerRequestMonitor` supervises bounded native resume subscriptions; it does not instantiate another runner or submit inputs. Native resume replays outstanding server requests, including requests created by another subscribed client. Register the observer before subscribing so replay cannot precede routing setup. A disconnect retains subscription intent, clears connection-specific request tombstones and resubscribes with backoff; it does not resend decisions or user messages.
+
+Missing routes, malformed schemas and stale source leases leave native requests unanswered and surface safe diagnostics. A local routing failure never means the user declined. Typed MCP forms and native permission/scope objects retain their original response semantics. `serverRequest/resolved` proves that a request ended; in a multi-client race it does not prove which client won or that a persistent grant was stored.
+
+Async questions are keyed by host, thread, turn and native question identity, including sibling index. A native item update, peer answer, turn end, binding revocation or disconnect invalidates obsolete UI. A successful steering RPC alone is not an answered-widget receipt; matching native canonical question/answer evidence confirms it. An unknown submitted answer is not automatically reoffered or replayed. Tool payloads and full conversation history are not cached to render question controls.
 
 ## Scoped approvals share one authority
 
-`src/codex/approval.ts` normalizes native requests into explicit choices with exact native response payloads. Both the CLI **App Server backend** and the Desktop follower adapter use this model; channel cards, complete IM reply commands and Web UI → **待审批** project the same live controller. CLI `exec --json` has no interactive response transport and remains explicitly unsupported; it never borrows another backend or disables approval checks.
+`src/codex/approval.ts` normalizes native requests into explicit choices with exact native response payloads. The single native App Server adapter uses this model; channel cards, complete IM reply commands and Web UI → **待审批** project the same live controller. Gateway does not execute tasks through `codex exec --json` or a private Desktop approval protocol.
 
 - Command and file requests can offer once/session decisions. `availableDecisions`, when present, restricts the choices. Command rules retain the complete native argument prefix; network rules retain the offered host and allow/deny action.
 - Extra-permission responses retain the requested permission object and native `turn`/`session` scope. They do not acquire arbitrary persistent grants.
@@ -31,7 +48,7 @@ The remaining sections describe common native contracts and the legacy routing r
 
 Approval identity includes the execution host, native connection and typed native request ID. For MCP, a subsequently filled-in `turnId` is correlation, not a new request. Repeated pending snapshots do not create a second card. Choices are snapshotted before display; Web decisions include the account, original conversation, approval ID and scope version. IM/Web races, stale versions and unsupported choices cannot consume a different request. Receipts return to the original route even if the primary binding changes.
 
-Selecting a choice records **unconfirmed**, not success. Desktop requires a matching successful IPC receipt; App Server requires `serverRequest/resolved` after submission. Transport loss or turn completion without a receipt cannot claim persistence and never retries a possibly accepted decision. Per-account `runtime/<account>/approvals.json` is an atomic, private audit of choice/receipt/identity hashes only: it stores neither tool arguments nor a reusable permission rule, and restarting Gateway never replays approval history. Native Codex/MCP remains the sole grant authority. Existing Web IDE browser grants are separate and are not reset or extended by this feature.
+Selecting a choice records **unconfirmed**, not success. App Server requires `serverRequest/resolved` after submission; this confirms request completion rather than a persistent-grant guarantee. Transport loss or turn completion without a receipt cannot claim persistence and never retries a possibly accepted decision. Per-account `runtime/<account>/approvals.json` is an atomic, private audit of choice/receipt/identity hashes only: it stores neither tool arguments nor a reusable permission rule, and restarting Gateway never replays approval history. Native Codex/MCP remains the sole grant authority. Existing Web IDE browser grants are separate and are not reset or extended by this feature.
 
 Protocol reference: [App Server approvals](https://learn.chatgpt.com/docs/app-server#approvals), [Computer Use permissions](https://learn.chatgpt.com/docs/computer-use#permissions-and-approvals). The native response mapping was checked against installed CLI 0.164.0 and Desktop bundled CLI 0.164.0-alpha.11.1; Desktop/Computer Use persistence is an observed native capability rather than a universal promise for every MCP server.
 
@@ -65,31 +82,13 @@ Protocol references: [official App Server lifecycle](https://learn.chatgpt.com/d
 
 ## Contracts
 
-- `CodexBackendAdapter` includes execution plus `CodexBackendControls`: project/session catalogs, inspection, history/paging/snapshots, runtime information, models, rate limits, goals, and lifecycle controls. Both implementations implement every method; unsupported operations return `CodexBackendCapabilityError`.
-- `CodexExecRunner` uses `codex exec` / `codex exec resume` for turns and `CliSessionStore` for local read-only inspection and public history. It never starts app-server or reads Desktop's project registry to satisfy these operations.
-- `CodexAppServerBackend` implements execution and lifecycle through JSON-RPC. Its user-facing session catalog reads Desktop's own catalog; that is a separate operation from listing app-server storage. Explicit host + thread membership wins. Legacy records use Desktop's workspace-root grouping only when no explicit assignment or independent-task marker exists.
-- `CodexBridgeBackend` routes **all** calls to the selected backend, including control-plane calls. `backendInfo` exposes that backend's capability record so commands can reject unsupported actions before changing settings or claiming success.
-- `DesktopCodexRunner` implements `CodexThreadContinuation`, not `CodexBackendAdapter`. It exists only to continue an app-server thread whose active writer is Codex Desktop.
+The shared types live in `src/codex/backend.ts` and `src/codex/interactions.ts`. The facade covers execution, metadata, history, models, limits, goals, lifecycle, queue and native interaction subscriptions. Connection lifecycle and host transport do not choose different business implementations. Native state and expected-turn guards remain authoritative; unknown state is not idle. Only concurrent identical reads share in-flight work; results are not cached as permission to write.
 
-Live observations and continuation must agree on the owner. A task active on the selected App Server connection is authoritative; a stored `idle`/`notLoaded` record is not proof that Desktop is idle. The router checks the local Desktop owner snapshot in that case and remembers the owner for subsequent reads and writes. The CLI and remote paths do not query local Desktop IPC. A failed Desktop snapshot after successful discovery is surfaced, not converted to idle. Discovery absence/timeouts permit the private App Server path only; its writer lock must succeed before a turn can start, otherwise the Desktop relay performs another guarded preflight.
-
-Desktop snapshots use the loaded writer's `threadRuntimeStatus` and chronologically ordered `turnHistory` (older pages can be appended out of order). A null-ID `inProgress` history item is an unacknowledged UI message, not a real active turn. If the runtime is idle with such an item, normal messages are rejected visibly rather than creating another optimistic tail. Relay starts also wait for actual idle state and reject acknowledgements that return a previously observed turn ID; an uncertain write is never retried. These safeguards prevent new polluted records; they do not edit or clear existing Desktop UI history.
-
-Local observation first reads private metadata with a 5-second budget, then reads the live Desktop owner before hydrating foreign history. Known archived/missing metadata and a task active on the selected app-server remain authoritative. Concurrent inspections/followers share only in-flight reads by backend/host/thread/operation; completed snapshots are not cached as permission to write. Desktop's read-only handshake has a single 10-second total budget, shares concurrent inspection/snapshot reads, ignores remote broadcasts, and closes its observation sockets on shutdown. Read failures cannot submit/replay messages or erase bindings. Async widget discovery and answer confirmation use the same accepted native reply receipt; an answered widget is not redispatched as a pending request. **App panel auto-dismiss is not implemented by Gateway**: the native UI submit callback clears its selected question after local submission, but the follower answer RPC does not call that UI callback. The current IPC contract has no panel-dismiss operation. Recognizing an accepted answer is not evidence that the panel disappeared. Do not resubmit the answer, synthesize a skip, falsify owner state, or modify the installed App to conceal this limitation.
-
-Both Desktop IPC consumers use `IpcFrameDecoder`: validate the uint32 LE frame length before allocating, then copy each incoming byte once. Fragmented large snapshots must not concatenate the complete buffered prefix on every chunk; that quadratic copying can starve otherwise healthy RPC receipts in the multi-subscription service. The existing 64 MiB frame cap remains enforced. Pending interaction state patches atomically path-copy only changed containers, preserving untouched history and previously presented request identities. Invalid patches suspend stale handlers and request a fresh read-only snapshot; they do not manufacture answers. Regression covers fragmented/oversized frames, linear byte-copy accounting, atomic patch rollback, prototype safety and immutable question snapshots.
-
-For new **project-scoped** app-server threads, Bridge resolves the protocol-native project ID from `project/list` by workspace root before `thread/start`. Codex Desktop's UI project ID is retained as routing metadata but is not passed through as an app-server project ID because the two ID spaces are different. If the app-server registry does not yet contain the workspace, Bridge creates it idempotently.
-
-For an explicitly independent new session, `CodexRunnerInput.projectBinding: "none"` is separate from the required `cwd` and cannot be combined with project hints. App-server sends `thread/start.projectId: null`, does not query/create a project, and clears any unexpected returned assignment with `thread/metadata/update.projectId: ""` before the first turn (verified against the installed 0.150.1 experimental schema). CLI spawns `codex exec` in the independent workspace without a project API or invented flags. Existing thread membership is never rewritten by this independent-new-session path. The general lifecycle is described in the [App Server documentation](https://learn.chatgpt.com/docs/app-server); Desktop sidebar rendering still depends on its own synchronization.
-
-Bridge-only policy and private knowledge are sent through `developerInstructions`; the channel user's text remains the actual turn input. Bridge sets a clean user-facing name with `thread/name/set` before the first turn and persists the new thread ID as soon as `thread/start` returns, so Desktop can display and group long-running tasks immediately.
-
-The shared types and interfaces live in `src/codex/backend.ts`. Concrete implementations do not import their public input types from one another.
+Project-bound new threads resolve the native project ID from the host's project registry; explicit independent threads use `projectId: null`. A cwd is not a membership grant. Bridge-only policy is sent through developer instructions; the channel user's text remains the actual input. Existing thread settings are inherited without implicit approval/reviewer/sandbox overrides.
 
 ### Native queue and receipt recovery
 
-`CodexNativeQueue` is an optional backend port for native queue add/list/delete/consume operations. The router resolves the selected host/backend and actual execution owner; exec never borrows app-server. Desktop's whole-list continuation relay is not an atomic append API. Instead, an external owner receives atomic `thread/queue/add` through the same host's native store, without `thread/resume`, permission changes, or taking execution ownership. Unsupported operations fail explicitly.
+`CodexNativeQueue` exposes native add/list/delete/consume operations on the same host and service. Queue admission is an atomic native append with the original source identity. It is separate from consumption and does not authorize resuming a task, changing permissions or selecting another executor.
 
 `NativeQueueCoordinator` is a shared application service, not an IM adapter or a second execution backlog. Codex owns input content, order and pending-item persistence. Gateway stores only account/conversation/actor/message identity and submission/turn/delivery receipts in `runtime/native-submissions.json`, durably before submission. Recovery pages through native queue and history using exact client and turn IDs, never text similarity. Ambiguous writes are not retried; known consumed turns are observed, never started again. Delivery uncertainty stops automatic re-delivery and points to `/history`.
 
@@ -97,26 +96,9 @@ Queue operations use short per-host/backend/thread control locks. Execution obse
 
 Private stdio shutdown interrupts active execution. Native pending items and receipts persist, but active work is not transparently migrated to another executor. Closing/recycling waits for the local client process to exit before a replacement lifecycle proceeds; global configuration updates refuse active Gateway work before persisting changes or closing its executor. Shared daemon lifecycle is independent of Gateway clients. Isolated real Codex tests with a local mock model cover idle/busy admission, restart, concurrent external writers, cancellation and one observed execution per accepted input.
 
-### Session discovery is a first-class backend operation
+### Session discovery is a first-class operation
 
-`listSessionCatalog` returns `CodexSessionCatalog` with `backend`, `source`, `threads`, `hostIds`, `complete`, and `warnings`. `/sessions` consumes this contract; it does not combine raw CLI and App storage. `listThreads` remains a lower-level storage/lifecycle operation.
-
-- CLI: `cli-rollouts`, local discovery including ordinary persistent `exec` sessions. Desktop files are never consulted.
-- App: `desktop-catalog`, a read-only snapshot of `local_thread_catalog` in `$CODEX_HOME/sqlite/codex.db` or `codex-dev.db`. This is the App's catalog, **not** `sidebar-project-thread-orders` (an incomplete ordering index). Query all rows for each host, exclude `missing_candidate`, and retain exact host + thread identities. Known catalog hosts are discovered even when no project is registered for them. Local persistence is rechecked against the local state database to exclude stale archived/deleted entries; selecting a row rechecks its backend lifecycle on every host.
-- Catalog structural exclusions follow the installed Desktop implementation: ephemeral/child tasks, ambient suggestions, PR-fix automation, and `exec` sources are not Desktop catalog conversations. This is an App visibility rule, not a claim that every CLI `exec` session is a probe. Do not filter on titles such as `READY`.
-- ChatGPT catalog entries are counted separately as unsupported, never represented as bindable Codex threads. Gateway does not implement a ChatGPT backend.
-- A persisted catalog has no authoritative live runtime status. These rows display `unknown`; they must not inherit a private reader process's `notLoaded` status. No thread is resumed or writer lock acquired for discovery.
-- Missing catalog (older App / standalone app-server): use paginated app-server storage with App structural rules and a visible compatibility warning. Incomplete sync is explicitly labeled partial. An incompatible or ambiguous catalog fails visibly, never switches to CLI or presents guessed data as the App list.
-
-This is a version-dependent **local compatibility adapter**, verified against the installed Desktop catalog schema. It does not expose an officially supported Desktop remote-list API. Catalog snapshots reflect App synchronization and cannot promise to include unsaved renderer-only state. All reads are read-only; no migrations or repairs are performed on App databases.
-
-Project discovery is deliberately backend-owned:
-
-- `CodexExecRunner.listProjects()` derives local workspaces from the CLI session store. It never reads or merges the Codex Desktop project registry.
-- `AppServerCodexRunner.listProjects()` calls the daemon's native `project/list` API. The Bridge presentation layer enriches that selected app-server catalog with Desktop-only routing metadata such as remote host IDs.
-- `CodexBackendRouter` selects one implementation and returns a `CodexProjectCatalog` carrying its backend ID. Consumers branch on that ID, so an `auto` fallback cannot be mistaken for a Desktop catalog.
-
-`projectCatalog` and `projects` are separate capabilities. The CLI supports catalog discovery but cannot natively bind a thread to an app-server project ID; app-server supports both.
+`listSessionCatalog` returns native paged storage with explicit host/thread identity, persistence, completeness and warnings. It does not select Desktop storage or CLI rollouts on failure. Internal/ephemeral tasks and explicitly classified probes are excluded structurally. UI aliases, pins and manual order may decorate rows without replacing native membership or runtime. Selecting a row always rechecks the native lifecycle. ChatGPT chats are not Codex threads and cannot be bound.
 
 ## Routing rules
 
@@ -143,19 +125,15 @@ Activity cards restore from their saved handles even when all progress entries a
 The app-server protocol implementation is independent of its transport:
 
 - `auto`: use the managed daemon when `~/.codex/packages/standalone/current/codex` exists; otherwise use a persistent private stdio child.
-- `daemon`: idempotently start the managed daemon, then run `app-server proxy` as the JSONL transport. A missing managed standalone install fails before a turn starts with an actionable error.
-- `stdio`: run `codex app-server --stdio` directly.
+- `daemon`: idempotently start the managed daemon, then relay JSONL to its native control WebSocket. A missing managed standalone install fails before a turn starts with an actionable error.
+- `stdio`: run `codex app-server` with its default stdio transport.
 - remote projects: use the registered Codex Desktop host and an SSH relay to its app-server control socket.
 
 This separation keeps daemon lifecycle and remote transport concerns out of JSON-RPC request handling.
 
-## Adding another backend
+## Extending the interface
 
-1. Implement `CodexBackendAdapter` and declare truthful capabilities.
-2. Add an explicit user-facing backend ID and routing rule; never infer a backend from callbacks.
-3. Implement every common control method with either its own implementation or an explicit capability error; never route an unsupported operation to a different backend.
-4. Add backend contract tests covering strict selection, failure behavior, stop/close semantics, and capability declarations.
-5. Do not add channel-specific behavior to a backend; progress rendering, cards, and attachment delivery belong above the facade.
+Add a native operation to the shared backend contract and the single adapter, with typed request/response normalization and host/thread/source guards. Cover both a native wire fixture and a real isolated service when execution or persistence is involved. Do not introduce an environment-specific business branch, another backend selector or a fallback to compensate for missing protocol support. Channel rendering stays above this boundary.
 
 ## Session intervention and restart recovery
 
@@ -173,11 +151,9 @@ For local replay of an internal rollout, run `TMPDIR=/private/tmp node --import 
 
 `SessionControlJournal` serializes controls by host/thread and writes receipts before submitting either guarded input or an ordinary thread-scoped message. Both reuse the same receipt format and write-ahead store, not a second queue. Accepted duplicate requests return the recorded result. A request with an unknown transport outcome is never automatically replayed; the user is asked to inspect history. Pending choice cards persist their actor, chat, binding and expected turn, so an old click cannot affect a newly selected session. This does not claim transactional exactly-once delivery across IM APIs: a crash between a remote acknowledgement and the local checkpoint can still leave an uncertain outcome. The gateway does not automatically replay an unconfirmed user action.
 
-The current Desktop follower `thread-follower-steer-turn` v1 does **not** accept `expectedTurnId`: Desktop chooses the turn itself and may retry on a different one. Therefore explicit `/steer` and turn-targeted choice cards cannot use it. Strict steering remains available through the shared App Server's official `turn/steer`, which enforces `expectedTurnId`. Desktop interrupt v4 supports an expected turn guard; the router obtains that ID from the actual owner and never interrupts an orphan UI tail. The private Desktop protocol is version-dependent and is not equivalent to the official App Server API.
+Ordinary IM text during an active turn defaults to `steer`. The facade's `submitThreadMessage` freshly identifies the current active native turn and calls standard `turn/steer` with `expectedTurnId`; explicit `/steer` and targeted cards use the same guarded protocol. Binding and access are rechecked immediately before writing. Unknown, idle, orphan or changed targets reject without starting a new task or queueing. Missing and mismatched receipts remain uncertain after restart. No private Desktop follower method chooses or silently changes the receiving turn. The existing follow subscription keeps the same progress card and completion cursor.
 
-Ordinary IM text during an active turn defaults to `steer`. The application distinguishes **conversation-targeted ordinary input** from **execution-targeted `/steer`**. For a local Desktop owner, the facade's `submitThreadMessage` uses the native conversation input RPC once; Desktop selects the actual receiving turn, whose ID is returned as the receipt. It does not claim caller-selected turn atomicity. Binding identity is rechecked immediately before writing; idle/orphan/unknown owner state rejects input without starting a task, queuing, stopping, or replaying it. A lost or invalid receipt remains uncertain after restart. Non-Desktop owners use official guarded `turn/steer`; failures never switch writers. This is not an implicit queue/start fallback. The existing follow subscription continues to update the same active card and deliver the eventual result; the input receipt does not replace its card checkpoint or completion cursor.
-
-Explicit per-session overrides remain intact: `ask` offers only supported guarded actions, and `queue` submits to the native next-turn queue. Exec rejects unsupported active input; Desktop owns consumption of its externally appended queue. No implicit policy or backend fallback occurs. The same policy boundary applies to DingTalk, WeChat and Feishu. Binding changes invalidate subscriptions centrally. Switching or leaving does not interrupt Codex; queued work stays attached to its original session, but later progress/results are not delivered into the recipient's new binding. `/leave` remains detached across restart until an explicit selection or `/new`. `/stream off` suppresses followed progress without losing the final result.
+Explicit per-session overrides remain intact: `ask` offers only supported guarded actions, and `queue` submits to the native next-turn queue. The native service owns queue persistence and consumption. No implicit policy or backend fallback occurs. The same policy boundary applies to DingTalk, WeChat and Feishu. Binding changes invalidate subscriptions centrally. Switching or leaving does not interrupt Codex; queued work stays attached to its original session, but later progress/results are not delivered into the recipient's new binding. `/leave` remains detached across restart until an explicit selection or `/new`. `/stream off` suppresses followed progress without losing the final result.
 
 ### Chat commands
 

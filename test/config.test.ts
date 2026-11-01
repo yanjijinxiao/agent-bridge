@@ -12,7 +12,7 @@ test("uses ~/.codex-im-gateway as the default Codex workspace", () => {
   assert.deepEqual(defaultConfig().allowedWorkspaces, [path.join(os.homedir(), ".codex-im-gateway")]);
   assert.equal(defaultConfig().streamReplies, true);
   assert.equal(defaultConfig().activeMessagePolicy, "steer");
-  assert.equal(defaultConfig().codexBackend, "auto");
+  assert.equal(defaultConfig().codexBackend, "app-server");
   assert.equal(defaultConfig().codexAppServerTransport, "auto");
   assert.equal(defaultConfig().maxInboundBytes, 100 * 1024 * 1024);
   assert.equal(defaultConfig().taskboardEnabled, true);
@@ -70,7 +70,7 @@ test("loads only supported Codex backend and app-server transport settings", (t)
     codexBackend: "hybrid",
     codexAppServerTransport: "socket"
   }));
-  assert.equal(loadConfig(paths, "/tmp/project").codexBackend, "auto");
+  assert.equal(loadConfig(paths, "/tmp/project").codexBackend, "app-server");
   assert.equal(loadConfig(paths, "/tmp/project").codexAppServerTransport, "auto");
 });
 
@@ -92,19 +92,15 @@ test("migrates the legacy inbound limit and never exceeds 100 MiB", (t) => {
   assert.equal(loadConfig(paths, "/tmp/project").maxInboundBytes, 25 * 1024 * 1024);
 });
 
-test("execution owner is an explicit persisted deployment choice and invalid values cannot change it", t => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-owner-config-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const paths = resolveStatePaths(root);
-  assert.equal(loadConfig(paths).codexExecutionOwner, "headless", "a CLI-only install needs no Desktop");
-  fs.writeFileSync(paths.configPath, JSON.stringify({ codexBackend: "app-server" }));
-  assert.equal(loadConfig(paths).codexExecutionOwner, undefined, "an upgrade cannot silently migrate old execution ownership");
-  saveConfig(paths, { ...defaultConfig(root), codexExecutionOwner: "desktop" });
-  assert.equal(loadConfig(paths).codexExecutionOwner, "desktop", "socket availability is not a deployment selector");
-  fs.writeFileSync(paths.configPath, JSON.stringify({ codexExecutionOwner: "desktpo" }));
-  const before = fs.readFileSync(paths.configPath, "utf8");
-  assert.throws(() => loadConfig(paths), /codexExecutionOwner/);
-  assert.equal(fs.readFileSync(paths.configPath, "utf8"), before);
+test("legacy executor selectors migrate to one native adapter without changing permissions or bindings", t => {
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'gateway-unified-config-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const paths=resolveStatePaths(root);
+  for(const backend of ['auto','exec','app-server','invalid'])for(const owner of ['desktop','headless','invalid']){
+    fs.writeFileSync(paths.configPath,JSON.stringify({codexBackend:backend,codexExecutionOwner:owner,codexExecSandbox:'workspace-write',allowedSenderIds:['actor']}));
+    const config=loadConfig(paths);assert.equal(config.codexBackend,'app-server');assert.equal('codexExecutionOwner' in config,false);
+    assert.equal(config.codexExecSandbox,'workspace-write');assert.deepEqual(config.allowedSenderIds,['actor']);
+    saveConfig(paths,config);assert.equal('codexExecutionOwner' in JSON.parse(fs.readFileSync(paths.configPath,'utf8')),false);
+  }
 });
 
 test("enables process progress by default while preserving an explicit opt-out", (t) => {

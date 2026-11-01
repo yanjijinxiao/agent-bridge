@@ -11,7 +11,7 @@ import { resolveStatePaths } from "../src/state/paths.js";
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
 
-for (const change of ["rebind", "revoke"] as const) test(`late policy capability read cannot change policy after ${change}`, async t => {
+for (const change of ["rebind", "revoke"] as const) test(`policy setting needs no owner discovery and cannot mutate another binding after ${change}`, async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-policy-race-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new RuntimeStateStore(resolveStatePaths(root)); store.setPairedSenderIds(["actor"]);
@@ -27,8 +27,8 @@ for (const change of ["rebind", "revoke"] as const) test(`late policy capability
   await tick();
   if (change === "rebind") store.activateSession(second.id); else store.setPairedSenderIds([]);
   gate.resolve({ threadId: "thread", persistence: "active", runtimeStatus: "idle", activeFlags: [] });
-  assert.ok(await result);
-  assert.equal(store.getSession(first.id)?.activeMessagePolicy, undefined);
+  assert.equal(await result,undefined);
+  assert.equal(store.getSession(first.id)?.activeMessagePolicy, "steer");
   assert.equal(store.getSession(second.id)?.activeMessagePolicy, undefined);
 });
 

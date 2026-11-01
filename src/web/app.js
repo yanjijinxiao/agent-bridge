@@ -775,8 +775,7 @@ function renderSettings() {
   if (!state.config) return;
   document.querySelector("#defaultCwdInput").value = state.config.defaultCwd || "";
   document.querySelector("#allowedWorkspacesInput").value = (state.config.allowedWorkspaces || []).join("\n");
-  document.querySelector("#backendInput").value = state.config.codexBackend || "auto";
-  document.querySelector("#executionOwnerInput").value = state.config.codexExecutionOwner || "";
+  document.querySelector("#backendInput").value = "app-server";
   document.querySelector("#activeMessagePolicyInput").value = state.config.activeMessagePolicy || "steer";
   document.querySelector("#bindingIdleDaysInput").value = state.config.bindingIdleDays ?? 15;
   document.querySelector("#appServerTransportInput").value = state.config.codexAppServerTransport || "auto";
@@ -2436,8 +2435,7 @@ async function saveSettings(event) {
       body: {
         defaultCwd: document.querySelector("#defaultCwdInput").value.trim(),
         allowedWorkspaces: document.querySelector("#allowedWorkspacesInput").value.split("\n").map((line) => line.trim()).filter(Boolean),
-        codexBackend: document.querySelector("#backendInput").value,
-        codexExecutionOwner: document.querySelector("#executionOwnerInput").value || undefined,
+        codexBackend: "app-server",
         activeMessagePolicy: document.querySelector("#activeMessagePolicyInput").value,
         bindingIdleDays: Number(document.querySelector("#bindingIdleDaysInput").value),
         codexAppServerTransport: document.querySelector("#appServerTransportInput").value,

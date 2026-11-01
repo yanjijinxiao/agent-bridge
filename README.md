@@ -170,16 +170,11 @@ Gateway 重启后会自动恢复已有绑定及跟随游标，并在渠道支持
 
 ## Codex 后端
 
-网关对上层渠道暴露统一的项目、Session、执行、历史、审批和状态接口，并提供两个后端实现：
+网关只实现一套标准 Codex App Server 接口。渠道、Web 和账号管理统一调用 `CodexAppServerGateway`；桌面 App 与 Gateway 是同一原生服务的客户端。只有 CLI 的服务器同样运行 `codex app-server`，不需要 GUI，也不缩减项目、Session、执行、历史、审批、队列、目标、动态工具等能力。
 
-| 后端 | 适用场景 | 主要能力 |
-| --- | --- | --- |
-| `app-server` | Codex Desktop、新 Session、交互任务、远程项目 | 项目注册表、thread 生命周期、流式事件、审批、动态工具、Desktop relay |
-| `codex exec` | 本机非交互式 CLI 任务及兼容回退 | 本机会话目录、历史分页、`codex exec` / `codex exec resume` |
+连接方式与业务实现分离。共享 daemon 的控制、元数据和历史连接指向同一原生服务；断连不切换执行器，已接收或回执不明的输入不重发。Gateway 重启后按原 thread/turn ID 重连核对。旧的 `codexExecutionOwner` 桌面/headless 选择已移除，`auto`/`exec` 旧配置在读取时迁移为 `app-server`；不更改原生会话的权限或审核设置。
 
-App Server 部署通过 `codexExecutionOwner` 固定执行入口：`desktop` 只把任务交给 Codex 桌面端已打开的会话，包括桌面端连接的远程主机；`headless` 使用 CLI 提供的 App Server，无需安装桌面应用。断连、找不到持有者或提交回执不明时均不切换执行器，也不回退到 exec。新安装默认 headless；旧配置未选择入口时保留兼容路由，升级本身不迁移正在执行的会话。
-
-桌面 IPC 当前不支持 IM 新建/加载未打开会话、动态 Bridge 工具、指定轮次的严格介入、目标修改和会话生命周期操作，这些操作会明确提示；普通运行中消息仍可转交原会话。目录、历史和已接受结果的核对使用只读查询，原生队列只保存输入，交由实际持有者消费。CLI `exec` 仍可显式选择，但不提供原生交互审批。详细接口和部署规则见[Codex 后端架构](./docs/codex-backends.md)。
+桌面 App 如果仍连接私有 stdio 服务，需要先在任务空闲时重新接入共享服务；仅重启 Gateway 不能合并两个已有的执行进程。明确选择私有 stdio 的环境使用同一协议，但其进程生命周期仍归 Gateway 所有，不能保证运行中重启不影响任务。部署与接口验收见[Codex 后端架构](./docs/codex-backends.md)。
 
 列表先按原生置顶顺序，再按项目目录顺序分组，最后列出其他会话；组内保留原生手工或最近活动顺序。翻页期间编号不变；15 分钟后或重新搜索/刷新时需重新选择。App 后端同时列出已知远程主机的可用会话，部分主机离线会给出提示。已归档、内部子任务及不可用会话不混入普通列表。
 

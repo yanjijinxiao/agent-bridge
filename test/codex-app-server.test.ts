@@ -422,7 +422,7 @@ test("streams safe tool status and readable reasoning summaries as progress", as
   assert.equal(progress.some((message) => message === "🤔 正在分析测试结果并决定下一步"), true);
 });
 
-test("propagates the configured sandbox to an app-server turn", async (t) => {
+test("propagates an explicit per-input sandbox without changing inheritance defaults", async (t) => {
   // Given: a bridge configured to allow Codex full workspace access.
   const runner = new HybridCodexRunner({
     backend: "app-server",
@@ -436,7 +436,7 @@ test("propagates the configured sandbox to an app-server turn", async (t) => {
   const result = await runner.run({
     prompt: "verify-danger-full-access",
     cwd: "/tmp/project",
-    threadId: "thread-existing"
+    threadId: "thread-existing", sandbox: "danger-full-access"
   });
 
   // Then: the downstream app-server accepts the expected policy and completes the turn.
@@ -797,91 +797,21 @@ test("auto backend never moves an existing thread to CLI after an app-server fai
   }));
 });
 
-test("relays a Desktop-owned thread through the Desktop follower runner", async (t) => {
-  const relayed: Array<Record<string, unknown>> = [];
-  const desktopRunner = {
-    async run(input: Record<string, unknown>) {
-      relayed.push(input);
-      return {
-        threadId: String(input.threadId),
-        turnId: "turn-desktop",
-        text: "desktop-relayed",
-        raw: "desktop"
-      };
-    },
-    async stop() {},
-    close() {}
-  };
-  const runner = new HybridCodexRunner({
-    backend: "app-server",
-    codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"),
-    timeoutMs: 2_000,
-    desktopRunner
-  });
-  t.after(() => runner.close());
-
-  const result = await runner.run({
-    prompt: "continue in Desktop",
-    cwd: "/tmp/project",
-    threadId: "thread-desktop-owned",
-    onApproval: async () => "accept"
-  });
-
-  assert.equal(result.text, "desktop-relayed");
-  assert.equal(relayed.length, 1);
-  assert.equal(relayed[0]?.threadId, "thread-desktop-owned");
+test("a foreign native writer conflict is visible and never invokes a Desktop follower", async t => {
+  let relays=0;
+  const runner=new HybridCodexRunner({backend:'app-server',codexBin:path.join(fixturesDir,'fake-codex-app-server.mjs'),timeoutMs:2000,
+    desktopRunner:{async run(){relays++;},close(){}} as never} as any);t.after(()=>runner.close());
+  await assert.rejects(runner.run({prompt:'once',cwd:'/tmp/project',threadId:'thread-desktop-owned'}),{operation:'app-server/ownership',submission:'not-submitted'});
+  assert.equal(relays,0);
 });
 
-test("refreshes the Desktop task list when a local app-server thread is created and completed", async (t) => {
-  const refreshedThreadIds: Array<string | undefined> = [];
-  const desktopRunner = {
-    async run() {
-      throw new Error("Desktop relay should not be used for a new thread");
-    },
-    async stop() {
-      return "not-active" as const;
-    },
-    async refreshTaskList(threadId?: string) {
-      refreshedThreadIds.push(threadId);
-    },
-    close() {}
-  };
-  const runner = new HybridCodexRunner({
-    backend: "app-server",
-    codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"),
-    timeoutMs: 2_000,
-    desktopRunner
-  });
-  t.after(() => runner.close());
-
-  const result = await runner.run({
-    prompt: "new Desktop-visible task",
-    cwd: "/tmp/project"
-  });
-
-  assert.equal(result.threadId, "thread-new");
-  assert.deepEqual(refreshedThreadIds, ["thread-new", "thread-new"]);
+test("new native tasks use thread/start without a private UI refresh protocol",async t=>{
+ const runner=new HybridCodexRunner({backend:'app-server',codexBin:path.join(fixturesDir,'fake-codex-app-server.mjs'),timeoutMs:2000});t.after(()=>runner.close());
+ assert.equal((await runner.run({cwd:'/tmp/project',prompt:'new task'})).threadId,'thread-new');
 });
 
-test("exec backend stays on codex exec even when streaming callbacks are present", async (t) => {
-  const runner = new HybridCodexRunner({
-    backend: "exec",
-    codexBin: path.join(fixturesDir, "fake-codex-fallback.mjs"),
-    timeoutMs: 2_000
-  });
-  t.after(() => runner.close());
-  const deltas: string[] = [];
-
-  const result = await runner.run({
-    prompt: "stream",
-    cwd: fixturesDir,
-    onDelta: (delta) => {
-      deltas.push(delta);
-    }
-  });
-
-  assert.deepEqual(deltas, []);
-  assert.equal(result.text, "exec-new");
+test("retired exec selection cannot run a streaming request through another executor",()=>{
+ assert.throws(()=>new HybridCodexRunner({backend:'exec'}),/统一.*App Server/);
 });
 
 test("app-server backend never silently falls back to codex exec", async (t) => {

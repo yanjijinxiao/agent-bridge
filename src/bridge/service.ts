@@ -81,7 +81,7 @@ import type {
 } from "../codex/backend.js";
 import { assertCodexThreadRunnable, capacityFailureScope, CodexBackendCapabilityError, CodexThreadStateError } from "../codex/backend.js";
 import type { CodexApprovalDecision, CodexApprovalRequest } from "../codex/approval.js";
-import { CodexBackendRouter } from "../codex/runner.js";
+import { CodexAppServerGateway } from "../codex/app-server-gateway.js";
 import {
   LlmWikiMcpClientPool,
   llmWikiDynamicTools
@@ -273,9 +273,8 @@ export class BridgeService {
       () => options.stateStore.allocateApprovalId(),
       options.stateStore.approvalJournalPath
     );
-    this.runner = options.runner ?? new CodexBackendRouter({
+    this.runner = options.runner ?? new CodexAppServerGateway({
       backend: options.config.codexBackend,
-      executionOwner: options.config.codexExecutionOwner,
       appServerTransport: options.config.codexAppServerTransport,
       codexBin: options.config.codexBin,
       execSandbox: options.config.codexExecSandbox
@@ -532,14 +531,9 @@ export class BridgeService {
       case "h":
         {
           const session = this.executionSession(message.senderId);
-          let desktopOwned = false;
-          if (session?.threadId && typeof this.runner.inspectThread === "function") {
-            try { desktopOwned = (await this.runner.inspectThread(session.threadId, this.sessionHostId(session))).executionOwner === "desktop"; }
-            catch { /* Help remains available during a backend outage. */ }
-          }
           await this.replyActionCard(message.senderId, createMainMenuCard(channelHelpText(channelCapabilities, command.arg, {
             backendCapabilities: this.runner.backendInfo?.(session ? this.sessionHostId(session) : undefined).capabilities,
-            desktopOwned, taskboardAvailable: Boolean(this.options.taskboard)
+            taskboardAvailable: Boolean(this.options.taskboard)
           })));
         }
         return;
@@ -1645,10 +1639,6 @@ export class BridgeService {
     let state: Awaited<ReturnType<NonNullable<CodexBridgeBackend["inspectThread"]>>>;
     try { state = await this.runner.inspectThread(session.threadId, hostId); }
     catch (error) { throw communicationError(error, { phase: "preflight", operation: "thread/read", threadId: session.threadId }); }
-    if (state.executionOwner === "desktop") {
-      await this.reply(message.senderId, "当前 Desktop 转发协议不支持指定轮次的安全介入，消息未提交。请在 Codex App 中介入或排队，或改用共享 App Server 会话。");
-      return;
-    }
     if (state.persistence !== "active" || state.runtimeStatus === "systemError") {
       const reason = unavailableProjectSessionChoiceReason({
         managed: session,
@@ -1775,9 +1765,7 @@ export class BridgeService {
     const assertPolicyCurrent = this.conversationControlGuard(senderId, requiredCommandRole("policy", arg));
     if (arg === "steer") {
       const hostId = this.sessionHostId(session);
-      const desktopOwned = session.threadId && typeof this.runner.inspectThread === "function"
-        && (await this.runner.inspectThread(session.threadId, hostId)).executionOwner === "desktop";
-      if ((desktopOwned && !this.runner.submitThreadMessage) || this.runner.backendInfo?.(hostId).capabilities.turnSteering === false) {
+      if (this.runner.backendInfo?.(hostId).capabilities.turnSteering === false) {
         await this.reply(senderId, "当前后端不支持安全介入，处理策略未改变。请在实际持有会话的 Codex 中操作，或等当前任务完成后发送。");
         return;
       }
@@ -1821,7 +1809,7 @@ export class BridgeService {
       return false;
     }
     const canSteer = Boolean(state.activeTurnId)
-      && state.executionOwner !== "desktop" && this.runner.backendInfo?.(hostId).capabilities.turnSteering !== false;
+      && this.runner.backendInfo?.(hostId).capabilities.turnSteering !== false;
     const canQueue = this.runner.backendInfo?.(hostId).capabilities.nativeQueue !== false
       && typeof this.runner.addQueuedSubmission === "function";
     const policy = session.activeMessagePolicy ?? this.options.config.activeMessagePolicy ?? "steer";
@@ -1831,7 +1819,7 @@ export class BridgeService {
     }
     const prompt = buildPromptParts("", await this.stagePromptItems(items, session, message), channelPromptSource(this.channel.channel), []).prompt;
     if (policy === "steer") {
-      if (state.executionOwner === "desktop" && this.runner.submitThreadMessage) {
+      if (this.runner.submitThreadMessage) {
         await this.submitActiveThreadMessage(message, session, prompt, state.activeTurnId);
         return true;
       }

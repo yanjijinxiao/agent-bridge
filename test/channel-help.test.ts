@@ -32,7 +32,7 @@ test("command inventory reserves every canonical command/alias and reports backe
   assert.match(help, /\/follow[^\n]+【当前后端不支持】/);
   assert.match(help, /\/answer[^\n]+【当前后端不支持】/);
   assert.match(help, /\/task[^\n]+【需启用 Taskboard】/);
-  assert.match(channelHelpText([], "session", { desktopOwned: true }), /Desktop 转发不支持此操作/);
+  assert.doesNotMatch(channelHelpText([], "session"), /Desktop 转发不支持此操作/);
 });
 
 test("focused session help describes policies, permissions and backend limits", () => {

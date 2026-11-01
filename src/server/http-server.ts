@@ -171,7 +171,6 @@ const configSchema = z.object({
   defaultCwd: z.string().min(1),
   allowedWorkspaces: z.array(z.string().min(1)).min(1),
   codexBackend: z.enum(["auto", "app-server", "exec"]),
-  codexExecutionOwner: z.enum(["desktop", "headless"]).optional(),
   codexAppServerTransport: z.enum(["auto", "daemon", "stdio"]).optional(),
   codexExecSandbox: z.enum(["read-only", "workspace-write", "danger-full-access"]).nullable().optional(),
   model: z.string().optional(),
@@ -914,7 +913,7 @@ function readCodexModels(context: HandlerContext): Promise<CodexModelOption[]> {
 }
 
 function metadataKey(kind: string, config: CodexImGatewayConfig): string {
-  return JSON.stringify([kind, config.codexBackend, config.codexExecutionOwner, config.codexAppServerTransport, config.codexBin,
+  return JSON.stringify([kind, config.codexBackend, config.codexAppServerTransport, config.codexBin,
     config.defaultCwd, config.model, config.effort, config.codexExecSandbox]);
 }
 

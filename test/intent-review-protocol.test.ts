@@ -34,6 +34,7 @@ for(const persistence of ["active","archived","all"] as const) test(`storage cat
 
 test("malformed optional file-change entries cannot throw out of the native notification callback",async()=>{
   const runner:any=new AppServerCodexRunner();
+  runner.expectedTurnThreads.set("t", 1);
   assert.doesNotThrow(()=>runner.handleMessage(JSON.stringify({method:"item/completed",params:{threadId:"t",turnId:"n",
     item:{type:"fileChange",changes:[null,{path:"/fixture/file.ts"}]}}})));
   assert.match(runner.queuedTurnEvents.get("t\0n")[0].text,/file.ts/);

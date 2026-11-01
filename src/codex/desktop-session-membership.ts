@@ -131,3 +131,18 @@ export function desktopSessionMembership(codexHome = process.env.CODEX_HOME ?? p
 function record(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
+
+/** Optional UI preferences may rename an explicit native project ID and order
+ * rows. They never replace native membership, runtime, persistence or history. */
+export function nativeSessionPresentation(codexHome?: string, hostId = "local"): (state: CodexThreadState) => CodexThreadState {
+  const presentation = desktopSessionMembership(codexHome, hostId);
+  return state => {
+    const shown = presentation(state);
+    const assigned = Boolean(state.projectId && state.projectMembership === "assigned");
+    const order = { ...state.catalogOrder,
+      ...(shown.catalogOrder?.pinnedIndex !== undefined ? { pinnedIndex: shown.catalogOrder.pinnedIndex } : {}),
+      ...(assigned && shown.catalogOrder?.manualIndex !== undefined ? { manualIndex: shown.catalogOrder.manualIndex } : {}) };
+    return { ...state, ...(assigned ? { projectId: shown.projectId } : {}),
+      ...(Object.keys(order).length ? { catalogOrder: order } : {}) };
+  };
+}
