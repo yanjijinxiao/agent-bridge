@@ -148,3 +148,17 @@ test('role revocation after native resume blocks turn/start and retains a safe r
   assert.equal(starts,0);assert.equal((runner as any).unconfirmedStarts.has(f.thread.threadId),false);
   revoke=false;current=true;await f.as(()=>f.facade.run(input));assert.equal(starts,1);
 });
+
+test('a disconnected run retires its pending approval UI before independent replay', async t => {
+  const f=await peerFixture(t);await f.bind();
+  const shown=Promise.withResolvers<void>(),answer=Promise.withResolvers<undefined>(),finished=Promise.withResolvers<unknown>();
+  let original:unknown;const retired:unknown[]=[];
+  f.run=async input=>{
+    finished.resolve(await input.onApproval!({kind:'command',threadId:f.thread.threadId,turnId:'turn',itemId:'item',command:'pwd'}));
+    return {threadId:f.thread.threadId,turnId:'turn',text:'',raw:''};
+  };
+  const pending=f.as(()=>f.facade.run(f.input({onApproval(request){original=request;shown.resolve();return answer.promise;},
+    onApprovalResult(request,result){assert.equal(request,original);retired.push(result);answer.resolve(undefined);}}))).catch(()=>{});
+  await shown.promise;f.client.close();await pending;
+  assert.deepEqual(retired,['withdrawn']);assert.equal(await finished.promise,undefined);
+});

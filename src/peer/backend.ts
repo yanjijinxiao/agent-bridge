@@ -42,10 +42,12 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     // Channel controllers associate native receipts with the exact request
     // object. Restore that identity after JSON transport, within this operation.
     const interactionRequests = new Map<string, unknown>();
+    const answeredInteractions = new Set<string>();
     const scope: { hostId: string; threadId: string; turnId?: string; independent: boolean; controller: AbortController } | undefined = write
       ? { hostId, threadId: method === "createThread" ? "new" : input?.threadId ?? String(args[0]), independent: describe(hostId).independent, controller: new AbortController() } : undefined;
     if (scope) operations.add(scope);
     const callback = async (name: string, values: unknown[]): Promise<unknown> => {
+      let interactionKey: string | undefined;
       if (!["assertCurrent", "onThreadCreated", "onTurnStarted", "onDelta", "onItem", "onProgress", "onRecovery", "onApproval", "onApprovalResult", "onUserInput", "onUserInputResult"].includes(name))
         throw new PeerError("unsupported", "Unknown execution callback");
       if (name === "onTurnStarted") {
@@ -66,7 +68,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         if (acceptedTurnId && request.turnId !== acceptedTurnId) throw new PeerError("scope", "Invalid native interaction turn");
         values[0] = { ...request, hostId };
         const requestKind = name === "onApproval" || name === "onApprovalResult" ? "approval" : "question";
-        const key = JSON.stringify([requestKind, values[0]]);
+        const key = JSON.stringify([requestKind, values[0]]); interactionKey = key;
         if (name === "onApproval" || name === "onUserInput") {
           const existing = interactionRequests.get(key);
           if (existing) values[0] = existing;
@@ -78,7 +80,15 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         }
       }
       if (name === "onApproval" && !input?.onApproval) return null;
-      return await input?.[name]?.(...values) ?? null;
+      try {
+        const result = await input?.[name]?.(...values) ?? null;
+        if (interactionKey && result !== null && (name === "onApproval" || name === "onUserInput")) answeredInteractions.add(interactionKey);
+        return result;
+      } finally {
+        if (interactionKey && (name === "onApprovalResult" || name === "onUserInputResult")) {
+          interactionRequests.delete(interactionKey); answeredInteractions.delete(interactionKey);
+        }
+      }
     };
     const wireArgs = args.map(value => value && typeof value === "object" && !Array.isArray(value)
       ? Object.fromEntries(Object.entries(value).filter(([key, item]) => typeof item !== "function" && item !== undefined && key !== "hostId")) : value);
@@ -106,7 +116,17 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         throw new CodexTurnExecutionError(data?.status === "interrupted" ? "interrupted" : "failed", error.message, data?.failureCode);
       }
       throw error;
-    } finally { if (scope) operations.delete(scope); }
+    } finally {
+      if (scope) operations.delete(scope);
+      // A lost run RPC also owns pending UI callbacks, even when the native
+      // turn survives. Retire that route before a fresh observer replays it.
+      for (const [key, request] of interactionRequests) {
+        const result = answeredInteractions.has(key) ? "failed" : "withdrawn";
+        const handler = key.startsWith('["approval"') ? input?.onApprovalResult : input?.onUserInputResult;
+        try { void Promise.resolve(handler?.(request, result)).catch(() => {}); } catch { /* UI failure cannot manufacture a native answer. */ }
+      }
+      interactionRequests.clear();
+    }
   };
   const route = (method: string, args: unknown[], hostId?: string, write = false, input?: Record<string, any>) => registry.isPeer(hostId)
     ? invoke(method, args, hostId!, write, input) : native(method, args);
