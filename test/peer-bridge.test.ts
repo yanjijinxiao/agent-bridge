@@ -13,8 +13,10 @@ import { peerFixture, principal } from "./peer-fixture.js";
 test("pair the device, choose a session entirely in DingTalk, then switch to another local session", async t => {
   const f = await peerFixture(t, { device: true }), paths = resolveStatePaths(path.join(f.root, "gateway-state")), store = new RuntimeStateStore(paths);
   const replies: string[] = [];
+  let catalogReads = 0;
   const localUnavailable = new Proxy(f.facade, { get(target, key) {
     if (key === "listSessionCatalog") return (input: any, host: string) => {
+      catalogReads++;
       assert.ok(host.startsWith("peer:"), "Device selection must not depend on Codex installed on Gateway");
       return target.listSessionCatalog(input, host);
     };
@@ -30,6 +32,11 @@ test("pair the device, choose a session entirely in DingTalk, then switch to ano
   await send(`/connect ${f.ticket.code}`);
   assert.equal(store.getBoundSession(principal.conversationId), undefined);
   assert.ok(replies.some(text => text.includes("我的笔记本")));
+  assert.equal(catalogReads, 0, "pairing must not query or disclose the device session catalog");
+  assert.ok(replies.at(-1)?.includes("/sessions"));
+  assert.ok(!replies.at(-1)?.includes(f.thread.title!)); assert.ok(!replies.at(-1)?.includes(f.thread.cwd!));
+  await send("/sessions");
+  assert.equal(catalogReads, 1);
   assert.ok(replies.at(-1)?.includes(f.thread.title!)); assert.ok(replies.at(-1)?.includes(f.thread.cwd!));
   await send("还没选择会话的普通消息"); assert.equal(f.runs.length, 0);
   await send("/session R1"); await send("继续第一个任务");

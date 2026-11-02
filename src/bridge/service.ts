@@ -628,13 +628,15 @@ export class BridgeService {
         if (target.threadId) {
           const state = await this.runner.inspectThread(target.threadId, target.hostId);
           if (state.persistence === "archived") {
-            await this.reply(message.senderId, "设备已配对，所选会话已归档。请从下面的归档列表恢复后再绑定。");
-            await this.handleSessionCommand(message.senderId, `archived --host ${target.hostId}`, message.id);
+            await this.reply(message.senderId, copyableChoices("设备已配对，指定会话已归档。需要恢复时，请主动查看归档会话。", [
+              { label: "查看该设备归档会话", value: `/sessions archived --host ${target.hostId}` }
+            ]));
           } else await this.bindCatalogSession(message.senderId, target.threadId, target.hostId);
         }
         else {
-          await this.reply(message.senderId, `设备已配对：${target.label}\n请在下面选择要绑定的会话；选中后，聊天消息才会发往该会话。`);
-          await this.handleSessionCommand(message.senderId, `--host ${target.hostId}`);
+          await this.reply(message.senderId, copyableChoices(`设备已配对：${target.label}\n需要选择或切换会话时，请主动查看该设备的会话列表。`, [
+            { label: "查看该设备会话", value: `/sessions --host ${target.hostId}` }
+          ]));
         }
         return;
       }
