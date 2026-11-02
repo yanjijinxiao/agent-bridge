@@ -33,6 +33,22 @@ async function fixture(t: test.TestContext, approve = true) {
   });
 }
 
+test("new native activity reads recheck a delegated grant after the device await", async t => {
+  const f = await fixture(t); await f.share("claim");
+  const invitation = await f.invite(); await f.share(`approve ${invitation.id} read`);
+  const grant = f.registry.grantsFor(visitor)[0];
+  const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+  f.backend.readTurnActivities = async () => {
+    entered.resolve(); await release.promise;
+    return [{ type: "agent_message", role: "assistant", content: "revoked private result", data: {} }];
+  };
+  const work = f.as(() => f.facade.readTurnActivities!(f.thread.threadId, "turn", f.target.hostId), visitor);
+  const rejected = assert.rejects(work, /未授权|已撤销|已失效|未继续投递/);
+  try { await entered.promise; await f.share(`revoke ${grant.id}`); }
+  finally { release.resolve(); }
+  await rejected;
+});
+
 test("only device confirmation creates an owner; a chat controller cannot claim implicitly", async t => {
   const f = await fixture(t, false);
   await assert.rejects(f.share("invite"), /未授权/);

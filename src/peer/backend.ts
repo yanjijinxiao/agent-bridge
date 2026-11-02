@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { CodexBackendCapabilityError, CodexTurnExecutionError, EXEC_BACKEND_CAPABILITIES,
+import { CodexBackendCapabilityError, CodexRunAdmissionError, CodexTurnExecutionError, EXEC_BACKEND_CAPABILITIES,
   type CodexBridgeBackend, type CodexThreadState, type CodexTurnStatus, type CodexTurnObservation,
   type CodexInputReceipt, type CodexStopResult } from "../codex/backend.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
@@ -25,6 +25,8 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     if (input?.dynamicTools?.length || input?.onDynamicToolCall || input?.ephemeral || input?.sandbox)
       throw new CodexBackendCapabilityError("dynamicTools", describe(hostId).info.id);
     if (input?.outputSchema) throw new CodexBackendCapabilityError("structuredOutput", describe(hostId).info.id);
+    if (input?.nativeSettings || input?.imagePaths?.length)
+      throw new PeerError("unsupported", "Connector 尚未开放远程权限设置或原生图片路径；请使用设备权限和附件传输。");
     const principal = peerPrincipal.getStore();
     const operationId = write ? crypto.createHash("sha256").update(JSON.stringify([hostId, method,
       principal?.accountId, principal?.conversationId, principal?.actorId,
@@ -34,7 +36,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       ? { hostId, threadId: method === "createThread" ? "new" : input?.threadId ?? String(args[0]), independent: describe(hostId).independent, controller: new AbortController() } : undefined;
     if (scope) operations.add(scope);
     const callback = async (name: string, values: unknown[]): Promise<unknown> => {
-      if (!["assertCurrent", "onThreadCreated", "onTurnStarted", "onDelta", "onProgress", "onRecovery", "onApproval", "onApprovalResult", "onUserInput", "onUserInputResult"].includes(name))
+      if (!["assertCurrent", "onThreadCreated", "onTurnStarted", "onDelta", "onItem", "onProgress", "onRecovery", "onApproval", "onApprovalResult", "onUserInput", "onUserInputResult"].includes(name))
         throw new PeerError("unsupported", "Unknown execution callback");
       if (name === "onTurnStarted") {
         const event = values[0] as { threadId: string; turnId: string; status?: CodexTurnStatus };
@@ -72,6 +74,12 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         const data = error.data as any;
         throw new CodexCommunicationError(data?.turnId ? "observation" : "submission", method, scope?.threadId, data?.turnId);
       }
+      if (error instanceof PeerError && error.code === "run-admission") {
+        if (acceptedTurnId) throw new CodexCommunicationError("observation", method, scope?.threadId, acceptedTurnId);
+        const reason = (error.data as { reason?: unknown })?.reason;
+        if (reason === "active" || reason === "handoff") throw new CodexRunAdmissionError(reason, scope?.threadId);
+        throw new CodexCommunicationError("submission", method, scope?.threadId);
+      }
       if (error instanceof PeerError && error.code === "turn-failed") {
         const data = error.data as any;
         throw new CodexTurnExecutionError(data?.status === "interrupted" ? "interrupted" : "failed", error.message, data?.failureCode);
@@ -108,7 +116,8 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     getHistoryPage: (id, page, host) => route("getHistoryPage", [id, page, host], host),
     getRuntimeInfo: (cwd, id, host, observation) => route("getRuntimeInfo", [cwd, id, host, observation], host),
     listModels: (host?: string) => route("listModels", [host], host),
-    getAccountRateLimits: (host?: string) => route("getAccountRateLimits", [host], host),
+    getAccountRateLimits: (host?: string, model?: string) => registry.isPeer(host)
+      ? invoke("getAccountRateLimits", [host, model], host!) : local.getAccountRateLimits(host, model),
     inspectThread: (id, host, observation) => route("inspectThread", [id, host, observation], host),
     async listSessionCatalog(input, host) {
       if (!registry.isPeer(host)) return local.listSessionCatalog(input, host);
@@ -178,6 +187,27 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     readTurnLifecycle: async (id, turn, host) => {
       if (!registry.isPeer(host)) return local.readTurnLifecycle?.(id, turn, host) ?? { status: "unknown", source: "unknown" };
       return invoke<CodexTurnObservation>("readTurnLifecycle", [id, turn], host!);
+    },
+    readTurnActivities: (id, turn, host) => route("readTurnActivities", [id, turn, host], host),
+    // These ports are new in the unified native adapter, but are not part of
+    // the peer protocol yet. Never pass peer identities to a local/SSH core.
+    interruptTurn: async (id, turn, host, guard) => {
+      if (registry.isPeer(host)) throw new PeerError("unsupported", "Connector 暂不支持精确轮次中断，请使用 /stop。");
+      return native("interruptTurn", [id, turn, host, guard]);
+    },
+    listSkills: async (cwd, host) => registry.isPeer(host) ? unsupported("skills", host!) : native("listSkills", [cwd, host]),
+    listMcpServers: async (id, host) => registry.isPeer(host) ? unsupported("mcpServers", host!) : native("listMcpServers", [id, host]),
+    observeThreadInteractions: async (id, host, observer, consumer) => {
+      if (registry.isPeer(host)) throw new PeerError("unsupported", "Connector 暂不支持独立的原生交互订阅；Gateway 发起任务的审批仍通过执行回调处理。");
+      return native("observeThreadInteractions", [id, host, observer, consumer]);
+    },
+    unobserveThreadInteractions: async (id, host, consumer) => {
+      if (!registry.isPeer(host)) await native("unobserveThreadInteractions", [id, host, consumer]);
+    },
+    interactionSubscriptionReady: (id, host) => !registry.isPeer(host) && Boolean(local.interactionSubscriptionReady?.(id, host)),
+    serverIdentity: async host => {
+      if (registry.isPeer(host)) throw new PeerError("unsupported", "Connector 尚未开放原生进程诊断接口。");
+      return native("serverIdentity", [host]);
     },
     hasInFlightWork: () => operations.size > 0 || Boolean(local.hasInFlightWork?.()),
     hasRestartBlockingWork: () => [...operations].some(op => !op.independent || !op.turnId)

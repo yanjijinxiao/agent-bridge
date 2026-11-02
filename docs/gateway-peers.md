@@ -21,7 +21,7 @@ npm ci
 npm run build:bridge
 ```
 
-B 需能以当前系统用户正常运行本地 Codex。已有会话会在设备配对后显示在钉钉中，按标题、目录和编号选择即可。CLI 与 App 继续由项目已有的本地 `CodexBackendRouter` 识别和路由；本功能不把远程进程注入一个正在运行的交互式 CLI 终端。A 的远程设备列表查询和执行转发不依赖 A 上安装 Codex。
+B 需能以当前系统用户正常运行本地 Codex。设备配对成功后，主动发送 `/sessions` 才查询并显示已有会话，按标题、目录和编号选择即可。CLI 与 App 均使用项目统一的原生 App Server 适配器（`CodexBackendRouter` 为兼容名称）；本功能不把远程进程注入一个正在运行的交互式 CLI 终端。A 的远程设备列表查询和执行转发不依赖 A 上安装 Codex。
 
 如果目标来自 App，需要 B 上已有的 Desktop 适配支持、相同用户和正确的 `CODEX_HOME`。已在 macOS Codex App/独立 app-server 与 Linux 容器 Gateway 之间完成设备配对、会话选择、文字往返和文件收发联调；其他系统、版本和真实审批仍需分别验证。
 
@@ -72,11 +72,14 @@ B 按 `examples/peer-client.json` 创建配置：
   "label": "我的笔记本",
   "tokenFile": "./my-laptop.token",
   "profileId": "work",
-  "backend": "app-server"
+  "backend": "app-server",
+  "appServerTransport": "daemon"
 }
 ```
 
 `nodeId` 与 A 的设备记录一致，`label` 是钉钉显示的设备名。`profileId` 是连接资源的标识，不等同于 Codex CLI 的 `-p` 配置 profile。可选 `codexHome`、`codexBin` 指定本地安装和资源目录；各路径相对配置文件解析，`codexBin` 按普通可执行命令解析。`stateDir` 可指定本机配对和回执目录，请保持稳定且不要由多个客户端进程同时写入。
+
+Gateway 和 Connector 均沿用主分支统一的原生 App Server 适配器。Connector 的 `backend` 只接受 `app-server`；旧的 `exec` 配置需迁移。`appServerTransport` 默认 `daemon`，连接本机原生 daemon，不隐式回退到另一执行器。显式选择 `stdio` 可运行 CLI 私有 App Server，但任务属于该 Connector 进程，不能获得独立执行的重启豁免。
 
 默认开放该本地 Codex profile 的普通会话供获准的聊天用户选择。若只想开放某一个会话，可显式添加 `threadId`；这种受限配置仍按原流程直接绑定指定会话。
 
@@ -198,10 +201,11 @@ App 的项目 ID 与原生 app-server 的项目 ID 可能不同。设备端按�
 
 - A 复用现有 `ForwardingInbox`、输入回执、权限、绑定和回复投递。B 在调用 Codex 前持久记录提交意图，在原生接受后持久记录 turn ID；重复的稳定源消息不会启动第二次执行。
 - 已知未提交的离线错误按现有逻辑保留和重试。发送后状态不明、或原生已接受的输入不自动重发。重连恢复的是连接，不能宣称任意故障下“恰好一次执行”。可用 `/inbox`、`/history` 核对结果。
-- 独立 app-server daemon / Desktop 的执行可以在 Gateway 观察连接断开后继续；Gateway 仅在其接受回执持久化后允许安全分离观察。`exec` 属于客户端进程生命周期，不获得这一豁免。
+- 独立 app-server daemon / Desktop 的执行可以在 Gateway 观察连接断开后继续；Gateway 仅在其接受回执持久化后允许安全分离观察。显式 `stdio` 连接属于客户端进程生命周期，不获得这一豁免。
 - 默认沿用 B 的模型、effort、认证和本地资源配置。A 的全局模型默认值不覆盖它；聊天中显式设置的 `/model` 或 `/effort` 仍会传给 B。
 - 每个客户端连接一个本地 Codex profile，支持选择、创建、重命名、归档和恢复普通会话，可选固定到单个 thread。主要验证 macOS/Linux 的绝对路径；不附着任意终端进程。
 - 本版本不启用动态工具、原生队列操作、目标、自动系统错误恢复和原生项目增删改。后端能力明确关闭或拒绝这些操作；不能回退到服务器本地执行。
+- 已适配原生公共 item 回调、轮次活动读取、项目 roots 和按模型查询账号用量。主分支新增的技能/MCP 目录、精确轮次中断、独立交互订阅及进程诊断尚未纳入 Peer 协议，设备请求明确拒绝，取消订阅为本地空操作；不会把 `peer:` 身份交给 Gateway 本机或 SSH 执行器。权限设置沿用设备本地配置，图片使用已有附件传输路径。
 - Web 管理的远程发送入口尚未接入用户级 Peer 授权；通过钉钉等已有渠道的 `handleMessage` 路径使用本功能。已启动任务期间的审批/问答已做回调适配；独立外部任务的审批和断线期间错过的回调还需后续补齐。
 
 ## 6. 验证

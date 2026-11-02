@@ -20,10 +20,11 @@ async function main(): Promise<void> {
   const file = path.resolve(args[1]);
   const config = z.object({ url: z.string().url(), nodeId: z.string(), tokenFile: z.string(), caFile: z.string().optional(),
     allowInsecureLan: z.boolean().default(false), profileId: z.string().default("default"), label: z.string().min(1).max(80).optional(), threadId: z.string().min(1).optional(),
-    codexHome: z.string().optional(), codexBin: z.string().default("codex"), backend: z.enum(["app-server", "exec"]).default("app-server"),
+    codexHome: z.string().optional(), codexBin: z.string().default("codex"), backend: z.literal("app-server").default("app-server"),
+    appServerTransport: z.enum(["daemon", "stdio"]).default("daemon"),
     stateDir: z.string().optional() }).strict().parse(readJsonFile(file, null));
   const resolve = (name: string) => path.resolve(path.dirname(file), name);
-  const backend = new CodexBackendRouter({ backend: config.backend, appServerTransport: config.backend === "app-server" ? "daemon" : "stdio",
+  const backend = new CodexBackendRouter({ backend: config.backend, appServerTransport: config.appServerTransport,
     codexBin: config.codexBin, codexHome: config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME });
   let questions: Promise<unknown> = Promise.resolve();
   const stateKey = crypto.createHash("sha256").update(JSON.stringify([config.url, config.nodeId, config.profileId, config.threadId])).digest("hex").slice(0, 24);
@@ -34,7 +35,7 @@ async function main(): Promise<void> {
   try {
     const service = await PeerExecutionService.create({ backend, threadId: config.threadId, profileId: config.profileId, label: config.label ?? config.nodeId,
       stateDir,
-      independent: config.backend === "app-server",
+      independent: config.appServerTransport === "daemon",
       approveOwner: confirmation => {
         const answer = questions.then(async () => {
           if (!process.stdin.isTTY) return false;

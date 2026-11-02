@@ -188,8 +188,8 @@ for (const failure of ["channel-send", "binding-changed"] as const) test(`Gatewa
       async sendMedia() { sent++; throw new Error("Synthetic channel failure"); }
     }) });
   t.after(() => service.suspendUserInputs());
-  await service.applyRecoveredAction(session.id, { hostId: f.ticket.hostId, threadId: f.thread.threadId },
-    { kind: "send", value: { type: "file", path: output } });
+  await assert.rejects(service.applyRecoveredAction(session.id, { hostId: f.ticket.hostId, threadId: f.thread.threadId },
+    { kind: "send", value: { type: "file", path: output } }), /Result media delivery was not confirmed/);
   assert.ok(copyPath); assert.equal(fs.existsSync(copyPath), false); assert.equal(sent, failure === "binding-changed" ? 0 : 1);
   assert.ok(replies.some(text => text.includes("Failed to send file")));
 });

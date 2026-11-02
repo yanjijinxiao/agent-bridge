@@ -462,8 +462,10 @@ rl.on("line", (line) => {
             : message.params.threadId === "removed" ? { projectId: null }
               : message.params.threadId === "malformed" ? { projectId: 42 } : {} : {}),
         cwd: "/tmp/project",
-        projectId: threadProjects.get(message.params.threadId) ?? null,
-        name: threadNames.get(message.params.threadId) ?? null,
+        ...(!process.argv.includes("--native-membership-shapes") ? {
+          projectId: threadProjects.get(message.params.threadId) ?? null,
+          name: threadNames.get(message.params.threadId) ?? null
+        } : {}),
         path: `/tmp/fake-codex-home/sessions/${message.params.threadId}.jsonl`,
         status: { type: "idle" },
         turns: []
@@ -509,8 +511,10 @@ rl.on("line", (line) => {
               : message.params.threadId === "malformed" ? { projectId: 42 } : {} : {}),
         cwd: "/tmp/project",
         path: `/tmp/fake-codex-home/sessions/${message.params.threadId}.jsonl`,
-        projectId: threadProjects.get(message.params.threadId) ?? null,
-        name: threadNames.get(message.params.threadId) ?? null,
+        ...(!process.argv.includes("--native-membership-shapes") ? {
+          projectId: threadProjects.get(message.params.threadId) ?? null,
+          name: threadNames.get(message.params.threadId) ?? null
+        } : {}),
         status: message.params.threadId === "thread-system-error"
           ? { type: "systemError" }
           : activeTurnId

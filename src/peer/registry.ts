@@ -71,7 +71,7 @@ export class PeerRegistry implements PeerBridgePort {
     connection.handle("peer.register", params => {
       if (registered) throw new PeerError("duplicate", "This connection has already registered");
       const raw = descriptionSchema.parse(params);
-      const capabilities = { ...EXEC_BACKEND_CAPABILITIES } as Record<string, boolean>;
+      const capabilities = { ...EXEC_BACKEND_CAPABILITIES, skills: false, mcpServers: false } as Record<string, boolean>;
       for (const key of Object.keys(capabilities)) capabilities[key] = raw.info.capabilities[key] === true;
       const description = { ...raw, info: { id: raw.info.id, capabilities } } as PeerDescription;
       const suffix = description.thread ? `:${crypto.createHash("sha256").update(description.thread.threadId).digest("hex").slice(0, 16)}` : "";

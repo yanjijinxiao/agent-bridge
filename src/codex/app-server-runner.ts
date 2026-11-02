@@ -672,7 +672,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         projectId = project.id;
       } else if (input.projectName) throw new Error("Select an existing native project by identity");
       input.assertCurrent?.();
-      const response = await this.request("thread/start", compactObject({ cwd: input.cwd, ephemeral: false, approvalPolicy: "never",
+      const response = await this.request("thread/start", compactObject({ cwd: input.cwd, ephemeral: false,
         ...(projectId ? { projectId } : input.projectBinding === "none" ? { projectId: null } : {}) })) as Record<string, unknown>;
       const thread = response.thread as Record<string, unknown> | undefined;
       if (!thread || typeof thread.id !== "string") throw new Error("Codex did not return the new thread identity");
@@ -848,7 +848,6 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       this.projectCatalogSupported = false;
       return undefined;
     }
-    const canonicalId = this.projectIdentity();
     const select = (catalog: AppServerProject[]) => {
       const explicit = projectId ? catalog.find(project => project.id === (legacy?.nativeId ?? projectId)) : undefined;
       if (explicit) return explicit;

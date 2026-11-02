@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
 import { z } from "zod";
-import { assertCodexThreadRunnable, CodexBackendCapabilityError, CodexTurnExecutionError,
+import { assertCodexThreadRunnable, CodexBackendCapabilityError, CodexRunAdmissionError, CodexTurnExecutionError,
   type CodexBridgeBackend, type CodexRunnerInput, type CodexInputReceipt, type CodexThreadState } from "../codex/backend.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
 import { approvalOptions, type CodexApprovalDecision } from "../codex/approval.js";
@@ -14,12 +14,12 @@ import { FILE_METHODS, PeerFiles } from "./files.js";
 import { MANAGEMENT_METHODS, PeerManagement } from "./management.js";
 import { PeerSharingAuthority, type OwnerConfirmation } from "./sharing-authority.js";
 
-const callSchema = z.object({ grant: grantSchema, method: z.enum(["listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "getHistory", "getHistoryPage",
+const callSchema = z.object({ grant: grantSchema, method: z.enum(["listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "readTurnActivities", "getHistory", "getHistoryPage",
   "getRuntimeInfo", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "receipt", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
   args: z.array(z.unknown()).max(4), operationId: z.string().regex(/^[a-f0-9]{64}$/).optional() }).strict();
 const runSchema = z.object({ threadId: z.string(), cwd: z.string(), prompt: z.string().max(500_000), clientUserMessageId: z.string().optional(),
   developerInstructions: z.string().optional(), threadTitle: z.string().optional(), model: z.string().optional(), effort: z.string().optional(),
-  projectId: z.string().optional(), projectName: z.string().optional(), projectBinding: z.literal("none").optional(),
+  projectId: z.string().optional(), projectName: z.string().optional(), projectRoots: z.array(z.string()).max(100).optional(), projectBinding: z.literal("none").optional(),
   collaborationMode: z.enum(["default", "plan"]).optional(), outputSchema: z.record(z.string(), z.unknown()).optional(),
   expectedTurnId: z.string().optional(), queueKey: z.string().optional() }).strict();
 const writes = new Set(["run", "steer", "submitThreadMessage", "stop"]);
@@ -69,7 +69,7 @@ export class PeerExecutionService {
     }
     const info = options.backend.backendInfo();
     const capabilities = { ...info.capabilities, dynamicTools: false, structuredOutput: false, nativeQueue: false,
-      goals: false, projectCatalog: !options.threadId && info.capabilities.projectCatalog,
+      goals: false, skills: false, mcpServers: false, projectCatalog: !options.threadId && info.capabilities.projectCatalog,
       projects: !options.threadId && info.capabilities.projects };
     return new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
       files: { version: 1 },
@@ -115,6 +115,7 @@ export class PeerExecutionService {
         if (error instanceof CodexCommunicationError) throw new PeerError("codex-communication", "Codex communication was not confirmed", {
           phase: error.phase, operation: error.operation, threadId: error.threadId, turnId: error.turnId });
         if (error instanceof CodexBackendCapabilityError) throw new PeerError("capability", "The selected Codex profile does not support this operation", { capability: error.capability });
+        if (error instanceof CodexRunAdmissionError) throw new PeerError("run-admission", "Native admission rejected this input before submission", { reason: error.reason });
         if (error instanceof CodexTurnExecutionError) throw new PeerError("turn-failed", "The native turn ended without success", { status: error.status, failureCode: error.failureCode });
         throw new PeerError("native-failed", "The device rejected the operation; inspect Codex on the device");
       }
@@ -166,7 +167,7 @@ export class PeerExecutionService {
           }) };
         }
         case "listModels": return backend.listModels();
-        case "getAccountRateLimits": return backend.getAccountRateLimits();
+        case "getAccountRateLimits": return backend.getAccountRateLimits(undefined, z.string().max(200).optional().parse(args[1] ?? undefined));
         case "receipt": return this.receipts.get(z.string().regex(/^[a-f0-9]{64}$/).parse(args[0])) ?? null;
         case "getRuntimeInfo": {
           const state = await this.readState(args[1] ?? this.description.thread?.threadId);
@@ -177,6 +178,10 @@ export class PeerExecutionService {
       }
       switch (method) {
         case "readThreadSnapshot": return backend.readThreadSnapshot(args[0]);
+        case "readTurnActivities": {
+          if (!backend.readTurnActivities) throw new PeerError("unsupported", "设备不支持原生轮次活动查询。");
+          return backend.readTurnActivities(args[0], z.string().min(1).parse(args[1]));
+        }
         case "readTurnLifecycle": return backend.readTurnLifecycle?.(args[0], z.string().min(1).parse(args[1])) ?? { status: "unknown", source: "unknown" };
         case "getHistory": return (await backend.getHistory(args[0])).slice(-1000);
         case "getHistoryPage": return backend.getHistoryPage(args[0], z.object({ cursor: z.string().optional(), limit: z.number().int().min(1).max(100).optional(),
@@ -213,6 +218,7 @@ export class PeerExecutionService {
         await event("onTurnStarted", [receipt]);
       },
       onDelta: text => event("onDelta", [text]).then(() => {}), onProgress: text => event("onProgress", [text]).then(() => {}),
+      onItem: item => event("onItem", [item]).then(() => {}),
       onRecovery: value => event("onRecovery", [value]).then(() => {}),
       onApproval: async request => {
         try {
@@ -250,7 +256,7 @@ export class PeerExecutionService {
       this.receipts.complete(operationId, result); return result;
     } catch (error) {
       const notSubmitted = error instanceof CodexCommunicationError && error.submission === "not-submitted"
-        || error instanceof CodexBackendCapabilityError || error instanceof PeerError && error.code === "unsupported";
+        || error instanceof CodexBackendCapabilityError || error instanceof CodexRunAdmissionError || error instanceof PeerError && error.code === "unsupported";
       // Preserve a durable accepted turn even if observation later disconnects.
       if (this.receipts.get(operationId)?.phase !== "accepted") this.receipts.failed(operationId, notSubmitted);
       throw error;

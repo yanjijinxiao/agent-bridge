@@ -4,5 +4,6 @@
   "label": "我的笔记本",
   "tokenFile": "./my-laptop.token",
   "profileId": "work",
-  "backend": "app-server"
+  "backend": "app-server",
+  "appServerTransport": "daemon"
 }
