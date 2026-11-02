@@ -1,6 +1,8 @@
 # Connector 与 main 功能/模块契约审查（2026-11-03）
 
-## 结论
+> 本轮问题的修复、正式回归和当前能力矩阵见 [修复记录](./fixes.md)。下文是 `4bb6cd2` 的历史审查结论，失败复现保留原样；当前回归入口为 `test/peer-write-boundary.test.ts` 和 `test/peer-interactions.test.ts`。
+
+## 历史结论
 
 审查代码为 `codex/gateway-peer-transport 4bb6cd2`；本轮重新 fetch 后，`origin/main` 仍为 `f108f81`，分支不落后、领先 17 个提交。**撤回此前“当前分支可直接作为实验功能合入”的结论：本轮确认两个 P1 行为问题，修复并验证前不建议合并。**
 

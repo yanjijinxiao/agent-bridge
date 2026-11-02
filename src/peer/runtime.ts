@@ -18,7 +18,7 @@ export function loadPeerListener(file: string | undefined) {
     if (Object.hasOwn(credentials, device.nodeId)) throw new Error("Duplicate peer node ID");
     credentials[device.nodeId] = fs.readFileSync(resolve(device.tokenFile), "utf8").trim();
   }
-  return { ...config.listen, credentials, resources: config.resources ? { ...config.resources, tls: config.resources.tls ? { key: fs.readFileSync(resolve(config.resources.tls.keyFile)), cert: fs.readFileSync(resolve(config.resources.tls.certFile)) } : undefined } : undefined, tls: config.listen.tls ? {
+  return { ...config.listen, credentials, resources: config.resources ? { ...config.resources, stateFile: file + ".resources.json", tls: config.resources.tls ? { key: fs.readFileSync(resolve(config.resources.tls.keyFile)), cert: fs.readFileSync(resolve(config.resources.tls.certFile)) } : undefined } : undefined, tls: config.listen.tls ? {
     key: fs.readFileSync(resolve(config.listen.tls.keyFile)), cert: fs.readFileSync(resolve(config.listen.tls.certFile)) } : undefined };
 }
 export async function listenSharedWorkspaces(options: ReturnType<typeof loadPeerListener>, registry: PeerRegistry): Promise<SharedWorkspacePortal | undefined> {

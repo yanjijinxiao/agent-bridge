@@ -3204,29 +3204,30 @@ export class BridgeService {
 
   private async sendLocalMedia(senderId: string, action: { type: "image" | "file" | "video"; path: string }, hostId = "local",
     isCurrent: () => boolean = () => true, threadId?: string): Promise<boolean> {
-    let lease: import("../codex/output-files.js").OutputFileLease | import("../codex/outbound-files.js").OutboundFile | undefined;
+    let lease: import("../codex/output-files.js").OutputFileLease | undefined;
     try {
       if (this.audienceSuspended || !isCurrent()) return false;
       if (this.channel.capabilities.outbound[action.type] !== "available") {
         await this.reply(senderId, `当前渠道暂不支持直接发送 ${action.type} 文件：${path.basename(action.path)}`);
         return false;
       }
-      if (hostId.startsWith("peer:")) {
-        const session = this.executionSession(senderId);
-        if (!this.options.accountId || !threadId || session?.threadId !== threadId || this.sessionHostId(session) !== hostId
-          || !this.runner.fetchOutboundFile) throw new Error("Remote output has no current session binding or transfer transport");
-        const binding = sessionExecutionScope(this.options.stateStore, session);
-        if (!binding.current()) throw new Error("Remote output binding changed");
-        lease = await this.runner.fetchOutboundFile({ hostId, threadId, accountId: this.options.accountId,
-          conversationId: senderId, path: action.path, maxBytes: this.options.config.maxInboundBytes });
-        if (!binding.current()) throw new Error("Remote output binding changed; file was not sent");
-      } else if (hostId !== "local") {
+      if (hostId !== "local") {
         if (!this.runner.fetchOutputFile) {
           await this.reply(senderId, `远程执行器没有文件回传端口：${path.basename(action.path)}。请通过项目 Web IDE 下载。`);
           return false;
         }
+        let binding: ReturnType<typeof sessionExecutionScope> | undefined;
+        if (hostId.startsWith("peer:")) {
+          const session = this.executionSession(senderId);
+          if (!this.options.accountId || !threadId || session?.threadId !== threadId || this.sessionHostId(session) !== hostId)
+            throw new Error("Remote output has no current session binding");
+          binding = sessionExecutionScope(this.options.stateStore, session);
+          if (!binding.current()) throw new Error("Remote output binding changed");
+        }
         lease = await this.runner.fetchOutputFile(action.path, { hostId, maxBytes: this.options.config.maxInboundBytes,
+          accountId: this.options.accountId, conversationId: senderId, threadId,
           ...(this.options.inboundDir ? { directory: this.options.inboundDir } : {}) });
+        if (binding && !binding.current()) throw new Error("Remote output binding changed; file was not sent");
       }
       // The read-only download may outlive a detach/rebind. Never send its bytes
       // to the newly selected conversation/thread or fall back to a local path.

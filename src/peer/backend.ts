@@ -1,3 +1,4 @@
+import { PeerInteractionClient } from "./interaction-client.js";
 import crypto from "node:crypto";
 import { findNativeInputReceipts } from "../bridge/native-input-recovery.js";
 import type { PeerPrincipal } from "./context.js";
@@ -18,6 +19,7 @@ function peerOperationId(hostId: string, method: string, principal: PeerPrincipa
 /** Remote host routing decorates the existing facade; channel code continues
  * to use the same execution contract, including source/approval callbacks. */
 export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistry): CodexBridgeBackend {
+  const interactions = new PeerInteractionClient(registry);
   const operations = new Set<{ hostId: string; threadId: string; turnId?: string; independent: boolean; controller: AbortController }>();
   const describe = (hostId: string) => {
     try { return registry.description(hostId); }
@@ -75,7 +77,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
           values[0] = original;
         }
       }
-      if (name === "onApproval" && !input?.onApproval) return "decline";
+      if (name === "onApproval" && !input?.onApproval) return null;
       return await input?.[name]?.(...values) ?? null;
     };
     const wireArgs = args.map(value => value && typeof value === "object" && !Array.isArray(value)
@@ -203,18 +205,24 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       }
       return local.stageAttachments ? local.stageAttachments(files, input) : [...files];
     },
-    fetchOutboundFile: async input => {
+    fetchOutputFile: async (remotePath, input) => {
       if (registry.isPeer(input.hostId)) {
         if (!describe(input.hostId).files) throw new PeerError("unsupported", "设备尚未启用文件传输，请更新 Connector。");
-        return downloadPeerFile(input.threadId, input.path, input.maxBytes,
-          (method, payload) => registry.invokeFile(input.hostId, method, payload, input));
+        if (!input.accountId || !input.conversationId || !input.threadId) throw new PeerError("scope", "Output transfer requires a selected chat and thread");
+        const scope = { accountId: input.accountId, conversationId: input.conversationId, threadId: input.threadId };
+        return downloadPeerFile(input.threadId, remotePath, input.maxBytes,
+          (method, payload) => registry.invokeFile(input.hostId, method, payload, scope), input.directory);
       }
-      if (local.fetchOutboundFile) return local.fetchOutboundFile(input);
+      if (local.fetchOutputFile) return local.fetchOutputFile(remotePath, input);
       throw new PeerError("unsupported", "This execution host has no output file transfer transport");
     },
-    async getGoal(id, host) { return registry.isPeer(host) ? unsupported("goals", host!) : local.getGoal(id, host); },
-    async setGoal(id, value, host, guard) { return registry.isPeer(host) ? unsupported("goals", host!) : local.setGoal(id, value, host, guard); },
-    async clearGoal(id, host, guard) { if (registry.isPeer(host)) unsupported("goals", host!); else await local.clearGoal(id, host, guard); },
+    getGoal: (id, host) => route("getGoal", [id], host),
+    setGoal: (id, value, host, assertCurrent) => registry.isPeer(host)
+      ? invoke("setGoal", [id, value], host!, true, { threadId: id, assertCurrent }) : local.setGoal(id, value, host, assertCurrent),
+    clearGoal: async (id, host, assertCurrent) => {
+      if (registry.isPeer(host)) await invoke("clearGoal", [id], host!, true, { threadId: id, assertCurrent });
+      else await local.clearGoal(id, host, assertCurrent);
+    },
     createThread: (input, host) => registry.isPeer(host) ? manage("createThread", input, host!) : native("createThread", [input, host]),
     renameThread: (id, title, host, assertCurrent, clientUserMessageId) => registry.isPeer(host)
       ? manage("renameThread", { threadId: id, title, assertCurrent, clientUserMessageId }, host!) : native("renameThread", [id, title, host, assertCurrent]),
@@ -238,20 +246,17 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     readTurnActivities: (id, turn, host) => route("readTurnActivities", [id, turn, host], host),
     // These ports are new in the unified native adapter, but are not part of
     // the peer protocol yet. Never pass peer identities to a local/SSH core.
-    interruptTurn: async (id, turn, host, guard) => {
-      if (registry.isPeer(host)) throw new PeerError("unsupported", "Connector 暂不支持精确轮次中断，请使用 /stop。");
-      return native("interruptTurn", [id, turn, host, guard]);
+    interruptTurn: async (id, turn, host, assertCurrent) => {
+      if (registry.isPeer(host)) await invoke("interruptTurn", [id, turn], host!, true, { threadId: id, assertCurrent });
+      else await native("interruptTurn", [id, turn, host, assertCurrent]);
     },
     listSkills: async (cwd, host) => registry.isPeer(host) ? unsupported("skills", host!) : native("listSkills", [cwd, host]),
     listMcpServers: async (id, host) => registry.isPeer(host) ? unsupported("mcpServers", host!) : native("listMcpServers", [id, host]),
-    observeThreadInteractions: async (id, host, observer, consumer) => {
-      if (registry.isPeer(host)) throw new PeerError("unsupported", "Connector 暂不支持独立的原生交互订阅；Gateway 发起任务的审批仍通过执行回调处理。");
-      return native("observeThreadInteractions", [id, host, observer, consumer]);
-    },
-    unobserveThreadInteractions: async (id, host, consumer) => {
-      if (!registry.isPeer(host)) await native("unobserveThreadInteractions", [id, host, consumer]);
-    },
-    interactionSubscriptionReady: (id, host) => !registry.isPeer(host) && Boolean(local.interactionSubscriptionReady?.(id, host)),
+    observeThreadInteractions: (id, host, observer, consumer) => registry.isPeer(host)
+      ? interactions.observe(id, host, observer, consumer) : native("observeThreadInteractions", [id, host, observer, consumer]),
+    unobserveThreadInteractions: (id, host, consumer) => registry.isPeer(host)
+      ? interactions.unobserve(id, host, consumer) : native("unobserveThreadInteractions", [id, host, consumer]),
+    interactionSubscriptionReady: (id, host) => registry.isPeer(host) ? interactions.ready(id, host) : Boolean(local.interactionSubscriptionReady?.(id, host)),
     serverIdentity: async host => {
       if (registry.isPeer(host)) throw new PeerError("unsupported", "Connector 尚未开放原生进程诊断接口。");
       return native("serverIdentity", [host]);
@@ -265,7 +270,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       for (const op of operations) if (op.independent && op.turnId) op.controller.abort();
       local.detachIndependentObservations?.();
     },
-    async close() { for (const op of operations) op.controller.abort(); await local.close(); }
+    async close() { await interactions.close(); for (const op of operations) op.controller.abort(); await local.close(); }
   };
   // Explicitly reject optional native writes instead of letting a peer host
   // fall through the old SSH branch or the local executor.

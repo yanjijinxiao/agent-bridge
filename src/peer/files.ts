@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { PeerGrant } from "./registry.js";
 import { PeerConnection, PeerError } from "./rpc.js";
 import type { CodexInboundFile } from "../codex/inbound-files.js";
-import type { OutboundFile } from "../codex/outbound-files.js";
+import type { OutputFileLease } from "../codex/output-files.js";
 
 export const FILE_METHODS = ["fileUploadBegin", "fileUploadChunk", "fileUploadFinish", "fileDownloadBegin", "fileDownloadChunk", "fileClose"] as const;
 export const FILE_CHUNK_BYTES = 256 * 1024;
@@ -195,13 +195,14 @@ export async function uploadPeerFiles(files: CodexInboundFile[], scope: string, 
   }
   return output;
 }
-export async function downloadPeerFile(threadId: string, file: string, maxBytes: number, call: FileCall): Promise<OutboundFile> {
+export async function downloadPeerFile(threadId: string, file: string, maxBytes: number, call: FileCall, directory?: string): Promise<OutputFileLease> {
   const begin = z.object({ id: z.string().uuid(), size: sizeSchema, hash: hashSchema, name: z.string().min(1).max(1024) }).strict()
     .parse(await call("fileDownloadBegin", { threadId, path: file, maxBytes: limit(maxBytes) }));
   let dir: string | undefined, fd: number | undefined;
   try {
     if (begin.size > limit(maxBytes)) throw new PeerError("size", "Output exceeds configured size limit");
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-peer-output-")); fs.chmodSync(dir, 0o700);
+    const base = directory ?? os.tmpdir(); fs.mkdirSync(base, { recursive: true, mode: 0o700 });
+    dir = fs.mkdtempSync(path.join(base, "codex-peer-output-")); fs.chmodSync(dir, 0o700);
     const target = path.join(dir, name(begin.name)); fd = fs.openSync(target, "wx", 0o600);
     const sum = crypto.createHash("sha256");
     for (let offset = 0; offset < begin.size;) {
@@ -216,7 +217,7 @@ export async function downloadPeerFile(threadId: string, file: string, maxBytes:
     }
     if (sum.digest("hex") !== begin.hash) throw new PeerError("hash", "Output file checksum does not match");
     fs.closeSync(fd); fd = undefined;
-    return { path: target, dispose: () => fs.rmSync(dir!, { recursive: true, force: true }) };
+    return { path: target, dispose: () => fs.promises.rm(dir!, { recursive: true, force: true }) };
   } catch (error) {
     if (fd !== undefined) fs.closeSync(fd);
     if (dir) fs.rmSync(dir, { recursive: true, force: true });

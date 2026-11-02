@@ -15,12 +15,14 @@ const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/
   thread: z.object({ threadId: z.string().min(1), cwd: z.string().min(1), title: z.string().optional(),
     persistence: z.enum(["active", "archived"]), internal: z.literal(false).optional() }).passthrough().optional(),
   label: z.string().min(1).max(80).optional(),
+  writeGuard: z.literal(1).optional(),
+  interactions: z.literal(1).optional(),
   files: z.object({ version: z.literal(1) }).strict().optional(),
   management: z.object({ version: z.literal(1) }).strict().optional(),
   sharing: z.object({ version: z.union([z.literal(1), z.literal(2)]) }).strict().optional(),
   info: z.object({ id: z.enum(["exec", "app-server"]), capabilities: z.record(z.string(), z.boolean()) }),
   independent: z.boolean() }).strict();
-export type PeerDescription = { profileId: string; label?: string; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
+export type PeerDescription = { profileId: string; label?: string; writeGuard?: 1; interactions?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
   info: { id: CodexBackendId; capabilities: CodexBackendCapabilities }; independent: boolean };
 type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection };
 const samePrincipal = (a: PeerPrincipal, b: PeerPrincipal) => a.accountId === b.accountId && a.conversationId === b.conversationId && a.actorId === b.actorId;
@@ -140,6 +142,7 @@ export class PeerRegistry implements PeerBridgePort {
     if (!grant || write && !principal) throw new PeerError("access", "当前用户或入口未获准操作这个远程会话，请先通过 /connect 绑定。");
     const host = this.entries.get(hostId);
     if (!host?.connection?.open) throw new PeerConnectionError(false);
+    if (write && host.description.writeGuard !== 1) throw new PeerError("unsupported", "请更新 Connector：当前版本不支持最终写入前的来源检查。");
     const connection = host.connection, callbacks = this.callbacks.get(connection)!;
     if (operationId && callback) {
       if (callbacks.has(operationId)) throw new PeerError("busy", "同一条消息正在交接，请等待原回执。");
@@ -149,7 +152,7 @@ export class PeerRegistry implements PeerBridgePort {
       });
     }
     try {
-      const result = await connection.request<T>("execution.call", { grant, method, args, operationId }, write ? PEER_EXECUTION_TIMEOUT_MS : 30_000, signal);
+      const result = await connection.request<T>("execution.call", { grant, method, args, operationId }, write || method === "observeThreadInteractions" ? PEER_EXECUTION_TIMEOUT_MS : 30_000, signal);
       if (grant.delegation && !this.grantsFor(grant.principal).some(g => g.id === grant.id)) throw new PeerError("access", "共享已撤销或过期，未继续投递。");
       return result;
     }

@@ -1,3 +1,4 @@
+import { peerWriteGuard } from "./write-guard.js";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -45,7 +46,7 @@ export class PeerManagement {
     return this.queue.run(method === "createThread" ? operationId : threadId, async () => {
       const queued = previous();
       if (queued) return queued.result;
-      const assertCurrent = () => { assertAccess?.(); if (!connection.open) throw new PeerError("offline", "The authorizing connection closed"); };
+      const assertCurrent = peerWriteGuard(connection, operationId, method, () => { assertAccess?.(); });
       assertCurrent();
       let input: CodexThreadCreateInput | undefined;
       if (method === "createThread") {

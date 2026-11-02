@@ -1,3 +1,4 @@
+import { guardNativeWrite } from "./write-guard.js";
 import { resolveCodexCommand } from "./codex-command.js";
 export { resolveCodexCommand } from "./codex-command.js";
 export type { ResolveCodexCommandOptions } from "./codex-command.js";
@@ -120,8 +121,7 @@ export class CodexExecRunner implements CodexBackendAdapter {
       sandbox: this.options.sandbox ?? input.sandbox
     });
 
-    return new Promise((resolve, reject) => {
-      input.assertCurrent?.();
+    return guardNativeWrite(input.assertCurrent, () => new Promise((resolve, reject) => {
       const child = spawn(codexCommand.command, [...codexCommand.argsPrefix, ...args], {
         cwd: input.cwd,
         ...(this.options.codexHome ? { env: { ...process.env, CODEX_HOME: this.options.codexHome } } : {}),
@@ -190,7 +190,7 @@ export class CodexExecRunner implements CodexBackendAdapter {
         if (oversizedRecord) { reject(new Error("Codex CLI output exceeded the 16 MiB record budget; execution result remains unconfirmed.")); return; }
         resolve({ raw: stdout.text(), text: output.text || stdout.text().trim(), threadId: activeRun.threadId ?? output.threadId });
       });
-    });
+    }));
   }
 
   async steer(_input: CodexSteerInput): Promise<CodexSteerResult> {
@@ -202,9 +202,7 @@ export class CodexExecRunner implements CodexBackendAdapter {
       ? [...this.activeRuns].reverse().find((run) => run.threadId === threadId)
       : this.activeRuns.at(-1);
     if (!target) return "not-active";
-    assertCurrent?.();
-    target.child.kill();
-    return "interrupted";
+    return guardNativeWrite(assertCurrent, async () => { target.child.kill(); return "interrupted" as const; });
   }
 
   async warmUp(_cwd: string): Promise<void> {

@@ -8,6 +8,8 @@ import type { AppServerTransport } from "./app-server-transport.js";
 export type OutputFileLease = { readonly path: string; dispose(): Promise<void> };
 export type FetchOutputFile = (remotePath: string, options: {
   readonly hostId: string; readonly maxBytes: number; readonly directory?: string;
+  /** Required by delegated device transports; ignored by SSH transports. */
+  readonly accountId?: string; readonly conversationId?: string; readonly threadId?: string;
 }) => Promise<OutputFileLease>;
 
 /** A read-only port on the selected execution host. Paths arrive over stdin,

@@ -33,11 +33,11 @@ test("files larger than the RPC frame round-trip in bounded chunks with stable p
   const mtime = fs.statSync(staged.path).mtimeMs;
   assert.equal((await f.as(() => f.facade.stageAttachments!([file], f.options)))[0].path, staged.path);
   assert.equal(fs.statSync(staged.path).mtimeMs, mtime, "Retry must reuse the verified content-addressed attachment");
-  const copy = await f.as(() => f.facade.fetchOutboundFile!(f.input(staged.path)));
+  const copy = await f.as(() => f.facade.fetchOutputFile!(staged.path, f.options));
   assert.notEqual(copy.path, staged.path); assert.deepEqual(fs.readFileSync(copy.path), bytes);
   assert.equal(path.basename(copy.path), "中文材料.bin");
   assert.equal(fs.statSync(copy.path).mode & 0o777, 0o600);
-  copy.dispose(); assert.equal(fs.existsSync(copy.path), false); assert.equal(fs.existsSync(staged.path), true);
+  await copy.dispose(); assert.equal(fs.existsSync(copy.path), false); assert.equal(fs.existsSync(staged.path), true);
   assert.equal(f.runs.length, 0, "File transfer must never execute Codex");
 });
 
@@ -45,8 +45,8 @@ test("empty files and Unicode names survive staging and checksum verification", 
   const f = await fixture(t), file = f.source("", "空文件.txt");
   const [staged] = await f.as(() => f.facade.stageAttachments!([file], f.options));
   assert.equal(fs.statSync(staged.path).size, 0);
-  const copy = await f.facade.fetchOutboundFile!(f.input(staged.path));
-  assert.equal(fs.statSync(copy.path).size, 0); copy.dispose();
+  const copy = await f.facade.fetchOutputFile!(staged.path, f.options);
+  assert.equal(fs.statSync(copy.path).size, 0); await copy.dispose();
 });
 
 test("chat identity, fixed thread grants and configured size limits apply to both transfer directions", async t => {
@@ -54,13 +54,13 @@ test("chat identity, fixed thread grants and configured size limits apply to bot
   await assert.rejects(f.facade.stageAttachments!([file], f.options), /authorized chat identity/);
   for (const who of [{ ...principal, actorId: "other" }, { ...principal, conversationId: "other" }, { ...principal, accountId: "other" }]) {
     await assert.rejects(f.as(() => f.facade.stageAttachments!([file], f.options), who), /authoriz/);
-    await assert.rejects(f.as(() => f.facade.fetchOutboundFile!(f.input(file.path)), who), /authoriz/);
+    await assert.rejects(f.as(() => f.facade.fetchOutputFile!(file.path, f.options), who), /authoriz/);
   }
-  await assert.rejects(f.facade.fetchOutboundFile!({ ...f.input(file.path), conversationId: "another-chat" }), /authoriz/);
+  await assert.rejects(f.facade.fetchOutputFile!(file.path, { ...f.options, conversationId: "another-chat" }), /authoriz/);
   await assert.rejects(f.as(() => f.facade.stageAttachments!([file], { ...f.options, threadId: "other-thread" })), /authoriz/);
   await assert.rejects(f.as(() => f.facade.stageAttachments!([file], { ...f.options, maxBytes: 2 })), /limit/);
   const output = path.join(f.thread.cwd!, "output.txt"); fs.writeFileSync(output, "too big");
-  await assert.rejects(f.facade.fetchOutboundFile!({ ...f.input(output), maxBytes: 2 }), /limit/);
+  await assert.rejects(f.facade.fetchOutputFile!(output, { ...f.options, maxBytes: 2 }), /limit/);
   await assert.rejects(f.fileCall("fileUploadBegin", { threadId: f.thread.threadId, scope: "test", name: "x", size: MAX_PEER_FILE_BYTES + 1, hash: "0".repeat(64) }));
 });
 
@@ -68,12 +68,12 @@ test("output downloads reject paths and symlinks outside the selected workspace"
   const f = await fixture(t), outside = f.source("private data", "outside.txt").path;
   const link = path.join(f.thread.cwd!, "link.txt"); fs.symlinkSync(outside, link);
   for (const file of [outside, link, path.join(f.thread.cwd!, "..", "outside.txt")])
-    await assert.rejects(f.facade.fetchOutboundFile!(f.input(file)), /selected session workspace/);
-  await assert.rejects(f.facade.fetchOutboundFile!(f.input("relative.txt")), /absolute/);
-  await assert.rejects(f.facade.fetchOutboundFile!(f.input(f.thread.cwd!)));
+    await assert.rejects(f.facade.fetchOutputFile!(file, f.options), /selected session workspace/);
+  await assert.rejects(f.facade.fetchOutputFile!("relative.txt", f.options), /absolute/);
+  await assert.rejects(f.facade.fetchOutputFile!(f.thread.cwd!, f.options));
   const regular = path.join(f.thread.cwd!, "output.txt"); fs.writeFileSync(regular, "safe output");
-  const copy = await f.facade.fetchOutboundFile!(f.input(regular));
-  assert.equal(fs.readFileSync(copy.path, "utf8"), "safe output"); copy.dispose();
+  const copy = await f.facade.fetchOutputFile!(regular, f.options);
+  assert.equal(fs.readFileSync(copy.path, "utf8"), "safe output"); await copy.dispose();
 });
 
 test("corrupt, partial, out-of-order and oversized chunks never publish an attachment", async t => {
@@ -163,7 +163,7 @@ test("transfer concurrency is bounded and an old Connector gets an explicit upgr
   for (const lease of leases) await f.fileCall("fileClose", { id: lease.id });
   delete f.registry.description(f.ticket.hostId).files;
   await assert.rejects(f.as(() => f.facade.stageAttachments!([f.source("x")], f.options)), /更新 Connector/);
-  await assert.rejects(f.facade.fetchOutboundFile!(f.input("/nonexistent")), /更新 Connector/);
+  await assert.rejects(f.facade.fetchOutputFile!("/nonexistent", f.options), /更新 Connector/);
 });
 
 for (const failure of ["channel-send", "binding-changed"] as const) test(`Gateway output copies are removed on ${failure}`, async t => {
@@ -174,8 +174,8 @@ for (const failure of ["channel-send", "binding-changed"] as const) test(`Gatewa
   const output = path.join(f.thread.cwd!, "output.txt"); fs.writeFileSync(output, "output");
   let copyPath = "", sent = 0; const replies: string[] = [];
   const runner = new Proxy(f.facade, { get(target, key) {
-    if (key === "fetchOutboundFile") return async (input: Parameters<NonNullable<typeof target.fetchOutboundFile>>[0]) => {
-      const copy = await target.fetchOutboundFile!(input); copyPath = copy.path;
+    if (key === "fetchOutputFile") return async (...args: Parameters<NonNullable<typeof target.fetchOutputFile>>) => {
+      const copy = await target.fetchOutputFile!(...args); copyPath = copy.path;
       if (failure === "binding-changed") store.leaveSession(principal.conversationId);
       return copy;
     };

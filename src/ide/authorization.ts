@@ -26,7 +26,8 @@ export class IDEAuthorization {
   private persistenceVersion: 1 | 2 = 1;
   constructor(private readonly now: () => number = Date.now, private readonly filePath?: string, private audience = "",
     private readonly subjectAllowed: (subject: IDEAccessSubject) => boolean = () => false,
-    private readonly scopes?: (entryId: string) => { current: string; legacy: string }) {
+    private readonly scopes?: (entryId: string) => { current: string; legacy: string },
+    private readonly sessionDeadline?: (entryId: string) => number) {
     if (!filePath) return;
     let value: unknown;
     try { value = JSON.parse(fs.readFileSync(filePath, "utf8")); }
@@ -100,6 +101,10 @@ export class IDEAuthorization {
       proof: hash(proof), expiresAt: this.now() + REQUEST_TTL, approved: false };
     this.requests.set(request.id, request); return { request: this.public(request), proof };
   }
+  pendingRequest(id: string, proof: string, entryId: string, scope = entryId): IDEAccessRequest | undefined {
+    this.prune(); const request = this.requests.get(id);
+    return request && request.entryId === entryId && request.scope === scope && request.proof === hash(proof) ? this.public(request) : undefined;
+  }
   pending(): IDEAccessRequest[] { this.prune(); return [...this.requests.values()].filter(r => !r.approved).map(r => this.public(r)); }
   approve(id: string, entryId: string, scope = entryId, trustWorkspace = false, trustedDirectory?: string, trustedRootPaths?: readonly string[], subject?: IDEAccessSubject): void {
     this.prune(); const request = this.requests.get(id);
@@ -152,8 +157,10 @@ export class IDEAuthorization {
     this.prune(); if (this.sessions.size >= 100) throw new Error("IDE 浏览器会话达到上限，请撤销不用的授权");
     const resolved = this.scopes?.(entryId);
     const legacy = resolved?.current === scope && /^v2:[a-f0-9]{64}$/.test(scope);
+    const expiresAt = Math.min(this.now() + IDE_SESSION_TTL_MS, this.sessionDeadline?.(entryId) ?? Infinity);
+    if (!Number.isFinite(expiresAt) || expiresAt <= this.now()) throw new Error("浏览器资源授权已过期");
     const token = random(), session = { entryId, scope: legacy ? resolved.legacy : scope,
-      ...(legacy ? { securityScope: scope } : {}), expiresAt: this.now() + IDE_SESSION_TTL_MS, csrf: random(), trustWorkspace, trustedDirectory,
+      ...(legacy ? { securityScope: scope } : {}), expiresAt, csrf: random(), trustWorkspace, trustedDirectory,
       ...(trustedRootPaths ? { trustedRootPaths: [...trustedRootPaths] } : {}), ...(subject ? { subject } : {}) };
     this.sessions.set(hash(token), session);
     try { this.persist(); } catch (error) { this.sessions.delete(hash(token)); throw error; }

@@ -23,7 +23,7 @@ export type CodexApprovalRequest = {
 
 export type CodexApprovalHandler = (
   request: CodexApprovalRequest
-) => Promise<CodexApprovalDecision> | CodexApprovalDecision;
+) => Promise<CodexApprovalDecision | undefined> | CodexApprovalDecision | undefined;
 export type CodexApprovalResult = "confirmed" | "failed" | "withdrawn";
 export type CodexApprovalResultHandler = (request: CodexApprovalRequest, result: CodexApprovalResult) => Promise<void> | void;
 

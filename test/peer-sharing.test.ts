@@ -190,15 +190,15 @@ test("file transfer remains an explicit resource grant and session management us
 
 test("a copied Web IDE URL/code, wrong chat, CSRF and revoked cookies cannot authorize workspace access", async t => {
   const f=await fixture(t);await f.share("claim --ide");const invite=await f.invite();await f.share(`approve ${invite.id} --ide read`);
-  const options={host:"127.0.0.1",port:0,publicOrigin:"http://127.0.0.1:0"};
-  const portal=new SharedWorkspacePortal(f.registry,options);await portal.listen();options.publicOrigin=portal.address();t.after(()=>portal.close());
+  const options={host:"127.0.0.1",port:0,publicOrigin:"http://127.0.0.1:0",stateFile:path.join(f.root,"portal.json")};
+  let portal=new SharedWorkspacePortal(f.registry,options);await portal.listen();options.publicOrigin=portal.address();t.after(()=>portal.close());
   const url=await f.registry.sharing.ide(visitor,f.target,()=>{}), page=await fetch(url), html=await page.text(), proof=page.headers.get("set-cookie")!.split(";")[0];
   const code=/code="(\d{6})"/.exec(html)![1], csrf=JSON.parse(/let csrf=("[^"]+")/.exec(html)![1]);
   assert.equal(html.includes(f.workspace),false);assert.match(html,/frame|共享工作区/);
   assert.match(html, /data-copy-field data-copy-purpose="reply"/);
   assert.ok(html.includes(`/share browser ${code}</textarea>`));
   assert.match(html, /data-copy-button/);
-  const api=async(body:object,cookie=proof,token=csrf,origin=options.publicOrigin)=>fetch(url+"/api",{method:"POST",headers:{Origin:origin,"Content-Type":"application/json","X-Workspace-CSRF":token,Cookie:cookie},body:JSON.stringify(body)});
+  const api=async(body:object,cookie=proof,token=csrf,origin=options.publicOrigin)=>fetch(url+"/api",{method:"POST",headers:{Origin:origin,"Content-Type":"application/json","X-Workspace-CSRF":token,Cookie:cookie,Connection:"close"},body:JSON.stringify(body)});
   assert.equal((await api({operation:"exchange"})).status,403);
   await assert.rejects(portal.approve({...visitor,conversationId:"wrong"},code));
   await portal.approve(visitor,code);
@@ -209,6 +209,13 @@ test("a copied Web IDE URL/code, wrong chat, CSRF and revoked cookies cannot aut
   assert.equal((await api({operation:"read",path:"hello.ts"},cookie,"wrong-csrf")).status,403);
   assert.equal((await api({operation:"read",path:"hello.ts"},cookie,token)).status,200);
   assert.equal((await api({operation:"write",path:"hello.ts",text:"denied",hash:"a".repeat(64)},cookie,token)).status,403);
+  const duration = Number(/Max-Age=(\d+)/.exec(exchanged.headers.get("set-cookie")!)![1]);
+  assert.ok(duration > 0 && duration <= 86400, "browser lease never outlives the resource grant");
+  // Reload the persisted entry, proof/session primitive, and cookies at the same origin.
+  options.port = Number(new URL(options.publicOrigin).port);
+  await portal.close(); portal = new SharedWorkspacePortal(f.registry, options); await portal.listen();
+  assert.equal((await api({operation:"read",path:"hello.ts"},cookie,token)).status,200);
+  assert.equal(exchanged.headers.get("set-cookie")!.includes(token),false,"CSRF is not the cookie credential");
   await f.share(`revoke ${f.registry.grantsFor(visitor)[0].id}`);
   assert.equal((await api({operation:"read",path:"hello.ts"},cookie,token)).status,403);
 });

@@ -67,7 +67,6 @@ test("unmapped native ports never fall through to the Gateway core for a peer ho
   const facade = withPeerBackend(local, f.registry), host = f.ticket.hostId, id = f.thread.threadId;
   const unsupported = (e: unknown) => e instanceof PeerError && e.code === "unsupported" || e instanceof CodexBackendCapabilityError;
   const attempts = [
-    () => facade.interruptTurn!(id, "turn", host),
     () => facade.listSkills!(f.thread.cwd!, host),
     () => facade.listMcpServers!(id, host),
     () => facade.observeThreadInteractions!(id, host, {} as never),
@@ -154,4 +153,18 @@ test("unified App Server facade exposes empty thread lifecycle and preserves liv
     current = false; await assert.rejects(work, /binding changed/);
   }
   assert.deepEqual(calls, []);
+});
+
+test('goal and precise stop ports preserve target identity and use the remote native adapter', async t => {
+  const f=await peerFixture(t);await f.bind();const calls:unknown[][]=[];
+  f.backend.getGoal=async id=>{calls.push(['get',id]);return undefined;};
+  f.backend.setGoal=async(id,input,host,guard)=>{guard?.();calls.push(['set',id,input,host]);return {threadId:id,...input} as never;};
+  f.backend.clearGoal=async(id,host,guard)=>{guard?.();calls.push(['clear',id,host]);};
+  f.backend.interruptTurn=async(id,turn,host,guard)=>{guard?.();calls.push(['interrupt',id,turn,host]);};
+  const id=f.thread.threadId,host=f.ticket.hostId;
+  await f.as(()=>f.facade.getGoal(id,host));await f.as(()=>f.facade.setGoal(id,{objective:'finish',tokenBudget:100},host,()=>{}));
+  await f.as(()=>f.facade.clearGoal(id,host,()=>{}));await f.as(()=>f.facade.interruptTurn!(id,'exact-turn',host,()=>{}));
+  assert.deepEqual(calls,[['get',id],['set',id,{objective:'finish',tokenBudget:100},undefined],['clear',id,undefined],['interrupt',id,'exact-turn',undefined]]);
+  await assert.rejects(f.as(()=>f.facade.setGoal('unshared',{objective:'bad'},host,()=>{})));
+  assert.equal(calls.length,4);
 });

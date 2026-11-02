@@ -1,3 +1,4 @@
+import { guardNativeWrite, inheritWriteCheck } from "./write-guard.js";
 import { nativePublicActivity, sensitiveCommand, type CodexPublicActivity } from "./public-item.js";
 import { assertQueueAdmissionCurrent, CodexQueueAdmissionError, CodexRunAdmissionError, CodexInterventionError } from "./backend.js";
 import { canRecoverSystemError, type CodexSystemRecoveryInput, type CodexSystemRecoveryResult } from "./backend.js";
@@ -303,8 +304,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       // A missing start receipt can leave this client's subscription alive.
       // Read our subscription instead of acquiring the same writer twice.
       const alreadySubscribed = Boolean(input.threadId && !input.nativeSettings && this.subscribedThreads.has(input.threadId));
-      input.assertCurrent?.();
-      threadResponse = await this.request(
+      threadResponse = await guardNativeWrite(input.assertCurrent, () => this.request(
         alreadySubscribed ? "thread/read" : input.threadId ? "thread/resume" : "thread/start",
         compactObject({
           ...(alreadySubscribed ? { includeTurns: false } : {}),
@@ -320,7 +320,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           ...(!input.threadId && input.projectBinding === "none" ? { projectId: null } : {}),
           ...(!input.threadId && input.dynamicTools ? { dynamicTools: input.dynamicTools } : {})
         })
-      ) as Record<string, unknown>;
+      )) as Record<string, unknown>;
     } catch (error) {
       if (input.threadId) throw normalizeThreadOperationError(error, input.threadId);
       throw error;
@@ -334,15 +334,13 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     if (!input.threadId && input.projectBinding === "none" && currentProjectId) {
       // Some servers may infer a project. The protocol uses an empty string (not
       // null) to clear metadata. Never reassign an existing bound thread here.
-      input.assertCurrent?.();
-      await this.request("thread/metadata/update", { threadId, projectId: "" });
+      await guardNativeWrite(input.assertCurrent, () => this.request("thread/metadata/update", { threadId, projectId: "" }));
       if (thread) thread.projectId = null;
     }
     const currentName = typeof thread?.name === "string" ? thread.name : undefined;
     const threadTitle = cleanThreadTitle(input.threadTitle);
     if (threadTitle && (!input.threadId || shouldRepairBridgeThreadName(currentName))) {
-      input.assertCurrent?.();
-      await this.request("thread/name/set", { threadId, name: threadTitle });
+      await guardNativeWrite(input.assertCurrent, () => this.request("thread/name/set", { threadId, name: threadTitle }));
     }
     if (!input.threadId) {
       await input.onThreadCreated?.(threadId);
@@ -412,8 +410,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         }
         await input.onQueueStarting?.();
         try {
-          input.assertCurrent?.();
-          turnResponse = await this.queueRequest("thread/queue/start", { threadId, queuedSubmissionId: input.queuedSubmissionId }) as Record<string, unknown>;
+          turnResponse = await guardNativeWrite(input.assertCurrent, () => this.queueRequest("thread/queue/start", { threadId, queuedSubmissionId: input.queuedSubmissionId })) as Record<string, unknown>;
         } catch (error) {
           if (error instanceof CodexBackendCapabilityError) throw error;
           const consumed = await this.findRecentlyConsumedTurn(threadId, input.clientUserMessageId);
@@ -426,11 +423,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           if ((await this.listQueuedSubmissions(threadId)).data.length) throw new Error("Native queue takes precedence over capacity recovery");
           resume.assertCurrent();
         }
-        input.assertCurrent?.();
-        turnResponse = await this.request("turn/start", turnParams) as Record<string, unknown>;
+        turnResponse = await guardNativeWrite(input.assertCurrent, () => this.request("turn/start", turnParams)) as Record<string, unknown>;
       }
     } catch (error) {
-      if (isCodexCommunicationFailure(error)) this.unconfirmedStarts.add(threadId);
+      if (isCodexCommunicationFailure(error) && !(error instanceof CodexCommunicationError && error.submission === "not-submitted")) this.unconfirmedStarts.add(threadId);
       else for (const restore of restoreHandlers) restore();
       // An explicit native busy rejection has not accepted this input. Let the
       // source re-evaluate steer/native queue; never wait and submit it later.
@@ -671,18 +667,17 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         if (!project) throw new Error("The selected native project no longer exists");
         projectId = project.id;
       } else if (input.projectName) throw new Error("Select an existing native project by identity");
-      input.assertCurrent?.();
-      const response = await this.request("thread/start", compactObject({ cwd: input.cwd, ephemeral: false,
-        ...(projectId ? { projectId } : input.projectBinding === "none" ? { projectId: null } : {}) })) as Record<string, unknown>;
+      const response = await guardNativeWrite(input.assertCurrent, () => this.request("thread/start", compactObject({ cwd: input.cwd, ephemeral: false,
+        ...(projectId ? { projectId } : input.projectBinding === "none" ? { projectId: null } : {}) }))) as Record<string, unknown>;
       const thread = response.thread as Record<string, unknown> | undefined;
       if (!thread || typeof thread.id !== "string") throw new Error("Codex did not return the new thread identity");
       threadId = thread.id; this.subscribedThreads.add(threadId);
       await input.onThreadCreated?.(threadId);
       if (input.projectBinding === "none" && thread.projectId) {
-        input.assertCurrent?.(); await this.request("thread/metadata/update", { threadId, projectId: "" }); thread.projectId = null;
+        await guardNativeWrite(input.assertCurrent, () => this.request("thread/metadata/update", { threadId, projectId: "" })); thread.projectId = null;
       }
       const title = cleanThreadTitle(input.title);
-      if (title) { input.assertCurrent?.(); await this.request("thread/name/set", { threadId, name: title }); }
+      if (title) { await guardNativeWrite(input.assertCurrent, () => this.request("thread/name/set", { threadId, name: title })); }
       const state = this.sessionMembership()(parseThreadState({ ...thread, cwd: input.cwd, ...(title ? { name: title } : {}) }, "active"));
       this.threadStates.set(threadId, state); return state;
     } finally {
@@ -699,7 +694,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     if (!["active", "archived"].includes(state.persistence) || state.internal) throw new Error("Thread is unavailable");
     await this.ensureConnected();
     try {
-      assertCurrent?.(); await this.request("thread/name/set", { threadId, name });
+      await guardNativeWrite(assertCurrent, () => this.request("thread/name/set", { threadId, name }));
       const updated = { ...state, title: name }; this.threadStates.set(threadId, updated); return updated;
     } finally { await this.recyclePrivateTransportIfIdle(); }
   }
@@ -707,7 +702,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   async archiveThread(threadId: string, assertCurrent?: () => void): Promise<void> {
     await this.ensureConnected();
     try {
-      assertCurrent?.(); await this.request("thread/archive", { threadId });
+      await guardNativeWrite(assertCurrent, () => this.request("thread/archive", { threadId }));
       this.threadStates.set(threadId, {
         threadId,
         persistence: "archived",
@@ -722,8 +717,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   async unarchiveThread(threadId: string, assertCurrent?: () => void): Promise<CodexThreadState> {
     await this.ensureConnected();
     try {
-      assertCurrent?.();
-      const response = await this.request("thread/unarchive", { threadId }) as Record<string, unknown>;
+      const response = await guardNativeWrite(assertCurrent, () => this.request("thread/unarchive", { threadId })) as Record<string, unknown>;
       const thread = response.thread === undefined ? undefined : nativeThread(response, threadId);
       const state = thread ? this.sessionMembership()(parseThreadState(thread, "active")) : await this.inspectThread(threadId);
       this.threadStates.set(threadId, state);
@@ -736,7 +730,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   async deleteThread(threadId: string, assertCurrent?: () => void): Promise<void> {
     await this.ensureConnected();
     try {
-      assertCurrent?.(); await this.request("thread/delete", { threadId });
+      await guardNativeWrite(assertCurrent, () => this.request("thread/delete", { threadId }));
       this.threadStates.set(threadId, {
         threadId,
         persistence: "missing",
@@ -868,12 +862,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const idempotencyKey = `codex-im-gateway:${crypto.createHash("sha256").update(JSON.stringify([this.options.hostId ?? "local", legacy ? projectId : null, roots])).digest("hex")}`;
     assertCurrent?.();
     try {
-      const response = await this.request("project/create", {
+      const response = await guardNativeWrite(assertCurrent, () => this.request("project/create", {
         name: projectName,
         roots: roots.map(path => ({ path })),
         metadata: { source: "codex-im-gateway" },
         idempotencyKey
-      }) as Record<string, unknown>;
+      })) as Record<string, unknown>;
       const project = parseAppServerProject(response.project);
       if (!project) throw new Error("Codex app-server did not return the created project");
       return project.id;
@@ -1159,13 +1153,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     }
 
     try {
-      input.assertCurrent?.();
-      const response = await this.request("turn/steer", {
+      const response = await guardNativeWrite(input.assertCurrent, () => this.request("turn/steer", {
         threadId: input.threadId,
         input: [{ type: "text", text: prompt, text_elements: [] }],
         expectedTurnId: turnId,
         ...(input.clientUserMessageId ? { clientUserMessageId: input.clientUserMessageId } : {})
-      }) as Record<string, unknown>;
+      })) as Record<string, unknown>;
       if (response.turnId !== turnId) throw new CodexCommunicationError("submission", "turn/steer", input.threadId, undefined,
         { code: "InvalidAcknowledgement" });
       return { status: "accepted", threadId: input.threadId, turnId };
@@ -1183,7 +1176,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const result = await this.queueOperation("thread/queue/add", {
         threadId: input.threadId, clientUserMessageId: input.clientUserMessageId,
         input: [{ type: "text", text: input.prompt, text_elements: [] }]
-      }, () => assertQueueAdmissionCurrent(input)) as { queuedSubmission?: CodexQueuedSubmission };
+      }, inheritWriteCheck(input.assertCurrent, () => assertQueueAdmissionCurrent(input))) as { queuedSubmission?: CodexQueuedSubmission };
       if (!result.queuedSubmission?.id || result.queuedSubmission.clientUserMessageId !== input.clientUserMessageId)
         throw new Error("Native queue acknowledgement is incomplete; do not resubmit");
       return result.queuedSubmission;
@@ -1199,14 +1192,13 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       // thread can auto-consume add, so subscribe before that external write.
       // Never reconfigure an already running turn to attach its queue.
       if (!this.subscribedThreads.has(input.threadId)) {
-        await this.request("thread/resume", { threadId: input.threadId, excludeTurns: true });
+        await guardNativeWrite(inheritWriteCheck(input.assertCurrent, () => {}), () => this.request("thread/resume", { threadId: input.threadId, excludeTurns: true }));
         this.subscribedThreads.add(input.threadId);
       }
-      assertQueueAdmissionCurrent(input);
-      result = await this.queueRequest("thread/queue/add", {
+      result = await guardNativeWrite(inheritWriteCheck(input.assertCurrent, () => assertQueueAdmissionCurrent(input)), () => this.queueRequest("thread/queue/add", {
         threadId: input.threadId, clientUserMessageId: input.clientUserMessageId,
         input: [{ type: "text", text: input.prompt, text_elements: [] }]
-      }) as { queuedSubmission?: CodexQueuedSubmission };
+      })) as { queuedSubmission?: CodexQueuedSubmission };
     }
     catch (error) {
       if (error instanceof CodexBackendCapabilityError || error instanceof CodexQueueAdmissionError) {
@@ -1355,7 +1347,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
 
   private async queueOperation(method: string, params: Record<string, unknown>, assertCurrent?: () => void): Promise<unknown> {
     this.operationLeases++;
-    try { await this.ensureConnected(); assertCurrent?.(); return await this.queueRequest(method, params); }
+    try { await this.ensureConnected(); return await guardNativeWrite(assertCurrent, () => this.queueRequest(method, params)); }
     finally { this.operationLeases--; await this.recyclePrivateTransportIfIdle(); }
   }
 
@@ -1485,20 +1477,18 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     assertCurrent?: () => void
   ): Promise<CodexThreadGoal | undefined> {
     await this.ensureConnected();
-    assertCurrent?.();
-    const response = await this.request("thread/goal/set", {
+    const response = await guardNativeWrite(assertCurrent, () => this.request("thread/goal/set", {
       threadId,
       ...(input.objective !== undefined ? { objective: input.objective } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
       ...(input.tokenBudget !== undefined ? { tokenBudget: input.tokenBudget } : {})
-    }) as { goal?: unknown };
+    })) as { goal?: unknown };
     return parseThreadGoal(response.goal);
   }
 
   async clearGoal(threadId: string, assertCurrent?: () => void): Promise<void> {
     await this.ensureConnected();
-    assertCurrent?.();
-    await this.request("thread/goal/clear", { threadId });
+    await guardNativeWrite(assertCurrent, () => this.request("thread/goal/clear", { threadId }));
   }
 
   async stop(threadId?: string, assertCurrent?: () => void): Promise<CodexStopResult> {
@@ -1528,16 +1518,14 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       return "not-active";
     }
 
-    assertCurrent?.();
-    await this.request("turn/interrupt", target);
+    await guardNativeWrite(assertCurrent, () => this.request("turn/interrupt", target));
     return "interrupted";
   }
 
   async interruptTurn(threadId: string, turnId: string, assertCurrent?: () => void): Promise<void> {
     if (!threadId || !turnId) throw new Error("Exact native thread and turn identity are required");
     await this.ensureConnected();
-    assertCurrent?.();
-    await this.request("turn/interrupt", { threadId, turnId });
+    await guardNativeWrite(assertCurrent, () => this.request("turn/interrupt", { threadId, turnId }));
   }
 
   async readTurnActivities(threadId: string, turnId: string): Promise<CodexPublicActivity[]> {
@@ -2258,7 +2246,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       request.hostId = this.options.hostId ?? "local";
       request.nativeKey = JSON.stringify(["app-server", owner?.pid, request.hostId, method, key]);
       const pending = { request, submitted: false, observer: activeHandler ? undefined : observer,
-        notify: this.approvalResults.get(request.threadId) ?? (envelope && observer
+        notify: activeHandler ? this.approvalResults.get(request.threadId) : (envelope && observer
           ? (_request: CodexApprovalRequest, result: import("./approval.js").CodexApprovalResult) => observer.onResult?.(envelope, result) : undefined) };
       this.approvalRequests.set(key, pending);
       Promise.resolve().then(() => this.child === owner && this.approvalRequests.get(key) === pending ? handler(request) : undefined)
@@ -2266,6 +2254,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           if (this.child !== owner || this.approvalRequests.get(key) !== pending) return;
           if (decision === undefined) {
             this.approvalRequests.delete(key); this.observedApprovalIds.delete(key);
+            // A retired origin must not shadow the independent observer on replay.
+            if (activeHandler && this.approvalHandlersByThread.get(threadId) === activeHandler) this.approvalHandlersByThread.delete(threadId);
             this.interactionRefreshThreads.add(request.threadId); return;
           }
           if (pending.observer && this.interactionObservers.get(threadId) !== pending.observer) {
@@ -2354,12 +2344,16 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const key = JSON.stringify([request.threadId, typeof id, id]);
     if (this.userInputRequests.has(key)) return;
     const pending = { request, submitted: false, observer: activeHandler ? undefined : observer,
-      notify: this.userInputResultHandlersByThread.get(request.threadId)
-      ?? (envelope && observer ? (_request: CodexUserInputRequest, result: CodexUserInputResult) => observer.onUserInputResult?.(envelope, result) : undefined) };
+      notify: activeHandler ? this.userInputResultHandlersByThread.get(request.threadId)
+      : (envelope && observer ? (_request: CodexUserInputRequest, result: CodexUserInputResult) => observer.onUserInputResult?.(envelope, result) : undefined) };
     this.userInputRequests.set(key, pending);
     Promise.resolve().then(() => this.userInputRequests.get(key) === pending ? handler(request) : undefined).then(answers => {
       if (this.userInputRequests.get(key) !== pending) return;
-      if (answers === undefined) { this.userInputRequests.delete(key); this.interactionRefreshThreads.add(request.threadId); return; }
+      if (answers === undefined) {
+        this.userInputRequests.delete(key);
+        if (activeHandler && this.userInputHandlersByThread.get(request.threadId) === activeHandler) this.userInputHandlersByThread.delete(request.threadId);
+        this.interactionRefreshThreads.add(request.threadId); return;
+      }
       if (pending.observer && this.interactionObservers.get(request.threadId) !== pending.observer) {
         this.resolveUserInput(key, "withdrawn"); return;
       }
@@ -2381,6 +2375,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const pending = this.approvalRequests.get(key);
     if (!pending) return;
     this.approvalRequests.delete(key);
+    if (!pending.submitted) this.observedApprovalIds.delete(key);
     void Promise.resolve().then(() => pending.notify?.(pending.request, result)).catch(() => {
       console.warn("[codex-im-gateway] approval resolution notice unavailable");
     });

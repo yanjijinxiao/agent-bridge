@@ -1,3 +1,5 @@
+import { PeerInteractionService } from "./interaction-service.js";
+import { peerWriteGuard } from "./write-guard.js";
 import crypto from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
@@ -15,14 +17,15 @@ import { MANAGEMENT_METHODS, PeerManagement } from "./management.js";
 import { PeerSharingAuthority, type OwnerConfirmation } from "./sharing-authority.js";
 
 const callSchema = z.object({ grant: grantSchema, method: z.enum(["listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "readTurnActivities", "getHistory", "getHistoryPage",
-  "getRuntimeInfo", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "receipt", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
+  "getRuntimeInfo", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "interruptTurn", "getGoal", "setGoal", "clearGoal", "receipt", "observeThreadInteractions", "unobserveThreadInteractions", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
   args: z.array(z.unknown()).max(4), operationId: z.string().regex(/^[a-f0-9]{64}$/).optional() }).strict();
 const runSchema = z.object({ threadId: z.string(), cwd: z.string(), prompt: z.string().max(500_000), clientUserMessageId: z.string().optional(),
   developerInstructions: z.string().optional(), threadTitle: z.string().optional(), model: z.string().optional(), effort: z.string().optional(),
   projectId: z.string().optional(), projectName: z.string().optional(), projectRoots: z.array(z.string()).max(100).optional(), projectBinding: z.literal("none").optional(),
   collaborationMode: z.enum(["default", "plan"]).optional(), outputSchema: z.record(z.string(), z.unknown()).optional(),
   expectedTurnId: z.string().optional(), queueKey: z.string().optional() }).strict();
-const writes = new Set(["run", "steer", "submitThreadMessage", "stop"]);
+const writes = new Set(["run", "steer", "submitThreadMessage", "stop", "interruptTurn", "setGoal", "clearGoal"]);
+const goalSchema = z.object({ objective: z.string().max(500000).optional(), status: z.enum(["active", "paused", "complete", "blocked", "usageLimited", "budgetLimited"]).optional(), tokenBudget: z.number().int().positive().optional() }).strict();
 const catalogSchema = z.object({ cwd: z.string().optional(), projectId: z.string().optional(), unassigned: z.boolean().optional(),
   persistence: z.enum(["active", "archived", "all"]).optional(), limit: z.number().int().min(1).max(1000).optional() }).strict();
 export type PeerExecutionOptions = {
@@ -42,6 +45,7 @@ export class PeerExecutionService {
   private readonly receipts: PeerReceipts;
   private readonly files: PeerFiles;
   private readonly management: PeerManagement;
+  private readonly interactions: PeerInteractionService;
   private readonly sharing: PeerSharingAuthority;
   private constructor(private readonly options: PeerExecutionOptions, description: PeerDescription) {
     this.description = description;
@@ -50,6 +54,7 @@ export class PeerExecutionService {
     else { this.grants = z.object({ version: z.literal(2), grants: z.array(grantSchema) }).strict().parse(stored).grants; this.privatePolicy = true; }
     this.receipts = new PeerReceipts(path.join(options.stateDir, "receipts.json"));
     this.files = new PeerFiles(options.stateDir, (id, write) => this.readState(id, write));
+    this.interactions = new PeerInteractionService(options.backend);
     this.management = new PeerManagement(options.backend, options.stateDir, this.receipts);
     this.sharing = new PeerSharingAuthority(path.join(options.stateDir, "sharing.json"), options.backend, options.approveOwner ?? (async () => false));
     if (this.sharing.hasResources() && !this.privatePolicy) this.saveGrants(this.grants, true);
@@ -69,9 +74,11 @@ export class PeerExecutionService {
     }
     const info = options.backend.backendInfo();
     const capabilities = { ...info.capabilities, dynamicTools: false, structuredOutput: false, nativeQueue: false,
-      goals: false, skills: false, mcpServers: false, projectCatalog: !options.threadId && info.capabilities.projectCatalog,
+      skills: false, mcpServers: false, projectCatalog: !options.threadId && info.capabilities.projectCatalog,
       projects: !options.threadId && info.capabilities.projects };
     return new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
+      writeGuard: 1,
+      ...(options.backend.observeThreadInteractions ? { interactions: 1 as const } : {}),
       files: { version: 1 },
       management: { version: 1 },
       sharing: { version: 2 },
@@ -106,6 +113,14 @@ export class PeerExecutionService {
         await this.sharing.verify(call.grant, call.method, call.args);
         if ((FILE_METHODS as readonly string[]).includes(call.method)) return await this.files.call(call.grant, connection, call.method, call.args[0], threadId => this.sharing.assert(call.grant, call.method, [{ threadId }]));
         if ((MANAGEMENT_METHODS as readonly string[]).includes(call.method)) return await this.management.call(call.grant, connection, call.method, call.args[0], call.operationId, () => this.sharing.assert(call.grant, call.method, call.args));
+        if (["observeThreadInteractions", "unobserveThreadInteractions"].includes(call.method)) {
+          await this.readState(call.args[0]); this.assertThread(call.args[0]);
+          const id = z.string().regex(/^[a-f0-9]{64}$/).parse(call.method === "observeThreadInteractions" ? call.operationId : call.args[1]);
+          return await this.interactions.call(connection, call.method, call.args[0], id, () => {
+            if (!approved(call.grant)) throw new PeerError("access", "交互授权已失效。");
+            this.sharing.assert(call.grant, call.method, call.args);
+          });
+        }
         const result = await this.execute(connection, call);
         this.sharing.assert(call.grant, call.method, call.args);
         return result;
@@ -177,6 +192,7 @@ export class PeerExecutionService {
         default: await this.readState(args[0]); this.assertThread(args[0]);
       }
       switch (method) {
+        case "getGoal": return backend.getGoal(args[0]);
         case "readThreadSnapshot": return backend.readThreadSnapshot(args[0]);
         case "readTurnActivities": {
           if (!backend.readTurnActivities) throw new PeerError("unsupported", "设备不支持原生轮次活动查询。");
@@ -192,7 +208,7 @@ export class PeerExecutionService {
     if (!operationId) throw new PeerError("identity", "Writes require a durable source identity");
     const callback = (name: string, values: unknown[]) => connection.request("execution.callback", { operationId, name, args: values },
       name === "onApproval" || name === "onUserInput" ? PEER_EXECUTION_TIMEOUT_MS : 30_000);
-    const nativeInput = method === "stop" ? undefined : runSchema.parse(args[0]);
+    const nativeInput = ["run", "steer", "submitThreadMessage"].includes(method) ? runSchema.parse(args[0]) : undefined;
     const state = await this.readState(nativeInput?.threadId ?? args[0], true), threadId = state.threadId;
     if (nativeInput && path.resolve(nativeInput.cwd) !== path.resolve(state.cwd)) throw new PeerError("scope", "The exported working directory cannot be changed remotely");
     // Every native write asks the origin to recheck its live binding and ACL.
@@ -205,10 +221,7 @@ export class PeerExecutionService {
       if (prior.phase === "completed") return prior.result;
       throw new PeerError("receipt", "The original input may already be submitted; it was not replayed", prior);
     }
-    const assertCurrent = () => {
-      this.sharing.assert(call.grant, method, args);
-      if (!connection.open) throw new CodexCommunicationError("preflight", method);
-    };
+    const assertCurrent = peerWriteGuard(connection, operationId, method, () => this.sharing.assert(call.grant, method, args));
     const event = async (name: string, values: unknown[]) => { try { this.sharing.assert(call.grant, method, args); return await callback(name, values); } catch { return undefined; } };
     const sourceId = `peer-${operationId}`;
     const input: CodexRunnerInput = { ...nativeInput!, clientUserMessageId: sourceId, assertCurrent,
@@ -225,8 +238,8 @@ export class PeerExecutionService {
           this.sharing.assert(call.grant, method, args);
           const decision = await callback("onApproval", [request]);
           this.sharing.assert(call.grant, method, args);
-          return approvalOptions(request).some(option => option.id === decision) ? decision as CodexApprovalDecision : "decline";
-        } catch { return "decline"; }
+          return approvalOptions(request).some(option => option.id === decision) ? decision as CodexApprovalDecision : undefined;
+        } catch { return undefined; }
       },
       onApprovalResult: (request, result) => event("onApprovalResult", [request, result]).then(() => {}),
       onUserInput: async request => {
@@ -241,6 +254,11 @@ export class PeerExecutionService {
       let result: unknown;
       if (method === "run") result = await backend.run(input);
       else if (method === "stop") result = await backend.stop(threadId, undefined, assertCurrent);
+      else if (method === "interruptTurn") {
+        if (!backend.interruptTurn) throw new PeerError("unsupported", "设备不支持精确轮次中断。");
+        await backend.interruptTurn(threadId, z.string().min(1).max(512).parse(args[1]), undefined, assertCurrent); result = null;
+      } else if (method === "setGoal") result = await backend.setGoal(threadId, goalSchema.parse(args[1]), undefined, assertCurrent);
+      else if (method === "clearGoal") { await backend.clearGoal(threadId, undefined, assertCurrent); result = null; }
       else {
         if (method !== "steer" && method !== "submitThreadMessage") throw new PeerError("unsupported", "Native operation unavailable");
         if (method === "submitThreadMessage" && !backend.submitThreadMessage) throw new PeerError("unsupported", "Native operation unavailable");

@@ -1,3 +1,4 @@
+import type { CodexWriteGuard } from "./write-guard.js";
 import type { CodexAccountBalance } from "./account-balance.js";
 import type { CodexApprovalHandler, CodexApprovalResultHandler } from "./approval.js";
 import type { CodexExecSandbox } from "./sandbox.js";
@@ -142,7 +143,7 @@ export type CodexThreadMessageInput = {
   cwd: string;
   clientUserMessageId: string;
   /** Recheck binding identity immediately before the native write. */
-  assertCurrent?: () => void;
+  assertCurrent?: CodexWriteGuard;
 };
 
 export type CodexSteerInput = {
@@ -153,7 +154,7 @@ export type CodexSteerInput = {
   /** Used by the Codex Desktop relay to reconstruct the visible user message. */
   cwd?: string;
   clientUserMessageId?: string;
-  assertCurrent?: () => void;
+  assertCurrent?: CodexWriteGuard;
 };
 
 export type CodexQueuedSubmission = {
@@ -166,7 +167,7 @@ export type CodexQueueAddInput = {
   threadId: string; prompt: string; clientUserMessageId: string;
   /** Append to native storage without resuming/subscribing another owner's thread. */
   enqueueOnly?: boolean;
-  assertCurrent?: () => void;
+  assertCurrent?: CodexWriteGuard;
   onApproval?: CodexApprovalHandler;
   onApprovalResult?: CodexApprovalResultHandler;
   onUserInput?: CodexUserInputHandler;
@@ -188,7 +189,7 @@ export type CodexQueuedRunInput = Omit<CodexRunnerInput, "prompt" | "threadId"> 
 export interface CodexNativeQueue {
   addQueuedSubmission(input: CodexQueueAddInput, hostId?: string): Promise<CodexQueuedSubmission>;
   listQueuedSubmissions(threadId: string, cursor?: string, hostId?: string): Promise<CodexQueuePage>;
-  deleteQueuedSubmission(threadId: string, queuedSubmissionId: string, hostId?: string, assertCurrent?: () => void): Promise<boolean>;
+  deleteQueuedSubmission(threadId: string, queuedSubmissionId: string, hostId?: string, assertCurrent?: CodexWriteGuard): Promise<boolean>;
   runQueuedSubmission(input: CodexQueuedRunInput): Promise<CodexRunResult>;
 }
 
@@ -306,7 +307,7 @@ export type CodexRunResult = {
 export type CodexThreadCreateInput = {
   cwd?: string; title?: string; projectId?: string; projectName?: string;
   projectBinding?: "none"; standalone?: boolean; sourceThreadId?: string; clientUserMessageId?: string;
-  assertCurrent?: () => void;
+  assertCurrent?: CodexWriteGuard;
   onThreadCreated?: (threadId: string) => Promise<void> | void;
 };
 
@@ -354,7 +355,7 @@ export type CodexRunnerInput = {
   nativeSettings?: CodexNativeExecutionSettings;
   imagePaths?: readonly string[];
   /** Carry the source lease through every await to the final native write. */
-  assertCurrent?: () => void;
+  assertCurrent?: CodexWriteGuard;
   /** Stable source identity, never permission to replay an uncertain submission. */
   clientUserMessageId?: string;
   developerInstructions?: string;
@@ -539,7 +540,7 @@ export interface CodexBackendAdapter extends CodexBackendControls {
   readonly capabilities: CodexBackendCapabilities;
   run(input: CodexRunnerInput): Promise<CodexRunResult>;
   steer(input: CodexSteerInput): Promise<CodexSteerResult>;
-  stop(threadId?: string, assertCurrent?: () => void): Promise<CodexStopResult>;
+  stop(threadId?: string, assertCurrent?: CodexWriteGuard): Promise<CodexStopResult>;
   warmUp(cwd: string): Promise<void>;
   listProjects(): Promise<CodexProjectCatalog>;
   close(): void | Promise<void>;
@@ -564,7 +565,7 @@ export interface CodexThreadContinuation {
 /** Every backend implements this boundary; unavailable operations reject explicitly. */
 export interface CodexBackendControls {
   createThread?(input: CodexThreadCreateInput): Promise<CodexThreadState>;
-  renameThread?(threadId: string, title: string, assertCurrent?: () => void): Promise<CodexThreadState>;
+  renameThread?(threadId: string, title: string, assertCurrent?: CodexWriteGuard): Promise<CodexThreadState>;
   readonly systemErrorLifecycleRecovery?: boolean;
   recoverSystemError?(input: CodexSystemRecoveryInput, hostId?: string): Promise<CodexSystemRecoveryResult>;
   getHistory(threadId: string): Promise<CodexHistoryMessage[]>;
@@ -577,21 +578,21 @@ export interface CodexBackendControls {
   setGoal(
     threadId: string,
     input: { objective?: string; status?: CodexThreadGoalStatus; tokenBudget?: number },
-    assertCurrent?: () => void
+    assertCurrent?: CodexWriteGuard
   ): Promise<CodexThreadGoal | undefined>;
-  clearGoal(threadId: string, assertCurrent?: () => void): Promise<void>;
+  clearGoal(threadId: string, assertCurrent?: CodexWriteGuard): Promise<void>;
   inspectThread(threadId: string): Promise<CodexThreadState>;
   listThreads(input?: CodexThreadListInput): Promise<CodexThreadState[]>;
   listSessionCatalog(input?: CodexThreadListInput): Promise<CodexSessionCatalog>;
-  archiveThread(threadId: string, assertCurrent?: () => void): Promise<void>;
-  unarchiveThread(threadId: string, assertCurrent?: () => void): Promise<CodexThreadState>;
-  deleteThread(threadId: string, assertCurrent?: () => void): Promise<void>;
+  archiveThread(threadId: string, assertCurrent?: CodexWriteGuard): Promise<void>;
+  unarchiveThread(threadId: string, assertCurrent?: CodexWriteGuard): Promise<CodexThreadState>;
+  deleteThread(threadId: string, assertCurrent?: CodexWriteGuard): Promise<void>;
 }
 
 export type CodexMetadataObservation = { includeTurns: false; timeoutMs: number; purpose?: "status" };
 export interface CodexAppServerBackend extends CodexBackendAdapter, Partial<CodexNativeQueue> {
   readTurnActivities?(threadId: string, turnId: string): Promise<import("./public-item.js").CodexPublicActivity[]>;
-  interruptTurn?(threadId: string, turnId: string, assertCurrent?: () => void): Promise<void>;
+  interruptTurn?(threadId: string, turnId: string, assertCurrent?: CodexWriteGuard): Promise<void>;
   listSkills?(cwd: string): Promise<CodexSkillOption[]>;
   listMcpServers?(threadId?: string): Promise<CodexMcpServerOption[]>;
   observeThreadInteractions?(threadId: string, observer: import("./interactions.js").NativeInteractionObserver): Promise<void>;
@@ -617,7 +618,7 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
   findNativeInputReceipts?(scope: { hostId: string; threadId: string },
     sources: readonly CodexInputRecoverySource[]): Promise<Map<string, string>>;
   readTurnActivities?(threadId: string, turnId: string, hostId?: string): Promise<import("./public-item.js").CodexPublicActivity[]>;
-  interruptTurn?(threadId: string, turnId: string, hostId?: string, assertCurrent?: () => void): Promise<void>;
+  interruptTurn?(threadId: string, turnId: string, hostId?: string, assertCurrent?: CodexWriteGuard): Promise<void>;
   listSkills?(cwd: string, hostId?: string): Promise<CodexSkillOption[]>;
   listMcpServers?(threadId?: string, hostId?: string): Promise<CodexMcpServerOption[]>;
   observeThreadInteractions?(threadId: string, hostId: string, observer: import("./interactions.js").NativeInteractionObserver, consumerId?: string): Promise<void>;
@@ -625,7 +626,7 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
   interactionSubscriptionReady?(threadId: string, hostId: string): boolean;
   serverIdentity?(hostId?: string): Promise<{ processId: number }>;
   createThread?(input: CodexThreadCreateInput, hostId?: string): Promise<CodexThreadState>;
-  renameThread?(threadId: string, title: string, hostId?: string, assertCurrent?: () => void, clientUserMessageId?: string): Promise<CodexThreadState>;
+  renameThread?(threadId: string, title: string, hostId?: string, assertCurrent?: CodexWriteGuard, clientUserMessageId?: string): Promise<CodexThreadState>;
   detachIndependentObservations?(): void;
   hasRestartBlockingWork?(): boolean;
   isIndependentObservation?(scope: CodexExecutionScope): boolean;
@@ -637,7 +638,6 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
   resumeAfterCapacity?(input: CodexCapacityResumeInput): Promise<CodexRunResult>;
   stageAttachments?: import("./inbound-files.js").StageInboundFiles;
   fetchOutputFile?: import("./output-files.js").FetchOutputFile;
-  fetchOutboundFile?: import("./outbound-files.js").FetchOutboundFile;
   backendInfo(hostId?: string): { id: CodexBackendAdapter["id"]; capabilities: CodexBackendCapabilities };
   readThreadSnapshot(threadId: string, hostId?: string): Promise<CodexThreadSnapshot>;
   readTurnLifecycle?(threadId: string, turnId: string, hostId?: string): Promise<CodexTurnObservation>;
@@ -645,7 +645,7 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
   steer(input: CodexSteerInput, hostId?: string): Promise<CodexSteerResult>;
   /** Thread-scoped ordinary input; never falls back to starting or queuing a task. */
   submitThreadMessage?(input: CodexThreadMessageInput, hostId?: string): Promise<CodexInputReceipt>;
-  stop(threadId?: string, hostId?: string, assertCurrent?: () => void): Promise<CodexStopResult>;
+  stop(threadId?: string, hostId?: string, assertCurrent?: CodexWriteGuard): Promise<CodexStopResult>;
   runEphemeral(input: EphemeralCodexRunnerInput): Promise<CodexRunResult>;
   warmUp(cwd: string, hostId?: string): Promise<void>;
   listProjects(hostId?: string, observation?: Pick<CodexMetadataObservation, "timeoutMs">): Promise<CodexProjectCatalog>;
@@ -663,15 +663,15 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
     threadId: string,
     input: { objective?: string; status?: CodexThreadGoalStatus; tokenBudget?: number },
     hostId?: string,
-    assertCurrent?: () => void
+    assertCurrent?: CodexWriteGuard
   ): Promise<CodexThreadGoal | undefined>;
-  clearGoal(threadId: string, hostId?: string, assertCurrent?: () => void): Promise<void>;
+  clearGoal(threadId: string, hostId?: string, assertCurrent?: CodexWriteGuard): Promise<void>;
   inspectThread(threadId: string, hostId?: string, observation?: CodexMetadataObservation): Promise<CodexThreadState>;
   listThreads(input?: CodexThreadListInput, hostId?: string): Promise<CodexThreadState[]>;
   listSessionCatalog(input?: CodexThreadListInput, hostId?: string): Promise<CodexSessionCatalog>;
-  archiveThread(threadId: string, hostId?: string, assertCurrent?: () => void, clientUserMessageId?: string): Promise<void>;
-  unarchiveThread(threadId: string, hostId?: string, assertCurrent?: () => void, clientUserMessageId?: string): Promise<CodexThreadState>;
-  deleteThread(threadId: string, hostId?: string, assertCurrent?: () => void, clientUserMessageId?: string): Promise<void>;
+  archiveThread(threadId: string, hostId?: string, assertCurrent?: CodexWriteGuard, clientUserMessageId?: string): Promise<void>;
+  unarchiveThread(threadId: string, hostId?: string, assertCurrent?: CodexWriteGuard, clientUserMessageId?: string): Promise<CodexThreadState>;
+  deleteThread(threadId: string, hostId?: string, assertCurrent?: CodexWriteGuard, clientUserMessageId?: string): Promise<void>;
   close(): void | Promise<void>;
 }
 
