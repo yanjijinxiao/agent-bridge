@@ -22,7 +22,7 @@ const lifecycleSchema = z.object({ threadId: identity, title: z.string().trim().
 export class PeerManagement {
   private readonly queue = new SessionControlQueue();
   constructor(private readonly backend: CodexBridgeBackend, private readonly stateDir: string, private readonly receipts: PeerReceipts) {}
-  async call(grant: PeerGrant, connection: PeerConnection, method: string, raw: unknown, operationId?: string): Promise<unknown> {
+  async call(grant: PeerGrant, connection: PeerConnection, method: string, raw: unknown, operationId?: string, assertAccess?: () => void): Promise<unknown> {
     if (!operationId) throw new PeerError("identity", "Management writes require a durable source identity");
     const data = method === "createThread" ? createSchema.parse(raw) : lifecycleSchema.parse(raw);
     if (method === "renameThread" && !data.title) throw new PeerError("unsupported", "A session title is required");
@@ -45,7 +45,7 @@ export class PeerManagement {
     return this.queue.run(method === "createThread" ? operationId : threadId, async () => {
       const queued = previous();
       if (queued) return queued.result;
-      const assertCurrent = () => { if (!connection.open) throw new PeerError("offline", "The authorizing connection closed"); };
+      const assertCurrent = () => { assertAccess?.(); if (!connection.open) throw new PeerError("offline", "The authorizing connection closed"); };
       assertCurrent();
       let input: CodexThreadCreateInput | undefined;
       if (method === "createThread") {

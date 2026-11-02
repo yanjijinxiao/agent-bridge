@@ -35,6 +35,14 @@ async function main(): Promise<void> {
     const service = await PeerExecutionService.create({ backend, threadId: config.threadId, profileId: config.profileId, label: config.label ?? config.nodeId,
       stateDir,
       independent: config.backend === "app-server",
+      approveOwner: confirmation => {
+        const answer = questions.then(async () => {
+          if (!process.stdin.isTTY) return false;
+          console.log(`\n所有权确认：${JSON.stringify(confirmation.principal)}\n会话：${confirmation.threadId}\n${confirmation.workspace ? `目录：${confirmation.workspace}\n此人可授权他人在浏览器读取或编辑该目录已有文本文件，不开放终端。` : "仅会话所有权；未开放工作目录。"}\n所有者可批准、限时开放和撤销他人的会话访问。已有 owner 改变时撤销原共享。`);
+          return (await terminal.question("确认这个账号拥有上述资源并可授权别人？输入 yes：")).trim() === "yes";
+        });
+        questions = answer.catch(() => {}); return answer;
+      },
       approve: grant => {
         const answer = questions.then(async () => {
           if (!process.stdin.isTTY) return false;

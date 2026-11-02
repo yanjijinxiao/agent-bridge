@@ -12,6 +12,7 @@ import { PeerReceipts } from "./receipts.js";
 import { PeerConnection, PeerError } from "./rpc.js";
 import { FILE_METHODS, PeerFiles } from "./files.js";
 import { MANAGEMENT_METHODS, PeerManagement } from "./management.js";
+import { PeerSharingAuthority, type OwnerConfirmation } from "./sharing-authority.js";
 
 const callSchema = z.object({ grant: grantSchema, method: z.enum(["listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "getHistory", "getHistoryPage",
   "getRuntimeInfo", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "receipt", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
@@ -29,6 +30,7 @@ export type PeerExecutionOptions = {
   /** True only for an independently managed native daemon, never private exec. */
   independent?: boolean;
   approve: (grant: PeerGrant) => Promise<boolean>;
+  approveOwner?: (confirmation: OwnerConfirmation) => Promise<boolean>;
 };
 
 /** Pair a local Codex profile with a chat, then choose sessions in the chat.
@@ -36,15 +38,27 @@ export type PeerExecutionOptions = {
 export class PeerExecutionService {
   readonly description: PeerDescription;
   private grants: PeerGrant[];
+  private privatePolicy = false;
   private readonly receipts: PeerReceipts;
   private readonly files: PeerFiles;
   private readonly management: PeerManagement;
+  private readonly sharing: PeerSharingAuthority;
   private constructor(private readonly options: PeerExecutionOptions, description: PeerDescription) {
     this.description = description;
-    this.grants = z.array(grantSchema).parse(readJsonFile(path.join(options.stateDir, "grants.json"), []));
+    const stored = readJsonFile<unknown>(path.join(options.stateDir, "grants.json"), []);
+    if (Array.isArray(stored)) this.grants = z.array(grantSchema).parse(stored);
+    else { this.grants = z.object({ version: z.literal(2), grants: z.array(grantSchema) }).strict().parse(stored).grants; this.privatePolicy = true; }
     this.receipts = new PeerReceipts(path.join(options.stateDir, "receipts.json"));
     this.files = new PeerFiles(options.stateDir, (id, write) => this.readState(id, write));
     this.management = new PeerManagement(options.backend, options.stateDir, this.receipts);
+    this.sharing = new PeerSharingAuthority(path.join(options.stateDir, "sharing.json"), options.backend, options.approveOwner ?? (async () => false));
+    if (this.sharing.hasResources() && !this.privatePolicy) this.saveGrants(this.grants, true);
+  }
+  private saveGrants(grants: PeerGrant[], privatePolicy = this.privatePolicy): void {
+    // An old Connector expects an array and must refuse this format instead
+    // of silently bypassing locally confirmed ownership after a downgrade.
+    writeJsonFile(path.join(this.options.stateDir, "grants.json"), privatePolicy ? { version: 2, grants } : grants, { durable: true });
+    this.grants = grants; this.privatePolicy = privatePolicy;
   }
   static async create(options: PeerExecutionOptions): Promise<PeerExecutionService> {
     if (!/^[\w-]{1,80}$/.test(options.profileId)) throw new Error("Invalid peer profile ID");
@@ -60,27 +74,41 @@ export class PeerExecutionService {
     return new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
       files: { version: 1 },
       management: { version: 1 },
+      sharing: { version: 1 },
       thread: state ? { ...state, cwd: state.cwd! } : undefined,
       info: { id: info.id, capabilities }, independent: options.independent === true });
   }
   attach(connection: PeerConnection): void {
     connection.onClose(() => this.files.close(connection));
+    const approved = (grant: PeerGrant) => grant.delegation ? this.sharing.valid(grant) : this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant));
+    connection.handle("sharing.call", async value => {
+      const call = z.object({ method: z.enum(["claim", "status", "invite", "request", "approve", "deny", "revoke", "workspace.list", "workspace.read", "workspace.write"]), input: z.unknown(), grant: grantSchema.optional() }).strict().parse(value);
+      if (call.method !== "request" && (!call.grant || !approved(call.grant))) throw new PeerError("access", "资源授权未获本机确认或已失效。");
+      if (call.method === "request" && call.grant) throw new PeerError("scope", "访问申请不能携带其他人的授权。");
+      if (call.method === "claim" && !this.privatePolicy) this.saveGrants(this.grants, true);
+      return this.sharing.call(call.method, call.input, call.grant, () => {
+        if (!connection.open || call.grant && !approved(call.grant)) throw new PeerError("access", "连接或授权已失效。");
+      });
+    });
     connection.handle("binding.approve", async value => {
       const grant = grantSchema.parse(value);
       const allowedScope = this.description.thread ? grant.threadId === this.description.thread.threadId && !grant.scope : grant.scope === "device";
       if (!allowedScope || !await this.options.approve(grant) || !connection.open) return false;
       const next = [...this.grants.filter(g => g.id !== grant.id), grant];
-      writeJsonFile(path.join(this.options.stateDir, "grants.json"), next, { durable: true }); this.grants = next;
+      this.saveGrants(next);
       return true;
     });
     connection.handle("execution.call", async value => {
       const call = callSchema.parse(value);
-      if (!this.grants.some(g => JSON.stringify(g) === JSON.stringify(call.grant)))
+      if (!approved(call.grant))
         throw new PeerError("access", "This chat/session grant was not approved on this device");
       try {
-        if ((FILE_METHODS as readonly string[]).includes(call.method)) return await this.files.call(call.grant, connection, call.method, call.args[0]);
-        if ((MANAGEMENT_METHODS as readonly string[]).includes(call.method)) return await this.management.call(call.grant, connection, call.method, call.args[0], call.operationId);
-        return await this.execute(connection, call);
+        await this.sharing.verify(call.grant, call.method, call.args);
+        if ((FILE_METHODS as readonly string[]).includes(call.method)) return await this.files.call(call.grant, connection, call.method, call.args[0], threadId => this.sharing.assert(call.grant, call.method, [{ threadId }]));
+        if ((MANAGEMENT_METHODS as readonly string[]).includes(call.method)) return await this.management.call(call.grant, connection, call.method, call.args[0], call.operationId, () => this.sharing.assert(call.grant, call.method, call.args));
+        const result = await this.execute(connection, call);
+        this.sharing.assert(call.grant, call.method, call.args);
+        return result;
       }
       catch (error) {
         if (error instanceof PeerError) throw error;
@@ -109,6 +137,10 @@ export class PeerExecutionService {
     if (!writes.has(method)) {
       switch (method) {
         case "listSessionCatalog": {
+          if (call.grant.delegation) {
+            const input = catalogSchema.parse(args[0] ?? {}), states = await Promise.all(this.sharing.catalog(call.grant).map(async g => { await this.sharing.verify(g, "inspectThread", [g.threadId]); return this.readState(g.threadId); }));
+            return { backend: backend.backendInfo().id, source: "app-server-storage", hostIds: [], complete: true, warnings: [], threads: states.filter(s => (input.persistence === "all" || s.persistence === (input.persistence ?? "active")) && (!input.cwd || input.cwd === s.cwd) && (!input.projectId || input.projectId === s.projectId)) };
+          }
           if (call.grant.scope !== "device") throw new PeerError("access", "Device catalog access was not approved");
           const input = catalogSchema.parse(args[0] ?? {}), catalog = await backend.listSessionCatalog(input);
           const threads = new Map(catalog.threads.map(s => [s.threadId, s]));
@@ -116,12 +148,13 @@ export class PeerExecutionService {
           for (const id of this.receipts.createdThreads()) if (!threads.has(id)) {
             try { threads.set(id, await backend.inspectThread(id)); } catch { /* Native catalog remains usable. */ }
           }
-          return { ...catalog, hostIds: [], threads: [...threads.values()].filter(state => !state.internal
+          return { ...catalog, hostIds: [], threads: [...threads.values()].filter(state => !state.internal && this.sharing.visible(call.grant, state.threadId)
             && (input.persistence === "all" ? ["active", "archived"].includes(state.persistence) : state.persistence === (input.persistence ?? "active"))
             && state.cwd && path.isAbsolute(state.cwd) && (!input.cwd || state.cwd === input.cwd)
             && (!input.projectId || state.projectId === input.projectId) && (!input.unassigned || !state.projectId)) };
         }
         case "listProjects": {
+          if (call.grant.delegation) return { backend: backend.backendInfo().id, projects: [] };
           if (call.grant.scope !== "device") throw new PeerError("access", "Project catalog requires a device grant");
           const catalog = await backend.listProjects();
           return { ...catalog, projects: catalog.projects.flatMap(project => {
@@ -168,9 +201,10 @@ export class PeerExecutionService {
       throw new PeerError("receipt", "The original input may already be submitted; it was not replayed", prior);
     }
     const assertCurrent = () => {
+      this.sharing.assert(call.grant, method, args);
       if (!connection.open) throw new CodexCommunicationError("preflight", method);
     };
-    const event = async (name: string, values: unknown[]) => { try { return await callback(name, values); } catch { return undefined; } };
+    const event = async (name: string, values: unknown[]) => { try { this.sharing.assert(call.grant, method, args); return await callback(name, values); } catch { return undefined; } };
     const sourceId = `peer-${operationId}`;
     const input: CodexRunnerInput = { ...nativeInput!, clientUserMessageId: sourceId, assertCurrent,
       onThreadCreated: id => { this.assertThread(id, threadId); return event("onThreadCreated", [id]).then(() => {}); },
@@ -182,7 +216,10 @@ export class PeerExecutionService {
       onRecovery: value => event("onRecovery", [value]).then(() => {}),
       onApproval: async request => {
         try {
+          this.sharing.assert(call.grant, method, args);
+          if (call.grant.delegation && !call.grant.delegation.permissions.includes("approve")) return "decline";
           const decision = await callback("onApproval", [request]);
+          this.sharing.assert(call.grant, method, args);
           return approvalOptions(request).some(option => option.id === decision) ? decision as CodexApprovalDecision : "decline";
         } catch { return "decline"; }
       },
@@ -190,6 +227,7 @@ export class PeerExecutionService {
       onUserInput: async request => {
         try {
           const answer = await callback("onUserInput", [request]);
+          this.sharing.assert(call.grant, method, args);
           return answer === null ? undefined : z.record(z.string(), z.object({ answers: z.array(z.string()) }).strict()).parse(answer);
         } catch { return undefined; }
       },

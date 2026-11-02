@@ -5,11 +5,11 @@ import { EXEC_BACKEND_CAPABILITIES } from "../codex/backend.js";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import { peerPrincipal, type PeerBridgePort, type PeerPrincipal } from "./context.js";
 import { PeerConnection, PeerConnectionError, PeerError } from "./rpc.js";
+import { peerGrantSchema } from "./sharing-types.js";
+import { PeerSharingGateway } from "./sharing-gateway.js";
 
 const principalSchema = z.object({ accountId: z.string().min(1).max(512), conversationId: z.string().min(1).max(512), actorId: z.string().min(1).max(512) }).strict();
-export const grantSchema = z.object({ id: z.string().uuid(), principal: principalSchema, hostId: z.string(),
-  threadId: z.string().min(1).optional(), scope: z.literal("device").optional() }).strict()
-  .refine(grant => grant.scope === "device" ? grant.threadId === undefined : grant.threadId !== undefined, "Explicit device or session scope required");
+export const grantSchema = peerGrantSchema;
 export type PeerGrant = z.infer<typeof grantSchema>;
 const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/),
   thread: z.object({ threadId: z.string().min(1), cwd: z.string().min(1), title: z.string().optional(),
@@ -17,15 +17,17 @@ const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/
   label: z.string().min(1).max(80).optional(),
   files: z.object({ version: z.literal(1) }).strict().optional(),
   management: z.object({ version: z.literal(1) }).strict().optional(),
+  sharing: z.object({ version: z.literal(1) }).strict().optional(),
   info: z.object({ id: z.enum(["exec", "app-server"]), capabilities: z.record(z.string(), z.boolean()) }),
   independent: z.boolean() }).strict();
-export type PeerDescription = { profileId: string; label?: string; files?: { version: 1 }; management?: { version: 1 }; thread?: CodexThreadState & { cwd: string };
+export type PeerDescription = { profileId: string; label?: string; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 }; thread?: CodexThreadState & { cwd: string };
   info: { id: CodexBackendId; capabilities: CodexBackendCapabilities }; independent: boolean };
 type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection };
 const samePrincipal = (a: PeerPrincipal, b: PeerPrincipal) => a.accountId === b.accountId && a.conversationId === b.conversationId && a.actorId === b.actorId;
 
 /** Device authentication does not grant every bot participant session access. */
 export class PeerRegistry implements PeerBridgePort {
+  readonly sharing: PeerSharingGateway;
   private readonly entries = new Map<string, Host>();
   private grants: PeerGrant[];
   private readonly tickets = new Map<string, { hostId: string; connection: PeerConnection; expiresAt: number }>();
@@ -33,6 +35,28 @@ export class PeerRegistry implements PeerBridgePort {
   constructor(private readonly stateFile: string) {
     this.grants = z.object({ version: z.literal(1), grants: z.array(grantSchema) })
       .parse(readJsonFile(stateFile, { version: 1, grants: [] })).grants;
+    this.sharing = new PeerSharingGateway(this, stateFile + ".sharing");
+  }
+  grantsFor(principal: PeerPrincipal): PeerGrant[] { return this.grants.filter(g => samePrincipal(g.principal, principal) && (!g.delegation || g.delegation.expiresAt > Date.now())); }
+  allSharedGrants(target: { hostId: string; threadId: string }): PeerGrant[] { return this.grants.filter(g => g.hostId === target.hostId && g.threadId === target.threadId && g.delegation); }
+  addSharedGrant(raw: unknown): PeerGrant {
+    const grant = grantSchema.parse(raw); if (!grant.delegation) throw new PeerError("scope", "Expected a scoped delegation");
+    const next = [...this.grants.filter(g => g.id !== grant.id), grant];
+    writeJsonFile(this.stateFile, { version: 1, grants: next }, { durable: true }); this.grants = next; return grant;
+  }
+  removeSharedGrants(ids: string[]): void {
+    const next = this.grants.filter(g => !g.delegation || !ids.includes(g.id));
+    writeJsonFile(this.stateFile, { version: 1, grants: next }, { durable: true }); this.grants = next;
+  }
+  async sharingCall(hostId: string, method: string, input: object, principal: PeerPrincipal, guard: () => void): Promise<any> {
+    if (!this.description(hostId).sharing) throw new PeerError("unsupported", "请先更新 Connector 以启用所有权和共享。");
+    const host = this.entries.get(hostId); if (!host?.connection?.open) throw new PeerConnectionError(false);
+    const threadId = (input as any).threadId;
+    const candidates = this.grantsFor(principal).filter(g => g.hostId === hostId && (!g.threadId || !threadId || g.threadId === threadId));
+    const grant = (method.startsWith("workspace.") ? candidates.find(g => g.delegation && g.threadId === threadId) : candidates.find(g => !g.delegation)) ?? candidates[0];
+    if (method !== "request" && !grant) throw new PeerError("access", "当前用户没有此设备或会话的授权。");
+    guard(); const result = await host.connection.request("sharing.call", { method, input: method === "request" ? { ...input, principal } : input, ...(method === "request" ? {} : { grant }) }, method === "claim" ? 120_000 : 30_000); guard();
+    return result;
   }
   accept(nodeId: string, connection: PeerConnection): void {
     const callbacks = new Map<string, (name: string, args: unknown[]) => Promise<unknown>>();
@@ -81,7 +105,7 @@ export class PeerRegistry implements PeerBridgePort {
     writeJsonFile(this.stateFile, { version: 1, grants: next }, { durable: true }); this.grants = next;
     return { hostId: grant.hostId, threadId: grant.threadId, label: this.label(grant.hostId) };
   }
-  hosts(principal: PeerPrincipal): string[] { return [...new Set(this.grants.filter(g => samePrincipal(g.principal, principal)).map(g => g.hostId))]; }
+  hosts(principal: PeerPrincipal): string[] { return [...new Set(this.grantsFor(principal).map(g => g.hostId))]; }
   label(hostId: string): string { const host = this.entries.get(hostId); return host?.description.label ?? host?.nodeId ?? hostId; }
   isPeer(hostId?: string): boolean { return hostId?.startsWith("peer:") === true; }
   description(hostId: string): PeerDescription {
@@ -97,25 +121,38 @@ export class PeerRegistry implements PeerBridgePort {
     if ((method.startsWith("fileUpload") && !principal) || (principal
       && (principal.accountId !== scope.accountId || principal.conversationId !== scope.conversationId)))
       throw new PeerError("access", "File transfer has no authorized chat identity");
-    const grant = this.grants.find(g => g.hostId === hostId && g.principal.accountId === scope.accountId
+    const candidates = this.grants.filter(g => g.hostId === hostId && g.principal.accountId === scope.accountId
       && g.principal.conversationId === scope.conversationId && (!principal || samePrincipal(g.principal, principal))
+      && (!g.delegation || g.delegation.expiresAt > Date.now())
       && (g.scope === "device" || g.threadId === scope.threadId));
+    const grant = candidates.find(g => g.delegation && g.threadId === scope.threadId) ?? candidates[0];
     if (!grant) throw new PeerError("access", "This chat is not authorized to transfer files for the selected session");
-    return peerPrincipal.run(grant.principal, () => this.invoke<T>(hostId, method, [payload]));
+    return peerPrincipal.run(grant.principal, () => this.invoke<T>(hostId, method, [payload], false, undefined, undefined, undefined, grant.id));
   }
   async invoke<T>(hostId: string, method: string, args: unknown[], write = false,
-    operationId?: string, callback?: (name: string, args: unknown[]) => Promise<unknown>, signal?: AbortSignal): Promise<T> {
+    operationId?: string, callback?: (name: string, args: unknown[]) => Promise<unknown>, signal?: AbortSignal, selectedGrantId?: string): Promise<T> {
     const principal = peerPrincipal.getStore();
-    const grant = this.grants.find(g => g.hostId === hostId && (!principal || samePrincipal(g.principal, principal)));
+    const first = args[0] as any, target = method === "getRuntimeInfo" ? args[1] : typeof first === "string" ? first : first?.threadId;
+    const candidates = this.grants.filter(g => g.hostId === hostId && (!principal || samePrincipal(g.principal, principal))
+      && (!selectedGrantId || g.id === selectedGrantId)
+      && (!g.delegation || g.delegation.expiresAt > Date.now() && (!target || target === g.threadId)));
+    const grant = (target ? candidates.find(g => g.delegation && g.threadId === target) : candidates.find(g => !g.delegation)) ?? candidates[0];
     if (!grant || write && !principal) throw new PeerError("access", "当前用户或入口未获准操作这个远程会话，请先通过 /connect 绑定。");
     const host = this.entries.get(hostId);
     if (!host?.connection?.open) throw new PeerConnectionError(false);
     const connection = host.connection, callbacks = this.callbacks.get(connection)!;
     if (operationId && callback) {
       if (callbacks.has(operationId)) throw new PeerError("busy", "同一条消息正在交接，请等待原回执。");
-      callbacks.set(operationId, callback);
+      callbacks.set(operationId, async (name, values) => {
+        if (grant.delegation && !this.grantsFor(grant.principal).some(g => g.id === grant.id)) throw new PeerError("access", "共享已撤销或过期。");
+        return callback(name, values);
+      });
     }
-    try { return await connection.request<T>("execution.call", { grant, method, args, operationId }, write ? 24 * 60 * 60_000 : 30_000, signal); }
+    try {
+      const result = await connection.request<T>("execution.call", { grant, method, args, operationId }, write ? 24 * 60 * 60_000 : 30_000, signal);
+      if (grant.delegation && !this.grantsFor(grant.principal).some(g => g.id === grant.id)) throw new PeerError("access", "共享已撤销或过期，未继续投递。");
+      return result;
+    }
     finally { if (operationId && callback) callbacks.delete(operationId); }
   }
   close(): void { for (const host of this.entries.values()) host.connection?.close(); this.tickets.clear(); }

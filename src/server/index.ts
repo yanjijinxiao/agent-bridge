@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { PeerRegistry } from "../peer/registry.js";
-import { loadPeerListener, listenGatewayPeers } from "../peer/runtime.js";
+import { loadPeerListener, listenGatewayPeers, listenSharedWorkspaces } from "../peer/runtime.js";
 import { fileURLToPath } from "node:url";
 
 import open from "open";
@@ -35,11 +35,12 @@ async function main(): Promise<void> {
   const taskboard = new TaskboardLifecycle(paths.taskboardDir, undefined, () => accountManager.taskboardNativeBackend());
   accountManager = new AccountManager({ paths, restartParticipant: taskboard, peerRegistry: peers });
   let peerServer: Awaited<ReturnType<typeof listenGatewayPeers>>;
+  let sharedWorkspaces: Awaited<ReturnType<typeof listenSharedWorkspaces>>;
   let server: Awaited<ReturnType<typeof startLocalHttpServer>> | undefined;
   let shutdownTask: Promise<void> | undefined;
   let restartScheduled = false;
   const shutdown = () => shutdownTask ??= cleanupResources([
-    () => accountManager.stopAll(), () => peerServer?.close(), () => server?.close(), () => taskboard.close()
+    () => accountManager.stopAll(), () => sharedWorkspaces?.close(), () => peerServer?.close(), () => server?.close(), () => taskboard.close()
   ], "Gateway 部分资源清理失败，其余资源已继续清理", () => processLock.release());
   const exitAfterShutdown = () => void shutdown().then(() => process.exit(0), error => {
     console.error(`[codex-im-gateway] shutdown failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -67,7 +68,7 @@ async function main(): Promise<void> {
     timer.unref();
   };
   try {
-    if (peers) peerServer = await listenGatewayPeers(peerConfig, peers);
+    if (peers) { peerServer = await listenGatewayPeers(peerConfig, peers); sharedWorkspaces = await listenSharedWorkspaces(peerConfig, peers); }
     await taskboard.apply(config);
     if (accountManager.releaseStatus().prepared) taskboard.pauseForRestart();
     server = await startLocalHttpServer({ paths, accountManager, port, onUpdateInstalled: scheduleRestart,

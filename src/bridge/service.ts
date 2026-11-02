@@ -411,7 +411,13 @@ export class BridgeService {
 
   private role(conversationId: string, actorId = this.actor.getStore() ?? conversationId): SessionRole {
     return this.options.stateStore.roleFor(conversationId, actorId)
-      ?? (this.access.isAllowed(actorId) ? "controller" : this.options.stateStore.roleFor(conversationId, "*") ?? "participant");
+      ?? (this.access.isAllowed(actorId) ? "controller" : this.options.stateStore.roleFor(conversationId, "*")
+        ?? (this.options.peer?.sharing?.admitted(this.peerIdentity(actorId, conversationId)) ? this.options.peer.sharing.role(this.peerIdentity(actorId, conversationId)) : "participant"));
+  }
+
+  private peerIdentity(actorId: string, conversationId: string) { return { accountId: this.options.accountId ?? "standalone", conversationId, actorId }; }
+  private hasAccess(actorId: string, conversationId: string): boolean {
+    return this.access.requireAccess(actorId, conversationId).allowed || Boolean(this.options.peer?.sharing?.admitted(this.peerIdentity(actorId, conversationId)));
   }
 
   private async requireRole(conversationId: string, required: SessionRole): Promise<boolean> {
@@ -432,6 +438,17 @@ export class BridgeService {
     // Dedicated personal authority, before chat ACL/session gating. Source actor
     // and provider-confirmed conversation kind must never be rewritten to a room.
     const control = parseCommand(message.text);
+    if (control?.name === "join") {
+      const sharing = this.options.peer?.sharing;
+      if (!sharing) { await this.reply(replyTargetId, "此 Gateway 尚未启用会话共享。"); return; }
+      const before = this.executionSession(replyTargetId)?.id;
+      const result = await sharing.command(this.peerIdentity(message.senderId, replyTargetId), "join", control.arg, undefined, () => {
+        if (this.audienceSuspended || this.executionSession(replyTargetId)?.id !== before) throw new Error("会话绑定已改变，请重新申请。");
+      });
+      await this.reply(replyTargetId, result.text);
+      if (result.bind) await this.bindCatalogSession(replyTargetId, result.bind.threadId, result.bind.hostId);
+      return;
+    }
     if (control && isIDEApprovalCommand(control.name, control.arg)) {
       const result = await ideApprovalCommand({ service: this.options.ideApprovals, accountId: this.options.accountId,
         providerId: this.options.ideProviderId, channel: this.channel.channel, message, arg: control.arg });
@@ -449,7 +466,8 @@ export class BridgeService {
       return;
     }
     const access = this.access.requireAccess(message.senderId, replyTargetId);
-    if (!access.allowed) {
+    const shared = Boolean(this.options.peer?.sharing?.admitted(this.peerIdentity(message.senderId, replyTargetId)));
+    if (!access.allowed && !shared) {
       if (principal && this.options.admission) {
         try {
           const request = this.options.admission.observe(principal, replyTargetId, message.conversationKind as "direct" | "group");
@@ -459,6 +477,15 @@ export class BridgeService {
       }
       await this.reply(replyTargetId, access.message);
       return;
+    }
+    if (!access.allowed && shared) {
+      const permitted = new Set(["sessions", "session", "history", "status", "help", "ide", "share", "leave", "unbind", "stop", "approve", "reject", "answer", "skip", "steer"]);
+      const bound = this.executionSession(replyTargetId), host = bound && this.sessionHostId(bound);
+      const specified = control && /(?:^|\s)--host\s+(\S+)/.exec(control.arg)?.[1];
+      if (control && !permitted.has(control.name) || specified && !this.options.peer!.hosts(this.peerIdentity(message.senderId, replyTargetId)).includes(specified)
+        || (!control || !["sessions", "session", "help", "share", "leave", "unbind"].includes(control.name)) && (!host?.startsWith("peer:") || !this.options.peer!.hosts(this.peerIdentity(message.senderId, replyTargetId)).includes(host))) {
+        await this.reply(replyTargetId, "你获得的是指定会话的资源授权。请通过 /sessions 选择已授权会话；此入口不能操作 Gateway 的其他资源。"); return;
+      }
     }
     if (message.receivedAt === undefined
       || Date.parse(this.options.stateStore.snapshot.bindingActivity[replyTargetId]?.lastHumanAt ?? "") < message.receivedAt
@@ -490,7 +517,8 @@ export class BridgeService {
     const commands = slashCommand ? [slashCommand] : undefined;
     if (commands) {
       for (const command of commands) {
-        const required = requiredCommandRole(command.name, command.arg);
+        const readBinding = shared && (["leave", "unbind"].includes(command.name) || command.name === "session" && !/^(?:rename|archive|restore|unarchive)(?:\s|$)/i.test(command.arg));
+        const required = readBinding ? "viewer" : requiredCommandRole(command.name, command.arg);
         const assertCommandCurrent = this.conversationControlGuard(replyTargetId, required, false);
         if (!await this.requireRole(replyTargetId, required)) return;
         assertCommandCurrent();
@@ -573,6 +601,17 @@ export class BridgeService {
       }
     }
     switch (command.name) {
+      case "share": {
+        const sharing = this.options.peer?.sharing;
+        if (!sharing) { await this.reply(message.senderId, "此 Gateway 尚未启用会话共享。"); return; }
+        const principal = peerPrincipal.getStore()!, browser = /^browser\s+(\d{6})$/.exec(command.arg.trim());
+        if (browser) { await this.reply(message.senderId, await sharing.browser(principal, browser[1])); return; }
+        const session = this.executionSession(message.senderId), hostId = session && this.sessionHostId(session);
+        const result = await sharing.command(principal, "share", command.arg,
+          session?.threadId && hostId?.startsWith("peer:") ? { threadId: session.threadId, hostId } : undefined,
+          this.conversationControlGuard(message.senderId, "viewer"));
+        await this.reply(message.senderId, result.text); return;
+      }
       case "connect": {
         if (!this.options.peer) { await this.reply(message.senderId, "此 Gateway 尚未启用远程设备接入。"); return; }
         const guard = this.conversationControlGuard(message.senderId, "participant");
@@ -601,6 +640,11 @@ export class BridgeService {
       }
       case "ide": {
         const session = this.executionSession(message.senderId);
+        const hostId = session && this.sessionHostId(session);
+        if (session?.threadId && hostId?.startsWith("peer:") && this.options.peer?.sharing) {
+          const url = await this.options.peer.sharing.ide(peerPrincipal.getStore()!, { threadId: session.threadId, hostId }, this.conversationControlGuard(message.senderId, "viewer"));
+          await this.reply(message.senderId, `[打开共享 Web 编辑器](${url})\n浏览器需通过 /share browser 六位码确认。权限由会话所有者授予；共享编辑器不提供终端。`); return;
+        }
         const url = session && await this.options.ideEntry?.(session);
         await this.reply(message.senderId, url ? `${ideEntryLink(url)}\n登录后打开，不会启动新的 Codex 任务。`
           : "当前没有可用的 Web IDE 入口。请先绑定有项目的 session，并在 Gateway 网页端启用对应主机的 Web IDE。");
@@ -1407,7 +1451,7 @@ export class BridgeService {
     return () => {
       this.options.assertRuntimeWritable?.();
       if (this.audienceSuspended || (binding ? !binding.current() : !!this.executionSession(conversationId))
-        || !this.access.requireAccess(actorId, conversationId).allowed
+        || !this.hasAccess(actorId, conversationId)
         || !roleAllows(this.role(conversationId, actorId), required))
         throw new CodexInterventionError("会话绑定、准入或角色权限已改变，控制操作未提交。");
     };
@@ -1613,7 +1657,8 @@ export class BridgeService {
       if (projectOnly && !activeProject) { await this.reply(senderId, copyableChoices("当前没有选择项目，可以选择已有会话或项目。", [{ label: "查看已有会话", value: "/sessions" }, { label: "选择项目", value: "/project" }])); return; }
       const query = /^search\s+(.+)$/i.exec(input)?.[1].toLocaleLowerCase();
       const unassigned = /^(unbound|unassigned)$/i.test(input);
-      const hosts = new Set(hostFilter ? [hostFilter] : ["local", ...pairedHosts]);
+      const resourceOnly = !this.access.requireAccess(actorId, senderId).allowed && Boolean(this.options.peer?.sharing?.admitted(this.peerIdentity(actorId, senderId)));
+      const hosts = new Set(hostFilter ? [hostFilter] : resourceOnly ? pairedHosts : ["local", ...pairedHosts]);
       const warnings: string[] = [];
       const incompleteHosts = new Map<string, string>();
       let purposes = new SessionPurposeIndex();
@@ -1621,7 +1666,7 @@ export class BridgeService {
       catch { warnings.push("会话用途配置无法读取，本次未隐藏探活记录；请检查 session-purposes.json 后刷新。"); }
       const hiddenProbes = new Set<string>();
       const catalogInput = { persistence: archived ? "archived" as const : "active" as const, ...(projectOnly ? { cwd: activeProject!.workspace, projectId: activeProject!.sourceProjectId } : {}), ...(unassigned ? { unassigned: true } : {}) };
-      const firstHost = hostFilter ?? (projectOnly ? activeProject?.hostId ?? "local" : "local");
+      const firstHost = hostFilter ?? (resourceOnly ? pairedHosts[0] : projectOnly ? activeProject?.hostId ?? "local" : "local");
       // Resolve the catalog backend before optional project-name enrichment.
       // In auto mode a failed enrichment must not select a different backend.
       const firstCatalog = this.runner.listSessionCatalog?.(catalogInput, firstHost);
@@ -1716,8 +1761,10 @@ export class BridgeService {
   }
 
   private async bindCatalogSession(senderId: string, threadId: string, hostId?: string): Promise<void> {
-    if (!await this.requireRole(senderId, "participant")) return;
-    const assertCurrent = this.conversationControlGuard(senderId, "participant");
+    const principal = peerPrincipal.getStore(), shared = principal && this.options.peer?.sharing?.admitted(principal);
+    const required = shared ? "viewer" : "participant";
+    if (!await this.requireRole(senderId, required)) return;
+    const assertCurrent = this.conversationControlGuard(senderId, required);
     // An unqualified ID already known to this chat must retain its host; IDs
     // alone are not a globally unique routing key. Never probe/resume writers
     // on another backend to guess ownership.
@@ -1731,8 +1778,11 @@ export class BridgeService {
         }))));
         return;
       }
-      hostId = knownHosts.values().next().value ?? "local";
+      const grantedHosts = principal ? this.options.peer?.hosts(principal) ?? [] : [];
+      hostId = knownHosts.values().next().value ?? (shared && grantedHosts.length === 1 ? grantedHosts[0] : "local");
     }
+    if (principal && !this.access.requireAccess(principal.actorId, senderId).allowed && (!hostId.startsWith("peer:") || !this.options.peer?.hosts(principal).includes(hostId)))
+      throw new Error("此入口仅能绑定已授权的远端会话。");
     let state: CodexThreadState;
     try { state = await this.runner.inspectThread(threadId, hostId); }
     catch (error) {
@@ -1837,7 +1887,7 @@ export class BridgeService {
     const actorId = this.actor.getStore() ?? message.senderId;
     const assertCurrent = () => {
       this.options.assertRuntimeWritable?.();
-      if (this.audienceSuspended || !binding.current() || !this.access.requireAccess(actorId, message.senderId).allowed
+      if (this.audienceSuspended || !binding.current() || !this.hasAccess(actorId, message.senderId)
         || !roleAllows(this.role(message.senderId, actorId), "participant")) throw new CodexInterventionError("会话或准入已改变，介入消息未提交。");
     };
     if (this.runner.backendInfo?.(hostId).capabilities.turnSteering === false) {
@@ -2091,7 +2141,7 @@ export class BridgeService {
         || (this.sessionHostId(current) ?? "local") !== (hostId ?? "local")) {
         throw new CodexInterventionError("绑定已切换，未向旧会话提交消息，请重新发送。");
       }
-      if (this.audienceSuspended || !this.access.requireAccess(actorId, message.senderId).allowed
+      if (this.audienceSuspended || !this.hasAccess(actorId, message.senderId)
         || !roleAllows(this.role(message.senderId, actorId), "participant"))
         throw new CodexInterventionError("当前准入或角色权限已改变，消息未提交。");
     };
@@ -2188,7 +2238,7 @@ export class BridgeService {
       const current = this.executionSession(message.senderId);
       if (this.audienceSuspended || !binding.current() || current?.id !== session.id || current.threadId !== session.threadId || (this.sessionHostId(current) ?? "local") !== hostId)
         throw new CodexInterventionError("渠道或会话绑定已改变，排队消息未提交。");
-      if (!this.access.requireAccess(actorId, message.senderId).allowed || !roleAllows(this.role(message.senderId, actorId), "participant"))
+      if (!this.hasAccess(actorId, message.senderId) || !roleAllows(this.role(message.senderId, actorId), "participant"))
         throw new CodexInterventionError("当前准入或角色权限已改变，排队消息未提交。");
     };
     assertCurrent();
@@ -2231,7 +2281,7 @@ export class BridgeService {
       }
       await this.nativeQueue.dispatch(accountId, this.runner, async (receipt, starting, started, item) => {
         return this.restartWork.run(async () => {
-        if (!this.access.requireAccess(receipt.actorId, receipt.conversationId).allowed) {
+        if (!this.hasAccess(receipt.actorId, receipt.conversationId)) {
           throw new Error("Queued origin access was revoked; native item preserved");
         }
         const currentRole = this.options.stateStore.roleFor(receipt.conversationId, receipt.actorId)
@@ -2768,7 +2818,7 @@ export class BridgeService {
     const assertInputCurrent = () => {
       this.options.assertRuntimeWritable?.();
       if (!stillBound()) throw new CodexInterventionError("绑定已改变，消息未提交。");
-      if (!this.access.requireAccess(preparedActorId, message.senderId).allowed
+      if (!this.hasAccess(preparedActorId, message.senderId)
         || !roleAllows(this.role(message.senderId, preparedActorId), "participant"))
         throw new CodexInterventionError("当前准入或角色权限已改变，消息未提交。");
     };

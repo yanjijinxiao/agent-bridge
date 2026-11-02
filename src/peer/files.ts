@@ -87,11 +87,12 @@ export class PeerFiles {
     }
   }
   close(owner: PeerConnection): void { for (const [id, lease] of this.leases) if (lease.owner === owner) this.remove(id); }
-  async call(grant: PeerGrant, owner: PeerConnection, method: string, payload: unknown): Promise<unknown> {
+  async call(grant: PeerGrant, owner: PeerConnection, method: string, payload: unknown, authorize?: (threadId: string) => void): Promise<unknown> {
     if (method === "fileUploadBegin") {
       const p = z.object({ threadId: threadSchema, scope: z.string().min(1).max(4096), name: z.string().max(1024), size: sizeSchema, hash: hashSchema }).strict().parse(payload);
       if (grant.threadId && grant.threadId !== p.threadId) throw new PeerError("scope", "File transfer thread is not granted");
       await this.inspect(p.threadId, true);
+      authorize?.(p.threadId);
       if (!owner.open) throw new PeerError("offline", "File transfer connection closed");
       const dir = this.directory(grant, p.threadId, p.scope), target = path.join(dir, `${p.hash}-${name(p.name)}`);
       if (fs.existsSync(target)) {
@@ -108,6 +109,7 @@ export class PeerFiles {
       const p = z.object({ threadId: threadSchema, path: z.string().min(1).max(16384), maxBytes: sizeSchema }).strict().parse(payload);
       if (grant.threadId && grant.threadId !== p.threadId) throw new PeerError("scope", "File transfer thread is not granted");
       const state = await this.inspect(p.threadId, false);
+      authorize?.(p.threadId);
       if (!owner.open) throw new PeerError("offline", "File transfer connection closed");
       if (!path.isAbsolute(p.path)) throw new PeerError("path", "An absolute output file path is required");
       const file = fs.realpathSync(p.path), workspace = fs.realpathSync(state.cwd), inbound = this.directory(grant, p.threadId);
@@ -124,6 +126,7 @@ export class PeerFiles {
     const p = z.object({ id: z.string().uuid(), offset: sizeSchema.optional(), data: z.string().max(Math.ceil(FILE_CHUNK_BYTES / 3) * 4).optional() }).strict().parse(payload);
     const lease = this.leases.get(p.id);
     if (!lease || lease.owner !== owner || lease.grantId !== grant.id) throw new PeerError("scope", "File transfer expired or belongs to another connection or chat");
+    authorize?.(lease.threadId);
     if (method === "fileClose") { this.remove(p.id); return null; }
     try {
       if (method === "fileUploadChunk" && lease.kind === "upload") {
