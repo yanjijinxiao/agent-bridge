@@ -34,3 +34,19 @@
 - 共享页面复用复制框后，未确认的浏览器仍不能换取授权；错误聊天、CSRF、只读写入和撤销继续被拒绝。
 - 真实钉钉验收要求同时核对实际卡片 create / deliver 回执和消息事件，避免把纯文本降级当作卡片成功。
 - 自动化不能读取手机的剪贴板。设备端“点复制再粘贴”的体验需要实际客户端确认，接口和源码测试不替代此项。
+
+## 本轮结果
+
+运行版本 `950fadd`；制品 SHA-256 为 `462f4d8819c254c7d00f8f3c2a06dbe9514aa2344855cb68b57093c5eba28ec0`。两端运行目录为 `releases/peer-reuse-20261102`，实际 Gateway 切换约 4 秒，12 的原生 daemon 未重启。
+
+类型检查和完整构建通过。定向回归 101 项通过；同步 rebase 后依赖并重新完整回归，2708 项中 2681 通过、27 跳过、0 失败。
+
+真实钉钉结果：
+
+- 标准模板 `02fcf2f4-5e02-4a85-b672-46d1f715543e.schema`，字段 `msgContent`。用户明确反馈“能看到，复制正常”，确认了真实客户端复制体验。
+- 设备选择卡：`msgU/FJ6fNdU8EDbO+z/NsW4A==`；新版本会话目录卡：`msgbIn7idxQM6eXxz/0OzUeOQ==`。
+- 同一张进度卡 `msgnPPqZbcqBGYmjxupvSh8+Q==` 更新为最终结果，精确消息查询包含 `TANTAN-CARD-REUSE-OK-950FADD` 和正确测试文件首行；卡片流式、最终状态均获钉钉回执。
+- `/new --standalone` 实际创建并绑定原生 thread `01a19bb3-740b-7653-9871-9ab9f2048ced`，消息 `msgjaFMw3dKV43aP4+hpxJk2w==`；设备记录确认模型轮次为 0。随后仅归档该空测试会话，消息 `msga1ESRVKykq2/tBHDqnqDVw==`。
+- A4 使用主分支原生审批卡，消息 `msg+2ObzYuEhdeQMcM4FcdmzQ==`；允许一次后原生确认 `msggBWFvn5UJYvo7ZBvJEYKow==`，完成卡 `msgKS3OK2sCeXkiV/VTYmRHXg==`，设备上的合成文件逐字节符合预期。
+
+本轮没有再次覆盖第二个真实用户、真实群聊、完整 code-server UI 或手机卡片内的审批按钮点击；审批通过卡片提供的命令提交。
