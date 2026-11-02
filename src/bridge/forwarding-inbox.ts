@@ -40,6 +40,7 @@ type Options = {
   canDispatch: () => boolean;
   dispatch: (message: ChannelMessage) => Promise<void>;
   notice: (message: ChannelMessage, text: string) => Promise<void>;
+  reconcile?: (receipt: Readonly<InboundReceipt>) => Promise<void>;
   now?: () => number; retryMs?: number;
 };
 
@@ -50,6 +51,8 @@ type Options = {
 export class ForwardingInbox {
   private readonly rows: Record<string, Row>;
   private readonly processing = new Set<string>();
+  private readonly reconciling = new Set<string>();
+  private readonly nextObservation = new Map<string, number>();
   private timer?: NodeJS.Timeout;
   private stopped = true;
   constructor(private readonly options: Options) {
@@ -129,6 +132,10 @@ export class ForwardingInbox {
     return { waiting: rows.filter(r => r.state === "pending").length, held: rows.filter(r => r.state === "held").length,
       unconfirmed: rows.filter(r => r.state === "unconfirmed").length };
   }
+  sourceFor(clientUserMessageId: string): ChannelMessage | undefined {
+    const row = this.rows[clientUserMessageId.slice("gateway-".length)];
+    return row && structuredClone(row.message);
+  }
   private version(target: ForwardingTarget | undefined): string {
     return crypto.createHash("sha256").update(canonical(target) ?? "null").digest("hex").slice(0, 16);
   }
@@ -181,6 +188,15 @@ export class ForwardingInbox {
       if (this.processing.has(key)) continue;
       const receipt = this.options.receipts.receipt(row.message.id);
       if (receipt && ["accepted", "handled"].includes(receipt.phase)) { this.remove(key); continue; }
+      if (receipt && ["submitting", "unconfirmed"].includes(receipt.phase) && this.options.reconcile
+        && !this.reconciling.has(key) && (this.nextObservation.get(key) ?? 0) <= this.now()) {
+        // Read-only recovery is separate from the admission lane and never
+        // turns an unknown submission back into a dispatchable message.
+        this.reconciling.add(key); this.nextObservation.set(key, this.now() + 5000);
+        void this.options.reconcile(receipt).catch(() => {
+          console.warn("[codex-im-gateway] native input receipt observation deferred; no input replayed");
+        }).finally(() => this.reconciling.delete(key));
+      }
       if (row.state !== "pending" || row.nextAt > this.now()) continue;
       void this.deliver(key, row, false).catch(() => console.warn("[codex-im-gateway] saved message forwarding deferred; content and source receipt retained"));
     }
@@ -189,6 +205,7 @@ export class ForwardingInbox {
     const row = this.rows[key]; if (!row) return;
     delete this.rows[key];
     try { this.save(); } catch (error) { this.rows[key] = row; throw error; }
+    this.nextObservation.delete(key);
   }
   private async inform(row: Row, text: string): Promise<void> {
     if (row.noticed.includes(row.state)) return;

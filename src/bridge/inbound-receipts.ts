@@ -12,6 +12,10 @@ export type InboundReceipt = {
   conversationId?: string; actorId?: string;
   sessionId?: string; hostId?: string; threadId?: string; turnId?: string;
   queuedSubmissionId?: string;
+  /** Explicit ordinary turn submission; legacy sources may be checked against the saved inbox. */
+  nativeInput?: true;
+  /** Durable output obligation reconstructed from exact native history. */
+  recoveredNativeInput?: true;
 };
 type Receipt = InboundReceipt;
 const identity = (id: string) => crypto.createHash("sha256").update(id.trim()).digest("hex");
@@ -44,7 +48,9 @@ export class InboundReceiptJournal {
     for (const line of lines) {
       const { id, receipt } = JSON.parse(line);
       if (!/^[a-f0-9]{64}$/.test(id) || !receipt || receipt.clientUserMessageId !== `gateway-${id}`
-        || !["received", "submitting", "accepted", "handled", "unconfirmed"].includes(receipt.phase)) throw Error("Invalid inbound receipt");
+        || !["received", "submitting", "accepted", "handled", "unconfirmed"].includes(receipt.phase)
+        || receipt.nativeInput !== undefined && receipt.nativeInput !== true
+        || receipt.recoveredNativeInput !== undefined && receipt.recoveredNativeInput !== true) throw Error("Invalid inbound receipt");
       this.receipts[id] = receipt;
     }
     // An incomplete last append cannot authorize a native write: submitting is
@@ -141,7 +147,7 @@ export class InboundReceiptJournal {
     if (!receipt) return undefined;
     return {
       currentId: () => receipt.clientUserMessageId,
-      submitting: (scope: Pick<Receipt, "sessionId" | "hostId" | "threadId">) => {
+      submitting: (scope: Pick<Receipt, "sessionId" | "hostId" | "threadId" | "nativeInput">) => {
         this.transition(receipt, { ...scope, ...(receipt.phase === "received" ? { phase: "submitting" } : {}) });
       },
       accepted: (threadId: string, turnId: string) => {
@@ -172,5 +178,24 @@ export class InboundReceiptJournal {
   snapshot(): Readonly<Record<string, Receipt>> { return structuredClone(this.receipts); }
   receipt(messageId: string): Readonly<Receipt> | undefined {
     const receipt = this.receipts[identity(messageId)]; return receipt && structuredClone(receipt);
+  }
+  /** Commit exact, read-only native evidence without claiming or dispatching
+   * the saved input. A late read cannot overwrite a live/newer journal fact. */
+  recoverAccepted(expected: Readonly<Receipt>, proof: { hostId: string; threadId: string; turnId: string }): boolean {
+    const key = expected.clientUserMessageId.slice("gateway-".length), current = this.receipts[key];
+    if (!current || this.processing.has(key) || !["submitting", "unconfirmed"].includes(current.phase)
+      || JSON.stringify(current) !== JSON.stringify(expected) || !proof.turnId.trim()
+      || (current.hostId ?? "local") !== proof.hostId || current.threadId !== proof.threadId
+      || current.turnId && current.turnId !== proof.turnId) return false;
+    this.transition(current, { phase: "accepted", turnId: proof.turnId, recoveredNativeInput: true });
+    try { this.options.onAccepted?.(structuredClone(current)); }
+    catch { console.warn("[codex-im-gateway] recovered acceptance cleanup deferred; durable native receipt retained"); }
+    return true;
+  }
+  /** Only the persistent result-delivery journal may settle this obligation. */
+  recoveredResultDelivered(expected: Readonly<Receipt>): void {
+    const current = this.receipts[expected.clientUserMessageId.slice("gateway-".length)];
+    if (current?.phase === "accepted" && current.recoveredNativeInput && JSON.stringify(current) === JSON.stringify(expected))
+      this.transition(current, { phase: "handled" });
   }
 }

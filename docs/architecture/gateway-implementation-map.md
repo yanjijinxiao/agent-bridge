@@ -6,6 +6,8 @@
 
 平台事件 → AccountManager 账号运行代次与接收持久化 → ForwardingInbox 来源交接 → BridgeService 显式命令或普通输入 → TurnSubmission/SessionControl/NativeQueue → CodexAppServerGateway 主机路由 → AppServerCodexRunner 原生协议。
 
+原生接收回执恢复：原host/thread历史分页 → 精确clientUserMessageId → 来源journal CAS accepted与投递义务 → Hub排除误判历史baseline → 结果动作与原路投递 → 持久确认后结算。没有新的执行入口。
+
 原生通知/观察 → AppServerRequestMonitor 与 ThreadEventHub → 精确绑定和 InteractionRouting → 原路审批/提问或 TurnPresentation → 渠道业务回执 → 投递状态持久化。原生执行事实、平台接收事实、客户端可见事实分别记录。
 
 Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项目身份和完整根目录 → EndpointManager/Provider 主机实例 → ApprovalService 与 Authorization 原浏览器证明 → AccessServer HTTP/WS 访问。它不通过 Codex 任务启动或保活。
@@ -15,7 +17,7 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 | 模块 | 实际入口及实现 | 状态权威与必须检查的边界 |
 | --- | --- | --- |
 | 原生协议 | src/codex/app-server-gateway.ts、app-server-runner.ts、app-server-daemon.ts、remote-host.ts | 每主机固定核心；执行、元数据、历史连接的权限和生命周期；精确回执；既有线程继承权限；不能因超时改执行器或重发 |
-| 接收交接 | src/server/account-manager.ts；src/bridge/forwarding-inbox.ts、inbound-receipts.ts、turn-submission.ts | 来源与附件先保存；提交、已接收、未知、已处理分离；交接串行与运行等待分离；崩溃恢复不能重放未知输入 |
+| 接收交接 | src/server/account-manager.ts；src/bridge/forwarding-inbox.ts、inbound-receipts.ts、turn-submission.ts、native-input-recovery.ts | 来源与附件先保存；提交、已接收、未知、已处理分离；交接串行与运行等待分离；崩溃恢复不能重放未知输入 |
 | 持久状态 | src/state/runtime-state.ts、json-store.ts、paths.ts、config.ts | 账号/会话/主机身份和版本；写前校验、原子保存、落盘失败后的内存一致性；旧格式迁移不扩大权限 |
 | 绑定和主入口 | src/bridge/session-execution.ts、session-follow.ts、interaction-routing.ts；AccountManager 订阅协调 | 精确 account/chat/host/thread 与运行代次；主入口不是模糊目录匹配；旧异步结果、换绑、解绑和 ABA 变化 |
 | 目录/项目/历史 | src/codex/desktop-session-catalog.ts、desktop-session-membership.ts、history-reader.ts；src/bridge/session-catalog-order.ts、project-selection.ts | 完整普通会话目录；项目 assigned/none/unknown 与 cwd 区分；原生 ID/别名/完整根；公开历史与重型读取隔离 |
@@ -23,7 +25,7 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 | 准入/角色 | src/bridge/access.ts、admission.ts；src/channels/principal.ts | 操作者/群/账号不同身份；控制者、参与者、只读访问；个人准入与 IDE 配对；撤销后的旧控件 |
 | 交互 | src/codex/approval.ts、user-input.ts、elicitation.ts、native-async-questions.ts；src/bridge/approval.ts、user-input-controller.ts | 原请求/选项/范围、原路投递；部分答案与兄弟题；提交和原生确认；路线缺失不能代答；超时拒绝仅属已接管本地审批的既定策略 |
 | 恢复 | src/server/capacity-recovery.ts、system-error-recovery.ts；原生 runner 状态重载 | 容量恢复与 systemError 分开；精确失败轮；原生队列/用户输入优先；无提示重发；archive 补偿义务持久化；只读恢复不能伪造新开始 |
-| 进展和结果 | src/server/thread-event-hub.ts；src/channels/turn-presentation.ts、progress.ts、turn-progress-card.ts、result-pages.ts、assistant-presentation.ts | 按轮、阶段、页和卡片实例持久化；流式/终态/加载/停止/复制/IDE 页脚一致；历史不补发成新卡；客户端展示另验 |
+| 进展和结果 | src/server/thread-event-hub.ts；src/channels/turn-presentation.ts、progress.ts、turn-progress-card.ts、result-pages.ts、assistant-presentation.ts | 按轮、阶段、页和卡片实例持久化；流式/终态/加载/停止/复制/IDE 页脚一致；无关历史不补发成新卡；精确恢复义务可补发离线结果，客户端展示另验 |
 | 渠道和网络 | src/channels/dingtalk.ts、feishu.ts、wecom.ts、weixin.ts、client.ts、network-request.ts、network-family.ts | 平台身份、业务回执、附件下载和大小/总时限；IPv4/IPv6 有界重试；卡片未知不能另发文本；微信游标按成功处理范围提交 |
 | IDE | src/ide/manager.ts、project-identity.ts、workspace-scope.ts、endpoint-manager.ts、approval-service.ts、authorization.ts、access-server.ts、installer.ts、tls.ts、remote-ingress.ts | 项目所在主机；完整多根私有 workspace；固定入口与 90 天授权；HTTP/WS 新鲜归属；撤销不可复活；安装/证书/进程独立 |
 | Web UI | src/server/http-server.ts；src/web/ 页面/脚本/样式；src/ide/copy-controls.ts | 保存事实与编辑状态分离；迟到回执只更新原页面/原目标；可选服务不挡主页面；复制不等于提交；静态引用和可访问性 |

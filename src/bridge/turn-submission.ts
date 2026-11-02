@@ -54,11 +54,17 @@ export class TurnSubmission {
     const current = () => { input.assertCurrent?.(); assertCurrent?.(); };
     current();
     this.threadId = input.threadId;
-    this.receipts?.submitting({ sessionId: this.sessionId, hostId: input.hostId ?? "local", threadId: input.threadId });
+    this.receipts?.submitting({ sessionId: this.sessionId, hostId: input.hostId ?? "local", threadId: input.threadId, nativeInput: true });
     this.entered = true;
     try {
       const result = await runner.run({ ...input, assertCurrent: current, clientUserMessageId: this.receipts?.currentId() ?? input.clientUserMessageId,
-        onThreadCreated: async id => { this.threadId = id; await input.onThreadCreated?.(id); },
+        onThreadCreated: async id => {
+          this.threadId = id;
+          // The runner awaits this callback before turn/start. A crash after
+          // native acceptance must still leave a durable thread to inspect.
+          this.receipts?.submitting({ sessionId: this.sessionId, hostId: input.hostId ?? "local", threadId: id, nativeInput: true });
+          await input.onThreadCreated?.(id);
+        },
         onTurnStarted: async turn => {
           this.threadId = turn.threadId; this.turnId = turn.turnId;
           this.receipts?.accepted(turn.threadId, turn.turnId);

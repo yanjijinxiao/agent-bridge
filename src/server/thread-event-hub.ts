@@ -65,6 +65,9 @@ type FollowState = {
   presentationInputBaseline?: string[];
 };
 type Options = {
+  onInputObservation?: (sub: ThreadSubscription, snapshot: CodexThreadSnapshot) => Promise<void>;
+  recoveredInputTurns?: (sub: ThreadSubscription) => readonly string[];
+  onRecoveredInputDelivered?: (sub: ThreadSubscription, turnId: string) => void;
   applyResult?: (sub: ThreadSubscription, turnId: string, text: string) => Promise<string | undefined>;
   decorateFinal?: (sub: ThreadSubscription, text: string) => string | Promise<string>;
   decorateProgress?: (sub: ThreadSubscription, text: string) => string;
@@ -309,6 +312,11 @@ export class ThreadEventHub {
     this.save();
     try {
       const snapshot = await boundedRead(read(), this.options.readTimeoutMs ?? 25_000);
+      if (snapshot.state.threadId !== sub.threadId) throw new Error("Backend returned another thread snapshot");
+      // Acceptance recovery must precede final-result effects and delivery.
+      // The existing serial section below rechecks binding/read generation
+      // after this asynchronous, read-only native observation.
+      await this.options.onInputObservation?.(sub, snapshot);
       return await this.queue.run(sub.key, async () => {
         const current = this.currentSubscription(sub);
         if (this.stopped || !current) return this.changedBinding();
@@ -707,10 +715,16 @@ export class ThreadEventHub {
         { recoverBootstrap: force, confirmUncertainDelivery: options.confirmUncertainDelivery, outcome: state.terminalPending.outcome });
     }
     const { turns } = snapshot;
+    // An exact recovered Gateway receipt is a pending result obligation, not
+    // arbitrary old history. Retain it across a crash before Hub initialization.
+    const recovered = new Set(this.options.recoveredInputTurns?.(sub) ?? []);
+    for (const turnId of recovered) if (state.completed.includes(turnId)) this.options.onRecoveredInputDelivered?.(sub, turnId);
+    state.baseline = state.baseline?.filter(id => !recovered.has(id));
+    state.retired = state.retired?.filter(id => !recovered.has(id));
     if (!state.initialized && ["active", "idle"].includes(snapshot.state.runtimeStatus)) {
       // History replay handles past turns; only current and subsequent turns
       // are forwarded. This boundary is retained across service restarts.
-      state.baseline = turns.filter((turn) => turn.status !== "inProgress" && turn.id !== state.turnId).map((turn) => turn.id);
+      state.baseline = turns.filter((turn) => turn.status !== "inProgress" && turn.id !== state.turnId && !recovered.has(turn.id)).map((turn) => turn.id);
       state.initialized = true;
       this.save();
     }
@@ -750,7 +764,7 @@ export class ThreadEventHub {
         // completed/interrupted even while Desktop is still executing them.
         // Only a loaded runtime or an explicit lifecycle event can end a card.
         if (snapshot.state.runtimeStatus === "notLoaded" || snapshot.state.runtimeStatus === "unknown") continue;
-        if (turn.id !== state.turnId && !afterFollowBoundary(turn, turns, boundary)) continue;
+        if (turn.id !== state.turnId && !recovered.has(turn.id) && !afterFollowBoundary(turn, turns, boundary)) continue;
         if (turn.status === "failed" && snapshot.state.lastTurnFailure?.turnId === turn.id
           && snapshot.state.lastTurnFailure.code === "model-capacity"
           && this.options.onCapacityFailure?.({ hostId: sub.hostId, threadId: sub.threadId, turnId: turn.id })) continue;
@@ -1261,6 +1275,7 @@ export class ThreadEventHub {
     state.sequence++;
     this.logDelivery(sub, turnId, "delivered");
     this.save();
+    this.options.onRecoveredInputDelivered?.(sub, turnId);
     // An ancillary reminder must not hold the progress/control serial queue.
     void this.notifyParticipants(sub, turnId);
   }

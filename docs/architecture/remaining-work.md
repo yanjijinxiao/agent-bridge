@@ -4,6 +4,8 @@
 
 ## 已完成的近期工作
 
+- IN-02.2：已修复普通原生输入在accept/fsync之间骤停后长期未知，以及首次新线程离线完成时被历史baseline吞掉结果。6种真实SIGKILL与13项边界通过；完整根回归2718通过、1项Windows专用跳过。[实际失败、修复与范围](../audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md)。
+
 - CHAN-03.7/8：飞书文件/视频和企微出站媒体端口、独立上传/消息回执及动作日志重启去重；飞书原始业务状态在SDK解码前核对。真实账号/手机仍待验收。
 
 - CTRL-03.3：新增8项终态/原卡/新轮次与正常执行联合检查，相关136项通过；对象重建和真实进程骤停的区别仍保留。见[联合检查记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md)。
@@ -42,7 +44,7 @@
 
 | 顺序 | 职责与入口 | 剩余工作 | 可以确认完成的依据 |
 | --- | --- | --- | --- |
-| 1 | 原生交接、恢复与控制：IN-02、CTRL-02、CTRL-03、REL-01、TB-09.6 | accept/fsync间骤停、并发queue、已投递终态迟到接收、未知workflow交接恢复 | 原精确host/thread/turn和输入次数、持久回执及原卡投递均有联合断言；历史偶发原因另有证据 |
+| 1 | 原生交接、恢复与控制：IN-02、CTRL-02、CTRL-03、REL-01、TB-09.6 | queue/其他交接accept/fsync间骤停、并发queue、无原身份的遗留记录、未知workflow交接恢复 | 原精确host/thread/turn和输入次数、持久回执及原卡投递均有联合断言；历史偶发原因另有证据 |
 | 2 | 授权及交互：AUTH-02、INT-02、INT-03、INT-04、REC-02 | 最后写前撤权/换绑、多管理员/IM/Web竞争、决定写入后丢确认 | 原请求/来源只提交一次，未知不重放；各异步边界分别有反例与正常对照 |
 | 3 | 更新与IDE部署：UpdateManager、IDE installer | npm隔离准备/激活/回退、Linux ARM64制品及安装 | 旧制品和状态保留、失败可恢复；真实目标平台制品/ABI核验，不由下载替身代替 |
 | 4 | 渠道与工作流：CHAN、TB-10.3 | 企微原生@/入站媒体，33kind执行/授权/结果与失败恢复 | 渠道能力与真实端口一致；每kind有执行及回执，配置可保存不当作执行完成 |
@@ -85,7 +87,7 @@
 ### IN-02 · 可靠接收与持久交接
 
 - IN-02.1：真实隔离子进程骤停和durable inbox恢复，派发后端替身；不证明供应商全部重投窗口。
-- IN-02.2：真实持久记录/恢复和落盘故障；后端回执由fixture触发，未模拟真实服务在accept与fsync之间骤停。
+- IN-02.2：已测：真实原生0.166.0核心、本机受控模型、Gateway独立子进程及确认回执IM替身：已有/新线程×执行中/离线完成4种，恢复accepted写前及写后Hub接管前再次SIGKILL共6种；核心PID、原client/thread/turn不变，真实输入、最终结果和记忆各一次，再次重连不重复。13个边界测试覆盖分页/身份/错误/落盘/退休/换绑/新轮次并存。 仍缺：不涵盖任意CPU指令间隙、主机断电、真实SSH/供应商回执/手机显示、原生队列及workflow交接全部交错。缺原thread ID、client ID缺失、重复或分页超预算的旧记录保持未知，不自动重放。
 
 ### IN-03 · 未知前序不永久阻塞
 
@@ -168,7 +170,7 @@
 ### CTRL-03 · 队列恢复和取消
 
 - CTRL-03.1：已测：真实文件journal重建配合后端替身：add丢ACK按client ID找回queued，已消费项跨历史分页按ID转running/completed，只有相似正文但无ID匹配则uncertain；add总数不增加，未知项不dispatch。 仍缺：没有真实原生accept/consume与Gateway落盘之间的进程骤停、多客户端并发队列及其全部恢复交错；文件对象重建不能替代这组验证。
-- CTRL-03.3：已测：既有runner三终态事件断言，加真实NativeQueueCoordinator/Bridge/原生facade/AccountManager/Hub/渠道能力层与磁盘日志联合验证：completed/failed/interrupted×有无新轮次共6组合，管理器重建两次不新建/覆盖卡、不重发原生add/start、不短暂标active；原生仍运行的矛盾状态不结算，正常pending输入仍开一张卡并最终投递一次。显式触发recover入口，原生API、渠道传输及无关后台monitor为替身，不验证5秒自动调度。 仍缺：已补管理器/投递日志的联合边界，但没有真实Gateway进程在accept/fsync间被杀、真实原生服务与供应商发送的全部交错、真实手机呈现；对象重建不冒充进程骤停。
+- CTRL-03.3：已测：既有runner三终态事件断言，加真实NativeQueueCoordinator/Bridge/原生facade/AccountManager/Hub/渠道能力层与磁盘日志联合验证：completed/failed/interrupted×有无新轮次共6组合，管理器重建两次不新建/覆盖卡、不重发原生add/start、不短暂标active；原生仍运行的矛盾状态不结算，正常pending输入仍开一张卡并最终投递一次。显式触发recover入口，原生API、渠道传输及无关后台monitor为替身，不验证5秒自动调度。 仍缺：该队列case尚无真实Gateway进程在queue接收/fsync间被杀、供应商发送全部交错与手机呈现；对象重建不冒充进程骤停。普通输入的6种真实SIGKILL另见IN-02.2，不外推为队列验证。
 
 ### CTRL-04 · 停止及目标身份
 

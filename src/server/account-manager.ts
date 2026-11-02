@@ -24,6 +24,7 @@ import { SessionControlJournal, SessionControlQueue } from "../bridge/session-co
 import { TurnAudienceJournal } from "../bridge/turn-audience.js";
 import { NativeQueueCoordinator } from "../bridge/native-queue.js";
 import { InboundReceiptJournal } from "../bridge/inbound-receipts.js";
+import { findNativeInputReceipts } from "../bridge/native-input-recovery.js";
 import { ForwardingInbox, type ForwardingTarget } from "../bridge/forwarding-inbox.js";
 import { ForwardingDeferredError } from "../bridge/forwarding-error.js";
 import { parseCommand } from "../bridge/channel-commands.js";
@@ -323,6 +324,7 @@ export class AccountManager {
   private readonly stores = new Map<string, RuntimeStateStore>();
   private readonly inputReceipts = new Map<string, InboundReceiptJournal>();
   private readonly forwardingInboxes = new Map<string, ForwardingInbox>();
+  private readonly nativeInputRecoveries = new Map<string, { owner: RuntimeEntry; task: Promise<void> }>();
   private readonly respondingSessions = new Map<string, number>();
   private readonly webRestartWork = new RestartWork();
   private readonly resultRestartWork = new RestartWork();
@@ -386,6 +388,16 @@ export class AccountManager {
     this.nativeQueue = new NativeQueueCoordinator(path.join(options.paths.runtimeDir, "native-submissions.json"));
     migrateCardBootstrap(options.paths);
     this.threadEvents = new ThreadEventHub({
+      onInputObservation: sub => {
+        const [accountId] = JSON.parse(sub.key) as string[];
+        return this.recoverNativeInputs(accountId, sub.hostId, sub.threadId);
+      },
+      recoveredInputTurns: sub => this.recoveredInputsFor(sub).map(receipt => receipt.turnId!),
+      onRecoveredInputDelivered: (sub, turnId) => {
+        const [accountId] = JSON.parse(sub.key) as string[];
+        for (const receipt of this.recoveredInputsFor(sub).filter(receipt => receipt.turnId === turnId))
+          this.inputReceipts.get(accountId)?.recoveredResultDelivered(receipt);
+      },
       applyResult: (sub, turnId, text) => this.applyNativeResult(sub, turnId, text),
       legacyQueueTerminal: (sub, turnId) => {
         const [accountId, sessionId] = JSON.parse(sub.key) as string[];
@@ -1770,6 +1782,57 @@ export class AccountManager {
       projectBinding: session.projectBinding, mode: store.getInteractionMode(conversation), roots: [...project?.rootPaths ?? []].sort() };
   }
 
+  /** Reconcile source facts with the original native core, never dispatch input.
+   * Shared by inbox recovery and result observation so completed output cannot
+   * outrun its recovered authority to apply attachments/memories exactly once. */
+  private async recoverNativeInputs(accountId: string, hostId: string, threadId: string): Promise<void> {
+    const owner = this.entries.get(accountId);
+    const live = () => Boolean(owner?.service && this.entries.get(accountId) === owner && !owner.controller?.signal.aborted
+      && ["starting", "running"].includes(owner.status) && !this.stoppingAll && !this.runtimeConfigurationChanging && !this.releaseOwner);
+    if (!owner || !live()) return;
+    const key = JSON.stringify([accountId, hostId, threadId]), previous = this.nativeInputRecoveries.get(key);
+    if (previous?.owner === owner) return previous.task;
+    const journal = this.receiptsFor(accountId), inbox = this.forwardingInboxes.get(accountId);
+    const candidates = Object.values(journal.snapshot()).filter(receipt => {
+      if (!["submitting", "unconfirmed"].includes(receipt.phase) || !receipt.sessionId || receipt.queuedSubmissionId
+        || (receipt.hostId ?? "local") !== hostId || receipt.threadId !== threadId) return false;
+      if (receipt.nativeInput) return true;
+      // Old receipts did not distinguish turns from controls/queue/steer. Only
+      // their durable ordinary IM source can supply that missing classification.
+      const source = inbox?.sourceFor(receipt.clientUserMessageId);
+      return Boolean(source && source.senderId === receipt.actorId
+        && (source.replyTargetId ?? source.senderId) === receipt.conversationId
+        && !source.source && !source.interaction && !parseCommand(source.text));
+    });
+    if (!candidates.length) return;
+    const task = (async () => {
+      const proofs = await findNativeInputReceipts(this.runnerFor(this.configProvider()), { hostId, threadId },
+        new Set(candidates.map(receipt => receipt.clientUserMessageId)));
+      // A stopped/replaced owner or release may retire this read while in
+      // flight. It holds no restart lease and may not write through retirement.
+      if (!live() || this.inputReceipts.get(accountId) !== journal) return;
+      for (const expected of candidates) {
+        const turnId = proofs.get(expected.clientUserMessageId); if (!turnId) continue;
+        if (journal.recoverAccepted(expected, { hostId, threadId, turnId })) continue;
+        const current = journal.snapshot()[expected.clientUserMessageId.slice("gateway-".length)];
+        if (current && ["submitting", "unconfirmed"].includes(current.phase))
+          throw Error("Native acceptance recovery deferred until the current handoff is settled");
+      }
+    })();
+    const observation = { owner, task }; this.nativeInputRecoveries.set(key, observation);
+    try { await task; }
+    finally { if (this.nativeInputRecoveries.get(key) === observation) this.nativeInputRecoveries.delete(key); }
+  }
+
+  private recoveredInputsFor(sub: ThreadSubscription) {
+    const [accountId, sessionId] = JSON.parse(sub.key) as string[];
+    const entry = this.entries.get(accountId);
+    if (this.stoppingAll || this.runtimeConfigurationChanging || this.releaseOwner || !entry?.service || entry.controller?.signal.aborted) return [];
+    return Object.values(this.inputReceipts.get(accountId)?.snapshot() ?? {}).filter(receipt => receipt.phase === "accepted"
+      && receipt.recoveredNativeInput && receipt.sessionId === sessionId && (receipt.hostId ?? "local") === sub.hostId
+      && receipt.threadId === sub.threadId && receipt.conversationId === sub.recipientId && receipt.turnId);
+  }
+
   private forwardingFor(accountId: string): ForwardingInbox {
     let inbox = this.forwardingInboxes.get(accountId); if (inbox) return inbox;
     inbox = new ForwardingInbox({ filePath: path.join(this.options.paths.runtimeDir, accountId, "forwarding-inbox.json"),
@@ -1786,6 +1849,8 @@ export class AccountManager {
           || command.name === "queue" && Boolean(command.arg.trim()) && !/^(?:list|cancel)(?:\s|$)/i.test(command.arg.trim());
       },
       dispatch: message => this.dispatchChannelMessage(accountId, message),
+      reconcile: receipt => receipt.threadId
+        ? this.recoverNativeInputs(accountId, receipt.hostId ?? "local", receipt.threadId) : Promise.resolve(),
       notice: async (message, text) => {
         const entry = this.entries.get(accountId); if (!entry?.client) throw Error("Forwarding notice channel unavailable");
         await this.sendChannelText(entry, { recipientId: message.replyTargetId ?? message.senderId, text,

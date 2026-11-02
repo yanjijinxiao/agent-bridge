@@ -2,6 +2,8 @@
 
 RuntimeStateStore 是一个账号状态文件的内存写入者。账号启停、来源运行代次和资源属于 AccountManager；状态库不决定 Codex 执行终态。JSON 文件、交接 journal、原生数据库各有自己的事实，不能互相覆盖。
 
+普通输入崩溃恢复在既有来源journal增加可选nativeInput/recoveredNativeInput事实字段，不改版本或重建去重历史。accepted恢复须精确比较原记录，追加/fsync成功后才清理正文；恢复失败回滚内存。recoveredNativeInput且phase=accepted表示尚待结果日志确认的义务，Hub保存投递事实后才记handled；两个文件间的进程崩溃由既有事实补结算，不用重发输入补偿。
+
 ## 保存与迁移
 
 json-store 使用同目录私有临时文件、完整写入及原子 rename；要求 durable 的 journal 另做 fsync。RuntimeStateStore 保存前检查文件 revision；外部修改使旧快照刷新并拒绝当前旧写，不能覆盖别人的管理变更。磁盘提交失败重载已保存内容，调用者不得把抛错前的内存改动当作已生效。

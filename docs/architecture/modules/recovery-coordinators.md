@@ -2,6 +2,8 @@
 
 恢复协调器只处理已核对的原生失败。它不接管普通输入、不重新发送旧提示、不用换模型或换执行器掩盖故障。SystemErrorRecovery 与 CapacityRecovery 分开保存事实，不能用同一个“失败”状态推导两种操作。
 
+普通输入“原生已接收、Gateway回执未落盘”的恢复不属于上述失败协调器；它由来源journal、AccountManager只读核对和Hub结果日志处理，不启动推理。6种真实SIGKILL场景与边界见[普通输入恢复记录](../../audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md)。恢复读不挡Gateway发布，结果发送仍按原通道交接保护。
+
 ## 系统状态重载
 
 真实入口：AccountManager 的原生状态观察/提交前检查 → SystemErrorRecoveryCoordinator.request → AppServerCodexRunner.recoverSystemError。scope 是 host/thread/failedTurn 三元组，不能按工作目录或群名归并。新的输入、换绑、执行代次变化及未知提交会使旧 guard 失效。

@@ -1,10 +1,12 @@
 # 四层复核记录
 
-当前结论从[架构入口](../../architecture/README.md)、[剩余清单](../../architecture/remaining-work.md)和[文档校准记录](2026-11-02-documentation-reconciliation.md)读取。当前310case全部有映射，204项仅在列明边界通过、106项部分覆盖；13项原缺少验证边界的记录已补清，状态仍为partial。最近业务版本afbd2d2的发布检查为2691通过、1项Windows专用跳过。
+当前结论从[架构入口](../../architecture/README.md)、[剩余清单](../../architecture/remaining-work.md)和[文档校准记录](2026-11-02-documentation-reconciliation.md)读取。当前310case全部有映射，204项仅在列明边界通过、106项部分覆盖；13项原缺少验证边界的记录已补清，状态仍为partial。本轮普通输入真实崩溃恢复的完整根检查2718通过、1项Windows专用跳过；部署版本以发布manifest为准。此前afbd2d2的2691/1检查是上次发布。
 
 本目录保存各阶段的历史发现、原失败、夹具问题及当时计数。下文主体、review-conclusions.md与旧补测报告均为历史快照，不能作为当前上线状态；当前文件/测试散列与读取范围由只读check-audit-evidence.mjs核对。业务版本、文档提交、平台接收和手机显示分别验收。
 
 后续[CTRL-03.3联合检查](2026-11-02-queue-delivery-integration.md)补8项场景，相关136项通过；partial仍保留。原生API/渠道传输为替身，管理器对象重建不等于真实进程骤停。
+
+后续[真实崩溃恢复](2026-11-02-native-crash-recovery.md)修复两个实际缺口，新增6种真实原生/Gateway进程SIGKILL与13项边界；没有把本轮差异复核说成再次完整通读全仓。
 
 ## 首次与持续审查历史快照（以下非当前状态）
 

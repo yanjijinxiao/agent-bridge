@@ -59,6 +59,10 @@ inbox 只对仍活跃的接收前交接保序。已结束但未知的旧记录�
 
 SessionControlJournal 对 accepted 或未知记录均禁止重新调用同一来源。NativeQueueCoordinator 通过原生 clientUserMessageId、queue ID、turn ID 恢复；在队列或历史中“没找到”只得到 uncertain，不得到未执行。旁路历史终态不能覆盖实际执行者仍运行的事实。
 
+普通输入的真实崩溃恢复由AccountManager.recoverNativeInputs和native-input-recovery共同完成。TurnSubmission在新建thread后、turn/start前持久补上thread ID；恢复只读取原host/thread，完整分页精确clientUserMessageId唯一对应turn后才CAS更新accepted并清理inbox。读取不占转发/重启锁，已停止或替换的账号不接受迟到更新。旧普通来源可补足类型，旧queue/控制或缺thread身份不猜测。
+
+恢复accepted还保存recoveredNativeInput结果义务。Hub在处理结果前核对输入，按同一session/host/thread/conversation排除历史baseline误吞已离线完成的首次结果；不会据此重放无关历史或覆盖新的活动轮。Hub持久保存最终投递后才结算该义务为handled，二次崩溃根据原投递记录继续。结果附件/记忆动作沿用共用动作日志去重。
+
 ## 持久化和故障
 
 来源 journal 使用 append + fsync，提交标记落盘失败禁止派发；尾部不完整 append 截断到上一个完整记录，保留旧 accepted/submitting。持久化 transition 失败恢复内存旧值，不能让内存的成功比磁盘更强。坏版本或结构拒绝读取并保留原文件，不静默重建空去重记录。
@@ -71,12 +75,12 @@ inbox 使用私有权限的原子文件，保留规范化正文与附件描述�
 
 | 功能契约 | 直接检查 | 仍不代表 |
 | --- | --- | --- |
-| IN-02.1 至 IN-02.3 | forwarding-inbox、inbound-receipts 的真实文件、落盘故障与隔离子进程骤停 | 所有供应商重投窗口、真实服务接收与 fsync 间骤停 |
+| IN-02.1 至 IN-02.3 | 真实文件与落盘故障；native-input-crash-recovery在真实原生接收与accepted append之间SIGKILL，6种已有/新线程、离线完成及再次崩溃场景 | 所有供应商重投窗口、主机断电或任意指令间隙 |
 | IN-02.6 | attachment-source-binding：9 种准备等待 × 正常/换绑；重开真实 journal；另有本地命令已写入而回复丢失的对照 | 真实网络/App Server 中每一种断连时序 |
 | IN-03 | 活交接保序、未知记录跨重启保留、不阻塞后续输入 | 所有最终卡片慢投递组合 |
 | BIND 及控制 case | 准入/角色/绑定的独立 source-guard 测试；具体映射看需求清单 | 每个异步入口已覆盖所有降权、ABA 和多账号组合 |
 
-窄场景使用真实 Bridge、状态文件和 journal，原生修改为替身；未把测试调用计数说成真实 Codex 写入。完整测试名和源码散列见 gateway-requirements.json。
+多数窄场景的原生修改为替身；上述6种崩溃场景使用真实原生0.166.0核心和Gateway子进程，本机模型及IM端口为替身。完整测试名和源码散列见gateway-requirements.json与[恢复记录](../../audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md)。
 
 ## 未解决的设计与验证边界
 

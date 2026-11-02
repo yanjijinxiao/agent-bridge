@@ -63,18 +63,20 @@
 | 进行中及心跳卡保留 IDE 链接；远端重连不删除固定入口 | IDE-01、IDE-09.4 | [IDE访问](modules/ide-access.md)、[结果与渠道](modules/delivery-channels.md) |
 | IDE前置核验超时明确未批准；不改任务或绑定 | IDE-05.4 | [IDE访问](modules/ide-access.md) |
 | 单一原生App Server、续聊权限继承、Taskboard共用原生执行与目录 | NATIVE-02.5、TB-04.2/.4 | [原生协议](modules/native-protocol.md)、[Taskboard执行](modules/taskboard-native-execution.md) |
+| 原生接收与回执落盘间真实崩溃，精确恢复接收与离线完成的结果，不重发 | IN-02.2 | [接收交接](modules/inbound-forwarding.md)、[恢复记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md) |
 | 重启仅保护实际消息交接；已接收任务继续，既有远端重连不锁重启 | REL-01.9、REL-02.5 | [发布与重启](modules/release-lifecycle.md) |
 | systemError恢复、容量只读对账不阻塞重启或重放原输入 | REC-01.4、REC-02.4 | [恢复协调](modules/recovery-coordinators.md) |
 | /stop独立复制框、连续卡片更新、分段后最终@与IDE归属 | DEL-10.1、DEL-09.3、DEL-08.4 | [结果与渠道](modules/delivery-channels.md) |
 | Web区分执行完成与答复待投递；审批漏重放与可信问题快照 | DEL-01.3、INT-02.1/.2 | [管理UI](modules/management-ui.md)、[原生交互](modules/native-interactions.md) |
 | 原28项补测、精确断言和剩余范围；33种流程节点的配置与执行边界 | AUDIT-01、TB-10.3 | [审查方法](modules/audit-method.md)、[节点对照](taskboard-node-contracts.md) |
 
-功能总文档主清单与需求JSON的310个case身份和场景文本同步。精选函数合同只覆盖已登记的140个函数，不代表仓库所有函数均已逐个验收。
+功能总文档主清单与需求JSON的310个case身份和场景文本同步。精选函数合同只覆盖已登记的151个函数，不代表仓库所有函数均已逐个验收。
 
 ## 当前检查点与历史来源
 
-业务源码基准为已上线的afbd2d2。最近的业务发布检查为2691项通过、1项Windows专用跳过；文档校准本身不新增运行验收；后续CTRL-03.3的8项联合场景及相关136项检查另见下列记录。原生workflow未知交接、真实SSH/手机联调、33种工作流节点执行等仍在剩余清单中。
+本轮普通输入真实崩溃恢复新增19项检查；完整根回归2718通过、1项Windows专用跳过，精选函数合同151项。推送、准备制品与实际运行版本分别按发布manifest核验；此前业务版本afbd2d2及其2691/1检查属于上次发布。CTRL-03.3的联合场景另见下列记录。原生workflow未知交接、真实SSH/手机联调、33种工作流节点执行等仍在剩余清单中。
 
+- [真实崩溃恢复](../audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md)：先复现两个真实缺口，再验证6种SIGKILL与13项边界，IN-02.2仍保留未测范围。
 - [队列终态与原卡投递联合检查](../audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md)：三终态×有无新轮次、两次管理器重建、原生仍运行冲突与正常执行。
 - [文档与13项验证边界校准](../audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md)：当前索引、状态汇总、原生/Taskboard职责及每项已测/未测。
 - [渠道媒体适配记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-feishu-wecom-media.md)：飞书文件/MP4视频、企微出站图片/文件/视频及实际SDK与真实平台的区别。
