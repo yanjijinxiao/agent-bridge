@@ -15,9 +15,15 @@ export async function isolatedBrowser(t: TestContext, root: string) {
   const child = spawn(process.env.CODEX_CHROME_TEST_BIN!, ["--headless=new", "--no-first-run", "--disable-sync", "--disable-extensions",
     "--disable-background-networking", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"], { stdio: "ignore" });
   let socket: WebSocket | undefined;
-  t.after(async () => { socket?.close(); if (child.exitCode === null && !child.signalCode) await new Promise<void>(resolve => {
-    child.once("exit", () => resolve()); child.kill(); const timer = setTimeout(() => child.kill("SIGKILL"), 2000); timer.unref(); child.once("exit", () => clearTimeout(timer));
-  }); });
+  let closing: Promise<void> | undefined;
+  const close = () => closing ??= (async () => {
+    socket?.close();
+    if (child.exitCode === null && !child.signalCode) await new Promise<void>(resolve => {
+      child.once("exit", () => resolve()); child.kill();
+      const timer = setTimeout(() => child.kill("SIGKILL"), 2000); timer.unref(); child.once("exit", () => clearTimeout(timer));
+    });
+  })();
+  t.after(close);
   const port = await eventually(() => { try { return Number(fs.readFileSync(path.join(profile, "DevToolsActivePort"), "utf8").split("\n")[0]); } catch { return 0; } }, "Chrome did not start");
   const tabs = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json() as any[];
   socket = new WebSocket(tabs.find(tab => tab.type === "page").webSocketDebuggerUrl);
@@ -31,5 +37,5 @@ export async function isolatedBrowser(t: TestContext, root: string) {
   await call("Runtime.enable"); await call("Page.enable");
   const evaluate = async <T = any>(expression: string): Promise<T> => { const value = await call("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
     if (value.exceptionDetails) throw Error(value.exceptionDetails.exception?.description ?? value.exceptionDetails.text); return value.result?.value; };
-  return { call, evaluate };
+  return { call, evaluate, close };
 }

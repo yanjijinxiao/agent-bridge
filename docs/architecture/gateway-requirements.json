@@ -350,7 +350,7 @@
             },
             {
               "file": "taskboard/server/ai-chat.mjs",
-              "sha256": "c9050b0de9921bfcac64cd7e6a57c897b5754300e4ac97e864ab1b783d2a37c8"
+              "sha256": "cfba0f2380e7f1fb35dbba9b4b13f6fd65a749f32142e174ae4812e0a9d178ca"
             }
           ],
           "tests": [
@@ -4828,7 +4828,7 @@
             },
             {
               "file": "taskboard/server/ai-chat.mjs",
-              "sha256": "c9050b0de9921bfcac64cd7e6a57c897b5754300e4ac97e864ab1b783d2a37c8"
+              "sha256": "cfba0f2380e7f1fb35dbba9b4b13f6fd65a749f32142e174ae4812e0a9d178ca"
             }
           ],
           "tests": [
@@ -8761,7 +8761,7 @@
             },
             {
               "file": "src/taskboard/client.ts",
-              "sha256": "8998e91ee59d4afd42cd1553b479ecab81ecd9d956402c168db82f507394f51a"
+              "sha256": "26f93db685041afcfb0fbadd467e801d3df0e7b0276970873695814f233c6107"
             }
           ],
           "verifiedBoundary": "真实Bridge/TaskboardClient/state+fetch替身与临时文件；21个给定组合，不证明真实服务事务接收未知时的幂等、部分附件补偿或workflow运行全程权限。"
@@ -9548,7 +9548,7 @@
           "implementation": [
             {
               "file": "taskboard/server/ai-chat.mjs",
-              "sha256": "c9050b0de9921bfcac64cd7e6a57c897b5754300e4ac97e864ab1b783d2a37c8"
+              "sha256": "cfba0f2380e7f1fb35dbba9b4b13f6fd65a749f32142e174ae4812e0a9d178ca"
             },
             {
               "file": "taskboard/server/ai-chat-process.mjs",
@@ -9696,6 +9696,41 @@
             }
           ],
           "verifiedBoundary": "Chrome生产组件+真实HTTP/SQLite；运行/完成/重开/删除/内容和附件变更/事务失败。未知不自动POST，手动结束核对会明确提示新发送是新输入。"
+        },
+        {
+          "id": "TB-02.8",
+          "scenario": "原生已接收任务的观察临时断连后，不依赖页面轮询，按原thread/turn自动重新观察；暂停/关闭停止重试，不重发原输入。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "taskboard/test/ai-chat-runner.test.mjs",
+              "name": "accepted native observation retries a transient disconnect without a UI poll or another input"
+            },
+            {
+              "file": "taskboard/test/ai-chat-runner.test.mjs",
+              "name": "native observation retry stops while paused or closed and resumes only on the same accepted task"
+            },
+            {
+              "file": "test/taskboard-native-integration.test.ts",
+              "name": "Taskboard restart detaches observation, restores the exact accepted run and never repeats input"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "taskboard/server/ai-chat.mjs",
+              "sha256": "cfba0f2380e7f1fb35dbba9b4b13f6fd65a749f32142e174ae4812e0a9d178ca"
+            },
+            {
+              "file": "src/codex/app-server-gateway.ts",
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
+            }
+          ],
+          "confirmedFailure": "发布前真实隔离原生接续出现一次超时；单独复跑通过。另用首次runQueuedSubmission断连且无UI轮询稳定复现持续running，原实现4秒超时失败。",
+          "verifiedBoundary": "确定性断连由共享native fixture注入，第二次只观察同thread/turn且模型输入仍一次；暂停/关闭停止后续观察。真实隔离原生核心的重启场景另有直接测试。未完整捕获发布前那次真实超时的所有触发时序，不外推所有断连组合。"
         }
       ]
     },
@@ -10014,7 +10049,7 @@
             },
             {
               "file": "taskboard/server/ai-chat.mjs",
-              "sha256": "c9050b0de9921bfcac64cd7e6a57c897b5754300e4ac97e864ab1b783d2a37c8"
+              "sha256": "cfba0f2380e7f1fb35dbba9b4b13f6fd65a749f32142e174ae4812e0a9d178ca"
             },
             {
               "file": "taskboard/server/issue-automation.mjs",
@@ -10116,7 +10151,7 @@
           "implementation": [
             {
               "file": "src/taskboard/client.ts",
-              "sha256": "8998e91ee59d4afd42cd1553b479ecab81ecd9d956402c168db82f507394f51a"
+              "sha256": "26f93db685041afcfb0fbadd467e801d3df0e7b0276970873695814f233c6107"
             },
             {
               "file": "taskboard/server/cloud-proxy.mjs",
@@ -10461,6 +10496,10 @@
             {
               "file": "taskboard/test/task-submissions.test.mjs",
               "name": "receipt persistence failure rolls back the business mutation and migration preserves accepted identities"
+            },
+            {
+              "file": "test/taskboard-im-receipts.test.ts",
+              "name": "IM state mutation with a lost accepted response remains uncertain and recovers without false conflict or repeated evidence"
             }
           ],
           "implementation": [
@@ -10478,11 +10517,11 @@
             },
             {
               "file": "src/bridge/taskboard-channel-submit.ts",
-              "sha256": "0d57f82490f3d1fdbfb080dccaaf86009979d23d252c63b59ee923562980763c"
+              "sha256": "4dda403e67d5f047d47afb18cf8d69f5a38292be33693f2000de1e00f86a1a40"
             },
             {
               "file": "src/taskboard/client.ts",
-              "sha256": "8998e91ee59d4afd42cd1553b479ecab81ecd9d956402c168db82f507394f51a"
+              "sha256": "26f93db685041afcfb0fbadd467e801d3df0e7b0276970873695814f233c6107"
             },
             {
               "file": "taskboard/server/app.mjs",
@@ -10510,7 +10549,7 @@
             }
           ],
           "confirmedFailure": "2026-11-02实际Bridge→TaskboardChannelController→TaskboardClient，隔离HTTP替身先保存Task再丢响应；相同表单request_id重试，观测2次POST、2条Task，未传服务端幂等键。未连接真实Taskboard或发送IM消息。",
-          "verifiedBoundary": "原失败反例保留在confirmedFailure作为历史。现以真实Bridge/Controller/Client→隔离HTTP/SQLite，在服务端提交后丢响应；同表单重试及Gateway/Taskboard双重启后均仅1次创建POST、1条Task。SQLite/D1直接覆盖并发创建/评论/状态事务去重、异载荷与异actor拒绝、失败CAS无回执、实体删除后保留接受证据；注入回执INSERT失败验证业务回滚，导出/导入D1保留原回执。未连接真实IM/真实云或模拟真实电源掉电。"
+          "verifiedBoundary": "原失败反例保留在confirmedFailure作为历史。现以真实Bridge/Controller/Client→隔离HTTP/SQLite，在服务端提交后丢响应；同表单重试及Gateway/Taskboard双重启后均仅1次创建POST、1条Task。SQLite/D1直接覆盖并发创建/评论/状态事务去重、异载荷与异actor拒绝、失败CAS无回执、实体删除后保留接受证据；注入回执INSERT失败验证业务回滚，导出/导入D1保留原回执。未连接真实IM/真实云或模拟真实电源掉电。 只有明确HTTP409/VERSION_CONFLICT反馈旧卡片未执行；丢失已接受状态响应后不误报冲突，重试只读恢复且证据评论一次。"
         },
         {
           "id": "TB-09.6",

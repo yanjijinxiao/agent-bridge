@@ -289,9 +289,18 @@ export class TaskboardClient {
   }
 }
 
+export class TaskboardHttpError extends Error {
+  readonly name = "TaskboardHttpError";
+  constructor(readonly status: number, text: string, readonly code?: string) {
+    super(`Taskboard request failed (${status}): ${text}`);
+  }
+}
+
 async function taskboardHttpError(response: Response): Promise<Error> {
   const text = (await response.text()).slice(0, 1_000);
-  return new Error(`Taskboard request failed (${response.status}): ${text || response.statusText}`);
+  let code: string | undefined;
+  try { const value = JSON.parse(text); if (typeof value.error?.code === "string") code = value.error.code; } catch { /* Non-JSON errors retain their HTTP status. */ }
+  return new TaskboardHttpError(response.status, text || response.statusText, code);
 }
 
 function contentTypeFor(filename: string): string {

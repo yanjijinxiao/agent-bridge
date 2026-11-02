@@ -39,6 +39,7 @@ export class AiChatService {
     this.active = new Map();
     this.listeners = new Map();
     this.completions = new Map();
+    this.recoveryTimer = undefined;
   }
 
   listThreads() {
@@ -299,7 +300,7 @@ export class AiChatService {
         if (active.needsInteractionRefresh && !active.refreshingInteractions && active.observer) {
           active.needsInteractionRefresh = false; active.refreshingInteractions = true;
           void this.nativeBackend.observeThreadInteractions(active.receipt.nativeThreadId, "local", active.observer, "taskboard")
-            .catch(() => { if (!this.closed) active.needsInteractionRefresh = true; })
+            .catch(() => { if (!this.closed) { active.needsInteractionRefresh = true; this.#scheduleRecovery(); } })
             .finally(() => { active.refreshingInteractions = false; });
         }
         continue;
@@ -311,6 +312,19 @@ export class AiChatService {
       }
       this.#startNative(run, receipt);
     }
+  }
+
+  /** Reconnect observation independently of a UI poll. Recovery carries only
+   * the persisted native/client identity; it never resubmits the original input. */
+  #scheduleRecovery() {
+    if (this.closed || this.paused || this.recoveryTimer) return;
+    this.recoveryTimer = setTimeout(() => {
+      this.recoveryTimer = undefined;
+      if (!this.closed && !this.paused) {
+        try { this.recover(); } catch { this.#scheduleRecovery(); }
+      }
+    }, 1000);
+    this.recoveryTimer.unref?.();
   }
 
   #activity(run, activity) {
@@ -464,6 +478,7 @@ export class AiChatService {
       } finally {
         if (this.active.get(run.id) === record) this.active.delete(run.id);
         this.completions.delete(run.id);
+        if (!this.closed && this.database.getAiChatRun(run.id)?.status === "running") this.#scheduleRecovery();
       }
     })();
     this.completions.set(run.id, completion);
@@ -497,6 +512,7 @@ export class AiChatService {
 
   async close() {
     this.closed = true;
+    clearTimeout(this.recoveryTimer); this.recoveryTimer = undefined;
     for (const item of this.pendingInteractions.values()) item.resolve(undefined);
     this.pendingInteractions.clear();
     this.listeners.clear();
@@ -505,7 +521,7 @@ export class AiChatService {
     if (this.ownsBackend) await this.nativeBackend.close();
   }
 
-  pauseForRestart() { this.paused = true; }
+  pauseForRestart() { this.paused = true; clearTimeout(this.recoveryTimer); this.recoveryTimer = undefined; }
   resumeAfterCancelledRestart() { this.paused = false; this.recover(); }
 
   #resolveModel(catalog, requestedModel) {

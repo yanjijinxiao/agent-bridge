@@ -34,8 +34,12 @@ test("isolated production Gateway browser gap scenarios", { skip: !process.env.C
     codexCheck: async () => ({ ready: true, version: "fixture" }), codexRuntimeCheck: async () => ({}) as never,
     codexModelsCheck: async () => [], codexProjectsProvider: () => [] };
   let server = await startLocalHttpServer(options);
-  t.after(async () => { await server.close(); await manager.stopAll(); await lifecycle.close(); });
+  let closeBrowser: (() => Promise<void>) | undefined;
+  // Retire the browser's open iframe/requests before awaiting the services it
+  // consumes. after hooks otherwise wait in registration order and can deadlock.
+  t.after(async () => { await closeBrowser?.(); await server.close(); await manager.stopAll(); await lifecycle.close(); });
   const browser = await isolatedBrowser(t, root), { evaluate, call } = browser;
+  closeBrowser = browser.close;
   t.after(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }));
   const navigate = async (view: string) => { await call("Page.navigate", { url: `${server.url}/#${view}` });
     await eventually(() => evaluate("typeof state !== 'undefined' && Boolean(state.requestToken && document.querySelector('.session-card'))"), "production management page did not bootstrap"); };

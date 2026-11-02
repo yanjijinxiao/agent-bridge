@@ -108,7 +108,7 @@ function createTaskboardFixture(
         const index = issues.findIndex((candidate) => candidate.id === decodeURIComponent(moveMatch[1]));
         const current = issues[index];
         if (!current || current.version !== body.version) {
-          return Response.json({ error: "version conflict" }, { status: 409 });
+          return Response.json({ error: { code: "VERSION_CONFLICT", message: "version conflict" } }, { status: 409 });
         }
         const next = { ...current, status: body.status, version: current.version + 1, updatedAt: "2026-08-05T04:00:00.000Z" };
         issues[index] = next;
@@ -122,10 +122,10 @@ function createTaskboardFixture(
         const current = issues[index];
         if (options.conflictOnTransition && current) {
           issues[index] = { ...current, version: current.version + 1 };
-          return Response.json({ error: "version conflict" }, { status: 409 });
+          return Response.json({ error: { code: "VERSION_CONFLICT", message: "version conflict" } }, { status: 409 });
         }
         if (!current || current.version !== body.version) {
-          return Response.json({ error: "version conflict" }, { status: 409 });
+          return Response.json({ error: { code: "VERSION_CONFLICT", message: "version conflict" } }, { status: 409 });
         }
         const next = { ...current, status: body.status, version: current.version + 1, updatedAt: "2026-08-05T04:00:00.000Z" };
         const comment = {

@@ -1,4 +1,4 @@
-import type { TaskboardClient, TaskboardIssue, TaskboardStatus } from "../taskboard/client.js";
+import { TaskboardHttpError, type TaskboardClient, type TaskboardIssue, type TaskboardStatus } from "../taskboard/client.js";
 import { isTaskboardTransitionAllowed } from "../taskboard/workflow.js";
 import type { TaskboardSubmission } from "./taskboard-channel-command.js";
 
@@ -119,6 +119,9 @@ async function updateIssue(
       note: successNote(submission.operation)
     };
   } catch (error) {
+    // A changed version after a lost response may be our own committed write.
+    // Only an explicit server CAS rejection proves that this mutation lost.
+    if (!(error instanceof TaskboardHttpError && error.status === 409 && error.code === "VERSION_CONFLICT")) throw error;
     const latest = await input.client.getIssue(issue.identifier);
     if (latest.version !== issue.version) return { kind: "conflict", issue: latest };
     throw error;

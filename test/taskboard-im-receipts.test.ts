@@ -77,3 +77,32 @@ test("IM journal retries a definitively unsubmitted native start with the same t
   if (retry.kind !== "owner") throw Error("expected owner");
   assert.equal(retry.operationId, first.operationId); assert.equal(retry.recovering, true);
 });
+
+test("IM state mutation with a lost accepted response remains uncertain and recovers without false conflict or repeated evidence", async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "im-state-receipt-"));
+  const app = createTaskboardServer({ dataDirectory: path.join(root, "backend"), nativeBackend: fakeNativeCore().client() });
+  const address = await app.listen({ port: 0 });
+  t.after(async () => { await app.close(); fs.rmSync(root, { recursive: true, force: true }); });
+  const store = new RuntimeStateStore(resolveStatePaths(path.join(root, "gateway"))), project = store.createProject("Project", root);
+  store.activateProject("room", project.id); const session = store.createSession("room", root, "Task", project.id); store.setSessionThread(session.id, "thread");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const raw = new TaskboardClient({ baseUrl: origin }); await raw.ensureProjectForWorkspace(project);
+  const created = await fetch(`${origin}/api/tasks`, { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId: project.id, title: "Task", status: "in_progress", threadId: "thread" }) }).then(response => response.json());
+  let writes = 0; const cards: any[] = [];
+  const service = () => new BridgeService({ config: { ...defaultConfig(root), allowedSenderIds: ["room"] }, stateStore: store,
+    taskboard: new TaskboardClient({ baseUrl: origin, fetch: async (input, init) => {
+      const response = await fetch(input, init);
+      if (new URL(input).pathname.endsWith("/transition") && init?.method === "POST") {
+        writes++; await response.text(); throw Error("accepted state response lost");
+      } return response;
+    } }), weixin: { async sendText() { return { messageId: "text" }; }, async sendTaskCard(input: { card: unknown }) { cards.push(input.card); return { messageId: "card" }; } } });
+  const query = new URLSearchParams({ operation: "review", identifier: created.task.identifier, version: "1", body: "Evidence",
+    request_id: "00000000-0000-4000-8000-000000000032" });
+  const message = (id: string) => ({ id, senderId: "alice", replyTargetId: "room", text: `/task submit ${query}`, attachments: [], raw: {} });
+  await assert.rejects(service().handleMessage(message("first")), /accepted state response lost/);
+  assert.equal(cards.length, 0, "an uncertain accepted mutation cannot be displayed as an unexecuted stale-card conflict");
+  await service().handleMessage(message("retry"));
+  assert.equal(writes, 1); assert.equal(app.database.getTask(created.task.id).status, "in_review");
+  assert.equal(app.database.listComments(created.task.id).length, 1);
+});

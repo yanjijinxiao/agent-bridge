@@ -313,3 +313,45 @@ test("submission identity binds scope, kind and attachment bytes, and a failed r
   assert.equal(f.database.listAiChatEvents(thread.id).length,previousEvents);assert.equal(f.core.calls.length,1);
   assert.equal(f.service.getSubmission(failedId).status,'unknown');
 });
+
+test("accepted native observation retries a transient disconnect without a UI poll or another input", async t => {
+  const release = Promise.withResolvers();
+  const f = await createFixture({ onRun: () => release.promise });
+  t.after(() => { release.resolve("done"); return f.close(); });
+  const thread = await f.service.createThread({ projectId: "project" });
+  const run = await f.service.startTurn(thread.id, { message: "survive an observation disconnect" });
+  await waitFor(() => Boolean(f.database.getAiChatNativeReceipt(run.id)?.nativeTurnId));
+  const receipt = f.database.getAiChatNativeReceipt(run.id);
+  await f.service.close(); await f.backend.close();
+  const backend = f.core.client(), observe = backend.runQueuedSubmission.bind(backend);
+  t.after(() => backend.close()); let observations = 0;
+  backend.runQueuedSubmission = async input => {
+    assert.equal(input.acceptedTurnId, receipt.nativeTurnId);
+    assert.equal(input.threadId, receipt.nativeThreadId);
+    if (++observations === 1) throw Object.assign(new Error("injected transient observation disconnect"), { name: "CodexCommunicationError" });
+    return observe(input);
+  };
+  f.service = new AiChatService({ database: f.database, nativeBackend: backend, codexStatePath: path.join(f.directory, "codex-state.json") });
+  f.service.recover(); release.resolve("done");
+  // getRun is a pure read; this must not depend on UI getThreadSnapshot/recover.
+  await waitFor(() => f.service.getRun(run.id).status === "completed");
+  assert.equal(observations, 2); assert.equal(f.core.calls.length, 1);
+  assert.equal(f.database.getAiChatNativeReceipt(run.id).nativeTurnId, receipt.nativeTurnId);
+});
+
+test("native observation retry stops while paused or closed and resumes only on the same accepted task", async t => {
+  const release = Promise.withResolvers(), f = await createFixture({ onRun: () => release.promise });
+  t.after(() => { release.resolve("done"); return f.close(); });
+  const thread = await f.service.createThread({ projectId: "project" });
+  const run = await f.service.startTurn(thread.id, { message: "pause observation only" });
+  await waitFor(() => Boolean(f.database.getAiChatNativeReceipt(run.id)?.nativeTurnId));
+  await f.service.close(); await f.backend.close();
+  const backend = f.core.client(); t.after(() => backend.close()); let observations = 0;
+  backend.runQueuedSubmission = async () => { observations++; throw Error("offline observer"); };
+  f.service = new AiChatService({ database: f.database, nativeBackend: backend, codexStatePath: path.join(f.directory, "codex-state.json") });
+  f.service.recover(); await waitFor(() => Boolean(f.service.getRun(run.id).error));
+  f.service.pauseForRestart(); await new Promise(resolve => setTimeout(resolve, 1100)); assert.equal(observations, 1);
+  f.service.resumeAfterCancelledRestart(); await waitFor(() => observations === 2);
+  await f.service.close(); await new Promise(resolve => setTimeout(resolve, 1100)); assert.equal(observations, 2);
+  assert.equal(f.core.calls.length, 1);
+});

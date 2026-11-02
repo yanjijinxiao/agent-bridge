@@ -72,3 +72,9 @@ Desktop 注入器仍有窗口嵌入、composer 预填和旧 Cron 的只读查询
 - 隔离 Chrome 渲染生产表单和 App；已用旧 App 复现打开项目重提 enabled 缓存的失败，再验证 read-only list。它不等于真实钉钉或手机验收。
 
 当前证据记录、尚未验证的连接/多观察者组合及正式部署状态继续由 completion-worklog.md 和需求清单维护；此说明不宣称整仓审查已经结束。
+
+## 无页面轮询时的观察重连
+
+已接收原生任务的观察临时失败后，AiChatService以单个非保活定时器调度recover；恢复只携带持久的native thread/turn/client身份，不携带原prompt，不启动替代任务。多个待恢复run合并一次调度，正在观察的run不重复建立观察；暂停/关闭会清理定时器，取消重启后才重新接续。
+
+这一缺口已用确定性反例复现：替换观察连接后第一次runQueuedSubmission故意断连，既有实现只等下一次getThreadSnapshot，纯getRun读取一直running。修复后无UI轮询也能在同一turn完成，模型输入仍只有一次。实际独立原生服务也再次验证了重启接续。发布前那一次实际原生超时的更细触发时序未完整捕获，保留失败记录，不把后续通过当作该次所有时序已解释。
