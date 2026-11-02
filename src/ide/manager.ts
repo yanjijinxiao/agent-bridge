@@ -32,7 +32,7 @@ export class WorkspaceIDEManager {
   private generation = 0;
   private closing = false;
   accessAvailable?: boolean;
-  accessOrigin?: (hostId: string) => string | undefined;
+  accessOrigin?: (hostId: string, presentationOnly?: boolean) => string | undefined;
   private referenceError = false;
   onStop?: (instanceId: string) => void;
   constructor(private readonly options: { root: string; resolve: (accountId: string, sessionId: string) => IDEWorkspace | undefined;
@@ -55,11 +55,14 @@ export class WorkspaceIDEManager {
     catch { this.references = {}; this.referenceError = true; }
     this.transport = options.transport ?? new ProcessIDEHostTransport({ localDataRoot: path.join(options.root, "ide", "instances") });
   }
-  entry(accountId: string, sessionId: string): { id: string; url: string } | undefined {
+  entry(accountId: string, sessionId: string, options?: { presentationOnly?: boolean }): { id: string; url: string } | undefined {
     const config = this.configStore.config();
     const target = this.options.resolve(accountId, sessionId);
     if (!config.enabled || !target || !config.hosts.some(h => h.hostId === target.hostId && h.enabled)) return;
-    const origin = this.accessOrigin ? this.accessOrigin(target.hostId) : this.accessAvailable === false ? undefined
+    // A displayed address is not a health certificate or an access grant. Keep
+    // the exact configured project link during relay reconnection; live callers
+    // and every browser request retain their existing checks.
+    const origin = this.accessOrigin ? this.accessOrigin(target.hostId, options?.presentationOnly) : this.accessAvailable === false ? undefined
       : target.hostId === "local" && config.localAccess?.interfaceName ? undefined
       : config.routing === "per-host" && target.hostId === "local" && config.localAccess ? config.localAccess.publicOrigin
       : config.routing === "per-host" && config.sharedIngressHostId ? config.hosts.find(h => h.hostId === config.sharedIngressHostId)?.access?.publicOrigin

@@ -91,7 +91,7 @@ for (const backend of ["exec", "app-server"] as const) {
       assert.equal(lists, 1);
       assert.equal(inspections, 0);
       assert.equal(store.listSessions().length, 0);
-      if (cards.length) assert.equal(cards[0].table!.rows.length, 5);
+      if (cards.length) assert.equal(cards[0].body.match(/\[R\d+\]/g)?.length, 5);
       await send("/sessions all");
       assert.match(texts.at(-1)!, /8 个/);
       await send("/sessions unbound");

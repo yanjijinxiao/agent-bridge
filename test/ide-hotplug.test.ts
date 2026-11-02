@@ -208,6 +208,7 @@ test("automatic timer retries only the local listener, pauses on ambiguity, and 
   await f.access.configure({ ...f.manager.config(), localAccess: { publicOrigin: origin, bindAddress: "127.0.0.1", port, interfaceName: "isolated-loopback-fixture" } });
   f.localAddresses.push({ name: "isolated-loopback-fixture", address: "30.1.2.99" });
   assert.equal(f.manager.entry("account", "local"), undefined, "ambiguous interface suppresses links immediately");
+  assert.equal(f.manager.entry("account", "local", { presentationOnly: true }), undefined, "progress must not retain an address from an ambiguous local interface");
   await until(() => /多个 IPv4/.test(f.access.statuses().find(s => s.localDirect)?.error || ""));
   // Wait for the actual timer to close the stale listener, not just status projection.
   await until(() => f.access.statuses().find(s => s.localDirect)?.state === "error");
@@ -216,6 +217,7 @@ test("automatic timer retries only the local listener, pauses on ambiguity, and 
   await assert.rejects(f.request("/", {}, origin), /ECONNREFUSED/);
   f.localAddresses.push({ name: "utun4", address: "30.9.8.7" });
   await f.access.refreshLocalAddress(); assert.equal(f.manager.entry("account", "local"), undefined, "VPN never substitutes for selected interface");
+  assert.equal(f.manager.entry("account", "local", { presentationOnly: true }), undefined, "fixed remote relay recovery must not revive an offline local IP");
   f.localAddresses.push({ name: "isolated-loopback-fixture", address: "127.0.0.1" });
   await until(() => f.access.statuses().find(s => s.localDirect)?.state === "ready");
   assert.equal(new URL(f.manager.entry("account", "local")!.url).origin, origin);

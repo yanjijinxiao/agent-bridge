@@ -4,6 +4,7 @@ import type { ChannelMessage } from "../channels/message.js";
 import { IDE_APPROVAL_CHOICES, ideConfirmationCommand } from "../ide/approval-presentation.js";
 import { copyBlock } from "../channels/copyable.js";
 import { IDE_SESSION_DAYS } from "../ide/authorization.js";
+import { CodexCommunicationError } from "../codex/communication-error.js";
 
 /** Explicit control commands only; never resolved from model/friendly intent or
  * quoted content. Unknown conversation kinds fail closed, even if IDs match. */
@@ -52,5 +53,9 @@ export async function ideApprovalCommand(input: { service?: IDEApprovalService; 
       ...IDE_APPROVAL_CHOICES.map(c => `${c.label}（请用授权页的实际编号替换“十二位编号”）：\n\n${copyBlock(ideConfirmationCommand("十二位编号", c.choice))}`),
       `查看本人资格：\n\n${copyBlock("/ide identity")}`,
       `兼容流程核对申请：\n\n${copyBlock("/ide auth 六位识别码")}`].join("\n\n");
-  } catch (error) { return error instanceof Error ? error.message : "IDE 审批未完成，请在原浏览器刷新后重试。"; }
+  } catch (error) {
+    if (error instanceof CodexCommunicationError && error.phase === "preflight")
+      return `IDE 授权前核验原生项目信息${error.code === "timeout" ? "超时" : "连接失败"}，未批准此浏览器。请在对应主机连接恢复后，回原授权页重新获取确认命令；未停止任务或修改绑定。`;
+    return error instanceof Error ? error.message : "IDE 审批未完成，请在原浏览器刷新后重试。";
+  }
 }

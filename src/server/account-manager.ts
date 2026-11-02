@@ -394,7 +394,7 @@ export class AccountManager {
         let url: string | undefined;
         try {
           const [accountId, sessionId] = JSON.parse(sub.key) as string[];
-          url = this.ide.entry(accountId, sessionId)?.url;
+          url = this.ide.entry(accountId, sessionId, { presentationOnly: true })?.url;
         } catch { /* Optional metadata fails closed, never reuse an old URL. */ }
         return withIDEEntry(text, url, { atEnd: true });
       },
@@ -698,7 +698,7 @@ export class AccountManager {
       admission: this.admission,
       ideProviderId: account.channel === "dingtalk" ? account.clientId : account.channel === "feishu" ? account.appId : account.botId ?? account.accountId,
       ideEntry: async session => (await this.ide.freshEntry(account.accountId, session.id))?.url,
-      ideProgressEntry: session => this.ide.entry(account.accountId, session.id)?.url,
+      ideProgressEntry: session => this.ide.entry(account.accountId, session.id, { presentationOnly: true })?.url,
       accountId: account.accountId,
       nativeQueue: this.nativeQueue,
       deferCapacityFailure: scope => this.capacityRecovery.offer(scope),

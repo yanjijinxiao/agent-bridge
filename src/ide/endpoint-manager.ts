@@ -33,10 +33,12 @@ export class IDEEndpointManager {
     localAddresses?: typeof localIDEAddresses; networkPollMs?: number } = {}) {
     this.tls = new IDETLSManager(path.join(path.dirname(manager.configStore.filePath), "tls"));
     manager.accessAvailable = false;
-    manager.accessOrigin = hostId => {
+    manager.accessOrigin = (hostId, presentationOnly) => {
       const config = manager.config();
       const endpoint = this.endpoints.get(publicationKey(config, hostId));
-      return endpoint && this.endpointStatus(endpoint).state === "ready" && endpoint.server.running() ? endpoint.status.publicOrigin : undefined;
+      const state = endpoint && this.endpointStatus(endpoint).state;
+      return endpoint && !this.stopped && endpoint.server.running()
+        && (state === "ready" || presentationOnly && endpoint.ingress && state === "reconnecting") ? endpoint.status.publicOrigin : undefined;
     };
     manager.onStop = id => { for (const endpoint of this.endpoints.values()) endpoint.context.onStop?.(id); };
   }

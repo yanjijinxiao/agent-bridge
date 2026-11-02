@@ -208,8 +208,25 @@ for (const shared of [false,true]) test(`an unavailable ${shared ? "shared" : "r
   const access=new IDEEndpointManager(manager,{ingressIO:{connect:async()=>{attempts++;throw Error("fixture offline");},probe:async()=>{}},ingressTiming:{retryMs:5,probeMs:20}});
   t.after(()=>access.close());await access.reload(false);await until(()=>attempts>=2);
   assert.equal(Boolean(manager.entry("account","local")),!shared);assert.equal(manager.entry("account","remote"),undefined);
+  const display = manager.entry("account", "remote", { presentationOnly: true })!;
+  assert.ok(display, "a reconnecting fixed remote publication still has a display address");
+  assert.equal(new URL(display.url).origin, "https://203.0.113.10:20015", "progress retains the exact fixed remote origin during reconnection");
+  assert.equal(manager.entry("account", "remote"), undefined, "displaying an address must not claim the ingress is ready");
+  const { ChannelTurnPresentation } = await import("../src/channels/turn-presentation.js");
+  const { createChannelClient, TEXT_CAPABILITIES } = await import("../src/channels/client.js");
+  const { withIDEEntry } = await import("../src/ide/completion.js");
+  const frames: string[] = [];
+  const stream = new ChannelTurnPresentation(createChannelClient("dingtalk", { ...TEXT_CAPABILITIES, progress: "available", progressFooter: "available", turnStatusHeader: "available" }, {
+    async sendText() { throw Error("no extra notification"); }, async startTextStream(input) { frames.push(input.text); return { messageId: "card" }; },
+    async updateTextStream(input) { frames.push(input.text); }
+  }), "room", { save() {}, decorateProgress: text => withIDEEntry(text, manager.entry("account", "remote", { presentationOnly: true })?.url, { atEnd: true }) });
+  t.after(() => stream.suspend());
+  await stream.progress("已连接正在执行的任务，等待新的进展。");
+  await stream.synchronize();
+  assert.ok(frames.every(text => text.endsWith(`](${display.url})`)), "running and heartbeat projections retain the link");
   assert.equal((await fetch(`http://127.0.0.1:${port}/workspace/${knownLocalEntry.id}`)).status,200);
   await access.close();const stopped=attempts;await delay(30);assert.equal(attempts,stopped);
+  assert.equal(manager.entry("account", "remote", { presentationOnly: true }), undefined, "closed/disabled publication cannot retain an old display link");
 });
 
 test("remote relay transfers opaque bytes, binds an exact address, and exits with its SSH owner",async t=>{

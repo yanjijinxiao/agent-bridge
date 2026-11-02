@@ -10,8 +10,9 @@ import { resolveStatePaths } from "../src/state/paths.js";
 import type { ChannelActionCard } from "../src/channels/action-card.js";
 import { feishuActionCard } from "../src/channels/feishu-action-card.js";
 import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.js";
-import { renderMarkdownTable, renderTextTable } from "../src/channels/table.js";
 import { normalizeDingTalkCardContent } from "../src/channels/dingtalk.js";
+
+const numbersOf = (card: ChannelActionCard) => [...card.body.matchAll(/\[R(\d+)\]/g)].map(m => `R${m[1]}`);
 
 for (const backend of ["exec", "app-server"] as const) {
   test(`${backend}: 103 sessions fit eleven compact default pages; resizing preserves identity, filter and preferences`, async t => {
@@ -31,25 +32,25 @@ for (const backend of ["exec", "app-server"] as const) {
     const send = (text: string, actor = "alice", chat = "chat") => service.handleMessage({ senderId: actor, replyTargetId: chat, id: String(seq++), text, raw: {} });
     await send("/sessions");
     assert.match(cards[0].title, /103 个.*第 1\/11 页/);
-    assert.equal(cards[0].table!.rows.length, 10);
-    const numbers = cards[0].table!.rows.map(r => r[0]);
+    assert.equal(numbersOf(cards[0]).length, 10);
+    const numbers = numbersOf(cards[0]);
     for (let i = 0; i < 10; i++) {
       await send("/sessions more");
-      numbers.push(...cards.at(-1)!.table!.rows.map(r => r[0]));
+      numbers.push(...numbersOf(cards.at(-1)!));
     }
     assert.deepEqual(numbers, Array.from({ length: 103 }, (_, i) => `R${i + 1}`));
     assert.equal(lists, 1, "paging never rediscovers the catalog");
     states.reverse();
     await send("/sessions size 50");
     assert.match(cards.at(-1)!.title, /第 3\/3 页/);
-    assert.equal(cards.at(-1)!.table!.rows[0][0], "R101", "new page contains the old anchor R101");
-    assert.equal(cards.at(-1)!.table!.rows.length, 3);
+    assert.equal(numbersOf(cards.at(-1)!)[0], "R101", "new page contains the old anchor R101");
+    assert.equal(numbersOf(cards.at(-1)!).length, 3);
     assert.equal(cards.at(-1)!.actionGroups.flat()[0].value.arg, "task-100 --host local");
     assert.equal(lists, 1, "resizing uses exactly the same snapshot");
     await send("/sessions page 2");
     const fifty = cards.at(-1)!;
     await send("/sessions page 3");
-    assert.deepEqual(cards.at(-1)!.table!.rows.map(r => r[0]), ["R101", "R102", "R103"]);
+    assert.deepEqual(numbersOf(cards.at(-1)!), ["R101", "R102", "R103"]);
     await send("/sessions detail R51");
     assert.match(texts.at(-1)!, /ID：task-50/);
     for (const value of ["", "0", "4", "51", "999999999999999999999", "-1", "1.5", "abc", "50 extra"]) {
@@ -63,12 +64,12 @@ for (const backend of ["exec", "app-server"] as const) {
     assert.equal(store.listSessions().length, 0);
     assert.equal(new RuntimeStateStore(paths).getSessionPageSize("chat", "alice"), 50);
     await send("/sessions", "bob");
-    assert.equal(cards.at(-1)!.table!.rows.length, 10, "another actor retains default");
+    assert.equal(numbersOf(cards.at(-1)!).length, 10, "another actor retains default");
     await send("/sessions", "alice", "other");
-    assert.equal(cards.at(-1)!.table!.rows.length, 10, "another chat retains default");
+    assert.equal(numbersOf(cards.at(-1)!).length, 10, "another chat retains default");
     await send("/sessions search 任务 10");
-    assert.equal(cards.at(-1)!.table!.rows.length, 4);
-    assert.match(cards.at(-1)!.note!, /每页 50 条/);
+    assert.equal(numbersOf(cards.at(-1)!).length, 4);
+    assert.match(cards.at(-1)!.note!, /每页 50 项/);
     const calls = lists;
     await send("/sessions size 5");
     assert.match(cards.at(-1)!.title, /搜索：任务 10.*4 个/);
@@ -78,21 +79,21 @@ for (const backend of ["exec", "app-server"] as const) {
     assert.match(cards.at(-1)!.title, /0 个.*第 1\/1 页/);
     assert.equal(cards.at(-1)!.table, undefined);
 
-    const markdown = normalizeDingTalkCardContent(renderMarkdownTable(fifty.table!));
-    assert.equal(markdown.split("\n").filter(l => l.startsWith("|")).length, 52);
+    const markdown = normalizeDingTalkCardContent(fifty.body);
+    assert.equal(markdown.match(/\[R\d+\]/g)?.length, 50);
     const native = feishuActionCard(fifty) as any;
-    const tables = native.body.elements.filter((e: any) => e.tag === "table");
-    assert.equal(tables.length, 5);
-    assert.ok(tables.every((e: any) => e.rows.length === 10 && e.page_size === 10));
-    assert.deepEqual(tables.flatMap((e: any) => e.rows.map((r: any) => r.col_0)), fifty.table!.rows.map(r => r[0]));
+    assert.equal(native.elements[0].text.content, fifty.body);
+    assert.deepEqual(native.elements.filter((e: any) => e.tag === "action").flatMap((e: any) => e.actions)
+      .filter((a: any) => a.value.command === "session").map((a: any) => a.value.arg),
+      Array.from({ length: 50 }, (_, i) => `task-${i + 50} --host local`));
     assert.ok(Buffer.byteLength(JSON.stringify(native)) < 28000, "ordinary 50-row cards remain bounded");
     for (const channel of ["weixin", "wecom"] as const) {
       const parts: string[] = [];
       const client = createChannelClient(channel, TEXT_CAPABILITIES, { async sendText(x) { parts.push(x.text); return { messageId: String(parts.length) }; } });
       await client.sendActionCard({ toUserId: "chat", card: fifty });
       const visible = parts.join("\n").match(/\[R\d+\]/g);
-      assert.deepEqual(visible, fifty.table!.rows.map(r => `[${r[0]}]`), "text transport must not drop large-page rows");
-      assert.equal(renderTextTable(fifty.table!).split("\n").length, 50);
+      assert.deepEqual(visible, numbersOf(fifty).map(r => `[${r}]`), "text transport must not drop large-page rows");
+      assert.equal(numbersOf(fifty).length, 50);
     }
   });
 }

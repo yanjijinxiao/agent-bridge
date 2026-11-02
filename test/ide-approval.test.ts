@@ -12,8 +12,22 @@ import { resolveStatePaths } from "../src/state/paths.js";
 import { RuntimeStateStore } from "../src/state/runtime-state.js";
 import { WorkspaceIDEManager } from "../src/ide/manager.js";
 import { startLocalHttpServer } from "../src/server/http-server.js";
+import { CodexCommunicationError } from "../src/codex/communication-error.js";
 
 const owner: IDEApprover = { accountId: "account", channel: "dingtalk", providerId: "client", actorId: "owner" };
+
+test("IDE trust preflight timeout reports an unapproved browser without changing a task or pretending execution failed", async t => {
+  const f = fixture(t), b = bridgeFixture(t, f); f.allow();
+  f.service.attach({ pendingAccess: () => f.requests, async approveAccess() {
+    throw new CodexCommunicationError("preflight", "project/list", undefined, undefined, new Error("read timed out"));
+  }, rejectAccess() {} });
+  const offer = f.service.offer("request", "entry")!;
+  await b.send(`/ide trust ${offer.shortCode}`, "owner", "group", "group");
+  assert.match(b.texts.at(-1)!, /授权前核验原生项目信息超时，未批准此浏览器/);
+  assert.doesNotMatch(b.texts.at(-1)!, /已批准|任务失败|communication failed/);
+  assert.equal(f.requests[0].approved, false);
+  assert.deepEqual(f.decisions, []); assert.deepEqual(b.mutations, []);
+});
 
 test("exact personal admission enables pairing in DM or group without creating an approver, IM task, or binding", async t => {
   const f = fixture(t), b = bridgeFixture(t, f); f.allow();

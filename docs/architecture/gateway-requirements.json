@@ -518,7 +518,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/codex/backend.ts",
@@ -650,7 +650,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -1025,7 +1025,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             }
           ]
         }
@@ -1809,7 +1809,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             }
           ],
           "verifiedBoundary": "实际账号启动/刷新及独立停止，但monitor/runner替身，不证明所有并发清理异常。"
@@ -1831,7 +1831,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/ide/approval-service.ts",
@@ -1967,7 +1967,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             }
           ],
           "verifiedBoundary": "账号API和webhook投影不输出原token/key；全仓错误日志泄密边界尚未穷尽。"
@@ -2066,7 +2066,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -2420,7 +2420,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/bridge/interaction-routing.ts",
@@ -2518,7 +2518,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -3128,7 +3128,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             }
           ],
           "verifiedBoundary": "展示引用/字面附件不发送，全部历史分页API及native格式组合仍待映射。"
@@ -4119,7 +4119,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -6430,7 +6430,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/channels/feishu.ts",
@@ -6687,7 +6687,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             }
           ],
           "verifiedBoundary": "真实临时文件stat和历史读取；Windows保留内容/归属但不假测POSIX mode。"
@@ -6806,7 +6806,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/ide/project-identity.ts",
@@ -6831,11 +6831,11 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             }
           ]
         },
@@ -6856,7 +6856,7 @@
           "implementation": [
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             },
             {
               "file": "src/ide/completion.ts",
@@ -6937,7 +6937,7 @@
           "implementation": [
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             },
             {
               "file": "src/ide/workspace-scope.ts",
@@ -6993,7 +6993,7 @@
             },
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             }
           ],
           "verifiedBoundary": "别名移除/完整scope及approval中变化，根次序所有组合未单独验证。"
@@ -7025,7 +7025,7 @@
           "implementation": [
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             }
           ],
           "verifiedBoundary": "实际manager并发复用，provider进程替身；新建只一次。"
@@ -7054,15 +7054,15 @@
           "implementation": [
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             },
             {
               "file": "src/ide/endpoint-manager.ts",
-              "sha256": "e4a6a791efd257b61743d68c43048768f91a2284225f3f178193171611f3fd8d"
+              "sha256": "567f9e777573f51fab6558800e96d516841c2b518805be8d655152676a69add6"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             }
           ],
           "verifiedBoundary": "可选IDE构造/ingress失败隔离，不借输入；所有运行异常/绑定不变仍需组合。"
@@ -7108,7 +7108,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             }
           ],
           "verifiedBoundary": "个人准入唯一权威；群准入不自动授权，停账号/重启保持，不新建额外名单或密码。"
@@ -7138,7 +7138,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             }
           ],
           "verifiedBoundary": "持久epoch fencing覆盖重新允许旧grant失效；本地HTTP/WS试验，不是手机端。"
@@ -7269,6 +7269,25 @@
             }
           ],
           "verifiedBoundary": "期限/账号/旧机器人和request精确分离，重启不能复活旧决定。"
+        },
+        {
+          "id": "IDE-05.4",
+          "scenario": "IDE确认的原生目录前置核验超时，明确报告浏览器未批准，不改任务或绑定，不将错误冒充执行失败。",
+          "status": "verified",
+          "sourceNote": "2026-11-02 新附件反馈：IDE trust失败与进行中卡丢链接。",
+          "tests": [
+            {
+              "file": "test/ide-approval.test.ts",
+              "name": "IDE trust preflight timeout reports an unapproved browser without changing a task or pretending execution failed"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/ide-approval.ts",
+              "sha256": "3bdd8152ef73dfe1177d77c317c8a2f19a60dcc28435f8f024c924d4febd3cb9"
+            }
+          ],
+          "verifiedBoundary": "原版反例失败，实际Bridge/EndpointManager/ChannelTurnPresentation隔离夹具通过；远程网络恢复及手机实际显示不在本机窄边界验收内。"
         }
       ]
     },
@@ -7323,7 +7342,7 @@
             },
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             }
           ],
           "verifiedBoundary": "manager复用独立验证，完整浏览器重复打开不新增申请的联合路径仍需实机。"
@@ -7446,7 +7465,7 @@
             },
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             }
           ],
           "verifiedBoundary": "原生membership替身unknown时503，ticket保留、零旧target启动。"
@@ -7518,7 +7537,7 @@
             },
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             },
             {
               "file": "test/fixtures/fake-code-server.mjs",
@@ -7592,7 +7611,7 @@
             },
             {
               "file": "src/ide/endpoint-manager.ts",
-              "sha256": "e4a6a791efd257b61743d68c43048768f91a2284225f3f178193171611f3fd8d"
+              "sha256": "567f9e777573f51fab6558800e96d516841c2b518805be8d655152676a69add6"
             }
           ],
           "verifiedBoundary": "真实coordinator+注入网卡，IP切换不继续发旧入口；外网/手机可达未验。"
@@ -7644,10 +7663,45 @@
             },
             {
               "file": "src/ide/endpoint-manager.ts",
-              "sha256": "e4a6a791efd257b61743d68c43048768f91a2284225f3f178193171611f3fd8d"
+              "sha256": "567f9e777573f51fab6558800e96d516841c2b518805be8d655152676a69add6"
             }
           ],
           "verifiedBoundary": "实际本机Unix socket模拟SSH lifecycle，owned inode安全清理；非真实SSH断线环境。"
+        },
+        {
+          "id": "IDE-09.4",
+          "scenario": "远程固定入口重连时进行中/心跳卡保留同一地址；不伪称就绪/授权，本机地址失效、关闭和停用不沿用旧链接。",
+          "status": "verified",
+          "sourceNote": "2026-11-02 新附件反馈：IDE trust失败与进行中卡丢链接。",
+          "tests": [
+            {
+              "file": "test/ide-endpoints.test.ts",
+              "name": "an unavailable remote ingress does not block loopback maintenance or shutdown; no link fallback"
+            },
+            {
+              "file": "test/ide-endpoints.test.ts",
+              "name": "an unavailable shared ingress does not block loopback maintenance or shutdown; no link fallback"
+            },
+            {
+              "file": "test/ide-hotplug.test.ts",
+              "name": "automatic timer retries only the local listener, pauses on ambiguity, and stops after close"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/manager.ts",
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
+            },
+            {
+              "file": "src/ide/endpoint-manager.ts",
+              "sha256": "567f9e777573f51fab6558800e96d516841c2b518805be8d655152676a69add6"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+            }
+          ],
+          "verifiedBoundary": "原版反例失败，实际Bridge/EndpointManager/ChannelTurnPresentation隔离夹具通过；远程网络恢复及手机实际显示不在本机窄边界验收内。"
         }
       ]
     },
@@ -7680,7 +7734,7 @@
           "implementation": [
             {
               "file": "src/ide/endpoint-manager.ts",
-              "sha256": "e4a6a791efd257b61743d68c43048768f91a2284225f3f178193171611f3fd8d"
+              "sha256": "567f9e777573f51fab6558800e96d516841c2b518805be8d655152676a69add6"
             }
           ],
           "verifiedBoundary": "真实本地HTTP/WS保持并增量新增/重复配置，传输主机替身。"
@@ -7702,11 +7756,11 @@
           "implementation": [
             {
               "file": "src/ide/endpoint-manager.ts",
-              "sha256": "e4a6a791efd257b61743d68c43048768f91a2284225f3f178193171611f3fd8d"
+              "sha256": "567f9e777573f51fab6558800e96d516841c2b518805be8d655152676a69add6"
             },
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             }
           ],
           "verifiedBoundary": "host及audience精确失效，无关实例/relay保持。"
@@ -7728,11 +7782,11 @@
           "implementation": [
             {
               "file": "src/ide/endpoint-manager.ts",
-              "sha256": "e4a6a791efd257b61743d68c43048768f91a2284225f3f178193171611f3fd8d"
+              "sha256": "567f9e777573f51fab6558800e96d516841c2b518805be8d655152676a69add6"
             },
             {
               "file": "src/ide/manager.ts",
-              "sha256": "0f065410cf60b79f65748e50d1b4db64128bb1b69ef10fbd406107fc89dbaadd"
+              "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             }
           ],
           "verifiedBoundary": "durable revoke失败不发布配置，取消启动不迟到launch。"
@@ -8228,7 +8282,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             }
           ],
           "verifiedBoundary": "远程项目不能作为本地目录QA默认值；已绑定QA所有动态tool读取同host仍需执行路径证明。"
@@ -8328,7 +8382,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/server/restart.ts",
@@ -8624,7 +8678,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/bridge/channel-write-leases.ts",
@@ -9329,7 +9383,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "25ba32345247a444de4e7786c304d86416a7ba2c9c971d004aac69e4862f4b84"
+              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
