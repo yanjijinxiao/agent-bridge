@@ -33,9 +33,10 @@ export async function prepareTurnSubmission(input: {
   const parts = buildPromptParts(input.text, items, input.source, input.knowledge);
   const generic = /^(?:会话\s*\d+|新会话|Codex 会话(?:\s+[\da-f-]+)?)$/i.test(session.title.trim());
   return { ...parts, cwd: session.workspace, hostId,
-    projectId: session.projectBinding === "none" ? undefined : project?.sourceProjectId,
-    projectName: session.projectBinding === "none" ? undefined : project?.name,
-    projectBinding: session.projectBinding, threadId: session.threadId || undefined,
+    projectId: session.projectBinding ? undefined : project?.sourceProjectId,
+    projectName: session.projectBinding ? undefined : project?.name,
+    projectRoots: session.projectBinding ? undefined : project?.rootPaths ?? (project ? [project.workspace] : undefined),
+    projectBinding: session.projectBinding === "none" ? "none" : undefined, threadId: session.threadId || undefined,
     threadTitle: (generic ? buildPromptPreview(input.text, input.items) : session.title) ?? session.title,
     queueKey: session.threadId || session.id, model: session.model ?? config.model, effort: session.effort ?? config.effort,
     collaborationMode: session.collaborationMode === "plan" ? "plan" : undefined };

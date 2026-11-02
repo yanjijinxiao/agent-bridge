@@ -1,4 +1,4 @@
-# 功能契约对应的实现边界（复核中）
+# 功能契约对应的实现边界（本轮复核记录）
 
 配套文件：gateway-contracts.md 记录历史要求；gateway-requirements.json 记录每个场景及证据；本文件定位实际入口和状态写入者。下列是实现关系，不是“已经检查通过”的清单。关键函数的输入、状态义务和异步边界另记 function-contracts.jsonl，仅包含已有明确逐函数记录的部分，不以全文件读过冒充全部函数行为均已验证。逐行范围、内容散列、未读文件在本轮 read-ledger.jsonl 和只读报告中单独保留。
 
@@ -37,8 +37,8 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 - Gateway 原生 facade 的整轮 runTails、底层 waitForThreadIdle，以及随后复现的 Bridge 主入口整轮队列已分别移除。只保护接收前交接；已接收的独立轮次不因等待执行结果阻止重启。源码修改和已跑窄场景不替代真实重启验收。
 - 显式消息合并由账号本地 prompt-buffers.json 保存正文/附件引用，按 collecting/preparing/submitting 分离；Gateway 的转发 inbox/原生回执仍分别记录来源和接收。尝试后未知不因重新发送 done 或重启而重放。
 - CapacityRecovery checking/settling 与 SystemErrorRecovery pending 已按实际反例拆开只读等待与交接。实际原生RPC由transport保护；渠道文本/卡片/媒体每次写入独立持lease。stop退休journal writer，补偿义务仍持久保存，见恢复模块说明。
-- Taskboard 自身 AI 面板使用独立 CLI exec；Gateway 的任务板渠道命令使用统一 App Server。前者是当前仓库中另一条真实执行链，不能因为它位于子包就宣称“全部代码已经统一接口”。是否应纳入统一迁移，须结合所有独立/嵌入入口继续核对；目前未宣称适配完成。
-- 新建项目别名解析仍按部分 cwd 匹配，完整 rootPaths、迁移身份及同目录多项目的边界仍需验证。
+- Taskboard AI、自动处理器及额度现已复用同一原生适配器；嵌入服务借用根实例，独立包默认 daemon。旧 Cron 管理和窗口嵌入属于 Desktop UI 集成，不是另一执行器；标准原生 schema 没有 scheduler 管理方法，未编造该 API。详见 taskboard-native-execution 模块。
+- 原生不同项目 ID 不再按 cwd 合并；已知旧别名按当前 host/home 映射或完整根集合解析，未知明确 ID 拒绝替换，新建携带全部根。新绑定 unknown 不伪造 none；原 IDE grant/管理身份未改写。
 - Taskboard 渠道等待后来源漏洞已有六个原版反例并本地修复21场景；未知写入结果、仅内存去重和部分上传仍未解决。原生 idle 队列一次偶发观察失败尚未查明。
 - 历史引用97个不同图片路径中，92张仍存在且已逐张打开，5张早期临时图丢失；本轮实际 Chrome 组件测试不替代钉钉/微信/手机真实客户端验收。
 

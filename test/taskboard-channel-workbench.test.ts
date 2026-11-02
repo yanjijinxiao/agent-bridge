@@ -224,7 +224,7 @@ test("renders one paged overview card and updates the originating card in place"
   assert.equal("kind" in updated[0].card ? updated[0].card.kind : undefined, "detail");
 });
 
-test("sends a fresh native card when the originating card can no longer be patched", async (t) => {
+test("an uncertain originating card is retained and only a new explicit command creates a fresh card", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "taskboard-channel-patch-fallback-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const stateStore = new RuntimeStateStore(resolveStatePaths(path.join(root, "state")));
@@ -242,16 +242,13 @@ test("sends a fresh native card when the originating card can no longer be patch
     }
   });
 
-  await service.handleMessage({
-    id: "detail",
-    senderId: "oc_test",
-    text: "/task detail PROJECT-1",
-    attachments: [],
-    raw: {},
+  await assert.rejects(service.handleMessage({
+    id: "detail", senderId: "oc_test", text: "/task detail PROJECT-1", attachments: [], raw: {},
     interaction: { kind: "card", messageId: "expired-card" }
-  });
-
+  }), /card expired/);
   assert.equal(patchAttempts, 1);
+  assert.equal(sent.length, 0, "a generic update failure cannot prove the platform did not apply it");
+  await service.handleMessage({id:"fresh-explicit-command",senderId:"oc_test",text:"/task detail PROJECT-1",attachments:[],raw:{}});
   assert.equal(sent.length, 1);
   assert.equal(sent[0].identifier, "PROJECT-1");
 });

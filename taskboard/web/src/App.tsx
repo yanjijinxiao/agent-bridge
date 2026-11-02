@@ -14,7 +14,7 @@ import {
 import {
   isAutomationModel,
   isAutomationReasoningEffort,
-  isSupportedModelEffort,
+  isAutomationSelection,
   type AutomationModel,
   type AutomationReasoningEffort,
 } from "../../shared/taskboard-automation-options.mjs";
@@ -279,7 +279,7 @@ function readProjectAutomations(): ProjectAutomations {
         || (candidate.status !== "ACTIVE" && candidate.status !== "PAUSED")
         || !isAutomationModel(model)
         || !isAutomationReasoningEffort(reasoningEffort)
-        || !isSupportedModelEffort(model, reasoningEffort)
+        || !isAutomationSelection(model, reasoningEffort)
         || typeof enabledByUser !== "boolean"
         || typeof quotaAware !== "boolean"
       ) continue;
@@ -323,7 +323,7 @@ function isAutomationHostPolicy(
     && typeof value.quotaAware === "boolean"
     && isAutomationModel(value.model)
     && isAutomationReasoningEffort(value.reasoningEffort)
-    && isSupportedModelEffort(value.model, value.reasoningEffort),
+    && isAutomationSelection(value.model, value.reasoningEffort),
   );
 }
 
@@ -367,7 +367,7 @@ function isAutomationHostItem(value: unknown): value is AutomationHostItem {
     && (item.status === "ACTIVE" || item.status === "PAUSED")
     && isAutomationModel(item.model)
     && isAutomationReasoningEffort(item.reasoningEffort)
-    && isSupportedModelEffort(item.model, item.reasoningEffort)
+    && isAutomationSelection(item.model, item.reasoningEffort)
   );
 }
 
@@ -596,6 +596,9 @@ export function App() {
       setTasks([]);
       setHasLoadedTasks(false);
       setActionError(null);
+      automationRequestInFlightRef.current = null;
+      setAutomationPending(false);
+      setAutomationError(null);
       setMovingTaskId(null);
       setOpeningProjectId(null);
       setOpeningThreadTaskId(null);
@@ -608,7 +611,7 @@ export function App() {
 
   const revisionPollingInterval = getRevisionPollingInterval(taskboardMetadata);
   const pendingAutomationRequestsRef = useRef(new Map<string, PendingAutomationRequest>());
-  const automationRequestInFlightRef = useRef(false);
+  const automationRequestInFlightRef = useRef<object | null>(null);
   const projectAutomationsRef = useRef(projectAutomations);
 
   const setAnnouncement = useCallback((message: string) => {
@@ -807,7 +810,10 @@ export function App() {
     }
     if (!selectedProjectId || !automationProjectContext.codexProjectId || automationRequestInFlightRef.current) return;
     const stored = projectAutomationsRef.current[selectedProjectId];
-    automationRequestInFlightRef.current = true;
+    const token = {};
+    const generation = projectViewGenerationRef.current;
+    const current = () => selectedProjectIdRef.current === selectedProjectId && projectViewGenerationRef.current === generation;
+    automationRequestInFlightRef.current = token;
     setAutomationPending(true);
     setAutomationError(null);
     try {
@@ -816,12 +822,14 @@ export function App() {
         ...DEFAULT_AUTOMATION_OPTIONS,
       };
       const response = await sendAutomationRequest(
-        stored ? "apply-policy" : "list",
+        "list",
         options,
       );
-      const policy = isAutomationHostPolicy(response.policy) ? response.policy : stored;
-      if (!policy) return;
+      if (!current()) return;
+      const policy = isAutomationHostPolicy(response.policy) ? response.policy : undefined;
+      if (!policy) { writeProjectAutomation(selectedProjectId, undefined); return; }
       const item = isAutomationHostItem(response.item) ? response.item : undefined;
+      if (!current()) return;
       writeProjectAutomation(selectedProjectId, {
         codexProjectId: automationProjectContext.codexProjectId,
         status: item?.status ?? (policy.enabledByUser ? "ACTIVE" : "PAUSED"),
@@ -832,10 +840,12 @@ export function App() {
         reasoningEffort: item?.reasoningEffort ?? policy.reasoningEffort,
       });
     } catch (error) {
-      setAutomationError(error instanceof Error ? error.message : "无法读取自动化状态");
+      if (current()) setAutomationError(error instanceof Error ? error.message : "无法读取自动化状态");
     } finally {
-      automationRequestInFlightRef.current = false;
-      setAutomationPending(false);
+      if (automationRequestInFlightRef.current === token) {
+        automationRequestInFlightRef.current = null;
+        if (current()) setAutomationPending(false);
+      }
     }
   }, [
     automationProjectContext,
@@ -858,12 +868,16 @@ export function App() {
       || automationRequestInFlightRef.current
     ) return;
     const previousRecord = stored;
-    automationRequestInFlightRef.current = true;
+    const token = {};
+    const generation = projectViewGenerationRef.current;
+    const current = () => selectedProjectIdRef.current === selectedProjectId && projectViewGenerationRef.current === generation;
+    automationRequestInFlightRef.current = token;
     setAutomationPending(true);
     setAutomationError(null);
     try {
       const response = await sendAutomationRequest("apply-policy", options);
       const item = isAutomationHostItem(response.item) ? response.item : undefined;
+      if (!current()) return;
       writeProjectAutomation(selectedProjectId, {
         codexProjectId: automationProjectContext.codexProjectId,
         status: item?.status ?? (options.enabledByUser ? "ACTIVE" : "PAUSED"),
@@ -874,11 +888,15 @@ export function App() {
         reasoningEffort: options.reasoningEffort,
       });
     } catch (error) {
-      writeProjectAutomation(selectedProjectId, previousRecord);
-      setAutomationError(error instanceof Error ? error.message : "无法更新自动化");
+      if (current()) {
+        writeProjectAutomation(selectedProjectId, previousRecord);
+        setAutomationError(error instanceof Error ? error.message : "无法更新自动化");
+      }
     } finally {
-      automationRequestInFlightRef.current = false;
-      setAutomationPending(false);
+      if (automationRequestInFlightRef.current === token) {
+        automationRequestInFlightRef.current = null;
+        if (current()) setAutomationPending(false);
+      }
     }
   }, [
     automationProjectContext,
@@ -2054,6 +2072,7 @@ export function App() {
           <div className="header-actions">
             {selectedProjectId && (
               <ProjectAutomationMenu
+                projectId={selectedProjectId}
                 automation={selectedProjectAutomation}
                 pending={automationPending}
                 error={automationError}

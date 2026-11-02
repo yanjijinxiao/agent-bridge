@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { chmod, mkdtemp, mkdir, realpath, rm, writeFile } from "node:fs/promises";
 import { request as httpRequest } from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 
+import { fakeNativeCore } from "./helpers/native-backend.mjs";
 import { createTaskboardServer } from "../server/index.mjs";
 
 async function createServerFixture(host = "127.0.0.1") {
@@ -12,43 +14,20 @@ async function createServerFixture(host = "127.0.0.1") {
   const workspacePath = path.join(directory, "workspace");
   await mkdir(workspacePath);
   const workspace = await realpath(workspacePath);
-  const codexExecutable = path.join(directory, "fake-codex.mjs");
-  await writeFile(codexExecutable, `#!/usr/bin/env node
-const args = process.argv.slice(2);
-if (args[0] === "debug") {
-  process.stdout.write('{"models":[{"slug":"gpt-real","display_name":"GPT Real","description":"","default_reasoning_level":"low","supported_reasoning_levels":[{"effort":"low"},{"effort":"high"}],"service_tiers":[]}]}');
-} else if (args[0] === "app-server") {
-  process.stdin.setEncoding("utf8"); let buffer="";
-  process.stdin.on("data", chunk => { buffer += chunk; let i;
-    while ((i=buffer.indexOf("\\n"))>=0) { const line=buffer.slice(0,i); buffer=buffer.slice(i+1);
-      if (!line.trim()) continue; const message=JSON.parse(line);
-      if (message.id===1) process.stdout.write('{"id":1,"result":{}}\\n');
-      if (message.id===2) process.stdout.write('{"id":2,"result":{"data":[{"skills":[{"name":"real-skill","path":"/fixture/real-skill/SKILL.md","enabled":true,"scope":"repo","interface":null}]}]}}\\n');
-    }
-  });
-} else {
-  process.stdin.resume();
-  process.stdin.on("end", () => {
-    process.stdout.write('{"type":"thread.started","thread_id":"session-1"}\\n');
-    process.stdout.write('{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\\n');
-    process.stdout.write('{"type":"turn.completed"}\\n');
-  });
-}
-`);
-  await chmod(codexExecutable, 0o755);
+  const core = fakeNativeCore({ onRun: () => "ok" });
   const codexStatePath = path.join(directory, "codex-state.json");
   await writeFile(codexStatePath, JSON.stringify({
     "local-projects": { local: { rootPaths: [workspace] } },
   }));
   const app = createTaskboardServer({
     dataDirectory: directory,
-    codexExecutable,
+    nativeBackend: core.client(),
     codexStatePath,
     skillPath: "/fixture/manage-taskboard/SKILL.md",
   });
   const address = await app.listen({ host, port: 0 });
   return {
-    app,
+    app, core,
     baseUrl: `http://127.0.0.1:${address.port}`,
     directory,
     workspace,
@@ -151,7 +130,7 @@ test("loopback AI API freezes server-owned origin and rejects injected execution
       if (snapshot.body.runs[0]?.status !== "running") break;
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
-    assert.equal(snapshot.body.thread.codexThreadId, "session-1");
+    assert.equal(snapshot.body.thread.codexThreadId, [...fixture.core.turns.values()][0].threadId);
     assert.equal(snapshot.body.events.some((event) => event.content === "ok"), true);
   } finally {
     await fixture.close();
@@ -322,4 +301,24 @@ test("server close stops accepting requests before AI shutdown completes", async
       await fixture.close();
     }
   }
+});
+
+
+test("local HTTP acknowledges and rereads stable submission identities without creating another native input", async t=>{
+  const f=await createServerFixture();t.after(()=>f.close());
+  const create={projectId:'local',clientRequestId:randomUUID()};
+  const a=await request(f.baseUrl,'/api/local/ai/threads',{method:'POST',body:create});
+  const b=await request(f.baseUrl,'/api/local/ai/threads',{method:'POST',body:create});
+  assert.equal(a.body.clientRequestId,create.clientRequestId);assert.equal(a.body.thread.id,b.body.thread.id);
+  const input={message:'native once',clientRequestId:randomUUID()};
+  const route=`/api/local/ai/threads/${a.body.thread.id}/turns`;
+  const first=await request(f.baseUrl,route,{method:'POST',body:input});
+  const second=await request(f.baseUrl,route,{method:'POST',body:input});
+  assert.equal(first.response.status,202);assert.equal(second.body.run.id,first.body.run.id);
+  const status=await request(f.baseUrl,`/api/local/ai/submissions/${input.clientRequestId}`);
+  assert.equal(status.body.status,'acknowledged');assert.equal(status.body.run.id,first.body.run.id);
+  assert.equal((await request(f.baseUrl,'/api/local/ai/submissions/not-a-uuid')).response.status,400);
+  assert.equal((await request(f.baseUrl,`/api/local/ai/submissions/${input.clientRequestId}?threadId=wrong`)).response.status,400);
+  assert.equal((await request(f.baseUrl,`/api/local/ai/submissions/${randomUUID()}`)).body.status,'unknown');
+  assert.equal(f.core.calls.length,1);
 });

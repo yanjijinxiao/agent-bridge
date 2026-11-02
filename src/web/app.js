@@ -2171,7 +2171,7 @@ function openNewSessionDialog(preselectedProject) {
     }
     const recent = authorizedConversationId(account);
     if (recent && !conversations.has(recent)) conversations.set(recent, "");
-    for (const sender of account.pairedSenderIds) if (!conversations.has(sender)) conversations.set(sender, "联系人");
+    if (account.channel === "weixin") for (const sender of account.pairedSenderIds) if (!conversations.has(sender)) conversations.set(sender, "联系人");
     return [...conversations].map(([sender, name]) => ({ account, sender, name }));
   });
   if (!options.length) {
@@ -2210,7 +2210,9 @@ function authorizedConversationId(account) {
     account.pairedSenderIds.includes(account.lastActiveSenderId)
     || (activeActor && account.pairedSenderIds.includes(activeActor))
   )) return account.lastActiveSenderId;
-  return account.pairedSenderIds[0];
+  // Personal admission and a group reply route are different identities.
+  // Only Weixin's direct-chat transport uses the actor as the conversation.
+  return account.channel === "weixin" ? account.pairedSenderIds[0] : undefined;
 }
 
 function updateNewSessionDefaultTitle() {

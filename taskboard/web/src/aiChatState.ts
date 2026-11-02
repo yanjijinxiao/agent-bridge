@@ -136,6 +136,7 @@ export function shouldRefreshAiSnapshot(type: string): boolean {
 }
 
 const VISIBLE_EVENT_TYPES = new Set([
+  "progress",
   "agent_message",
   "assistant",
   "plan",

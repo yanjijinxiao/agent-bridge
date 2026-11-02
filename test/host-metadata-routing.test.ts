@@ -14,7 +14,7 @@ import { resolveStatePaths } from "../src/state/paths.js";
 test("model and account queries use the selected native host and never substitute the local account", async t => {
   const fixture = fileURLToPath(new URL("./fixtures/host-metadata-app-server.mjs", import.meta.url));
   const connected: string[] = [];
-  const runner = new CodexAppServerGateway({ codexBin: fixture, timeoutMs: 2_000,
+  const runner = new CodexAppServerGateway({ appServerTransport: "stdio", codexBin: fixture, timeoutMs: 2_000,
     remoteTransportResolver(host) { connected.push(host); return { command: process.execPath, args: [fixture, `--host=${host}`], label: host }; } });
   t.after(() => runner.close());
   // Passing through the public facade exercises protocol routing, not its maps.

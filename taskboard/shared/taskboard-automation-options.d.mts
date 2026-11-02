@@ -1,18 +1,6 @@
-export type AutomationModel =
-  | "gpt-5.6-sol"
-  | "gpt-5.6-terra"
-  | "gpt-5.6-luna"
-  | "gpt-5.5"
-  | "gpt-5.4"
-  | "gpt-5.4-mini";
+export type AutomationModel = string;
 
-export type AutomationReasoningEffort =
-  | "low"
-  | "medium"
-  | "high"
-  | "xhigh"
-  | "max"
-  | "ultra";
+export type AutomationReasoningEffort = string;
 
 export interface AutomationModelOption {
   readonly label: string;
@@ -23,7 +11,6 @@ export interface AutomationModelOption {
 
 export const AUTOMATION_MODELS: readonly AutomationModelOption[];
 
-export function getAutomationModel(value: AutomationModel): AutomationModelOption;
 export function getAutomationModel(value: unknown): AutomationModelOption | undefined;
 export function isAutomationModel(value: unknown): value is AutomationModel;
 export function isAutomationReasoningEffort(
@@ -33,6 +20,7 @@ export function isSupportedModelEffort(
   model: unknown,
   effort: unknown,
 ): model is AutomationModel;
+export function isAutomationSelection(model: unknown, effort: unknown): model is AutomationModel;
 export function withAutomationModel<
   T extends { model: AutomationModel; reasoningEffort: AutomationReasoningEffort },
 >(

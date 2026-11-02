@@ -64,3 +64,10 @@
 4、31：浏览器部分上传、创建未知、项目view/ABA、双表单与草稿owner已经直接复现修复，当前TB-03.4/TB-09.1/.2/.4；配额满初次/继续提交均另验。10：System pending与Capacity checking/settling纯读已放行；Bridge接收后不等只读跟随，真实渠道写独立lease，REL-01.9保留写入保护。7：模型/强度default迟到展示新增10反例与2对照，CTRL-04.5已核。19：Web上传0644已真实stat反例，新操作目录0700/文件0600，CHAN-03.6。20：watcher后台scan拒绝已隔离宿主复现与修复，长行大小仍是未完成候选。24、25：根/条件/计划子项实际拖动及CAS冲突/加载/换项目已验，原两项静态断言当前通过；未开启隐藏入口或冒充palette执行完整。
 
 新增实际目录证据：Taskboard AI scope将其他项目主根全部加--add-dir且丢当前第二根，TB-02.6已修为所选项目完整有效realpath根。自有exec/私有injector迁移仍未完成。当前2482根测试、409子包测试及49Chrome通过；版本未提交/上线。
+
+
+## 本批次当前解决索引
+
+5 → CAT-03.2；6 → BIND-02.3；12 → DEL-01.7；15 特殊键/保存失败 → STATE-01.5/.2；20 长记录 → DEL-08.6；22 actor/group 候选 → WEB-01.6；26/27/32/36 原生执行/额度/菜单 → TB-04.2/.4、NATIVE-02.5；39 HTTP 未知 → TB-02.7。详细实现与直接反例见 completion-worklog 和模块说明，历史文字不覆写。
+
+其余候选保留“尚未复现/设备未验/额外组合缺测”的原性质，不是已确认的线上 bug。完整当前结论与未映射范围见 review-conclusions.md 和 gateway-case-coverage.md，不继续用旧“Taskboard 自有 exec 未迁移”描述新实现。

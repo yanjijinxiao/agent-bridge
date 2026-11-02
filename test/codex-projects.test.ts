@@ -402,3 +402,23 @@ function writeSessionWithMessages(
     }))
   ].map((line) => JSON.stringify(line)).join("\n")}\n`);
 }
+
+
+test("distinct native project identities sharing one root remain visible beside a legacy multi-root project", t => {
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'native-project-same-root-')); t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
+  const home=path.join(directory,'home'), root=path.join(directory,'root'), second=path.join(directory,'second');
+  fs.mkdirSync(home);fs.mkdirSync(root);fs.mkdirSync(second);
+  fs.writeFileSync(path.join(home,'.codex-global-state.json'),JSON.stringify({'local-projects':{legacy:{name:'Legacy',rootPaths:[root,second]}}}));
+  const result=mergeCodexProjectCandidates([{id:'native-one',name:'One',roots:[root]},{id:'native-two',name:'Two',roots:[root]}],home);
+  assert.deepEqual(result.map(p=>p.projectId),['legacy','native-one','native-two']);
+  assert.deepEqual(result[0].rootPaths,[fs.realpathSync(root),second]);
+});
+
+
+test("an explicit same-host legacy alias keeps its existing project identity and complete roots",t=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'native-project-alias-'));t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
+  const root=path.join(directory,'root');fs.mkdirSync(root);
+  fs.writeFileSync(path.join(directory,'.codex-global-state.json'),JSON.stringify({'local-projects':{legacy:{name:'Legacy',rootPaths:[root]}},'app-server-project-id-by-legacy-project-id-by-host':{[`local:${directory}`]:{legacy:'native'}}}));
+  const result=mergeCodexProjectCandidates([{id:'native',name:'Native',roots:[root]},{id:'other',name:'Other',roots:[root]}],directory);
+  assert.deepEqual(result.map(p=>p.projectId),['legacy','other']);
+});

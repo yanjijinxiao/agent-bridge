@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { execFile, spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { isIP } from "node:net";
@@ -18,6 +18,8 @@ import {
 } from "../shared/domain.mjs";
 import { normalizeWorkflowSnapshot } from "../shared/workflow-control-flow.mjs";
 import { AiChatService } from "./ai-chat.mjs";
+import { createTaskboardNativeBackend } from "./native-backend.mjs";
+import { parseAiRequestId } from "./ai-chat-submissions.mjs";
 import { createCloudConfigStore } from "./cloud-config.mjs";
 import {
   CloudProxyError,
@@ -819,8 +821,10 @@ function parseAiThreadCreate(body) {
     "model",
     "reasoningEffort",
     "sandbox",
+    "clientRequestId",
   ]));
   return {
+    clientRequestId: parseAiRequestId(body.clientRequestId),
     projectId: validateProjectId(body.projectId),
     issueId: parseAiSetting(body.issueId, "issueId", 128),
     title: parseAiSetting(body.title, "title", 160),
@@ -919,6 +923,7 @@ function parseAiTurn(body) {
     "skillIds",
     "dangerFullAccessConfirmed",
     "attachments",
+    "clientRequestId",
   ]));
   if (
     body.dangerFullAccessConfirmed !== undefined
@@ -940,6 +945,7 @@ function parseAiTurn(body) {
     );
   }
   return {
+    clientRequestId: parseAiRequestId(body.clientRequestId),
     message,
     skillIds,
     dangerFullAccessConfirmed: body.dangerFullAccessConfirmed,
@@ -1141,151 +1147,11 @@ async function scanDevelopmentContexts(workspacePath) {
   }
 }
 
-async function discoverSkills(codexExecutable, workspacePath) {
-  const entries = await new Promise((resolve, reject) => {
-    const child = spawn(codexExecutable, ["app-server", "--stdio"], {
-      cwd: workspacePath,
-      stdio: ["pipe", "pipe", "ignore"],
-    });
-    let settled = false;
-    let buffer = "";
-    const timeout = setTimeout(() => {
-      finish(new Error("Timed out while reading Codex skills"));
-    }, 10_000);
-
-    function finish(error, value) {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      child.stdin.end();
-      child.kill("SIGTERM");
-      if (error) reject(error);
-      else resolve(value);
-    }
-
-    function send(message) {
-      child.stdin.write(`${JSON.stringify(message)}\n`);
-    }
-
-    function handleMessage(message) {
-      if (message?.id === 1) {
-        if (message.error) {
-          finish(new Error("Codex app-server rejected initialization"));
-          return;
-        }
-        send({ method: "initialized" });
-        send({
-          id: 2,
-          method: "skills/list",
-          params: { cwds: [workspacePath], forceReload: false },
-        });
-        return;
-      }
-      if (message?.id !== 2) return;
-      if (message.error) {
-        finish(new Error("Codex app-server could not list skills"));
-        return;
-      }
-      finish(null, Array.isArray(message.result?.data) ? message.result.data : []);
-    }
-
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (chunk) => {
-      buffer += chunk;
-      let newlineIndex = buffer.indexOf("\n");
-      while (newlineIndex >= 0) {
-        const line = buffer.slice(0, newlineIndex).trim();
-        buffer = buffer.slice(newlineIndex + 1);
-        if (line) {
-          try {
-            handleMessage(JSON.parse(line));
-          } catch {}
-        }
-        newlineIndex = buffer.indexOf("\n");
-      }
-    });
-    child.stdin.on("error", (error) => finish(error));
-    child.once("error", (error) => finish(error));
-    child.once("exit", (code, signal) => {
-      if (!settled) {
-        finish(new Error(`Codex app-server exited before listing skills (${signal || code})`));
-      }
-    });
-    child.once("spawn", () => {
-      send({
-        id: 1,
-        method: "initialize",
-        params: {
-          clientInfo: { name: "codex-taskboard", version: "0.1.0" },
-          capabilities: { experimentalApi: true },
-        },
-      });
-    });
-  });
-
-  const unique = new Map();
-  for (const entry of entries) {
-    if (!Array.isArray(entry?.skills)) continue;
-    for (const skill of entry.skills) {
-      if (
-        !skill
-        || typeof skill !== "object"
-        || skill.enabled === false
-        || typeof skill.name !== "string"
-        || !skill.name.trim()
-      ) {
-        continue;
-      }
-      const id = skill.name.trim();
-      if (unique.has(id)) continue;
-      const displayName = typeof skill.interface?.displayName === "string"
-        ? skill.interface.displayName.trim()
-        : "";
-      unique.set(id, {
-        id,
-        label: displayName || id,
-        description: typeof skill.description === "string" ? skill.description.trim() : "",
-        path: typeof skill.path === "string" ? skill.path.trim() : "",
-        scope: ["user", "repo", "system", "admin"].includes(skill.scope)
-          ? skill.scope
-          : "user",
-      });
-    }
-  }
-  return [...unique.values()].sort((left, right) => left.label.localeCompare(right.label));
-}
-
-async function discoverMcpServers(codexExecutable) {
-  const result = await execFileAsync(codexExecutable, ["mcp", "list", "--json"], {
-    timeout: 8_000,
-    maxBuffer: 2 * 1024 * 1024,
-  });
-  const entries = JSON.parse(result.stdout);
-  if (!Array.isArray(entries)) throw new Error("Codex returned an invalid MCP server list");
-  return entries
-    .filter((entry) => (
-      entry
-      && typeof entry === "object"
-      && typeof entry.name === "string"
-      && entry.name.trim()
-      && entry.enabled !== false
-    ))
-    .map((entry) => ({
-      id: entry.name.trim(),
-      label: entry.name.trim(),
-      transport: typeof entry.transport?.type === "string"
-        ? entry.transport.type
-        : "unknown",
-    }))
-    .sort((left, right) => left.label.localeCompare(right.label));
-}
-
-async function discoverWorkflowCapabilities(resolved, workspacePath) {
+async function discoverWorkflowCapabilities(nativeBackend, workspacePath) {
   const [skills, mcpServers] = await Promise.all([
-    discoverSkills(resolved.codexExecutable, workspacePath),
-    discoverMcpServers(resolved.codexExecutable),
+    nativeBackend.listSkills(workspacePath), nativeBackend.listMcpServers(),
   ]);
-  return { skills, mcpServers };
+  return { skills, mcpServers: mcpServers.map(server => ({ ...server, transport: "native" })) };
 }
 
 export function resolveServerOptions(options = {}) {
@@ -1331,6 +1197,7 @@ export function resolveHost(value = process.env.CODEX_TASKBOARD_HOST ?? "0.0.0.0
 export function createTaskboardServer(options = {}) {
   const resolved = resolveServerOptions(options);
   const database = new TaskboardDatabase(resolved.databasePath);
+  const nativeBackend = createTaskboardNativeBackend({ ...resolved, ...options });
   const events = new EventHub();
   const cloudConfig = options.cloudConfigStore ?? createCloudConfigStore({
     configPath: resolved.cloudConfigPath,
@@ -1351,13 +1218,30 @@ export function createTaskboardServer(options = {}) {
   });
   const aiChat = new AiChatService({
     database,
+    projectCatalog: {
+      async getProject(projectId) {
+        if (!(await cloudConfig.read()).remoteUrl) return database.getProject(projectId);
+        const remote = await cloudProxy.forward(new Request(`http://127.0.0.1/api/projects/${encodeURIComponent(projectId)}`));
+        if (!remote.ok) throw new ApiError(remote.status, "PROJECT_UNAVAILABLE", "Cloud project metadata is unavailable");
+        return (await remote.json()).project;
+      },
+      async listProjects() {
+        if (!(await cloudConfig.read()).remoteUrl) return database.listProjects();
+        const remote = await cloudProxy.forward(new Request("http://127.0.0.1/api/projects"));
+        if (!remote.ok) throw new ApiError(remote.status, "PROJECT_UNAVAILABLE", "Cloud project metadata is unavailable");
+        const payload = await remote.json();
+        if (!Array.isArray(payload.projects)) throw new ApiError(502, "INVALID_PROJECT_CATALOG", "Cloud project list is invalid");
+        return payload.projects;
+      },
+    },
+    nativeBackend,
     codexExecutable: resolved.codexExecutable,
     codexStatePath: resolved.codexStatePath,
     manageTaskboardSkillPath: resolved.skillPath,
   });
   const issueAutomation = createIssueAutomation({
     automationPoliciesPath: resolved.automationPoliciesPath,
-    codexExecutable: resolved.codexExecutable,
+    aiChat, database, nativeBackend,
   });
   const triggerIssueAutomation = (task) => {
     issueAutomation.trigger(task).catch((error) => {
@@ -1484,14 +1368,22 @@ export function createTaskboardServer(options = {}) {
         return sendJson(response, 200, await aiChat.getCatalog(projectId));
       }
 
+      const aiSubmissionRoute = pathname.match(/^\/api\/local\/ai\/submissions\/([^/]+)$/);
+      if (aiSubmissionRoute) {
+        if (request.method !== "GET") return methodNotAllowed(response, ["GET"]);
+        assertNoQuery(url.searchParams, "GET /api/local/ai/submissions/:id");
+        return sendJson(response, 200, aiChat.getSubmission(decodeRouteSegment(aiSubmissionRoute[1], "Request id")));
+      }
+
       if (pathname === "/api/local/ai/threads") {
         assertNoQuery(url.searchParams, "/api/local/ai/threads");
         if (request.method === "GET") {
           return sendJson(response, 200, { threads: await aiChat.listThreads() });
         }
         if (request.method === "POST") {
-          const thread = await aiChat.createThread(parseAiThreadCreate(await readJson(request)));
-          return sendJson(response, 201, { thread });
+          const input = parseAiThreadCreate(await readJson(request));
+          const thread = await aiChat.createThread(input);
+          return sendJson(response, 201, { thread, ...(input.clientRequestId ? { clientRequestId: input.clientRequestId } : {}) });
         }
         return methodNotAllowed(response, ["GET", "POST"]);
       }
@@ -1530,15 +1422,24 @@ export function createTaskboardServer(options = {}) {
         if (request.method !== "POST") return methodNotAllowed(response, ["POST"]);
         assertNoQuery(url.searchParams, "POST /api/local/ai/threads/:id/turns");
         const threadId = decodeRouteSegment(aiThreadTurnRoute[1], "Thread id");
-        const run = await aiChat.startTurn(
-          threadId,
-          parseAiTurn(await readJson(
+        const input = parseAiTurn(await readJson(
             request,
             AI_CHAT_TURN_BODY_LIMIT,
             "AI chat turn body cannot exceed 25 MiB",
-          )),
-        );
-        return sendJson(response, 202, { run });
+          ));
+        const run = await aiChat.startTurn(threadId, input);
+        return sendJson(response, 202, { run, ...(input.clientRequestId ? { clientRequestId: input.clientRequestId } : {}) });
+      }
+
+      const aiInteractionRoute = pathname.match(/^\/api\/local\/ai\/threads\/([^/]+)\/interactions\/([^/]+)$/);
+      if (aiInteractionRoute) {
+        if (request.method !== "POST") return methodNotAllowed(response, ["POST"]);
+        assertNoQuery(url.searchParams, "POST /api/local/ai/threads/:id/interactions/:id");
+        const body = await readJson(request);
+        if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some(key => key !== "answer") || !Object.hasOwn(body, "answer"))
+          throw new ApiError(400, "INVALID_ANSWER", "Only the native interaction answer is accepted");
+        return sendJson(response, 202, aiChat.answerInteraction(decodeRouteSegment(aiInteractionRoute[1], "Thread id"),
+          decodeRouteSegment(aiInteractionRoute[2], "Interaction id"), body.answer));
       }
 
       const aiThreadRoute = pathname.match(/^\/api\/local\/ai\/threads\/([^/]+)$/);
@@ -1600,7 +1501,7 @@ export function createTaskboardServer(options = {}) {
         return sendJson(
           response,
           200,
-          await discoverWorkflowCapabilities(resolved, workspacePath ?? PROJECT_ROOT),
+          await discoverWorkflowCapabilities(nativeBackend, workspacePath ?? PROJECT_ROOT),
         );
       }
 
@@ -2176,6 +2077,9 @@ export function createTaskboardServer(options = {}) {
     aiChat,
     server,
     options: resolved,
+    hasRestartBlockingWork() { return nativeBackend.hasRestartBlockingWork(); },
+    pauseForRestart() { aiChat.pauseForRestart(); issueAutomation.pauseForRestart(); },
+    resumeAfterCancelledRestart() { aiChat.resumeAfterCancelledRestart(); issueAutomation.resumeAfterCancelledRestart(); },
     async listen({ host = "127.0.0.1", port = resolvePort() } = {}) {
       if (host !== "127.0.0.1" && host !== "0.0.0.0") {
         throw new Error("Taskboard server must bind to 127.0.0.1 or 0.0.0.0");
@@ -2194,6 +2098,8 @@ export function createTaskboardServer(options = {}) {
         server.listen(port, host);
       });
       listening = true;
+      aiChat.recover();
+      issueAutomation.recover();
       return server.address();
     },
     async close() {
@@ -2207,6 +2113,7 @@ export function createTaskboardServer(options = {}) {
       aiEventResponses.clear();
       await issueAutomation.close();
       await aiChat.close();
+      await nativeBackend.close();
       await serverClosed;
       listening = false;
       database.close();

@@ -1,110 +1,17 @@
-import { spawn } from "node:child_process";
-import readline from "node:readline";
+import { createTaskboardNativeBackend } from "../server/native-backend.mjs";
 
-const REQUEST_TIMEOUT_MS = 8_000;
-
-export async function readCodexQuotaStatus(model) {
+/** Quota reads attach to the same selected native core as all other clients. */
+export async function readCodexQuotaStatus(model, suppliedBackend) {
   const checkedAt = Date.now();
+  const backend = suppliedBackend ?? createTaskboardNativeBackend();
   try {
-    const session = startAppServer();
-    try {
-      await session.request("initialize", {
-        clientInfo: { name: "codex-taskboard", version: "0.1.0" },
-      });
-      session.notify("initialized", {});
-      const account = await session.request("account/read", { refreshToken: false });
-      if (account?.account?.type === "apiKey") {
-        return { state: "unavailable", reason: "api-key", checkedAt };
-      }
-      if (account?.account?.type !== "chatgpt") {
-        return { state: "unknown", checkedAt };
-      }
-      const result = await session.request("account/rateLimits/read", {});
-      return evaluateRateLimits(result, model, checkedAt);
-    } finally {
-      session.close();
-    }
+    const balance = await backend.getAccountRateLimits(undefined, model);
+    return evaluateRateLimits({ rateLimits: balance }, model, checkedAt);
   } catch {
     return { state: "unknown", checkedAt };
+  } finally {
+    if (!suppliedBackend) await backend.close().catch(() => {});
   }
-}
-
-function startAppServer() {
-  const child = spawn("codex", ["app-server", "--stdio"], {
-    stdio: ["pipe", "pipe", "ignore"],
-  });
-  const pending = new Map();
-  let sequence = 0;
-  let closed = false;
-  const lines = readline.createInterface({ input: child.stdout });
-
-  lines.on("line", (line) => {
-    let message;
-    try {
-      message = JSON.parse(line);
-    } catch {
-      return;
-    }
-    if (!Number.isInteger(message?.id)) return;
-    const request = pending.get(message.id);
-    if (!request) return;
-    pending.delete(message.id);
-    clearTimeout(request.timeout);
-    if (message.error) request.reject(new Error("Codex App Server request failed"));
-    else request.resolve(message.result);
-  });
-
-  const failPending = () => {
-    if (closed) return;
-    closed = true;
-    for (const request of pending.values()) {
-      clearTimeout(request.timeout);
-      request.reject(new Error("Codex App Server stopped"));
-    }
-    pending.clear();
-  };
-  child.once("error", failPending);
-  child.once("exit", failPending);
-  child.stdin.on("error", failPending);
-
-  function write(message) {
-    if (closed) throw new Error("Codex App Server stopped");
-    try {
-      child.stdin.write(`${JSON.stringify(message)}\n`);
-    } catch (error) {
-      failPending();
-      throw error;
-    }
-  }
-
-  return {
-    request(method, params) {
-      if (closed) return Promise.reject(new Error("Codex App Server stopped"));
-      const id = ++sequence;
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          pending.delete(id);
-          reject(new Error("Codex App Server request timed out"));
-        }, REQUEST_TIMEOUT_MS);
-        pending.set(id, { resolve, reject, timeout });
-        write({ id, method, params });
-      });
-    },
-    notify(method, params) {
-      write({ method, params });
-    },
-    close() {
-      closed = true;
-      lines.close();
-      child.stdin.end();
-      child.kill("SIGTERM");
-      for (const request of pending.values()) {
-        clearTimeout(request.timeout);
-        request.reject(new Error("Codex App Server stopped"));
-      }
-      pending.clear();
-    },
-  };
 }
 
 function evaluateRateLimits(result, model, checkedAt) {

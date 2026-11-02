@@ -6,6 +6,7 @@ import type {
   AiChatSandbox,
   AiChatThread,
   AiChatThreadSnapshot,
+  AiChatSubmissionStatus,
   Attachment,
   Comment,
   DevelopmentScan,
@@ -117,6 +118,7 @@ export async function listAiChatThreads(signal?: AbortSignal): Promise<AiChatThr
 }
 
 export async function createAiChatThread(input: {
+  clientRequestId?: string;
   projectId: string;
   issueId?: string;
   title?: string;
@@ -124,10 +126,13 @@ export async function createAiChatThread(input: {
   reasoningEffort?: string;
   sandbox?: AiChatSandbox;
 }): Promise<AiChatThread> {
-  const data = await request<{ thread: AiChatThread }>("/api/local/ai/threads", {
+  const data = await request<{ thread: AiChatThread; clientRequestId?: string }>("/api/local/ai/threads", {
     method: "POST",
     body: JSON.stringify(input),
   });
+  if (typeof data?.thread?.id !== "string" || !data.thread.id || data.thread.origin?.projectId !== input.projectId
+    || input.clientRequestId && data.clientRequestId !== input.clientRequestId)
+    throw new ApiError(0, { error: { code: "INVALID_ACKNOWLEDGEMENT", message: "本地会话创建回执待核对，未自动重试。" } });
   return data.thread;
 }
 
@@ -170,20 +175,32 @@ export async function deleteAiChatThread(threadId: string): Promise<void> {
 export async function startAiChatTurn(
   threadId: string,
   input: {
+    clientRequestId?: string;
     message: string;
     skillIds?: string[];
     attachments?: AiChatAttachmentInput[];
     dangerFullAccessConfirmed?: boolean;
   },
 ): Promise<AiChatRun> {
-  const data = await request<{ run: AiChatRun }>(
+  const data = await request<{ run: AiChatRun; clientRequestId?: string }>(
     `/api/local/ai/threads/${encodeURIComponent(threadId)}/turns`,
     {
       method: "POST",
       body: JSON.stringify(input),
     },
   );
+  if (typeof data?.run?.id !== "string" || !data.run.id || data.run.threadId !== threadId
+    || !["running", "completed", "failed", "interrupted"].includes(data.run.status)
+    || input.clientRequestId && data.clientRequestId !== input.clientRequestId)
+    throw new ApiError(0, { error: { code: "INVALID_ACKNOWLEDGEMENT", message: "本地输入回执待核对，未自动重试。" } });
   return data.run;
+}
+
+export async function getAiChatSubmission(id: string): Promise<AiChatSubmissionStatus> {
+  const value = await request<AiChatSubmissionStatus>(`/api/local/ai/submissions/${encodeURIComponent(id)}`);
+  if (value?.clientRequestId !== id || !["unknown", "retired", "acknowledged"].includes(value.status))
+    throw new ApiError(0, { error: { code: "INVALID_ACKNOWLEDGEMENT", message: "原提交的核对回执无效，未重发输入。" } });
+  return value;
 }
 
 export async function interruptAiChatRun(runId: string): Promise<AiChatRun> {
@@ -192,6 +209,12 @@ export async function interruptAiChatRun(runId: string): Promise<AiChatRun> {
     { method: "POST" },
   );
   return data.run;
+}
+
+export async function answerAiChatInteraction(threadId: string, id: string, answer: unknown): Promise<void> {
+  await request(`/api/local/ai/threads/${encodeURIComponent(threadId)}/interactions/${encodeURIComponent(id)}`, {
+    method: "POST", body: JSON.stringify({ answer }),
+  });
 }
 
 export function subscribeAiChatThread(

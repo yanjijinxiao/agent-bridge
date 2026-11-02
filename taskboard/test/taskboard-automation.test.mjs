@@ -32,7 +32,7 @@ const baseRequest = {
   reasoningEffort: "high",
 };
 
-test("the automation model catalog matches Codex and normalizes unsupported efforts", () => {
+test("historical scheduler models retain their legacy effort normalization", () => {
   assert.equal(AUTOMATION_MODELS[0].slug, "gpt-5.6-sol");
   assert.equal(AUTOMATION_MODELS.at(-1).slug, "gpt-5.4-mini");
   const current = {
@@ -47,6 +47,13 @@ test("the automation model catalog matches Codex and normalizes unsupported effo
   });
   assert.equal(isSupportedModelEffort("gpt-5.6-luna", "max"), true);
   assert.equal(isSupportedModelEffort("gpt-5.6-luna", "ultra"), false);
+});
+
+
+test("persisted event policy accepts current native model names without treating a bundled list as authority", () => {
+  const current = { ...baseRequest, model: "gpt-6.1-sol", reasoningEffort: "ultra" };
+  assert.deepEqual(parseTaskboardAutomationHostRequest(current), current);
+  assert.equal(parseTaskboardAutomationHostRequest({ ...current, model: "bad\nmodel" }), null);
 });
 
 test("the host request accepts event policies and migrates legacy interval fields", () => {

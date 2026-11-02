@@ -501,3 +501,22 @@ function writeLines(filePath: string, lines: object[]): void {
 function appendLines(filePath: string, lines: object[]): void {
   fs.appendFileSync(filePath, `${lines.map((line) => JSON.stringify(line)).join("\n")}\n`);
 }
+
+
+test("oversized unfinished rollout records are skipped within the byte budget while later UTF-8 progress and completion survive",async t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'monitor-record-budget-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const directory=path.join(root,'sessions');fs.mkdirSync(directory);const file=path.join(directory,'fixture.jsonl');
+  const completed:CodexSessionCompletion[]=[],activities:CodexSessionActivity[]=[];
+  const monitor=new CodexSessionCompletionMonitor({codexHome:root,pollIntervalMs:60000,onCompletion:x=>{completed.push(x);},onActivity:x=>{activities.push(x);}});
+  monitor.start();t.after(()=>monitor.stop());await monitor.ready();
+  writeLines(file,[sessionMeta('session',root),taskStarted('turn')]);await monitor.scanNow();
+  const concat=Buffer.concat;let oversized=false;
+  Buffer.concat=((chunks:readonly Uint8Array[],length?:number)=>{if(chunks.reduce((sum,b)=>sum+b.byteLength,0)>8*1024*1024)oversized=true;return concat(chunks,length);}) as typeof Buffer.concat;
+  try{
+    fs.appendFileSync(file,'{"type":"padding","payload":"'+'x'.repeat(4*1024*1024));await monitor.scanNow();
+    fs.appendFileSync(file,'x'.repeat(6*1024*1024));await monitor.scanNow();
+    fs.appendFileSync(file,'"}\n');appendLines(file,[responseCommentary('保留真实进展'),taskComplete('turn','真实完成')]);await monitor.scanNow();
+  }finally{Buffer.concat=concat;}
+  assert.equal(oversized,false,'an individual record cannot grow beyond the configured observer byte budget');
+  assert.equal(activities.at(-1)?.text,'保留真实进展');assert.equal(completed.at(-1)?.text,'真实完成');
+});

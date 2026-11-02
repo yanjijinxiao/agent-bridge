@@ -26,6 +26,8 @@ export type CodexBackendCapabilities = {
   readonly liveFollow: boolean;
   readonly runtimeInfo: boolean;
   readonly models: boolean;
+  readonly skills?: boolean;
+  readonly mcpServers?: boolean;
   readonly accountRateLimits: boolean;
   readonly goals: boolean;
   /** Lists the projects/workspaces visible to this concrete backend. */
@@ -339,6 +341,10 @@ export type CodexUserInputResultHandler = (request: CodexUserInputRequest, resul
 
 export type CodexRunnerInput = {
   prompt: string;
+  /** Explicit settings chosen by an owning UI. Omission preserves native
+   * thread permissions; the presence of handlers never implies an override. */
+  nativeSettings?: CodexNativeExecutionSettings;
+  imagePaths?: readonly string[];
   /** Carry the source lease through every await to the final native write. */
   assertCurrent?: () => void;
   /** Stable source identity, never permission to replay an uncertain submission. */
@@ -349,6 +355,8 @@ export type CodexRunnerInput = {
   /** New-thread project hint. Existing threads retain their native membership. */
   projectId?: string;
   projectName?: string;
+  /** Complete roots of the selected same-host project, for new project creation. */
+  projectRoots?: readonly string[];
   /** Explicitly unassigned. New turns must not infer a project from the cwd. */
   projectBinding?: "none";
   threadId?: string;
@@ -361,6 +369,8 @@ export type CodexRunnerInput = {
   model?: string;
   effort?: string;
   onDelta?: (delta: string) => Promise<void> | void;
+  /** Bounded public item details; excludes private reasoning and reviewer data. */
+  onItem?: (activity: import("./public-item.js").CodexPublicActivity) => Promise<void> | void;
   onProgress?: (message: string) => Promise<void> | void;
   onRecovery?: (recovery: CodexTurnRecovery) => Promise<void> | void;
   onApproval?: CodexApprovalHandler;
@@ -373,6 +383,21 @@ export type CodexRunnerInput = {
   ephemeral?: boolean;
   outputSchema?: Record<string, unknown>;
   sandbox?: CodexExecSandbox;
+};
+
+export type CodexNativeExecutionSettings = {
+  sandbox: CodexExecSandbox;
+  approvalPolicy: "untrusted" | "on-request" | "never";
+  approvalsReviewer: "user" | "auto_review" | "guardian_subagent";
+  runtimeWorkspaceRoots: readonly string[];
+};
+
+export type CodexSkillOption = {
+  id: string; name: string; label: string; description: string; path: string; scope: string;
+};
+export type CodexMcpServerOption = {
+  id: string; label: string; authStatus: string;
+  tools: Array<{ name: string; description: string }>;
 };
 
 /** Explicit, journaled empty-input continuation; never replay the original prompt. */
@@ -459,6 +484,7 @@ export type CodexModelOption = {
   displayName: string;
   description: string;
   isDefault: boolean;
+  serviceTiers?: Array<{ id: string; name: string }>;
   defaultEffort?: string;
   supportedEfforts: Array<{
     effort: string;
@@ -536,7 +562,7 @@ export interface CodexBackendControls {
   readThreadSnapshot(threadId: string): Promise<CodexThreadSnapshot>;
   getRuntimeInfo(cwd: string, threadId?: string): Promise<CodexRuntimeInfo>;
   listModels(): Promise<CodexModelOption[]>;
-  getAccountRateLimits(): Promise<CodexAccountBalance>;
+  getAccountRateLimits(model?: string): Promise<CodexAccountBalance>;
   getGoal(threadId: string): Promise<CodexThreadGoal | undefined>;
   setGoal(
     threadId: string,
@@ -554,6 +580,10 @@ export interface CodexBackendControls {
 
 export type CodexMetadataObservation = { includeTurns: false; timeoutMs: number; purpose?: "status" };
 export interface CodexAppServerBackend extends CodexBackendAdapter, Partial<CodexNativeQueue> {
+  readTurnActivities?(threadId: string, turnId: string): Promise<import("./public-item.js").CodexPublicActivity[]>;
+  interruptTurn?(threadId: string, turnId: string, assertCurrent?: () => void): Promise<void>;
+  listSkills?(cwd: string): Promise<CodexSkillOption[]>;
+  listMcpServers?(threadId?: string): Promise<CodexMcpServerOption[]>;
   observeThreadInteractions?(threadId: string, observer: import("./interactions.js").NativeInteractionObserver): Promise<void>;
   unobserveThreadInteractions?(threadId: string): Promise<void>;
   interactionSubscriptionReady?(threadId: string): boolean;
@@ -568,8 +598,12 @@ export interface CodexAppServerBackend extends CodexBackendAdapter, Partial<Code
 
 /** Stable facade consumed by channels, Web, intent routing, and account management. */
 export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
-  observeThreadInteractions?(threadId: string, hostId: string, observer: import("./interactions.js").NativeInteractionObserver): Promise<void>;
-  unobserveThreadInteractions?(threadId: string, hostId: string): Promise<void>;
+  readTurnActivities?(threadId: string, turnId: string, hostId?: string): Promise<import("./public-item.js").CodexPublicActivity[]>;
+  interruptTurn?(threadId: string, turnId: string, hostId?: string, assertCurrent?: () => void): Promise<void>;
+  listSkills?(cwd: string, hostId?: string): Promise<CodexSkillOption[]>;
+  listMcpServers?(threadId?: string, hostId?: string): Promise<CodexMcpServerOption[]>;
+  observeThreadInteractions?(threadId: string, hostId: string, observer: import("./interactions.js").NativeInteractionObserver, consumerId?: string): Promise<void>;
+  unobserveThreadInteractions?(threadId: string, hostId: string, consumerId?: string): Promise<void>;
   interactionSubscriptionReady?(threadId: string, hostId: string): boolean;
   serverIdentity?(hostId?: string): Promise<{ processId: number }>;
   detachIndependentObservations?(): void;
@@ -601,7 +635,7 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
   ): Promise<CodexHistoryPage>;
   getRuntimeInfo(cwd: string, threadId?: string, hostId?: string, observation?: Pick<CodexMetadataObservation, "timeoutMs" | "purpose">): Promise<CodexRuntimeInfo>;
   listModels(hostId?: string): Promise<CodexModelOption[]>;
-  getAccountRateLimits(hostId?: string): Promise<CodexAccountBalance>;
+  getAccountRateLimits(hostId?: string, model?: string): Promise<CodexAccountBalance>;
   getGoal(threadId: string, hostId?: string): Promise<CodexThreadGoal | undefined>;
   setGoal(
     threadId: string,
@@ -659,6 +693,8 @@ export const APP_SERVER_BACKEND_CAPABILITIES: CodexBackendCapabilities = Object.
   liveFollow: true,
   runtimeInfo: true,
   models: true,
+  skills: true,
+  mcpServers: true,
   accountRateLimits: true,
   goals: true,
   projectCatalog: true,

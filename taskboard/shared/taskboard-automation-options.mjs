@@ -1,3 +1,4 @@
+// Historical scheduler formats only. Live execution/UI query model/list.
 export const AUTOMATION_MODELS = [
   {
     label: "5.6 Sol",
@@ -38,18 +39,23 @@ export const AUTOMATION_MODELS = [
 ];
 
 const MODELS_BY_SLUG = new Map(AUTOMATION_MODELS.map((model) => [model.slug, model]));
-const REASONING_EFFORTS = new Set(AUTOMATION_MODELS.flatMap((model) => model.efforts));
 
 export function getAutomationModel(value) {
   return MODELS_BY_SLUG.get(value);
 }
 
 export function isAutomationModel(value) {
-  return MODELS_BY_SLUG.has(value);
+  return typeof value === "string" && value.length > 0 && value.length <= 200 && value.trim() === value && !/[\r\n\0]/.test(value);
 }
 
 export function isAutomationReasoningEffort(value) {
-  return REASONING_EFFORTS.has(value);
+  return typeof value === "string" && /^[a-z][a-z0-9_-]{0,63}$/.test(value);
+}
+
+/** Persistence validates shape. Availability belongs to the selected native
+ * catalog at the UI and final submission boundary, not a bundled model list. */
+export function isAutomationSelection(model, effort) {
+  return isAutomationModel(model) && isAutomationReasoningEffort(effort);
 }
 
 export function isSupportedModelEffort(model, effort) {
@@ -58,6 +64,7 @@ export function isSupportedModelEffort(model, effort) {
 
 export function withAutomationModel(options, model) {
   const nextModel = getAutomationModel(model);
+  if (!nextModel) throw new Error("Model is not part of the historical scheduler catalog");
   return {
     ...options,
     model,

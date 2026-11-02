@@ -1,3 +1,4 @@
+import { nativePublicActivity, sensitiveCommand, type CodexPublicActivity } from "./public-item.js";
 import { assertQueueAdmissionCurrent, CodexQueueAdmissionError, CodexRunAdmissionError, CodexInterventionError } from "./backend.js";
 import { canRecoverSystemError, type CodexSystemRecoveryInput, type CodexSystemRecoveryResult } from "./backend.js";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
@@ -13,7 +14,7 @@ import { automaticApprovalProgress } from "./approval-progress.js";
 import { parseMcpForm, mcpFormResponse, safeElicitationUrl, type McpForm } from "./elicitation.js";
 import type { CodexUserInputResultHandler, CodexUserInputResult } from "./backend.js";
 import type { CodexApprovalRequest, CodexApprovalResult, CodexApprovalResultHandler } from "./approval.js";
-import { desktopSessionMembership, nativeSessionPresentation } from "./desktop-session-membership.js";
+import { desktopProjectHint, desktopSessionMembership, nativeSessionPresentation } from "./desktop-session-membership.js";
 import type { NativeInteractionObserver, NativeApproval, NativeUserInput } from "./interactions.js";
 import { NativeAsyncQuestions } from "./native-async-questions.js";
 import { codexFailureCode, lastCodexTurnFailure, type CodexFailureCode } from "./turn-failure.js";
@@ -46,6 +47,8 @@ import {
   type CodexHistoryPageInput,
   type CodexHistoryMessage,
   type CodexModelOption,
+  type CodexSkillOption,
+  type CodexMcpServerOption,
   type CodexProject,
   type CodexProjectCatalog,
   type CodexSessionCatalog,
@@ -128,6 +131,7 @@ type TurnWaiter = {
 };
 
 type TurnStream = {
+  onItem?: CodexRunnerInput["onItem"];
   onDelta?: (delta: string) => Promise<void> | void;
   onProgress?: (message: string) => Promise<void> | void;
   onRecovery?: (recovery: CodexTurnRecovery) => Promise<void> | void;
@@ -137,7 +141,7 @@ type TurnStream = {
 type QueuedTurnEvent = {
   type: "delta" | "progress";
   text: string;
-} | { type: "recovery"; recovery: CodexTurnRecovery };
+} | { type: "recovery"; recovery: CodexTurnRecovery } | { type: "item"; activity: CodexPublicActivity };
 
 type AppServerSandboxPolicy =
   | { readonly type: "dangerFullAccess" }
@@ -178,6 +182,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private stderr = "";
   private readonly pending = new Map<JsonRpcId, PendingRequest>();
   private readonly activeTurns = new Map<string, string>();
+  private readonly itemHandlersByThread = new Map<string, NonNullable<CodexRunnerInput["onItem"]>>();
   private readonly approvalHandlersByThread = new Map<string, CodexApprovalHandler>();
   private readonly dynamicToolHandlersByThread = new Map<string, CodexDynamicToolHandler>();
   private readonly userInputHandlersByThread = new Map<string, CodexUserInputHandler>();
@@ -214,6 +219,20 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
 
   async run(input: CodexRunnerInput): Promise<CodexRunResult> {
     assertCodexProjectBinding(input);
+    const absolute = (value: unknown): value is string => typeof value === "string"
+      && (path.posix.isAbsolute(value) || path.win32.isAbsolute(value));
+    if (input.imagePaths?.some(file => !absolute(file))) throw new Error("Native image paths must be absolute");
+    if (input.projectRoots?.some(root => !absolute(root))) throw new Error("Native project roots must be absolute");
+    const settings = input.nativeSettings;
+    if (settings) {
+      if (input.sandbox !== undefined) throw new Error("Conflicting native sandbox settings");
+      if (!["read-only", "workspace-write", "danger-full-access"].includes(settings.sandbox)
+        || !["untrusted", "on-request", "never"].includes(settings.approvalPolicy)
+        || !["user", "auto_review", "guardian_subagent"].includes(settings.approvalsReviewer))
+        throw new Error("Invalid explicit native execution settings");
+      if (!Array.isArray(settings.runtimeWorkspaceRoots) || settings.runtimeWorkspaceRoots.some(root => !absolute(root)))
+        throw new Error("Native runtime workspace roots must be absolute");
+    }
     this.operationLeases += 1;
     try {
       return await this.runWithLease(input);
@@ -275,13 +294,13 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     // Project hints describe creation context. A continuation inherits native
     // membership, including an explicit removal or a move made by another peer.
     const nativeProjectId = !input.threadId && (input.projectId || input.projectName)
-      ? await this.resolveProjectId(input.cwd, input.projectId, input.projectName, input.assertCurrent)
+      ? await this.resolveProjectId(input.cwd, input.projectId, input.projectName, input.assertCurrent, input.projectRoots)
       : undefined;
     let threadResponse: Record<string, unknown>;
     try {
       // A missing start receipt can leave this client's subscription alive.
       // Read our subscription instead of acquiring the same writer twice.
-      const alreadySubscribed = Boolean(input.threadId && this.subscribedThreads.has(input.threadId));
+      const alreadySubscribed = Boolean(input.threadId && !input.nativeSettings && this.subscribedThreads.has(input.threadId));
       input.assertCurrent?.();
       threadResponse = await this.request(
         alreadySubscribed ? "thread/read" : input.threadId ? "thread/resume" : "thread/start",
@@ -290,7 +309,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           ...(input.threadId && !alreadySubscribed ? { excludeTurns: true } : {}),
           ...(input.threadId ? { threadId: input.threadId } : {}),
           ...(!input.threadId ? { ephemeral: input.ephemeral } : {}),
-          cwd: input.threadId ? undefined : input.cwd,
+          ...(input.nativeSettings ? { ...input.nativeSettings,
+            runtimeWorkspaceRoots: [...input.nativeSettings.runtimeWorkspaceRoots] } : {}),
+          cwd: !input.threadId || input.nativeSettings ? input.cwd : undefined,
           model: input.model,
           developerInstructions: input.developerInstructions,
           ...(!input.threadId && nativeProjectId ? { projectId: nativeProjectId } : {}),
@@ -342,11 +363,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
 
     const turnParams = compactObject({
       threadId,
-      input: resume ? [] : [{ type: "text", text: input.prompt, text_elements: [] }],
+      input: resume ? [] : [{ type: "text", text: input.prompt, text_elements: [] },
+        ...(input.imagePaths ?? []).map(image => ({ type: "localImage", path: image }))],
       clientUserMessageId: input.clientUserMessageId,
       ...(resume ? { clientUserMessageId: resume.clientUserMessageId, turnTrigger: "capacity_retry_automatic" } : {}),
       cwd: input.threadId ? undefined : input.cwd,
-      sandboxPolicy: resume ? undefined : appServerSandboxPolicy(input.sandbox ?? (input.threadId ? undefined : this.options.sandbox)),
+      sandboxPolicy: resume || input.nativeSettings ? undefined : appServerSandboxPolicy(input.sandbox ?? (input.threadId ? undefined : this.options.sandbox)),
       model: input.model,
       effort: input.effort,
       outputSchema: input.outputSchema,
@@ -365,6 +387,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     // A start can race another accepted turn. Keep the prior turn's handlers
     // until this input is accepted; an explicit rejection must restore them.
     const restoreHandlers = [
+      bindThreadHandler(this.itemHandlersByThread, threadId, input.onItem),
       bindThreadHandler(this.approvalHandlersByThread, threadId, input.onApproval),
       bindThreadHandler(this.approvalResults, threadId, input.onApprovalResult),
       bindThreadHandler(this.dynamicToolHandlersByThread, threadId, input.onDynamicToolCall),
@@ -441,9 +464,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     // Bind the accepted identity/presentation before draining notifications
     // that can arrive ahead of the turn/start receipt.
     await input.onTurnStarted?.({ threadId, turnId });
-    if (input.onDelta || input.onProgress || input.onRecovery) {
+    if (input.onDelta || input.onProgress || input.onRecovery || input.onItem) {
       const key = turnKey(threadId, turnId);
       this.turnStreams.set(key, {
+        onItem: input.onItem,
         onDelta: input.onDelta,
         onProgress: input.onProgress,
         onRecovery: input.onRecovery,
@@ -745,8 +769,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     return undefined;
   }
 
-  private async resolveProjectId(cwd: string, projectId?: string, projectName?: string, assertCurrent?: () => void): Promise<string | undefined> {
+  private async resolveProjectId(cwd: string, projectId?: string, projectName?: string, assertCurrent?: () => void, projectRoots?: readonly string[]): Promise<string | undefined> {
     const root = path.normalize(cwd);
+    const legacy = projectId ? desktopProjectHint(projectId, this.options.codexHome, this.options.hostId) : undefined;
+    const roots = [...new Set((projectRoots?.length ? projectRoots : legacy?.roots.length ? legacy.roots : [root]).map(value => path.normalize(value)))];
+    const sameRoots = (candidate: AppServerProject) => candidate.roots.length === roots.length
+      && candidate.roots.every(value => roots.includes(path.normalize(value)));
     if (this.projectCatalogSupported === false) return undefined;
 
     let projects: AppServerProject[];
@@ -761,9 +789,13 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       return undefined;
     }
     const select = (catalog: AppServerProject[]) => {
-      const explicit = projectId ? catalog.find(project => project.id === projectId) : undefined;
+      const explicit = projectId ? catalog.find(project => project.id === (legacy?.nativeId ?? projectId)) : undefined;
       if (explicit) return explicit;
-      const candidates = catalog.filter(project => project.roots.some(candidate => path.normalize(candidate) === root));
+      // A stale native id is not permission to choose a different project at
+      // the same path. Only a current, same-host Desktop registry alias may
+      // translate by its complete root set when no explicit mapping exists.
+      if (projectId && (!legacy || legacy.nativeId)) throw new Error("Codex 项目身份已失效，请重新选择准确的项目；未按目录替换身份。");
+      const candidates = catalog.filter(sameRoots);
       if (candidates.length > 1) throw new Error("此目录属于多个 Codex 项目，请指定准确的项目身份。");
       return candidates[0];
     };
@@ -773,12 +805,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     }
     if (!projectName) return undefined;
 
-    const idempotencyKey = `codex-im-gateway:${crypto.createHash("sha256").update(root).digest("hex")}`;
+    const idempotencyKey = `codex-im-gateway:${crypto.createHash("sha256").update(JSON.stringify([this.options.hostId ?? "local", legacy ? projectId : null, roots])).digest("hex")}`;
     assertCurrent?.();
     try {
       const response = await this.request("project/create", {
         name: projectName,
-        roots: [{ path: root }],
+        roots: roots.map(path => ({ path })),
         metadata: { source: "codex-im-gateway" },
         idempotencyKey
       }) as Record<string, unknown>;
@@ -1194,6 +1226,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private async adoptQueuedTurn(input: CodexQueuedRunInput, turn: Record<string, unknown>): Promise<CodexRunResult> {
     if (turn.status !== "inProgress") return this.runQueuedSubmission({ ...input, observeOnly: true, acceptedTurnId: String(turn.id) });
     if (!this.subscribedThreads.has(input.threadId)) {
+      if (input.onItem) this.itemHandlersByThread.set(input.threadId, input.onItem);
       if (input.onApproval) this.approvalHandlersByThread.set(input.threadId, input.onApproval);
       this.bindUserInputHandlers(input.threadId, input);
       await this.request("thread/resume", { threadId: input.threadId, excludeTurns: true });
@@ -1238,11 +1271,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const status = normalizeTurnStatus(turn.status);
     if (!status) throw new CodexCommunicationError("observation", "queue/observe", input.threadId, turnId);
     if (turn.status === "inProgress") {
+      if (input.onItem) this.itemHandlersByThread.set(input.threadId, input.onItem);
       if (input.onApproval) this.approvalHandlersByThread.set(input.threadId, input.onApproval);
       this.bindUserInputHandlers(input.threadId, input);
     }
     await input.onTurnStarted?.({ threadId: input.threadId, turnId, status });
-    this.turnStreams.set(key, { onDelta: input.onDelta, onProgress: input.onProgress, onRecovery: input.onRecovery, chain: Promise.resolve() });
+    this.turnStreams.set(key, { onItem: input.onItem, onDelta: input.onDelta, onProgress: input.onProgress, onRecovery: input.onRecovery, chain: Promise.resolve() });
     for (const event of this.queuedTurnEvents.get(key) ?? []) this.enqueueTurnEvent(key, event);
     this.queuedTurnEvents.delete(key);
     if (this.completedTurns.has(key)) return await this.waitForTurn(input.threadId, turnId);
@@ -1322,9 +1356,60 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     return structuredClone(models);
   }
 
-  async getAccountRateLimits(): Promise<CodexAccountBalance> {
+  async getAccountRateLimits(model?: string): Promise<CodexAccountBalance> {
     await this.ensureConnected();
-    return parseAccountRateLimits(await this.request("account/rateLimits/read", {}));
+    return parseAccountRateLimits(await this.request("account/rateLimits/read", {}), model);
+  }
+
+  async listSkills(cwd: string): Promise<CodexSkillOption[]> {
+    await this.ensureConnected();
+    const page = nativePage(await this.request("skills/list", { cwds: [cwd], forceReload: false }, undefined, true), "skills/list");
+    const entries = page.data.filter((entry): entry is Record<string, unknown> => isRecord(entry) && typeof entry.cwd === "string" && path.normalize(entry.cwd) === path.normalize(cwd));
+    if (entries.length !== 1) throw new Error("Native skill directory does not match the requested directory");
+    const entry = entries[0];
+    if (!Array.isArray(entry.skills) || !Array.isArray(entry.errors) || entry.errors.length)
+      throw new Error("Native skill catalog is unavailable");
+    const skills: CodexSkillOption[] = [];
+    for (const value of entry.skills) {
+      if (!isRecord(value) || typeof value.enabled !== "boolean") throw new Error("Invalid native skill catalog entry");
+      const skill = value;
+      if (!skill.enabled) continue;
+      if (typeof skill.name !== "string" || !skill.name.trim() || typeof skill.path !== "string" || !skill.path.trim()
+        || typeof skill.scope !== "string") throw new Error("Invalid native skill catalog entry");
+      // Native scopes may intentionally contain the same name. Selection must
+      // retain its concrete file, rather than hiding one or rejecting all.
+      const id = JSON.stringify([skill.name, skill.path]);
+      if (skills.some(item => item.id === id)) continue;
+      const display = isRecord(skill.interface) ? skill.interface.displayName : undefined;
+      skills.push({ id, name: skill.name, label: typeof display === "string" && display.trim() ? display : skill.name,
+        description: typeof skill.description === "string" ? skill.description : "", path: skill.path, scope: skill.scope });
+    }
+    return skills;
+  }
+
+  async listMcpServers(threadId?: string): Promise<CodexMcpServerOption[]> {
+    await this.ensureConnected();
+    const servers: CodexMcpServerOption[] = [], cursors = new Set<string>();
+    let cursor: string | undefined;
+    do {
+      const page = nativePage(await this.request("mcpServerStatus/list", compactObject({ threadId, cursor, limit: 100, detail: "full" }), undefined, true), "mcpServerStatus/list", cursor);
+      for (const item of page.data) {
+        if (!isRecord(item) || typeof item.name !== "string" || !item.name.trim() || typeof item.authStatus !== "string"
+          || !isRecord(item.tools)) throw new Error("Invalid native MCP catalog entry");
+        if (servers.some(server => server.id === item.name)) throw new Error("Native MCP catalog repeated server identity");
+        const tools = Object.values(item.tools as Record<string, unknown>).map(value => {
+          if (!isRecord(value) || typeof value.name !== "string" || !value.name.trim()) throw new Error("Invalid native MCP tool catalog entry");
+          return { name: value.name, description: typeof value.description === "string" ? value.description : "" };
+        });
+        // Authentication state is public; capabilities, opaque _meta and
+        // connection configuration are not catalog display fields.
+        servers.push({ id: item.name, label: item.name, authStatus: item.authStatus, tools });
+      }
+      cursor = typeof page.nextCursor === "string" && page.nextCursor ? page.nextCursor : undefined;
+      if (cursor && cursors.has(cursor)) throw new Error("Native MCP catalog repeated cursor");
+      if (cursor) cursors.add(cursor);
+    } while (cursor);
+    return servers;
   }
 
   async getGoal(threadId: string): Promise<CodexThreadGoal | undefined> {
@@ -1385,6 +1470,35 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     assertCurrent?.();
     await this.request("turn/interrupt", target);
     return "interrupted";
+  }
+
+  async interruptTurn(threadId: string, turnId: string, assertCurrent?: () => void): Promise<void> {
+    if (!threadId || !turnId) throw new Error("Exact native thread and turn identity are required");
+    await this.ensureConnected();
+    assertCurrent?.();
+    await this.request("turn/interrupt", { threadId, turnId });
+  }
+
+  async readTurnActivities(threadId: string, turnId: string): Promise<CodexPublicActivity[]> {
+    await this.ensureConnected();
+    const seen = new Set<string>(); let cursor: string | undefined;
+    do {
+      const page = nativePage(await this.request("thread/turns/list", compactObject({ threadId,
+        cursor, limit: 100, sortDirection: "desc", itemsView: "full" }), undefined, true), "thread/turns/list", cursor);
+      const turn = page.data.find(value => isRecord(value) && value.id === turnId);
+      if (isRecord(turn)) {
+        if (!Array.isArray(turn.items)) throw new Error("Native turn activity is unavailable");
+        return turn.items.flatMap(item => {
+          const completed = !isRecord(item) || !["inProgress", "in_progress"].includes(String(item.status));
+          const activity = nativePublicActivity(item, completed);
+          return activity ? [activity] : [];
+        });
+      }
+      cursor = typeof page.nextCursor === "string" ? page.nextCursor : undefined;
+      if (cursor && seen.has(cursor)) throw new Error("Native turn activity repeated cursor");
+      if (cursor) seen.add(cursor);
+    } while (cursor);
+    throw new Error("Exact native turn activity could not be reconciled");
   }
 
   hasInFlightWork(): boolean {
@@ -1771,6 +1885,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         phases.set(itemId, item.phase);
         this.itemPhasesByTurn.set(key, phases);
       }
+      if (key) this.emitPublicItem(key, item, false);
       const progress = describeItemProgress(item, false);
       if (key && progress) this.emitProgress(key, progress);
       return;
@@ -1814,6 +1929,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const key = turnKey(threadId, turnId);
       this.appendTurnEvent(key, raw);
       const item = params.item as Record<string, unknown> | undefined;
+      this.emitPublicItem(key, item, true);
       if (item?.type === "agentMessage" && typeof item.text === "string") {
         if (item.phase === "commentary") {
           const progress = item.text.trim();
@@ -1880,6 +1996,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         ...(previousState?.title ? { title: previousState.title } : {}),
         ...(previousState?.preview ? { preview: previousState.preview } : {})
       });
+      this.itemHandlersByThread.delete(threadId);
       this.approvalHandlersByThread.delete(threadId);
       this.approvalResults.delete(threadId);
       this.dynamicToolHandlersByThread.delete(threadId);
@@ -1983,6 +2100,16 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     this.queuedTurnEvents.set(key, queued);
   }
 
+  private emitPublicItem(key: string, item: unknown, completed: boolean): void {
+    const threadId = key.slice(0, key.indexOf("\u0000"));
+    if (!this.turnStreams.get(key)?.onItem && !this.itemHandlersByThread.has(threadId)) return;
+    const activity = nativePublicActivity(item, completed);
+    if (!activity) return;
+    const event: QueuedTurnEvent = { type: "item", activity };
+    if (this.turnStreams.has(key)) this.enqueueTurnEvent(key, event);
+    else this.queueTurnEvent(key, event);
+  }
+
   private emitProgress(key: string, text: string): void {
     this.clearTurnRecovery(key);
     if (this.turnStreams.has(key)) {
@@ -1996,7 +2123,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const stream = this.turnStreams.get(key);
     if (!stream) return;
     stream.chain = stream.chain
-      .then(() => event.type === "recovery"
+      .then(() => event.type === "item" ? stream.onItem?.(event.activity) : event.type === "recovery"
         ? stream.onRecovery ? stream.onRecovery(event.recovery) : stream.onProgress?.(codexRecoverySummary(event.recovery))
         : event.type === "progress" ? stream.onProgress?.(event.text) : stream.onDelta?.(event.text))
       .then(() => undefined)
@@ -2236,6 +2363,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     this.nativeTurnClients.clear();
     this.subscribedThreads.clear();
     this.observedApprovalIds.clear();
+    this.itemHandlersByThread.clear();
     this.approvalHandlersByThread.clear();
     this.dynamicToolHandlersByThread.clear();
     this.userInputHandlersByThread.clear();
@@ -2331,8 +2459,7 @@ function safeCommandPreview(value: unknown): string {
   // A progress label does not need shell argument fidelity. Redacting a value
   // token-by-token leaks quoted assignments, JSON fields and argv credentials;
   // omit the whole preview when credential syntax is present instead.
-  if (/(?:token|secret|password|passwd|api[_-]?key|authorization|credential)['"]?\s*(?:[:=]|\s)/i.test(command)
-    || /\bBearer\s+/i.test(command) || /[a-z][a-z\d+.-]*:\/\/[^/\s]*@/i.test(command)) return "参数已隐藏（含敏感字段）";
+  if (sensitiveCommand(command)) return "参数已隐藏（含敏感字段）";
   return `\`${boundedText(command.replace(/\s+/g, " ").trim(), 220).replaceAll("`", "'")}\``;
 }
 
@@ -2458,7 +2585,8 @@ function parseAppServerProject(value: unknown): AppServerProject | undefined {
   if (!project || typeof project.id !== "string" || !project.id) return undefined;
   const roots = Array.isArray(project.roots)
     ? project.roots.flatMap((value) => {
-      const root = value as Record<string, unknown>;
+      if (!isRecord(value)) return [];
+      const root = value;
       return typeof root.path === "string" && root.path ? [root.path] : [];
     })
     : [];
@@ -2481,6 +2609,7 @@ function shouldRepairBridgeThreadName(value?: string): boolean {
 }
 
 function parseModelOption(value: unknown): CodexModelOption | undefined {
+  if (!isRecord(value)) return undefined;
   const model = value as Record<string, unknown>;
   const modelId = typeof model.model === "string" && model.model
     ? model.model
@@ -2488,7 +2617,8 @@ function parseModelOption(value: unknown): CodexModelOption | undefined {
   if (!modelId || model.hidden === true) return undefined;
   const efforts = Array.isArray(model.supportedReasoningEfforts)
     ? model.supportedReasoningEfforts.flatMap((value) => {
-      const effort = value as Record<string, unknown>;
+      if (!isRecord(value)) return [];
+      const effort = value;
       return typeof effort.reasoningEffort === "string" && effort.reasoningEffort
         ? [{
           effort: effort.reasoningEffort,
@@ -2502,6 +2632,8 @@ function parseModelOption(value: unknown): CodexModelOption | undefined {
     displayName: typeof model.displayName === "string" && model.displayName ? model.displayName : modelId,
     description: typeof model.description === "string" ? model.description : "",
     isDefault: model.isDefault === true,
+    ...(Array.isArray(model.serviceTiers) ? { serviceTiers: model.serviceTiers.flatMap(value => isRecord(value)
+      && typeof value.id === "string" && typeof value.name === "string" ? [{ id: value.id, name: value.name }] : []) } : {}),
     ...(typeof model.defaultReasoningEffort === "string" && model.defaultReasoningEffort
       ? { defaultEffort: model.defaultReasoningEffort }
       : {}),

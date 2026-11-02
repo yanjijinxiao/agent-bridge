@@ -37,7 +37,7 @@ for(const backend of ["exec", "app-server"] as const)
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     const paths = resolveStatePaths(path.join(root, "state"));
     const store = new RuntimeStateStore(paths);
-    const rows: CodexThreadState[] = Array.from({ length: 19 }, (_, i) => ({ threadId: `task-${i}`, cwd: root, title: `任务 ${i}`, persistence: "active", runtimeStatus: "idle", activeFlags: [], updatedAt: new Date(2000000 - i * 1000).toISOString() }));
+    const rows: CodexThreadState[] = Array.from({ length: 19 }, (_, i) => ({ threadId: `task-${i}`, cwd: root, title: `任务 ${i}`, projectMembership: "none", persistence: "active", runtimeStatus: "idle", activeFlags: [], updatedAt: new Date(2000000 - i * 1000).toISOString() }));
     rows.push({ ...rows[0], threadId: "archived", title: "ARCHIVED", persistence: "archived" }, { ...rows[0], threadId: "guardian", title: "INTERNAL", internal: true }, { ...rows[0], threadId: "missing", title: "MISSING", persistence: "missing" });
     const texts: string[] = [], runs: any[] = [], steers: any[] = [];
     const inspections: string[] = [];
@@ -154,4 +154,21 @@ test("viewer cannot bind through /sessions alias, and actor-scoped R codes canno
   assert.match(texts.at(-1)!, /需要 participant/);
   await send("charlie", "/session R1");
   assert.match(texts.at(-1)!, /已过期/);
+});
+
+test("binding an unknown native project membership preserves uncertainty through reload and continuation without inventing a project",async t=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'native-binding-unknown-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const paths=resolveStatePaths(root),store=new RuntimeStateStore(paths),runs:any[]=[];
+ store.createProject('Same cwd is not membership',root,{sourceProjectId:'unrelated-native'});
+ const service=new BridgeService({stateStore:store,config:{...defaultConfig(root),allowedSenderIds:['alice'],streamReplies:false},
+  weixin:{async sendText(){return {messageId:'sent'};}},runner:{async inspectThread(){return {threadId:'unknown-thread',cwd:root,persistence:'active',runtimeStatus:'idle',activeFlags:[],projectMembership:'unknown'};},
+   async getHistory(){return [];},async run(input:any){runs.push(input);return {threadId:'unknown-thread',turnId:'one-turn',text:'done',raw:''};}
+  } as never});
+ await service.handleMessage({id:'bind-unknown',senderId:'alice',text:'/session unknown-thread',raw:{}});
+ assert.equal(store.getBoundSession('alice')?.projectBinding,'unknown');assert.equal(store.getBoundSession('alice')?.projectId,undefined);
+ assert.equal(store.getActiveProject('alice'),undefined);
+ const restored=new RuntimeStateStore(paths);assert.equal(restored.getBoundSession('alice')?.projectBinding,'unknown');assert.equal(restored.listProjects().length,1);
+ await service.handleMessage({id:'continue-unknown',senderId:'alice',text:'Continue exact native thread',raw:{}});
+ assert.equal(runs.length,1);assert.equal(runs[0].threadId,'unknown-thread');assert.equal(runs[0].projectId,undefined);
+ assert.equal(runs[0].projectName,undefined);assert.equal(runs[0].projectBinding,undefined,'unknown is not an explicit project removal');
 });

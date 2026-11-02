@@ -196,3 +196,24 @@ test("rejects a directory that is not an llm-wiki project", async (t) => {
     updatedAt: now
   }), /未找到 llm-wiki 可执行文件/);
 });
+
+test("legacy document reads enforce their own realpath and byte limits while an ordinary in-root file remains readable",async t=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'wiki-document-boundary-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const wiki=path.join(root,'wiki'),bin=path.join(wiki,'.venv','bin');fs.mkdirSync(bin,{recursive:true});
+ fs.writeFileSync(path.join(wiki,'normal.md'),'Visible in-root knowledge');fs.writeFileSync(path.join(root,'outside.md'),'PRIVATE_OUTSIDE');
+ fs.symlinkSync(path.join(root,'outside.md'),path.join(wiki,'escape.md'));
+ fs.writeFileSync(path.join(wiki,'large.md'),'x'.repeat(2*1024*1024+1));fs.mkdirSync(path.join(wiki,'directory'));
+ fs.writeFileSync(path.join(bin,'llm-wiki'),`#!/usr/bin/env node
+ const [op,id]=process.argv.slice(2);
+ if(op==='status')console.log(JSON.stringify({documents:1,blocks:1,cas_blobs:1}));
+ else if(op==='search')console.log('[]');
+ else if(op==='trace')console.log(JSON.stringify({document_id:id,relative_path:id}));
+ else {console.error("No such command 'mcp'");process.exitCode=2;}
+ `,{mode:0o755});
+ const kb={id:'boundary',name:'Wiki',rootPath:wiki,createdAt:'2026-11-02',updatedAt:'2026-11-02'};
+ const pool=new LlmWikiMcpClientPool();t.after(()=>pool.close());
+ assert.match(await pool.call(kb,'get_document',{document_id:'normal.md'}),/Visible in-root knowledge/);
+ for(const id of ['escape.md','../outside.md','large.md','directory']){
+  await assert.rejects(pool.call(kb,'get_document',{document_id:id}),/外部路径|不是普通文件|超过/);
+ }
+});

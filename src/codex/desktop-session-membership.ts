@@ -2,6 +2,28 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { CodexThreadState } from "./backend.js";
+
+/** A current registry can translate a known legacy identity. A backup or an
+ * unrelated cwd/name is presentation evidence only and cannot select a writer. */
+export function desktopProjectHint(id: string, codexHome = process.env.CODEX_HOME ?? path.join(os.homedir(), ".codex"), hostId = "local"): { roots: string[]; nativeId?: string } | undefined {
+  let state: Record<string, unknown>;
+  try { const parsed: unknown = JSON.parse(fs.readFileSync(path.join(codexHome, ".codex-global-state.json"), "utf8")); if (!record(parsed)) return; state = parsed; } catch { return; }
+  let roots: string[] | undefined;
+  if (hostId === "local" && record(state["local-projects"])) {
+    for (const [key, value] of Object.entries(state["local-projects"])) {
+      if (record(value) && (value.id ?? key) === id && Array.isArray(value.rootPaths)
+        && value.rootPaths.length && value.rootPaths.every(root => typeof root === "string" && path.isAbsolute(root))) roots = [...new Set(value.rootPaths as string[])];
+    }
+  } else if (Array.isArray(state["remote-projects"])) {
+    const value = state["remote-projects"].find(value => record(value) && value.id === id && value.hostId === hostId);
+    if (record(value) && typeof value.remotePath === "string" && path.posix.isAbsolute(value.remotePath)) roots = [value.remotePath];
+  }
+  if (!roots) return;
+  const namespaces = state["app-server-project-id-by-legacy-project-id-by-host"];
+  const aliases = record(namespaces) ? namespaces[`${hostId}:${codexHome}`] ?? namespaces[hostId] : undefined;
+  const nativeId = record(aliases) && typeof aliases[id] === "string" && aliases[id] ? aliases[id] as string : undefined;
+  return { roots, ...(nativeId ? { nativeId } : {}) };
+}
 /** Desktop's sidebar membership is distinct from app-server's native project IDs.
  * Read it once per catalog snapshot and prefer explicit host + thread membership.
  * Desktop's legacy catalog can additionally group unassigned records by workspace.

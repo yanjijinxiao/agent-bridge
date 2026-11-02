@@ -2,11 +2,12 @@
  * Each operation owns one key: independent views cannot overwrite/clear each
  * other's evidence. Review retires the captured keys, never a later operation.
  */
-export function submissionKey(kind: "comment" | "issue", scope: string, id: string): string {
+export type SubmissionKind = "comment" | "issue" | "ai-thread" | "ai-turn";
+export function submissionKey(kind: SubmissionKind, scope: string, id: string): string {
   return `taskboard.submission:${JSON.stringify([kind, scope])}:${id}`;
 }
 
-export function pendingSubmissionKeys(kind: "comment" | "issue", scope: string): string[] {
+export function pendingSubmissionKeys(kind: SubmissionKind, scope: string): string[] {
   const prefix = `taskboard.submission:${JSON.stringify([kind, scope])}:`;
   return Object.keys(window.localStorage).filter(key => key.startsWith(prefix));
 }

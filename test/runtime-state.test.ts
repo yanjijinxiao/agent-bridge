@@ -409,3 +409,30 @@ test("stores the latest WeChat sync key across monitor restarts", (t) => {
   store.setSyncKey("sync-next");
   assert.equal(store.getSyncKey(), "sync-next");
 });
+
+
+test("provider identity keys stay ordinary data across save, reload and normal context selection",t=>{
+  const store=createStore(t);
+  for(const identity of ['__proto__','constructor','toString','ordinary']) {
+    store.rememberContextToken(identity,`context:${identity}`);
+    assert.equal(store.getContextToken(identity),`context:${identity}`);
+    store.setInteractionMode(identity,'qa');assert.equal(store.getInteractionMode(identity),'qa');
+    store.setRole(identity,identity,'viewer');assert.equal(store.roleFor(identity,identity),'viewer');
+  }
+  store.refresh();
+  for(const identity of ['__proto__','constructor','toString','ordinary'])assert.equal(store.getContextToken(identity),`context:${identity}`);
+});
+
+test("runtime failed disk commit restores the sole live owner's roles, binding and settings",t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'runtime-commit-fail-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const paths=resolveStatePaths(root),store=new RuntimeStateStore(paths),project=store.createProject('Project','/work/project');
+  const session=store.createSession('chat',project.workspace,'Original',project.id);store.setRole('chat','actor','viewer');
+  const before=store.snapshot, disk=fs.readFileSync(paths.statePath,'utf8'),rename=fs.renameSync;
+  fs.renameSync=(source,target)=>{if(target===paths.statePath)throw Object.assign(Error('Isolated full disk'),{code:'ENOSPC'});return rename(source,target);};
+  try {
+    for(const write of [()=>store.setRole('chat','actor','controller'),()=>store.leaveSession('chat'),()=>store.setSessionFollow(session.id,false)]){
+      assert.throws(write,/full disk/);assert.deepEqual(store.snapshot,before);assert.equal(fs.readFileSync(paths.statePath,'utf8'),disk);
+    }
+  }finally{fs.renameSync=rename;}
+  store.leaveSession('chat');assert.equal(store.getBoundSession('chat'),undefined);
+});

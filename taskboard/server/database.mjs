@@ -125,10 +125,12 @@ function workflowWorkspaceFromRow(row) {
 }
 
 function aiChatRunFromRow(row) {
+  const receipt = row.native_receipt ? JSON.parse(row.native_receipt) : undefined;
   return {
     id: row.id,
     threadId: row.thread_id,
     status: row.status,
+    ...(receipt ? { handoff: row.status === "running" && row.error ? "reconciling" : receipt.phase === "accepted" ? "accepted" : "awaiting-native" } : {}),
     exitCode: row.exit_code,
     error: row.error,
     startedAt: row.started_at,
@@ -311,6 +313,21 @@ export class TaskboardDatabase {
         ON ai_chat_runs(thread_id)
         WHERE status = 'running';
 
+      CREATE TABLE IF NOT EXISTS taskboard_automation_runs (
+        project_id TEXT PRIMARY KEY,
+        thread_id TEXT REFERENCES ai_chat_threads(id) ON DELETE SET NULL,
+        run_id TEXT REFERENCES ai_chat_runs(id) ON DELETE SET NULL,
+        dirty INTEGER NOT NULL DEFAULT 0 CHECK(dirty IN (0, 1))
+      );
+
+      CREATE TABLE IF NOT EXISTS ai_chat_submissions (
+        id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL CHECK(kind IN ('thread', 'turn')),
+        scope TEXT NOT NULL,
+        fingerprint TEXT NOT NULL,
+        target_id TEXT NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS ai_chat_events (
         id TEXT PRIMARY KEY,
         thread_id TEXT NOT NULL REFERENCES ai_chat_threads(id) ON DELETE CASCADE,
@@ -328,6 +345,10 @@ export class TaskboardDatabase {
     `);
 
     const projectColumns = this.database.prepare("PRAGMA table_info(projects)").all();
+    const runColumns = this.database.prepare("PRAGMA table_info(ai_chat_runs)").all();
+    if (!runColumns.some(column => column.name === "native_receipt")) {
+      this.database.exec("ALTER TABLE ai_chat_runs ADD COLUMN native_receipt TEXT");
+    }
     if (!projectColumns.some((column) => column.name === "workspace_path")) {
       this.database.exec("ALTER TABLE projects ADD COLUMN workspace_path TEXT");
     }
@@ -705,7 +726,8 @@ export class TaskboardDatabase {
   createAiChatThread(input) {
     const id = input.id ?? randomUUID();
     const timestamp = input.createdAt ?? now();
-    this.database.prepare(`
+    if (input.submission) this.database.exec("BEGIN IMMEDIATE");
+    try { this.database.prepare(`
       INSERT INTO ai_chat_threads (
         id, title, status,
         origin_project_id, origin_project_name, origin_workspace_path,
@@ -729,6 +751,8 @@ export class TaskboardDatabase {
       timestamp,
       input.updatedAt ?? timestamp,
     );
+    if (input.submission) { this.saveAiChatSubmission(input.submission, id); this.database.exec("COMMIT"); }
+    } catch (error) { if (input.submission) this.database.exec("ROLLBACK"); throw error; }
     return this.getAiChatThread(id);
   }
 
@@ -790,8 +814,8 @@ export class TaskboardDatabase {
     try {
       this.database.prepare(`
         INSERT INTO ai_chat_runs (
-          id, thread_id, status, exit_code, error, started_at, finished_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          id, thread_id, status, exit_code, error, started_at, finished_at, native_receipt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id,
         input.threadId,
@@ -800,14 +824,19 @@ export class TaskboardDatabase {
         input.error ?? null,
         timestamp,
         input.finishedAt ?? null,
+        input.nativeReceipt ? JSON.stringify(input.nativeReceipt) : null,
       );
       if ((input.status ?? "running") === "running") {
+        this.database.prepare("UPDATE taskboard_automation_runs SET run_id = ? WHERE thread_id = ?")
+          .run(id, input.threadId);
         this.database.prepare(`
           UPDATE ai_chat_threads
           SET status = 'running', updated_at = ?
           WHERE id = ?
         `).run(timestamp, input.threadId);
       }
+      if (input.userEvent) this.insertAiChatEvent({ ...input.userEvent, threadId: input.threadId, runId: id });
+      if (input.submission) this.saveAiChatSubmission(input.submission, id);
       this.database.exec("COMMIT");
     } catch (error) {
       this.database.exec("ROLLBACK");
@@ -870,6 +899,8 @@ export class TaskboardDatabase {
       INSERT INTO ai_chat_events (
         id, thread_id, run_id, type, role, content, data, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET content = excluded.content, data = excluded.data, role = excluded.role
+      WHERE ai_chat_events.thread_id = excluded.thread_id AND ai_chat_events.run_id = excluded.run_id
     `).run(
       id,
       input.threadId,
@@ -892,6 +923,50 @@ export class TaskboardDatabase {
     `).all(threadId).map(aiChatEventFromRow);
   }
 
+  getAiChatNativeReceipt(runId) {
+    const row = this.database.prepare("SELECT native_receipt FROM ai_chat_runs WHERE id = ?").get(runId);
+    return row?.native_receipt ? JSON.parse(row.native_receipt) : null;
+  }
+
+  getAiChatSubmission(id) {
+    const row = this.database.prepare("SELECT * FROM ai_chat_submissions WHERE id = ?").get(id);
+    return row ? { id: row.id, kind: row.kind, scope: row.scope, fingerprint: row.fingerprint, targetId: row.target_id } : null;
+  }
+
+  saveAiChatSubmission(request, targetId) {
+    this.database.prepare("INSERT INTO ai_chat_submissions(id, kind, scope, fingerprint, target_id) VALUES (?, ?, ?, ?, ?)")
+      .run(request.id, request.kind, request.scope, request.fingerprint, targetId);
+  }
+
+  saveAiChatNativeReceipt(runId, receipt) {
+    const result = this.database.prepare("UPDATE ai_chat_runs SET native_receipt = ? WHERE id = ? AND status = 'running'")
+      .run(JSON.stringify(receipt), runId);
+    if (Number(result.changes) !== 1) throw new Error("Native run receipt no longer belongs to an active run");
+  }
+
+  listNativeRunningAiChatRuns() {
+    return this.database.prepare("SELECT * FROM ai_chat_runs WHERE status = 'running' AND native_receipt IS NOT NULL")
+      .all().map(aiChatRunFromRow);
+  }
+
+  getAutomationRun(projectId) {
+    const row = this.database.prepare("SELECT * FROM taskboard_automation_runs WHERE project_id = ?").get(projectId);
+    return row ? { projectId: row.project_id, threadId: row.thread_id, runId: row.run_id, dirty: row.dirty === 1 } : null;
+  }
+
+  setAutomationRun(projectId, changes) {
+    const previous = this.getAutomationRun(projectId) ?? { threadId: null, runId: null, dirty: false };
+    const next = { ...previous, ...changes };
+    this.database.prepare(`INSERT INTO taskboard_automation_runs(project_id, thread_id, run_id, dirty) VALUES (?, ?, ?, ?)
+      ON CONFLICT(project_id) DO UPDATE SET thread_id = excluded.thread_id, run_id = excluded.run_id, dirty = excluded.dirty`)
+      .run(projectId, next.threadId, next.runId, Number(next.dirty));
+    return this.getAutomationRun(projectId);
+  }
+
+  listAutomationRuns() {
+    return this.database.prepare("SELECT project_id FROM taskboard_automation_runs").all().map(row => this.getAutomationRun(row.project_id));
+  }
+
   interruptAbandonedAiChatRuns() {
     const timestamp = now();
     this.database.exec("BEGIN IMMEDIATE");
@@ -902,7 +977,7 @@ export class TaskboardDatabase {
           status = 'interrupted',
           error = COALESCE(error, 'Taskboard service restarted'),
           finished_at = COALESCE(finished_at, ?)
-        WHERE status = 'running'
+        WHERE status = 'running' AND native_receipt IS NULL
       `).run(timestamp);
       if (result.changes > 0) {
         this.database.prepare(`

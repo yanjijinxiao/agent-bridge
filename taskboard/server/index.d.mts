@@ -1,6 +1,10 @@
 import type { AddressInfo } from "node:net";
 
 export type TaskboardServerOptions = {
+  nativeBackend?: object;
+  nativeBackendFactory?: () => object | Promise<object>;
+  appServerTransport?: "auto" | "daemon" | "stdio";
+  codexHome?: string;
   dataDirectory?: string;
   databasePath?: string;
   attachmentsDirectory?: string;
@@ -16,6 +20,9 @@ export type TaskboardServerOptions = {
 export type TaskboardServer = {
   listen(options?: { host?: "127.0.0.1" | "0.0.0.0"; port?: number }): Promise<AddressInfo | string | null>;
   close(): Promise<void>;
+  hasRestartBlockingWork(): boolean;
+  pauseForRestart(): void;
+  resumeAfterCancelledRestart(): void;
 };
 
 export declare function createTaskboardServer(options?: TaskboardServerOptions): TaskboardServer;

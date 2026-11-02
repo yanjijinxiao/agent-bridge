@@ -6,6 +6,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, test } from "node:test";
 
+import { fakeNativeCore } from "./helpers/native-backend.mjs";
 import { createTaskboardServer } from "../server/index.mjs";
 
 const runningApps = [];
@@ -21,7 +22,7 @@ afterEach(async () => {
 async function startServer(configure, listenOptions = {}) {
   const directory = await mkdtemp(path.join(os.tmpdir(), "codex-taskboard-test-"));
   const options = configure ? await configure(directory) : {};
-  const app = createTaskboardServer({ dataDirectory: directory, ...options });
+  const app = createTaskboardServer({ dataDirectory: directory, nativeBackend: fakeNativeCore().client(), ...options });
   const address = await app.listen({ port: 0, ...listenOptions });
   runningApps.push({ app, directory });
   return `http://127.0.0.1:${address.port}`;
@@ -711,21 +712,16 @@ test("workflow capabilities come from the live Codex skill and MCP catalogs", as
   let workspacePath;
   const baseUrl = await startServer(async (directory) => {
     workspacePath = directory;
-    const codexExecutable = path.join(directory, "fake-codex");
-    await writeFile(codexExecutable, `#!/bin/sh
-if [ "$1" = "mcp" ]; then
-  printf '%s\\n' '[{"name":"context7","enabled":true,"transport":{"type":"streamable_http"}},{"name":"disabled-server","enabled":false,"transport":{"type":"stdio"}}]'
-  exit 0
-fi
-while IFS= read -r line; do
-  case "$line" in
-    *'"id":1'*) printf '%s\\n' '{"id":1,"result":{"platformFamily":"unix"}}' ;;
-    *'"id":2'*) printf '%s\\n' '{"id":2,"result":{"data":[{"cwd":"workspace","skills":[{"name":"user-skill","description":"User fixture skill","path":"/fixture/user/SKILL.md","enabled":true,"scope":"user","interface":null},{"name":"repo-skill","description":"Repository fixture skill","path":"/fixture/repo/SKILL.md","enabled":true,"scope":"repo","interface":{"displayName":"Repository Skill"}},{"name":"user-skill","enabled":true,"scope":"system","interface":{"displayName":"Duplicate"}},{"name":"disabled-skill","enabled":false,"scope":"user","interface":null}],"errors":[]}]}}' ;;
-  esac
-done
-`);
-    await chmod(codexExecutable, 0o755);
-    return { codexExecutable };
+    return { nativeBackend: { ...fakeNativeCore().client(),
+      async listSkills(cwd) {
+        assert.equal(cwd, workspacePath);
+        return [
+          { id: "repo-skill", label: "Repository Skill", description: "Repository fixture skill", path: "/fixture/repo/SKILL.md", scope: "repo" },
+          { id: "user-skill", label: "user-skill", description: "User fixture skill", path: "/fixture/user/SKILL.md", scope: "user" },
+        ];
+      },
+      async listMcpServers() { return [{ id: "context7", label: "context7", authStatus: "notLoggedIn", tools: [] }]; },
+    } };
   });
 
   const result = await request(
@@ -739,7 +735,7 @@ done
       { id: "user-skill", label: "user-skill", description: "User fixture skill", path: "/fixture/user/SKILL.md", scope: "user" },
     ],
     mcpServers: [
-      { id: "context7", label: "context7", transport: "streamable_http" },
+      { id: "context7", label: "context7", authStatus: "notLoggedIn", tools: [], transport: "native" },
     ],
   });
 
@@ -757,7 +753,7 @@ done
 
 test("workflow capability discovery fails instead of inventing fallback options", async () => {
   const baseUrl = await startServer(async (directory) => ({
-    codexExecutable: path.join(directory, "missing-codex"),
+    nativeBackend: { ...fakeNativeCore().client(), async listSkills() { throw new Error("Isolated native catalog unavailable"); } },
   }));
   const result = await request(baseUrl, "/api/workflow-capabilities");
   assert.equal(result.response.status, 500);

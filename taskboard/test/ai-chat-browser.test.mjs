@@ -91,6 +91,83 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
   const enter = () => call("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
   await call("Emulation.setDeviceMetricsOverride", { width: 1200, height: 800, deviceScaleFactor: 1, mobile: false });
 
+  await t.test("native approval buttons and question fields submit only explicit actions and clear secret values", async () => {
+    await navigate(`${base}/?view=native`);
+    await until(() => evaluate("document.querySelectorAll('.ai-chat-native-interaction').length===2"), "native forms missing");
+    assert.equal(await evaluate("audit.requests.length"),0);
+    await evaluate("audit.holdNativeAnswer=true;Array.from(document.querySelectorAll('.ai-chat-native-actions button')).find(b=>b.textContent==='取消本次').click()");
+    await until(()=>evaluate("audit.requests.length===1"),"native approval action not submitted");
+    assert.deepEqual(await evaluate("audit.requests[0].body"),{answer:"cancel"});
+    assert.equal(await evaluate("Array.from(document.querySelectorAll('.ai-chat-native-actions button')).every(b=>b.disabled)"),true);
+    await evaluate("audit.releaseNativeAnswer();audit.holdNativeAnswer=false;document.querySelector('.ai-chat-native-interaction form input').focus()");
+    await call("Input.insertText",{text:"Own free-form answer"});
+    await evaluate("document.querySelector('input[type=password]').focus()");
+    await call("Input.insertText",{text:"ISOLATED_SECRET"});
+    assert.equal(await evaluate("audit.requests.length"),1,"typing never submits or approves");
+    await evaluate("document.querySelector('.ai-chat-native-interaction form button[type=submit]').click()");
+    await until(()=>evaluate("audit.requests.length===2 && document.querySelector('input[type=password]').value===''"),"native question did not submit/clear");
+    assert.deepEqual(await evaluate("audit.requests[1].body"),{answer:{choice:{answers:["Own free-form answer"]},secret:{answers:["ISOLATED_SECRET"]}}});
+    assert.equal(await evaluate("JSON.stringify(localStorage).includes('ISOLATED_SECRET')"),false);
+    assert.equal(await evaluate("document.body.textContent.includes('ISOLATED_SECRET')"),false);
+  });
+
+  await t.test("opening a project reads server policy without reapplying an old enabled browser cache", async () => {
+    await navigate(`${base}/?view=automation-host`);
+    await until(()=>evaluate("audit.hostRequests?.length>0"),"hosted policy reconciliation missing");
+    assert.equal(await evaluate("audit.hostRequests.every(request=>request.operation==='list')"),true,
+      "opening a page/menu must never re-enable a cached policy");
+    await until(()=>evaluate("JSON.parse(localStorage.getItem('taskboard.projectAutomations.v1')).a?.enabledByUser===false"),"server disabled policy did not replace stale cache");
+  });
+
+  await t.test("automation menu uses the selected native model catalog and enables only after an explicit click", async () => {
+    await navigate(`${base}/?view=automation-menu`);
+    await until(()=>evaluate("Boolean(document.querySelector('.project-automation-trigger'))"),"automation menu trigger missing");
+    await evaluate("document.querySelector('.project-automation-trigger').click()");
+    await until(()=>evaluate("document.querySelector('.project-automation-menu select')?.value==='a-model'"),"native model not selected");
+    assert.deepEqual(await evaluate("Array.from(document.querySelector('.project-automation-menu select').options).map(option=>option.value)"),["a-model"]);
+    assert.equal(await evaluate("audit.saved.length"),0,"catalog reads do not save or enable automation");
+    await evaluate("document.querySelector('.project-automation-menu button[role=switch]').click()");
+    await until(()=>evaluate("audit.saved.length===1"),"explicit native model policy not saved");
+    assert.deepEqual(await evaluate("audit.saved[0]"),{enabledByUser:true,quotaAware:false,model:"a-model",reasoningEffort:"high"});
+  });
+
+  await t.test("a completed AI turn with a lost HTTP acknowledgement is held instead of resubmitting the draft", async () => {
+    await open(); await ready();
+    await evaluate("audit.dropTurnAck=true;document.querySelector('.ai-chat-composer-editor').focus()");
+    await call("Input.insertText",{text:"Original native input"}); await enter();
+    await until(()=>evaluate("audit.requests.some(r=>r.method==='POST' && r.path.endsWith('/turns')) && !document.querySelector('.ai-chat-composer').getAttribute('aria-busy')"),"unknown AI turn did not settle in fixture");
+    await until(()=>evaluate("!document.querySelector('.ai-chat-running')"),"completed native fixture did not refresh");
+    await evaluate("document.querySelector('.ai-chat-composer-editor').focus()"); await enter();
+    assert.equal(await turns(),1,"retained draft must not become another native execution after a lost receipt");
+    assert.equal(await evaluate("Boolean(document.querySelector('.ai-chat-submission-review'))"),true);
+    await evaluate("audit.submissionUnknown=true;document.querySelector('.ai-chat-submission-review button').click()");
+    await until(()=>evaluate("document.querySelector('.ai-chat-error')?.textContent.includes('尚无法确认')"),"unknown status must retain the original receipt");
+    assert.equal(await turns(),1);
+    await evaluate("audit.submissionUnknown=false;document.querySelector('.ai-chat-submission-review button').click()");
+    await until(()=>evaluate("!document.querySelector('.ai-chat-submission-review')"),"read-only native receipt recovery did not clear the confirmed handoff");
+    assert.equal(await turns(),1,"receipt recovery must issue GET only");
+    assert.equal(await evaluate("document.querySelector('.ai-chat-composer-editor').textContent"),"");
+    await evaluate("audit.dropTurnAck=true;document.querySelector('.ai-chat-composer-editor').focus()");
+    await call('Input.insertText',{text:'Second isolated original input'}); await enter();
+    await until(()=>evaluate("Boolean(document.querySelector('.ai-chat-submission-review'))"),"second lost receipt not retained");
+    await navigate(`${base}/`);
+    await until(()=>evaluate("Boolean(document.querySelector('.ai-chat-launcher'))"),"reloaded AI launcher missing");
+    await evaluate("document.querySelector('.ai-chat-launcher').click()"); await ready();
+    assert.equal(await evaluate("Boolean(document.querySelector('.ai-chat-submission-review'))"),true,"reload must retain the unresolved browser handoff");
+    assert.equal(await turns(),0);
+  });
+
+  await t.test("AI journal storage failure sends zero writes and explicit retry preserves the original draft", async () => {
+    await open('?storageFull=1'); await ready();
+    await evaluate("document.querySelector('.ai-chat-composer-editor').focus()");
+    await call('Input.insertText',{text:'Keep before native submit'}); await enter();
+    await until(()=>evaluate("Boolean(document.querySelector('.ai-chat-error'))"),"storage error not visible");
+    assert.equal(await turns(),0);
+    assert.equal(await evaluate("document.querySelector('.ai-chat-composer-editor').textContent"),'Keep before native submit');
+    await evaluate("audit.storageFull=false;document.querySelector('.ai-chat-composer-editor').focus()"); await enter();
+    await until(async()=>await turns()===1,"explicit retry did not reach the original native API");
+  });
+
   await t.test("issue cards render existing malformed dates without crashing and retain valid date labels", async () => {
     for (const date of ["2026-13-01", "2026-02-30", "2028-02-29"]) {
       await navigate(`${base}/?view=card&date=${date}`);

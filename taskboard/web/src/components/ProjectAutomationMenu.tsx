@@ -1,12 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  AUTOMATION_MODELS,
-  getAutomationModel,
-  withAutomationModel,
   type AutomationModel,
   type AutomationReasoningEffort,
 } from "../../../shared/taskboard-automation-options.mjs";
+import { getAiChatCatalog } from "../api";
+import type { AiChatModel } from "../types";
 import { LinearIcon } from "./LinearIcon";
 
 type AutomationStatus = "ACTIVE" | "PAUSED";
@@ -30,6 +29,7 @@ interface AutomationState extends AutomationOptions {
 }
 
 interface ProjectAutomationMenuProps {
+  projectId: string;
   automation?: Partial<AutomationState>;
   pending: boolean;
   error: string | null;
@@ -55,6 +55,7 @@ const EFFORT_LABELS: Record<AutomationReasoningEffort, string> = {
 };
 
 export function ProjectAutomationMenu({
+  projectId,
   automation,
   pending,
   error,
@@ -68,6 +69,11 @@ export function ProjectAutomationMenu({
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ left: 0, top: 0, ready: false });
   const [draft, setDraft] = useState<AutomationOptions>(DEFAULT_OPTIONS);
+  const [models, setModels] = useState<AiChatModel[]>([]);
+  const [catalogPending, setCatalogPending] = useState(false);
+  const [catalogError, setCatalogError] = useState("");
+  const selectedModel = models.find(model => model.slug === draft.model);
+  const validSelection = Boolean(selectedModel?.supportedReasoningEfforts.includes(draft.reasoningEffort));
   const status = automation?.status ?? "PAUSED";
   const quota = automation?.quota;
   const stateLabel = !automation?.enabledByUser
@@ -80,6 +86,21 @@ export function ProjectAutomationMenu({
           ? "等待新议题"
           : "已暂停";
   const disabled = pending || Boolean(unavailableReason);
+
+  useEffect(() => { setOpen(false); }, [projectId]);
+  useEffect(() => {
+    if (!open) return;
+    let retired = false;
+    setCatalogPending(true); setCatalogError(""); setModels([]);
+    void getAiChatCatalog(projectId).then(catalog => {
+      if (retired) return;
+      setModels(catalog.models);
+      if (!automation?.model && catalog.models[0]) setDraft(current => ({ ...current,
+        model: catalog.models[0].slug, reasoningEffort: catalog.models[0].defaultReasoningEffort }));
+    }, error => { if (!retired) setCatalogError(error instanceof Error ? error.message : "原生模型目录不可用"); })
+      .finally(() => { if (!retired) setCatalogPending(false); });
+    return () => { retired = true; };
+  }, [open, projectId]);
 
   useEffect(() => {
     if (!open) return;
@@ -134,6 +155,8 @@ export function ProjectAutomationMenu({
 
   const submitChange = (next: AutomationOptions) => {
     if (disabled) return;
+    const model = models.find(model => model.slug === next.model);
+    if (next.enabledByUser && (catalogPending || !model?.supportedReasoningEfforts.includes(next.reasoningEffort))) return;
     setDraft(next);
     onChange(next);
   };
@@ -159,7 +182,7 @@ export function ProjectAutomationMenu({
           className={`board-setting-switch${draft.enabledByUser ? " is-on" : ""}`}
           role="switch"
           aria-checked={draft.enabledByUser}
-          disabled={disabled}
+          disabled={disabled || (!draft.enabledByUser && (catalogPending || !validSelection))}
           onClick={() => submitChange({
             ...draft,
             enabledByUser: !draft.enabledByUser,
@@ -175,7 +198,7 @@ export function ProjectAutomationMenu({
           className={`board-setting-switch${draft.quotaAware ? " is-on" : ""}`}
           role="switch"
           aria-checked={draft.quotaAware}
-          disabled={disabled}
+          disabled={disabled || catalogPending}
           onClick={() => submitChange({
             ...draft,
             quotaAware: !draft.quotaAware,
@@ -204,11 +227,16 @@ export function ProjectAutomationMenu({
         <span>模型</span>
         <select
           value={draft.model}
-          disabled={disabled}
-          onChange={(event) => submitChange(withAutomationModel(draft, event.target.value as AutomationModel))}
+          disabled={disabled || catalogPending}
+          onChange={(event) => {
+            const model = models.find(model => model.slug === event.target.value);
+            if (model) submitChange({ ...draft, model: model.slug, reasoningEffort: model.supportedReasoningEfforts.includes(draft.reasoningEffort)
+              ? draft.reasoningEffort : model.defaultReasoningEffort });
+          }}
         >
-          {AUTOMATION_MODELS.map((model) => (
-            <option key={model.slug} value={model.slug}>{model.label}</option>
+          {!selectedModel && <option value={draft.model}>{draft.model}（当前不可用）</option>}
+          {models.map((model) => (
+            <option key={model.slug} value={model.slug}>{model.displayName}</option>
           ))}
         </select>
       </label>
@@ -216,14 +244,14 @@ export function ProjectAutomationMenu({
         <span>推理强度</span>
         <select
           value={draft.reasoningEffort}
-          disabled={disabled}
+          disabled={disabled || catalogPending || !selectedModel}
           onChange={(event) => submitChange({
             ...draft,
             reasoningEffort: event.target.value as AutomationReasoningEffort,
           })}
         >
-          {getAutomationModel(draft.model).efforts.map((effort) => (
-            <option key={effort} value={effort}>{EFFORT_LABELS[effort]}</option>
+          {(selectedModel?.supportedReasoningEfforts ?? []).map((effort) => (
+            <option key={effort} value={effort}>{EFFORT_LABELS[effort] ?? effort}</option>
           ))}
         </select>
       </label>
@@ -233,6 +261,8 @@ export function ProjectAutomationMenu({
         清空后结束；下条新议题会再次触发。
       </p>
       {unavailableReason && <p className="project-automation-note">{unavailableReason}</p>}
+      {catalogPending && <p className="project-automation-note">正在读取原生模型目录…</p>}
+      {catalogError && <p className="project-automation-error" role="alert">{catalogError}</p>}
       {error && error !== unavailableReason && <p className="project-automation-error" role="alert">{error}</p>}
     </div>,
     document.body,

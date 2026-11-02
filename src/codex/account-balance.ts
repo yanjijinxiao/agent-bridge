@@ -28,9 +28,13 @@ export type CodexAccountBalance = {
   spendControlReached?: boolean;
 };
 
-export function parseAccountRateLimits(value: unknown): CodexAccountBalance {
+export function parseAccountRateLimits(value: unknown, model?: string): CodexAccountBalance {
   const response = asRecord(value);
-  const snapshot = asRecord(response?.rateLimits);
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const snapshots = asRecord(response?.rateLimitsByLimitId);
+  const selected = model && snapshots ? Object.values(snapshots).map(asRecord)
+    .find(snapshot => typeof snapshot?.limitName === "string" && normalize(snapshot.limitName) === normalize(model)) : undefined;
+  const snapshot = selected ?? asRecord(response?.rateLimits) ?? asRecord(snapshots?.codex);
   if (!snapshot) {
     throw new Error("Codex app-server did not return account rate limits");
   }

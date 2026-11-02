@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
+import { fakeNativeCore } from "../taskboard/test/helpers/native-backend.mjs";
 import { embeddedTaskboardPort, startEmbeddedTaskboard } from "../src/taskboard/embedded-server.js";
 
 test("starts and closes the embedded Taskboard with isolated data", async (t) => {
@@ -39,34 +40,12 @@ test("reuses a healthy Taskboard already listening on the managed port", async (
   assert.equal(fs.existsSync(path.join(clientDirectory, "taskboard.sqlite")), false);
 });
 
-test("uses the configured Codex executable for the embedded AI catalog", async (t) => {
+test("embedded AI catalogs use the selected native adapter without private CLI helpers", async (t) => {
   const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "codex-embedded-taskboard-"));
-  const codexExecutable = path.join(dataDirectory, "fake-codex.mjs");
-  fs.writeFileSync(codexExecutable, `#!/usr/bin/env node
-const args = process.argv.slice(2);
-if (args[0] === "debug") {
-  process.stdout.write('{"models":[{"slug":"gpt-test","display_name":"GPT Test","default_reasoning_level":"low","supported_reasoning_levels":[{"effort":"low"}],"service_tiers":[]}]}');
-} else if (args[0] === "app-server") {
-  process.stdin.setEncoding("utf8");
-  let buffer = "";
-  process.stdin.on("data", (chunk) => {
-    buffer += chunk;
-    let newline;
-    while ((newline = buffer.indexOf("\\n")) >= 0) {
-      const line = buffer.slice(0, newline);
-      buffer = buffer.slice(newline + 1);
-      if (!line.trim()) continue;
-      const message = JSON.parse(line);
-      if (message.id === 1) process.stdout.write('{"id":1,"result":{}}\\n');
-      if (message.id === 2) process.stdout.write('{"id":2,"result":{"data":[]}}\\n');
-    }
-  });
-}
-`);
-  fs.chmodSync(codexExecutable, 0o755);
+  const core = fakeNativeCore({ model: "gpt-test" });
   t.after(() => fs.rmSync(dataDirectory, { recursive: true, force: true }));
 
-  const taskboard = await startEmbeddedTaskboard({ dataDirectory, port: 0, codexExecutable });
+  const taskboard = await startEmbeddedTaskboard({ dataDirectory, port: 0, nativeBackendFactory: () => core.client() });
   t.after(() => taskboard.close());
   const projectResponse = await fetch(new URL("/api/projects", taskboard.url), {
     method: "POST",
@@ -81,7 +60,8 @@ if (args[0] === "debug") {
   ));
   assert.equal(catalogResponse.status, 200);
   const catalog = await catalogResponse.json();
-  assert.deepEqual(catalog.models.map((model: { slug: string }) => model.slug), ["gpt-test"]);
+  assert.equal(catalog.models[0].slug, "gpt-test");
+  assert.equal(core.calls.length, 0, "catalog queries do not submit work");
 });
 
 test("derives the managed Taskboard port from a loopback URL", () => {

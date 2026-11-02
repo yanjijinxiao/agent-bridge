@@ -141,6 +141,7 @@ import { BindingExpiryCoordinator, type ExpiringBinding } from "./binding-expiry
 import type { BindingExpiry } from "../state/binding-expiry.js";
 
 export class RuntimeConfigurationBusyError extends Error {
+  readonly submission = "not-submitted";
   constructor(message = "Gateway 正在处理消息、等待原生回执或应用配置；此次操作未提交、任务未中断，请稍后重试。") { super(message); }
 }
 
@@ -267,6 +268,11 @@ type DirectChannelText = {
 };
 
 export type AccountManagerOptions = {
+  restartParticipant?: {
+    hasRestartBlockingWork(): boolean;
+    pauseForRestart(): void;
+    resumeAfterCancelledRestart(): void;
+  };
   adapterFactory?: ChannelAdapterFactory;
   paths: StatePaths;
   configProvider?: () => CodexImGatewayConfig;
@@ -562,6 +568,7 @@ export class AccountManager {
   }
 
   private assertReleaseIdle(): void {
+    if (this.options.restartParticipant?.hasRestartBlockingWork()) throw new RuntimeConfigurationBusyError();
     if (!this.runner?.hasRestartBlockingWork || !this.runner.isIndependentObservation) { this.assertRuntimeIdle(); return; }
     if (this.runtimeConfigurationChanging || this.stoppingAll || this.runner.hasRestartBlockingWork()
       || this.threadEvents.hasRestartBlockingWork()
@@ -583,7 +590,7 @@ export class AccountManager {
       this.releasePersistent = persistAcrossRestart;
       this.releaseOwner = id;
       this.runtimeConfigurationChanging = true;
-      try { this.threadEvents.pauseForRestart(); this.runner?.detachIndependentObservations?.(); }
+      try { this.options.restartParticipant?.pauseForRestart(); this.threadEvents.pauseForRestart(); this.runner?.detachIndependentObservations?.(); }
       catch (error) { this.cancelRelease(id); throw error; }
     }
     return { id, pid: process.pid, prepared: true };
@@ -596,6 +603,7 @@ export class AccountManager {
     this.releaseOwner = undefined;
     this.runtimeConfigurationChanging = false;
     this.threadEvents.resumeAfterCancelledRestart();
+    this.options.restartParticipant?.resumeAfterCancelledRestart();
     return true;
   }
 
@@ -1903,6 +1911,35 @@ export class AccountManager {
       });
     });
     return runner;
+  }
+
+  /** Embedded clients borrow this exact adapter, including an explicitly
+   * configured stdio connection. Closing a panel/service never owns the core. */
+  taskboardNativeBackend(): object {
+    const methods = ["runQueuedSubmission", "inspectThread", "readTurnLifecycle", "readTurnActivities", "listModels", "listSkills",
+      "listMcpServers", "getAccountRateLimits", "observeThreadInteractions", "unobserveThreadInteractions"] as const;
+    const read = () => {
+      if (this.stoppingAll) throw new Error("Gateway is stopping; Taskboard native client detached");
+      return this.runnerFor();
+    };
+    const client: Record<string, unknown> = Object.fromEntries(methods.map(method => [method, (...args: unknown[]) => {
+      const backend = read(), operation = backend[method];
+      if (typeof operation !== "function") throw new Error(`Selected native adapter does not support ${method}`);
+      return Reflect.apply(operation, backend, args);
+    }]));
+    client.run = (input: import("../codex/backend.js").CodexRunnerInput) => {
+      const assertCurrent = () => { this.assertRuntimeWritable(); input.assertCurrent?.(); };
+      assertCurrent(); return read().run({ ...input, assertCurrent });
+    };
+    client.interruptTurn = (threadId: string, turnId: string, hostId?: string, assertSource?: () => void) => {
+      const assertCurrent = () => { this.assertRuntimeWritable(); assertSource?.(); };
+      assertCurrent(); const backend = read();
+      if (!backend.interruptTurn) throw new Error("Selected native adapter does not support exact interruption");
+      return backend.interruptTurn(threadId, turnId, hostId, assertCurrent);
+    };
+    client.hasRestartBlockingWork = () => this.runner?.hasRestartBlockingWork?.() ?? false;
+    client.close = () => Promise.resolve();
+    return client;
   }
 
   private async closeRunner(): Promise<void> {

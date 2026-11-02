@@ -3,10 +3,15 @@ import type { AddressInfo } from "node:net";
 import { createTaskboardServer } from "codex-taskboard/server";
 import { TaskboardClient } from "./client.js";
 import { managedTaskboardOrigin } from "./config.js";
+import { CodexAppServerGateway } from "../codex/app-server-gateway.js";
+import type { AppServerConnectionMode } from "../codex/app-server-daemon.js";
 
 export type EmbeddedTaskboard = {
   url: string;
   close(): Promise<void>;
+  hasRestartBlockingWork?(): boolean;
+  pauseForRestart?(): void;
+  resumeAfterCancelledRestart?(): void;
 };
 
 export class EmbeddedTaskboardStartError extends Error {
@@ -23,12 +28,17 @@ export async function startEmbeddedTaskboard(options: {
   dataDirectory: string;
   port: number;
   codexExecutable?: string;
+  appServerTransport?: AppServerConnectionMode;
+  nativeBackendFactory?: () => object | Promise<object>;
 }): Promise<EmbeddedTaskboard> {
   const existing = await reuseHealthyTaskboard(options.port);
   if (existing) return existing;
   const taskboard = createTaskboardServer({
     dataDirectory: options.dataDirectory,
-    codexExecutable: options.codexExecutable
+    codexExecutable: options.codexExecutable,
+    nativeBackendFactory: options.nativeBackendFactory ?? (() => new CodexAppServerGateway({ codexBin: options.codexExecutable,
+      appServerTransport: options.appServerTransport ?? "daemon" })
+    )
   });
   try {
     const address = await taskboard.listen({ host: "127.0.0.1", port: options.port });
@@ -38,6 +48,9 @@ export async function startEmbeddedTaskboard(options: {
     let closePromise: Promise<void> | undefined;
     return {
       url: `http://127.0.0.1:${address.port}`,
+      hasRestartBlockingWork: () => taskboard.hasRestartBlockingWork(),
+      pauseForRestart: () => taskboard.pauseForRestart(),
+      resumeAfterCancelledRestart: () => taskboard.resumeAfterCancelledRestart(),
       close: () => {
         closePromise ??= taskboard.close();
         return closePromise;

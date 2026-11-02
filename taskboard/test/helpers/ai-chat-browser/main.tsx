@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AiChat } from "../../../web/src/components/AiChat";
+import { AiNativeInteraction } from "../../../web/src/components/AiNativeInteraction";
+import { ProjectAutomationMenu } from "../../../web/src/components/ProjectAutomationMenu";
 import { TaskDetail } from "../../../web/src/components/TaskDetail";
 import { TaskEditor } from "../../../web/src/components/TaskEditor";
 import { TaskCard } from "../../../web/src/components/TaskCard";
@@ -14,6 +16,20 @@ import "../../../web/src/styles.css";
 // Isolated component fixture. It renders production React/CSS/API code, but
 // records requests locally and never starts Codex, reads a workspace or sends IM.
 const audit: any = (window as any).audit = { documentId: crypto.randomUUID(), requests: [], saved: [], releaseSnapshot: () => {}, project: (_id: string) => {} };
+if (new URL(location.href).searchParams.get("view") === "automation-host") {
+  audit.hostRequests = [];
+  localStorage.setItem("taskboard.lastProjectId", "a");
+  localStorage.setItem("taskboard.projectAutomations.v1", JSON.stringify({a:{codexProjectId:"a",status:"ACTIVE",enabledByUser:true,quotaAware:false,model:"gpt-5.5",reasoningEffort:"high"}}));
+  window.addEventListener("message", event => {
+    if (!event.source || event.source === window) return;
+    const send = (message: unknown) => (event.source as Window).postMessage(message, location.origin);
+    if (event.data?.type === "taskboard:ready") send({type:"taskboard:host-context",payload:{projectId:"a",workspacePath:"/isolated/a",projects:[{id:"a",name:"Project A"}],user:{type:"user",id:"fixture-user",name:"Fixture User",avatarUrl:null}}});
+    if (event.data?.type === "taskboard:automation-request") {
+      const request=event.data.payload; audit.hostRequests.push(request);
+      send({type:"taskboard:automation-response",payload:{ok:true,requestId:request.requestId,policy:{enabledByUser:false,quotaAware:false,model:"gpt-5.5",reasoningEffort:"high"}}});
+    }
+  });
+}
 const now = new Date().toISOString();
 const actor = { type: "user" as const, id: "fixture-user", name: "Fixture User", avatarUrl: null };
 const task: any = { id: "task-one", identifier: "TEST-1", projectId: "a", title: "Fixture task", description: "Fixture description",
@@ -27,6 +43,7 @@ const comments: any[] = [{ id: "comment-one", taskId: task.id, body: "**Existing
 const threads: any[] = [{ id: "thread-a", title: "Existing conversation", origin: { projectId: "a", projectName: "Project A" },
   codexThreadId: "PRIVATE_NATIVE_THREAD", workspacePath: "/PRIVATE_HOST_PATH",
   model: "a-model", reasoningEffort: "high", sandbox: "workspace-write", status: "idle", createdAt: now, updatedAt: now }];
+const aiSubmissions = new Map<string, any>();
 const originalFetch = window.fetch.bind(window);
 const appView = new URL(location.href).searchParams.get("view") === "app";
 const workflowView = new URL(location.href).searchParams.get("view") === "workflow";
@@ -62,6 +79,10 @@ window.fetch = async (input: any, init?: RequestInit) => {
   const method = init?.method ?? "GET", body = typeof init?.body === "string" ? JSON.parse(init.body)
     : init?.body instanceof File ? { filename: init.body.name, size: init.body.size } : undefined;
   audit.requests.push({ path: url.pathname, search: url.search, method, body });
+  if (url.pathname.includes("/interactions/")) {
+    if (audit.holdNativeAnswer) await new Promise<void>(resolve => { audit.releaseNativeAnswer = resolve; });
+    return Response.json({status:"submitted"}, {status:202});
+  }
   if (workflowView) {
     if (url.pathname === "/api/workflow-capabilities") return Response.json({skills:[],mcpServers:[]});
     if (!url.pathname.endsWith("/workflow-workspace")) throw Error("Unexpected workflow fixture request");
@@ -88,7 +109,7 @@ window.fetch = async (input: any, init?: RequestInit) => {
   if (appView) {
     let result: any;
     if (url.pathname === "/api/projects") result = {projects: boardProjects};
-    else if (url.pathname === "/api/meta") result = {mode: "local", capabilities: {localAiChat: false}};
+    else if (url.pathname === "/api/meta") result = {mode: "local", manageTaskboardSkillPath:"/isolated/skill.md", capabilities: {localAiChat: false}};
     else if (url.pathname === "/api/device-workspaces") result = {workspaces:{}};
     else if (url.pathname.endsWith("/workflow-workspace")) result = {workflow:{workspace:null,version:1}};
     else if (url.pathname.endsWith("/development-contexts")) result = {workspacePath:null, contexts:[]};
@@ -165,15 +186,26 @@ window.fetch = async (input: any, init?: RequestInit) => {
     result = { models: [{ slug: `${project}-model`, displayName: `Model ${project}`, defaultReasoningEffort: effort,
       supportedReasoningEfforts: [effort], serviceTiers: [] }], sandboxes: ["read-only", "workspace-write", "danger-full-access"],
       skills: [{ id: "cloudflare", label: "Cloudflare", description: "Browser test skill", path: "/isolated/skills/cloudflare/SKILL.md", scope: "user" }] };
+  } else if (url.pathname.startsWith("/api/local/ai/submissions/")) {
+    const id = url.pathname.split("/").at(-1)!;
+    result = audit.submissionUnknown ? {clientRequestId:id,status:"unknown"} : aiSubmissions.get(id) ?? {clientRequestId:id,status:"unknown"};
   } else if (url.pathname === "/api/local/ai/threads" && method === "GET") result = { threads };
   else if (url.pathname === "/api/local/ai/threads" && method === "POST") {
     const thread = { ...threads[0], ...body, id: `thread-${threads.length + 1}`, origin: { projectId: body.projectId, projectName: `Project ${body.projectId}` } };
-    threads.push(thread); result = { thread };
+    threads.push(thread); result = { thread, clientRequestId: body.clientRequestId };
+    aiSubmissions.set(body.clientRequestId, {clientRequestId:body.clientRequestId,status:"acknowledged",kind:"thread",scope:body.projectId,thread});
+    if (audit.dropThreadAck) { audit.dropThreadAck=false; throw new TypeError("Fixture lost thread acknowledgement"); }
   } else if (url.pathname.endsWith("/turns")) {
     const thread = threads.find(thread => thread.id === url.pathname.split("/").at(-2));
     const run = { id: "run", threadId: thread.id, status: "running" };
     thread.status = "running"; thread.currentRun = run;
-    result = { run };
+    aiSubmissions.set(body.clientRequestId, {clientRequestId:body.clientRequestId,status:"acknowledged",kind:"turn",scope:thread.id,run});
+    if (audit.dropTurnAck) {
+      audit.dropTurnAck = false;
+      thread.status = "idle"; thread.currentRun = null; run.status = "completed";
+      throw new TypeError("Fixture completed native turn but lost HTTP acknowledgement");
+    }
+    result = { run, clientRequestId: body.clientRequestId };
   }
   else {
     if (holdSnapshot) await heldSnapshot;
@@ -196,6 +228,16 @@ function Fixture() {
   audit.hideDetail = () => setDetailInstance(null);
   audit.remountDetail = () => setDetailInstance(value => (value ?? 0) + 1);
   const view = new URL(location.href).searchParams.get("view");
+  if (view === "automation-host") return <iframe title="Isolated hosted App" src="/?view=app&host=codex&project=a" style={{height:"100vh",width:"100%",border:0}} />;
+  if (view === "automation-menu") return <ProjectAutomationMenu projectId="a" pending={false} error={null} unavailableReason={null}
+    onOpen={()=>{}} onChange={value=>audit.saved.push(value)} />;
+  if (view === "native") return <div style={{maxWidth:420,padding:16}}>
+    <AiNativeInteraction threadId="thread-a" request={{id:"approval",runId:"run-a",kind:"approval",title:"Native command approval",command:"npm test",
+      options:[{id:"accept",label:"允许一次",description:"Only this native request"},{id:"cancel",label:"取消本次",description:"Cancel this native request"}]}} />
+    <AiNativeInteraction threadId="thread-a" request={{id:"question",runId:"run-a",kind:"user-input",questions:[
+      {id:"choice",header:"Native choice",question:"Choose or enter an answer",options:[{label:"A",description:"First"},{label:"B",description:"Second"}]},
+      {id:"secret",header:"Native secret",question:"Isolated secret field",isSecret:true}]}} />
+  </div>;
   if (view === "app") return <App />;
   const shared = { currentUser: actor, workflows: [], developmentScan: { workspacePath: null, contexts: [] }, developmentScanLoading: false };
   if (view === "workflow") return <div style={{height:"100vh",display:"flex",flexDirection:"column"}}><WorkflowBoard projectId={project} projectName={`Project ${project}`} revision={0} onWorkflowsChange={workflows=>{audit.workflowOptions=workflows;}} /></div>;

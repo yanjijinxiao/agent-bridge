@@ -26,9 +26,10 @@ async function main(): Promise<void> {
   const paths = resolveStatePaths(stateDir);
   const config = loadConfig(paths);
   const processLock = acquireServiceProcessLock(paths.root);
-  const accountManager = new AccountManager({ paths });
+  let accountManager: AccountManager;
+  const taskboard = new TaskboardLifecycle(paths.taskboardDir, undefined, () => accountManager.taskboardNativeBackend());
+  accountManager = new AccountManager({ paths, restartParticipant: taskboard });
   let server: Awaited<ReturnType<typeof startLocalHttpServer>> | undefined;
-  const taskboard = new TaskboardLifecycle(paths.taskboardDir);
   let shutdownTask: Promise<void> | undefined;
   let restartScheduled = false;
   const shutdown = () => shutdownTask ??= cleanupResources([
@@ -61,6 +62,7 @@ async function main(): Promise<void> {
   };
   try {
     await taskboard.apply(config);
+    if (accountManager.releaseStatus().prepared) taskboard.pauseForRestart();
     server = await startLocalHttpServer({ paths, accountManager, port, onUpdateInstalled: scheduleRestart,
       onTaskboardConfig: next => taskboard.apply(next) });
     await accountManager.startAll();

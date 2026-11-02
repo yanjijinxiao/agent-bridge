@@ -6,12 +6,13 @@ import { embeddedTaskboardPort, startEmbeddedTaskboard, type EmbeddedTaskboard }
 export class TaskboardLifecycle {
   private service?: EmbeddedTaskboard;
   private key?: string;
-  private applied?: { dataDirectory: string; port: number; codexExecutable: string };
+  private applied?: Parameters<typeof startEmbeddedTaskboard>[0];
   private transition: Promise<void> = Promise.resolve();
-  constructor(private readonly dataDirectory: string, private readonly start: typeof startEmbeddedTaskboard = startEmbeddedTaskboard) {}
-  apply(config: Pick<CodexImGatewayConfig, "taskboardEnabled" | "taskboardUrl" | "codexBin">): Promise<void> {
+  constructor(private readonly dataDirectory: string, private readonly start: typeof startEmbeddedTaskboard = startEmbeddedTaskboard,
+    private readonly nativeBackendFactory?: () => object | Promise<object>) {}
+  apply(config: Pick<CodexImGatewayConfig, "taskboardEnabled" | "taskboardUrl" | "codexBin"> & Partial<Pick<CodexImGatewayConfig, "codexAppServerTransport">>): Promise<void> {
     const work = this.transition.catch(() => {}).then(async () => {
-      const key = JSON.stringify([config.taskboardUrl, config.codexBin]);
+      const key = JSON.stringify([config.taskboardUrl, config.codexBin, config.codexAppServerTransport]);
       if (config.taskboardEnabled && this.service && key === this.key) return;
       if (!config.taskboardEnabled) {
         await this.service?.close(); this.service = undefined; this.key = undefined; this.applied = undefined; return;
@@ -20,7 +21,9 @@ export class TaskboardLifecycle {
       const command = resolveCodexCommand(config.codexBin);
       const desired = { dataDirectory: this.dataDirectory,
         port: embeddedTaskboardPort(config.taskboardUrl),
-        codexExecutable: command.argsPrefix.length === 0 ? command.command : config.codexBin };
+        codexExecutable: command.argsPrefix.length === 0 ? command.command : config.codexBin,
+        appServerTransport: config.codexAppServerTransport ?? "daemon",
+        ...(this.nativeBackendFactory ? { nativeBackendFactory: this.nativeBackendFactory } : {}) };
       const previous = this.service, previousOptions = this.applied;
       if (previous && previousOptions?.port === desired.port) {
         // The same port cannot be prepared alongside itself. Retain a complete
@@ -50,4 +53,7 @@ export class TaskboardLifecycle {
     });
     this.transition = work; return work;
   }
+  hasRestartBlockingWork(): boolean { return this.service?.hasRestartBlockingWork?.() ?? false; }
+  pauseForRestart(): void { this.service?.pauseForRestart?.(); }
+  resumeAfterCancelledRestart(): void { this.service?.resumeAfterCancelledRestart?.(); }
 }

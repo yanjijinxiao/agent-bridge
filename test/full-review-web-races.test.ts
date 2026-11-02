@@ -98,3 +98,19 @@ test("automatic knowledge refresh preserves a focused or saving binding control"
   focused = false; saving = true; context.renderKnowledgeBasesPage(); assert.equal(replacements, 0);
   saving = false; context.renderKnowledgeBasesPage(); assert.equal(replacements, 1);
 });
+
+
+test("group-channel session pickers do not turn a personal admission id into a conversation target",()=>{
+ const f=fixture();f.context.showView=()=>{};f.state.accounts=[{accountId:'dingtalk',channel:'dingtalk',pairedSenderIds:['personal-actor']}];
+ f.state.projects=[{accountId:'dingtalk',id:'project'}];f.state.sessions=[];
+ assert.equal(f.context.authorizedConversationId(f.state.accounts[0]),undefined);
+ f.context.openNewSessionDialog();assert.equal(f.notices.length,1);
+ f.state.accounts[0].lastAuthorizedActorId='personal-actor';f.state.accounts[0].lastAuthorizedSenderId='verified-room';
+ assert.equal(f.context.authorizedConversationId(f.state.accounts[0]),'verified-room');
+ f.context.showOwnedDialog=()=>{};f.context.updateNewSessionDefaultTitle=()=>{};f.context.updateSessionProjectOptions=()=>{};
+ f.context.document.querySelector('#sessionTitleInput').focus=()=>{};
+ f.context.openNewSessionDialog();const html=f.context.document.querySelector('#sessionSenderInput').innerHTML;
+ assert.match(html,/verified-room/);assert.doesNotMatch(html,/personal-actor/);
+ const direct={accountId:'wx',channel:'weixin',pairedSenderIds:['direct-person']};
+ assert.equal(f.context.authorizedConversationId(direct),'direct-person');
+});

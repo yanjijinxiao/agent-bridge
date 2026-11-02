@@ -23,8 +23,8 @@ export type ManagedSession = {
   title: string;
   workspace: string;
   projectId?: string;
-  /** Explicit absence; omitted only for legacy/project-scoped records. */
-  projectBinding?: "none";
+  /** Explicit absence and an unconfirmed native membership are different facts. */
+  projectBinding?: "none" | "unknown";
   hostId?: string;
   mode?: "session" | "qa";
   knowledgeBaseId?: string;
@@ -178,13 +178,13 @@ export class RuntimeStateStore {
       // The selected native edge owns its project projection. Repair legacy
       // context drift without selecting a session or reviving detached chats.
       if (bound?.projectId) this.state.activeProjectIds[sender] = bound.projectId;
-      else if (bound?.projectBinding === "none") delete this.state.activeProjectIds[sender];
+      else if (bound?.projectBinding) delete this.state.activeProjectIds[sender];
       if (bound && (!this.state.bindingActivity[sender] || this.state.bindingActivity[sender].endedAt)) {
         this.renewBindingActivity(sender);
       }
     }
     // Persist actual initialization/migration, never a no-op read.
-    if (persistMigration && !isDeepStrictEqual(this.state, before)) this.save();
+    if (persistMigration && !isDeepStrictEqual(this.snapshot, before)) this.save();
   }
 
   get snapshot(): RuntimeState {
@@ -271,7 +271,7 @@ export class RuntimeStateStore {
     if (this.isSessionDetached(senderId)) return undefined;
     const session = this.getInteractionMode(senderId) === "qa"
       ? this.getActiveQaSession(senderId) : this.getActiveSession(senderId);
-    return session && (session.projectId ? Boolean(this.getProject(session.projectId)) : session.projectBinding === "none") ? session : undefined;
+    return session && (session.projectId ? Boolean(this.getProject(session.projectId)) : Boolean(session.projectBinding)) ? session : undefined;
   }
 
   sessionBindingTarget(session: ManagedSession): SessionBindingTarget {
@@ -870,7 +870,7 @@ export class RuntimeStateStore {
     projectId?: string,
     mode: "session" | "qa" = "session",
     knowledgeBaseId?: string,
-    context?: { standalone?: boolean; hostId?: string }
+    context?: { standalone?: boolean; hostId?: string; membershipUnknown?: boolean }
   ): ManagedSession {
     const now = new Date().toISOString();
     const resolvedWorkspace = path.resolve(workspace);
@@ -890,7 +890,7 @@ export class RuntimeStateStore {
       title: cleanTitle(title) ?? `会话 ${number}`,
       workspace: resolvedWorkspace,
       ...(project ? { projectId: project.id } : {}),
-      ...(context?.standalone ? { projectBinding: "none" as const } : {}),
+      ...(context?.standalone ? { projectBinding: context.membershipUnknown ? "unknown" as const : "none" as const } : {}),
       ...(context?.hostId ? { hostId: context.hostId } : {}),
       mode: mode === "qa" ? "qa" : "session",
       ...(mode === "qa" && knowledgeBaseId ? { knowledgeBaseId } : {}),
@@ -946,7 +946,7 @@ export class RuntimeStateStore {
     if (session.mode === "qa") this.state.activeQaSessionIds[session.senderId] = session.id;
     else this.state.activeSessionIds[session.senderId] = session.id;
     if (session.projectId) this.state.activeProjectIds[session.senderId] = session.projectId;
-    else if (session.projectBinding === "none") delete this.state.activeProjectIds[session.senderId];
+    else if (session.projectBinding) delete this.state.activeProjectIds[session.senderId];
     this.renewBindingActivity(session.senderId);
     session.updatedAt = new Date().toISOString();
     this.save();
@@ -1138,7 +1138,7 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
     .filter(project => !project.sourceProjectId)
     .map(project => [legacyKey(project.workspace, project.hostId), project]));
   for (const session of sessions) {
-    if (session.projectBinding === "none") {
+    if (session.projectBinding === "none" || session.projectBinding === "unknown") {
       delete session.projectId;
       session.mode = "session";
       delete session.knowledgeBaseId;
@@ -1173,7 +1173,7 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
       session.title = inferredTitle;
     }
   }
-  return {
+  const normalized: RuntimeState = {
     ...emptyRuntimeState(),
     ...value,
     detachedSessionSenders: Array.isArray(value.detachedSessionSenders)
@@ -1207,6 +1207,13 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
     knowledge: Array.isArray(value.knowledge) ? value.knowledge : [],
     knowledgeEnabled: value.knowledgeEnabled !== false
   };
+  // Provider ids are opaque data, including names inherited by Object.prototype.
+  // Keep the live maps prototype-free; snapshots/JSON remain plain data so this
+  // does not create a migration write on every read or change the disk format.
+  for (const key of ["sessionPageSizes", "conversationRoles", "authorizedConversationsByActor", "contextTokens", "activeSessionIds", "activeQaSessionIds", "activeProjectIds", "bindingActivity", "interactionModes"] as const) {
+    normalized[key] = Object.assign(Object.create(null), normalized[key]);
+  }
+  return normalized;
 }
 
 function normalizeAuthorizedConversations(value: unknown): Record<string, string> {

@@ -6,6 +6,7 @@ import { codexFailureCode, codexFailureSummary, type CodexFailureCode } from "..
 
 const RESTORED_TASK_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const SESSION_CONTEXT_TAIL_BYTES = 8 * 1024 * 1024;
+const MAX_RECORD_BYTES = SESSION_CONTEXT_TAIL_BYTES;
 const STARTUP_MTIME_TOLERANCE_MS = 1_000;
 
 export type CodexSessionCompletion = {
@@ -52,6 +53,8 @@ export type CodexSessionCompletionMonitorOptions = {
 
 type SessionCursor = {
   offset: number;
+  /** Oversized incomplete record: resume discarding until its actual newline. */
+  discardingRecord?: boolean;
   emitAfter?: number;
   workspace?: string;
   sessionId?: string;
@@ -236,7 +239,7 @@ export class CodexSessionCompletionMonitor {
       }
       this.cursors.set(filePath, cursor);
       let readOffset = cursor.offset, completed = false;
-      let fragments: Buffer[] = [];
+      let fragments: Buffer[] = [], fragmentBytes = 0;
       // File growth is not a memory allocation budget. Only an individual
       // complete JSONL record is assembled, preserving UTF-8 across reads.
       while (readOffset < size) {
@@ -247,17 +250,28 @@ export class CodexSessionCompletionMonitor {
         let start = 0, newline: number;
         while ((newline = buffer.indexOf(0x0a, start)) >= 0) {
           if (runId !== undefined && !this.isActiveRun(runId)) return;
-          fragments.push(buffer.subarray(start, newline + 1));
-          const record = Buffer.concat(fragments);
-          cursor.offset += record.length;
-          fragments = []; start = newline + 1; completed = true;
-          const event = parseRecord(record.toString("utf8"));
-          if (event) await this.processEvent(cursor, event);
+          const fragment = buffer.subarray(start, newline + 1);
+          if (!cursor.discardingRecord && fragmentBytes + fragment.length <= MAX_RECORD_BYTES) {
+            fragments.push(fragment);
+            const event = parseRecord(Buffer.concat(fragments).toString("utf8"));
+            if (event) await this.processEvent(cursor, event);
+          }
+          cursor.offset = readOffset - buffer.length + newline + 1;
+          delete cursor.discardingRecord;
+          fragments = []; fragmentBytes = 0; start = newline + 1; completed = true;
         }
-        if (start < buffer.length) fragments.push(buffer.subarray(start));
+        if (start < buffer.length) {
+          const fragment = buffer.subarray(start);
+          fragmentBytes += fragment.length;
+          if (cursor.discardingRecord || fragmentBytes > MAX_RECORD_BYTES) {
+            cursor.discardingRecord = true; fragments = []; fragmentBytes = 0;
+            cursor.offset = readOffset;
+          } else fragments.push(fragment);
+        }
         await yieldToEventLoop();
       }
-      // An incomplete tail is reread next scan; it never advances the cursor.
+      // Small incomplete tails are reread intact. Oversized tails retain only
+      // a discard cursor, never their body, until the producer ends the line.
       if (completed) cursor.emitAfter = undefined;
     } catch (error) {
       console.error(`[codex-im-gateway] unable to read Codex session completion: ${String(error)}`);

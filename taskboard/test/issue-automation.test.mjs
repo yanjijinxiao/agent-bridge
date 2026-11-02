@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
-import { access, chmod, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, appendFile, chmod, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 
+import { fakeNativeCore } from "./helpers/native-backend.mjs";
+import { automationNativeFixture } from "./helpers/automation-native.mjs";
 import { createCloudConfigStore } from "../server/cloud-config.mjs";
 import { createIssueAutomation } from "../server/issue-automation.mjs";
 import { createTaskboardServer } from "../server/index.mjs";
@@ -25,17 +27,10 @@ function policy(directory, overrides = {}) {
 }
 
 async function writeFakeCodex(directory, markerPath) {
-  const executable = path.join(directory, "fake-codex.mjs");
-  await writeFile(executable, `#!/usr/bin/env node
-import { appendFile } from "node:fs/promises";
-process.stdin.resume();
-process.stdin.on("end", async () => {
-  await appendFile(${JSON.stringify(markerPath)}, "started\\n");
-  process.stdout.write('{"type":"turn.completed"}\\n');
-});
-`);
-  await chmod(executable, 0o755);
-  return executable;
+  let workspacePath = path.join(directory, "workspace");
+  try { await access(workspacePath); } catch { workspacePath = directory; }
+  await writeFile(path.join(directory, "device.json"), JSON.stringify({ "local-projects": { local: { rootPaths: [workspacePath] } } }));
+  return fakeNativeCore({ model: "gpt-5.5", async onRun() { await appendFile(markerPath, "started\n"); return "Done"; } }).client();
 }
 
 async function waitForRunCount(filename, count, timeoutMs = 2_000) {
@@ -85,43 +80,42 @@ test("new issues coalesce around one drain worker and a later issue starts again
     projectName: "Project",
   }) }));
 
-  const spawned = [];
+  const waits = [];
+  const fixture = await automationNativeFixture(directory, { onRun() {
+    const deferred = Promise.withResolvers(); waits.push(deferred); return deferred.promise;
+  } });
+  const spawned = fixture.core.calls;
   const automation = createIssueAutomation({
     automationPoliciesPath: policyPath,
-    codexExecutable: "codex",
+    ...fixture.options,
     logger: { info() {}, error() {} },
-    spawnTurn(options) {
-      const deferred = Promise.withResolvers();
-      spawned.push({ options, deferred });
-      return { child: { pid: undefined, kill() {} }, completion: deferred.promise };
-    },
   });
 
   try {
     assert.deepEqual(await automation.trigger({ projectId: "project" }), { started: true });
-    assert.equal(spawned.length, 1);
-    assert.match(spawned[0].options.prompt, /循环处理 todo 队列/);
-    assert.match(spawned[0].options.prompt, /todo 队列为空时才结束/);
-    const addDirectoryIndex = spawned[0].options.args.indexOf("--add-dir");
-    assert.equal(spawned[0].options.args[addDirectoryIndex + 1], directory);
+    assert.equal(await waitFor(() => spawned.length === 1), true);
+    assert.match(spawned[0].prompt, /循环处理 todo 队列/);
+    assert.match(spawned[0].prompt, /todo 队列为空时才结束/);
+    assert.deepEqual(spawned[0].nativeSettings.runtimeWorkspaceRoots, [await import("node:fs/promises").then(fs => fs.realpath(directory))]);
 
     assert.deepEqual(await automation.trigger({ projectId: "project" }), {
       started: false,
       reason: "already-running",
     });
     assert.equal(spawned.length, 1);
-    spawned[0].deferred.resolve({ exitCode: 0, signal: null });
+    waits[0].resolve("Done");
     assert.equal(await waitFor(() => spawned.length === 2), true);
     assert.equal(spawned.length, 2);
-    spawned[1].deferred.resolve({ exitCode: 0, signal: null });
+    waits[1].resolve("Done");
     await new Promise((resolve) => setImmediate(resolve));
 
     assert.deepEqual(await automation.trigger({ projectId: "project" }), { started: true });
-    assert.equal(spawned.length, 3);
-    spawned[2].deferred.resolve({ exitCode: 0, signal: null });
+    assert.equal(await waitFor(() => spawned.length === 3), true);
+    waits[2].resolve("Done");
     await new Promise((resolve) => setImmediate(resolve));
   } finally {
     await automation.close();
+    await fixture.close();
     await rm(directory, { recursive: true, force: true });
   }
 });
@@ -134,14 +128,12 @@ test("disabled policies do not start Codex", async () => {
     enabledByUser: false,
   }) }));
   let spawnCount = 0;
+  const fixture = await automationNativeFixture(directory, { onRun() { spawnCount++; return "Done"; } });
   const automation = createIssueAutomation({
     automationPoliciesPath: policyPath,
-    codexExecutable: "codex",
+    ...fixture.options,
     logger: { info() {}, error() {} },
-    spawnTurn() {
-      spawnCount += 1;
-      throw new Error("must not spawn");
-    },
+
   });
 
   try {
@@ -152,6 +144,7 @@ test("disabled policies do not start Codex", async () => {
     assert.equal(spawnCount, 0);
   } finally {
     await automation.close();
+    await fixture.close();
     await rm(directory, { recursive: true, force: true });
   }
 });
@@ -166,18 +159,16 @@ test("close does not wait for a stalled quota check or allow a late spawn", asyn
   const quotaStarted = Promise.withResolvers();
   const quotaResult = Promise.withResolvers();
   let spawnCount = 0;
+  const fixture = await automationNativeFixture(directory, { onRun() { spawnCount++; return "Done"; } });
   const automation = createIssueAutomation({
     automationPoliciesPath: policyPath,
-    codexExecutable: "codex",
+    ...fixture.options,
     logger: { info() {}, error() {} },
     readQuota() {
       quotaStarted.resolve();
       return quotaResult.promise;
     },
-    spawnTurn() {
-      spawnCount += 1;
-      throw new Error("must not spawn after close");
-    },
+
   });
 
   try {
@@ -190,6 +181,7 @@ test("close does not wait for a stalled quota check or allow a late spawn", asyn
     assert.equal(spawnCount, 0);
   } finally {
     quotaResult.resolve({ state: "available" });
+    await fixture.close();
     await rm(directory, { recursive: true, force: true });
   }
 });
@@ -205,7 +197,8 @@ test("loopback POST /api/tasks reaches the event worker without a scheduler tick
   const app = createTaskboardServer({
     dataDirectory: path.join(directory, "data"),
     automationPoliciesPath: policyPath,
-    codexExecutable: executable,
+    nativeBackend: executable,
+    codexStatePath: path.join(directory, "device.json"),
   });
   const address = await app.listen({ host: "127.0.0.1", port: 0 });
 
@@ -234,7 +227,8 @@ test("moving a newly created backlog issue into todo retriggers the event worker
   const app = createTaskboardServer({
     dataDirectory: path.join(directory, "data"),
     automationPoliciesPath: policyPath,
-    codexExecutable: executable,
+    nativeBackend: executable,
+    codexStatePath: path.join(directory, "device.json"),
   });
   const address = await app.listen({ host: "127.0.0.1", port: 0 });
 
@@ -277,20 +271,25 @@ test("cloud-proxied creation and entering todo both trigger the local event work
     codexProjectId: "cloud",
     projectName: "Cloud",
   }) }));
-  await createCloudConfigStore({ configPath }).configure({
+  const cloudConfig = createCloudConfigStore({ configPath });
+  await cloudConfig.configure({
     remoteUrl: "https://tasks.example.test",
     actorName: "Local User",
     sharedKey: "test-shared-key",
   });
+  await cloudConfig.setProjectWorkspace("cloud", workspacePath);
   let remoteStatus = "backlog";
   let remoteVersion = 1;
   const app = createTaskboardServer({
     dataDirectory: path.join(directory, "data"),
     cloudConfigPath: configPath,
     automationPoliciesPath: policyPath,
-    codexExecutable: executable,
+    nativeBackend: executable,
+    codexStatePath: path.join(directory, "device.json"),
     remoteFetch: async (input, init) => {
       const url = new URL(input);
+      if (init.method === "GET" && url.pathname === "/api/projects/cloud") return Response.json({ project: { id: "cloud", name: "Cloud" } });
+      if (init.method === "GET" && url.pathname === "/api/projects") return Response.json({ projects: [{ id: "cloud", name: "Cloud" }] });
       if (init.method === "GET") {
         return new Response(JSON.stringify({
           task: {
@@ -378,7 +377,8 @@ test("LAN task creation persists the issue but cannot launch the local Codex wor
   const app = createTaskboardServer({
     dataDirectory: path.join(directory, "data"),
     automationPoliciesPath: policyPath,
-    codexExecutable: executable,
+    nativeBackend: executable,
+    codexStatePath: path.join(directory, "device.json"),
   });
   const address = await app.listen({ host: "0.0.0.0", port: 0 });
 

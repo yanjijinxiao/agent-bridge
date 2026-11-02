@@ -308,7 +308,7 @@ test("binds new threads to the native app-server project and keeps Bridge policy
     prompt: "verify-thread-metadata",
     developerInstructions: "bridge-only-policy",
     cwd: "/tmp/project",
-    projectId: "desktop-project-id",
+    projectId: "project-native",
     projectName: "Fixture Project",
     threadTitle: "干净的用户标题",
     onThreadCreated: (threadId) => {
@@ -323,7 +323,7 @@ test("binds new threads to the native app-server project and keeps Bridge policy
     prompt: "verify-existing-thread-policy",
     developerInstructions: "bridge-only-policy",
     cwd: "/tmp/project",
-    projectId: "desktop-project-id",
+    projectId: "project-native",
     projectName: "Fixture Project",
     threadId: "thread-bridge-title",
     threadTitle: "干净的用户标题"
@@ -424,7 +424,7 @@ test("streams safe tool status and readable reasoning summaries as progress", as
 
 test("propagates an explicit per-input sandbox without changing inheritance defaults", async (t) => {
   // Given: a bridge configured to allow Codex full workspace access.
-  const runner = new HybridCodexRunner({
+  const runner = new HybridCodexRunner({ appServerTransport: "stdio",
     backend: "app-server",
     codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"),
     timeoutMs: 2_000,
@@ -444,7 +444,7 @@ test("propagates an explicit per-input sandbox without changing inheritance defa
 });
 
 test("runs AI classification on a persistent ephemeral app-server thread", async (t) => {
-  const runner = new HybridCodexRunner({
+  const runner = new HybridCodexRunner({ appServerTransport: "stdio",
     backend: "app-server",
     codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"),
     timeoutMs: 2_000,
@@ -741,7 +741,7 @@ test("models active, archived, missing, and system-error thread lifecycle states
 
 test("rejects a duplicate start during handoff instead of holding an implicit execution queue", async t => {
   const { CodexRunAdmissionError } = await import("../src/codex/backend.js");
-  const runner = new HybridCodexRunner({ backend: "app-server", codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"), timeoutMs: 2_000 });
+  const runner = new HybridCodexRunner({ appServerTransport: "stdio", backend: "app-server", codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"), timeoutMs: 2_000 });
   t.after(() => runner.close());
   const first = runner.run({ prompt: "slow:first", cwd: "/tmp/project", queueKey: "managed-session" });
   await assert.rejects(runner.run({ prompt: "second", cwd: "/tmp/project", queueKey: "managed-session" }), CodexRunAdmissionError);
@@ -759,7 +759,7 @@ test("reports an existing active turn without waiting or submitting a later turn
 });
 
 test("auto backend never moves an existing thread to CLI after an app-server failure", async (t) => {
-  const runner = new HybridCodexRunner({
+  const runner = new HybridCodexRunner({ appServerTransport: "stdio",
     backend: "auto",
     codexBin: path.join(fixturesDir, "fake-codex-fallback.mjs"),
     timeoutMs: 2_000
@@ -775,14 +775,14 @@ test("auto backend never moves an existing thread to CLI after an app-server fai
 
 test("a foreign native writer conflict is visible and never invokes a Desktop follower", async t => {
   let relays=0;
-  const runner=new HybridCodexRunner({backend:'app-server',codexBin:path.join(fixturesDir,'fake-codex-app-server.mjs'),timeoutMs:2000,
+  const runner=new HybridCodexRunner({ appServerTransport: "stdio",backend:'app-server',codexBin:path.join(fixturesDir,'fake-codex-app-server.mjs'),timeoutMs:2000,
     desktopRunner:{async run(){relays++;},close(){}} as never} as any);t.after(()=>runner.close());
   await assert.rejects(runner.run({prompt:'once',cwd:'/tmp/project',threadId:'thread-desktop-owned'}),{operation:'app-server/ownership',submission:'not-submitted'});
   assert.equal(relays,0);
 });
 
 test("new native tasks use thread/start without a private UI refresh protocol",async t=>{
- const runner=new HybridCodexRunner({backend:'app-server',codexBin:path.join(fixturesDir,'fake-codex-app-server.mjs'),timeoutMs:2000});t.after(()=>runner.close());
+ const runner=new HybridCodexRunner({ appServerTransport: "stdio",backend:'app-server',codexBin:path.join(fixturesDir,'fake-codex-app-server.mjs'),timeoutMs:2000});t.after(()=>runner.close());
  assert.equal((await runner.run({cwd:'/tmp/project',prompt:'new task'})).threadId,'thread-new');
 });
 
@@ -791,7 +791,7 @@ test("retired exec selection cannot run a streaming request through another exec
 });
 
 test("app-server backend never silently falls back to codex exec", async (t) => {
-  const runner = new HybridCodexRunner({
+  const runner = new HybridCodexRunner({ appServerTransport: "stdio",
     backend: "app-server",
     codexBin: path.join(fixturesDir, "fake-codex-fallback.mjs"),
     timeoutMs: 2_000
@@ -808,4 +808,13 @@ test("ordinary App Server turn/start transmits the stable source identity", asyn
   t.after(() => runner.close());
   const result = await runner.run({ cwd: '/tmp/project', threadId: 'thread-existing', prompt: 'fixture-stable-origin', clientUserMessageId: 'gateway-original-source' });
   assert.equal(result.text, 'reply:fixture-stable-origin');
+});
+
+
+test("new native projects receive all selected roots and an unknown explicit identity cannot fall through to cwd",async t=>{
+  const runner=new AppServerCodexRunner({transport:{command:process.execPath,args:[path.join(fixturesDir,'fake-codex-app-server.mjs')],mode:'daemon-proxy'},requestTimeoutMs:2000});t.after(()=>runner.close());
+  await assert.rejects(runner.run({cwd:'/tmp/project',projectId:'missing-native-id',projectName:'Stale',prompt:'must not submit'}),/项目身份/);
+  await runner.run({cwd:'/tmp/multi-main',projectName:'Multi roots',projectRoots:['/tmp/multi-main','/tmp/multi-sibling'],prompt:'native multi root'});
+  const created=(await runner.listProjects()).projects.find(p=>p.name==='Multi roots');
+  assert.deepEqual(created?.roots,['/tmp/multi-main','/tmp/multi-sibling']);
 });

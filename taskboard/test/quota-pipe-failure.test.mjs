@@ -10,26 +10,13 @@ for (const mode of ['normal', 'closed-input']) {
   test(`quota probe ${mode} completes without terminating its host process`, { skip: process.platform === 'win32' }, async t => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'taskboard-quota-pipe-'));
     t.after(() => rm(directory, { recursive: true, force: true }));
-    // PATH is scoped to this isolated subprocess. No installed Codex is run.
-    await writeFile(path.join(directory, 'codex'), `#!${process.execPath}
-import readline from 'node:readline';
-import {closeSync} from 'node:fs';
-const lines=readline.createInterface({input:process.stdin});
-lines.on('line',line=>{
- const m=JSON.parse(line);if(m.id===undefined)return;
- const result=m.method==='account/read'?{account:{type:'chatgpt'}}:
-  m.method==='account/rateLimits/read'?{rateLimits:{primary:{usedPercent:0}}}:{};
- if(process.env.QUOTA_FIXTURE_MODE==='closed-input'&&m.method==='initialize'){
-  lines.close();process.stdin.on('error',()=>{});process.stdin.destroy();
-  try{closeSync(0);}catch{}
-  setTimeout(()=>process.exit(0),1500);
- }
- process.stdout.write(JSON.stringify({id:m.id,result})+'\\n');
-});
-`, { mode: 0o700 });
+    // An injected adapter rejects like a broken pipe. The quota helper itself
+    // has no CLI transport or child process to crash its caller.
     const module = new URL('../scripts/codex-rate-limits.mjs', import.meta.url).href;
     const script = `import {readCodexQuotaStatus} from ${JSON.stringify(module)};
-const result=await readCodexQuotaStatus('fixture-model');
+const result=await readCodexQuotaStatus('fixture-model', {async getAccountRateLimits(){
+if(process.env.QUOTA_FIXTURE_MODE==='closed-input')throw Object.assign(new Error('isolated broken pipe'),{code:'EPIPE'});
+return {primary:{usedPercent:0}};}});
 process.stdout.write(JSON.stringify({state:result.state,checked:Number.isFinite(result.checkedAt)}));`;
     const result = await promisify(execFile)(process.execPath, ['--input-type=module', '-e', script], {
       env: { ...process.env, PATH: `${directory}${path.delimiter}${process.env.PATH}`, QUOTA_FIXTURE_MODE: mode },

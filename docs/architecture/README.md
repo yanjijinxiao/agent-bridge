@@ -11,17 +11,27 @@
 5. [函数意图记录](function-contracts.jsonl)：已专门分析的函数职责、范围、限制。该清单只覆盖已列出的函数，不代表仓库所有函数都已逐个验证。
 6. [逐行审查记录](../audits/2026-11-01-four-layer-recheck/README.md)：文件版本、实际阅读范围、失败和修复证据、待办。
 
-## 模块文档的详细程度
+## 模块说明
 
-| 范围 | 现有说明 | 仍需补充 |
-| --- | --- | --- |
-| 消息接收、交接、原生输入回执 | [模块说明](modules/inbound-forwarding.md)，覆盖状态、写入边界、重启及 case | 更多真实服务在接收与落盘之间断连的组合场景 |
-| 目标控制和迟到响应 | [目标控制说明](modules/goal-controls.md)，覆盖原生职责、权限、写前拒绝与写后展示退休 | 所有目标状态、控制词正文和实际远端/客户端组合 |
-| Taskboard表单、附件与页面回执 | [数据交接说明](modules/taskboard-data-handoffs.md)，覆盖创建、部分上传、未知回执和项目视图代次 | 后端通用幂等和独立AI执行链 |
-| 系统错误、容量恢复与重启 | [恢复说明](modules/recovery-coordinators.md)，区分持久义务、只读核对、真实RPC与结果投递 | 任意崩溃点与设备端完整验收 |
-| 工作流编辑及保存 | [工作流说明](modules/taskboard-workflows.md)，覆盖canonical树、pointer、加载、冲突和项目切换 | palette执行合同及跨页面草稿恢复 |
-| 原生连接、绑定、目录、控制、准入、交互、进展、渠道、IDE、Web UI、知识、构建与审查 | 上述职责图与功能契约分别覆盖各模块；不另建空模板冒充完成 | 每个模块仍需逐步补充状态转换、错误归属、跨模块时序及对应反例 |
-| Taskboard | [安装与生命周期说明](../taskboard-module.md)、职责图、TB 系列功能 case | 独立 AI 执行链与原生接口完整适配；部分上传、父视图、工作流见新增模块说明 |
+| 模块 | 说明 |
+| --- | --- |
+| 原生协议与连接 | [同一核心、权限继承、读写连接和生命周期](modules/native-protocol.md) |
+| 消息接收与交接 | [来源、提交、接收和未知回执](modules/inbound-forwarding.md) |
+| 持久状态与账号 | [版本、迁移、内存/磁盘一致性和特殊标识](modules/persistent-state.md) |
+| 绑定及准入 | [精确会话边、个人/群身份和撤权](modules/bindings-access.md) |
+| 目录及历史 | [原生 ID、旧别名、全部根和有界日志观察](modules/catalog-history.md) |
+| 输入和控制 | [普通输入、steer、原生 queue 和写前核验](modules/input-controls.md)，[目标控制](modules/goal-controls.md) |
+| 审批及提问 | [原请求、多消费者、明确答案和秘密字段](modules/native-interactions.md) |
+| 系统及容量恢复 | [只读核对、恢复交接和持久补偿](modules/recovery-coordinators.md) |
+| 进展、结果及渠道 | [按轮/页回执、未知不补发、复制和网络边界](modules/delivery-channels.md) |
+| Web IDE | [完整 scope、原浏览器证明、90 天及独立进程](modules/ide-access.md) |
+| 管理 UI | [原目标、迟到请求、原生表单和可选模块](modules/management-ui.md) |
+| Taskboard | [原生执行和交互](modules/taskboard-native-execution.md)、[表单与附件交接](modules/taskboard-data-handoffs.md)、[工作流编辑](modules/taskboard-workflows.md) |
+| 知识与 QA | [只读工具、实际文件边界和独立 MCP 所有权](modules/knowledge-qa.md) |
+| 构建与重启 | [同一交接门禁、制品和实际运行版本核验](modules/release-lifecycle.md) |
+| 四层检查与证据 | [历史、意图、逐行范围、反例和验收限制](modules/audit-method.md) |
+
+上述说明覆盖 17 个职责模块，其中紧密关联的绑定/准入、进展/渠道合并解释跨模块边界。详细程度按真实职责组织，不建立空模板冒充完成。机器清单中的状态和设备验收限制仍独立保留。
 
 ## 注释约定
 

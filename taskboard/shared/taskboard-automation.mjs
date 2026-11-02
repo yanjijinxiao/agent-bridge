@@ -1,5 +1,5 @@
 import path from "node:path";
-import { isSupportedModelEffort } from "./taskboard-automation-options.mjs";
+import { isSupportedModelEffort, isAutomationSelection } from "./taskboard-automation-options.mjs";
 
 const AUTOMATION_OPERATIONS = new Set(["ensure-active", "pause", "list", "apply-policy"]);
 const INTERVAL_MINUTES = new Set([5, 10, 15, 30, 60]);
@@ -31,7 +31,7 @@ export function parseTaskboardAutomationHostRequest(value) {
   if (!validText(value.codexProjectId, 256) || !validText(value.projectName, 200)) return null;
   if (!validAbsolutePath(value.workspacePath) || !validAbsolutePath(value.skillPath)) return null;
   if (value.intervalMinutes !== undefined && !INTERVAL_MINUTES.has(value.intervalMinutes)) return null;
-  if (!isSupportedModelEffort(value.model, value.reasoningEffort)) return null;
+  if (!isAutomationSelection(value.model, value.reasoningEffort)) return null;
   if (value.automationId !== undefined && !validText(value.automationId, 256)) return null;
   if (typeof value.enabledByUser !== "boolean" || typeof value.quotaAware !== "boolean") return null;
 

@@ -1,4 +1,3 @@
-import path from "node:path";
 import { AppServerCodexRunner } from "./app-server-runner.js";
 import { resolveLocalAppServerTransport, type AppServerConnectionMode } from "./app-server-daemon.js";
 import type { CodexExecSandbox } from "./sandbox.js";
@@ -15,6 +14,7 @@ import type { CodexAppServerBackend, CodexBridgeBackend, CodexCapacityResumeInpu
   CodexRunnerInput, CodexRunResult, CodexSteerInput, CodexSystemRecoveryInput, CodexThreadGoalStatus,
   CodexThreadListInput, CodexThreadMessageInput, EphemeralCodexRunnerInput } from "./backend.js";
 import type { NativeInteractionObserver } from "./interactions.js";
+import { NativeInteractionFanout } from "./interaction-fanout.js";
 
 /** Old spellings can be recognized during migration; they are not adapters. */
 export type CodexBackend = "auto" | "app-server" | "exec";
@@ -44,12 +44,12 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
   private readonly admittingRuns = new Set<string>();
   private readonly restartRuns = new Set<{ scope?: CodexExecutionScope }>();
   private closed = false;
+  private readonly interactionFanouts = new Map<string, NativeInteractionFanout>();
+  private readonly interactionTransitions = new Map<string, Promise<void>>();
 
   constructor(private readonly options: CodexAppServerGatewayOptions = {}) {
     if (options.backend === "exec") throw new CodexInterventionError("Gateway 已统一使用原生 App Server；CLI 环境也使用 codex app-server，未执行 codex exec。");
-    const selectedTransport = options.appServerTransport ?? "auto";
-    const mode = selectedTransport === "auto" && options.codexBin
-      && !/^codex(?:\.exe)?$/i.test(path.basename(options.codexBin)) ? "stdio" : selectedTransport;
+    const mode = options.appServerTransport ?? "auto";
     const transport = resolveLocalAppServerTransport({ mode,
       codexHome: options.codexHome, codexBin: options.codexBin ?? "codex" });
     const connection = (hostId = "local", observer?: "metadata" | "history") => new AppServerCodexRunner({
@@ -121,6 +121,17 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
   }
   async stop(threadId?: string, hostId?: string, assertCurrent?: () => void) {
     assertCurrent?.(); this.mutating(threadId, hostId); return this.appServerFor(hostId).stop(threadId, assertCurrent);
+  }
+  async interruptTurn(threadId: string, turnId: string, hostId?: string, assertCurrent?: () => void) {
+    this.mutating(threadId, hostId);
+    const backend = this.appServerFor(hostId);
+    if (!backend.interruptTurn) throw new CodexInterventionError("原生精确轮次中断接口不可用。");
+    return backend.interruptTurn(threadId, turnId, assertCurrent);
+  }
+  readTurnActivities(threadId: string, turnId: string, hostId?: string) {
+    const backend = this.appServerFor(hostId);
+    if (!backend.readTurnActivities) throw new CodexInterventionError("原生轮次活动查询接口不可用。");
+    return backend.readTurnActivities(threadId, turnId);
   }
   async runEphemeral(input: EphemeralCodexRunnerInput) {
     return this.execution(() => this.appServer.run({ ...input, ephemeral: true, sandbox: "read-only" }));
@@ -206,7 +217,17 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
   listThreads(input?: CodexThreadListInput, hostId?: string) { return this.appServerFor(hostId).listThreads(input); }
   listSessionCatalog(input?: CodexThreadListInput, hostId?: string) { return this.appServerFor(hostId).listSessionCatalog(input); }
   listModels(hostId?: string) { return this.appServerFor(hostId).listModels(); }
-  getAccountRateLimits(hostId?: string) { return this.appServerFor(hostId).getAccountRateLimits(); }
+  listSkills(cwd: string, hostId?: string) {
+    const backend = this.appServerFor(hostId);
+    if (!backend.listSkills) throw new CodexBackendCapabilityError("skills", "app-server");
+    return backend.listSkills(cwd);
+  }
+  listMcpServers(threadId?: string, hostId?: string) {
+    const backend = this.appServerFor(hostId);
+    if (!backend.listMcpServers) throw new CodexBackendCapabilityError("mcpServers", "app-server");
+    return backend.listMcpServers(threadId);
+  }
+  getAccountRateLimits(hostId?: string, model?: string) { return this.appServerFor(hostId).getAccountRateLimits(model); }
   getGoal(threadId: string, hostId?: string) { return this.appServerFor(hostId).getGoal(threadId); }
   async setGoal(threadId: string, input: { objective?: string; status?: CodexThreadGoalStatus; tokenBudget?: number }, hostId?: string, assertCurrent?: () => void) { assertCurrent?.(); this.mutating(threadId, hostId); return this.appServerFor(hostId).setGoal(threadId, input, assertCurrent); }
   async clearGoal(threadId: string, hostId?: string, assertCurrent?: () => void) { assertCurrent?.(); this.mutating(threadId, hostId); return this.appServerFor(hostId).clearGoal(threadId, assertCurrent); }
@@ -214,19 +235,47 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
   unarchiveThread(threadId: string, hostId?: string) { this.mutating(threadId, hostId); return this.appServerFor(hostId).unarchiveThread(threadId); }
   deleteThread(threadId: string, hostId?: string) { this.mutating(threadId, hostId); return this.appServerFor(hostId).deleteThread(threadId); }
   backendInfo(hostId?: string) { const backend = this.appServerFor(hostId); return { id: backend.id, capabilities: backend.capabilities }; }
-  observeThreadInteractions(threadId: string, hostId: string, observer: NativeInteractionObserver) {
+  observeThreadInteractions(threadId: string, hostId: string, observer: NativeInteractionObserver, consumerId = "gateway") {
     const backend = this.appServerFor(hostId);
     if (!backend.observeThreadInteractions) throw new CodexInterventionError("原生交互订阅接口不可用。");
-    return backend.observeThreadInteractions(threadId, observer);
+    const key = JSON.stringify([hostId, threadId]);
+    let fanout = this.interactionFanouts.get(key);
+    if (!fanout) { fanout = new NativeInteractionFanout(); this.interactionFanouts.set(key, fanout); }
+    fanout.add(consumerId, observer);
+    const selected = fanout;
+    return this.transitionInteractions(key, async () => {
+      if (this.closed || this.interactionFanouts.get(key) !== selected || selected.empty) return;
+      await backend.observeThreadInteractions!(threadId, selected.observer);
+    });
   }
-  unobserveThreadInteractions(threadId: string, hostId: string) { return this.appServerFor(hostId).unobserveThreadInteractions?.(threadId) ?? Promise.resolve(); }
-  interactionSubscriptionReady(threadId: string, hostId: string) { return this.appServerFor(hostId).interactionSubscriptionReady?.(threadId) ?? false; }
+  unobserveThreadInteractions(threadId: string, hostId: string, consumerId = "gateway") {
+    const key = JSON.stringify([hostId, threadId]), fanout = this.interactionFanouts.get(key);
+    fanout?.remove(consumerId);
+    if (fanout && !fanout.empty) return Promise.resolve();
+    fanout?.close(); this.interactionFanouts.delete(key);
+    return this.transitionInteractions(key, async () => {
+      if (!this.closed && !this.interactionFanouts.has(key)) await this.appServerFor(hostId).unobserveThreadInteractions?.(threadId);
+    });
+  }
+  interactionSubscriptionReady(threadId: string, hostId: string) {
+    return Boolean(this.interactionFanouts.get(JSON.stringify([hostId, threadId]))?.has("gateway")
+      && this.appServerFor(hostId).interactionSubscriptionReady?.(threadId));
+  }
   serverIdentity(hostId?: string) { const backend = this.appServerFor(hostId); if (!backend.serverIdentity) throw new Error("Native server diagnostics unavailable"); return backend.serverIdentity(); }
   hasInFlightWork() { return Boolean(this.restartRuns.size || this.admittingRuns.size || this.appServer.hasInFlightWork?.() || [...this.remoteAppServers.values()].some(b => b.hasInFlightWork?.())); }
   isIndependentObservation(scope: CodexExecutionScope) { return [...this.restartRuns].some(r => r.scope?.hostId === scope.hostId && r.scope.threadId === scope.threadId && r.scope.turnId === scope.turnId); }
   hasRestartBlockingWork() { return [...this.restartRuns].some(r => !r.scope) || [this.appServer, ...this.remoteAppServers.values()].some(b => b.hasRestartBlockingWork?.() ?? b.hasInFlightWork?.() ?? false); }
   detachIndependentObservations() { for (const backend of [this.appServer, ...this.remoteAppServers.values()]) backend.detachIndependentObservations?.(); }
-  async close() { this.closed = true; await Promise.all([this.metadataReader.close(), this.statusReader.close(), this.historyReader?.close(), this.appServer.close(), ...[...this.remoteAppServers.values()].map(b => b.close())]); this.remoteAppServers.clear(); this.remoteTransports.clear(); }
+  async close() { this.closed = true; for (const fanout of this.interactionFanouts.values()) fanout.close(); this.interactionFanouts.clear();
+    await Promise.all([this.metadataReader.close(), this.statusReader.close(), this.historyReader?.close(), this.appServer.close(), ...[...this.remoteAppServers.values()].map(b => b.close())]); this.remoteAppServers.clear(); this.remoteTransports.clear(); }
+
+  private transitionInteractions(key: string, work: () => Promise<void>): Promise<void> {
+    const previous = this.interactionTransitions.get(key) ?? Promise.resolve();
+    const next = previous.catch(() => {}).then(work);
+    this.interactionTransitions.set(key, next);
+    void next.finally(() => { if (this.interactionTransitions.get(key) === next) this.interactionTransitions.delete(key); }).catch(() => {});
+    return next;
+  }
 
   private mutating(threadId?: string, hostId = "local") { if (this.closed) throw new Error("Codex runner is closed"); if (threadId) this.options.onThreadMutation?.(threadId, hostId); }
   private async execution<T>(execute: (lease: { scope?: CodexExecutionScope }) => Promise<T>): Promise<T> { const lease = {}; this.restartRuns.add(lease); try { return await execute(lease); } finally { this.restartRuns.delete(lease); } }

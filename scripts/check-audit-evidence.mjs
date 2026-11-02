@@ -8,7 +8,9 @@ const root = path.resolve(fileURLToPath(new URL("../", import.meta.url)));
 const audit = path.resolve(root, process.argv[2] ?? "docs/audits/2026-11-01-four-layer-recheck");
 const requirements = JSON.parse(fs.readFileSync(path.join(root, "docs/architecture/gateway-requirements.json"), "utf8"));
 const jsonl = file => fs.readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
-const inventory = jsonl(path.join(audit, "inventory.jsonl"));
+const baselineInventory = jsonl(path.join(audit, "inventory.jsonl"));
+const additionsPath = path.join(audit, "inventory-additions.jsonl");
+const inventory = [...baselineInventory, ...(fs.existsSync(additionsPath) ? jsonl(additionsPath) : [])];
 const inventoryKinds = new Map(inventory.map(entry => [entry.path, entry.kind]));
 const ledger = jsonl(path.join(audit, "read-ledger.jsonl"));
 const runs = fs.existsSync(path.join(audit, "test-results.jsonl")) ? jsonl(path.join(audit, "test-results.jsonl")) : [];
@@ -95,7 +97,8 @@ for (const entry of functions) {
 }
 console.log(JSON.stringify({ status: errors.length ? "invalid-evidence" : "in-progress",
   baseline: requirements.baseline, errors,
-  summary: { baselineFiles: inventory.length, fullyRead: coverage.filter(row => row.status === "read").length,
+  summary: { baselineFiles: baselineInventory.length, addedFiles: inventory.length - baselineInventory.length,
+    fullyRead: coverage.filter(row => row.status === "read").length,
     artifactsInspected: coverage.filter(row => row.status === "inspected").length,
     partiallyRead: coverage.filter(row => row.status === "partial").length,
     unread: coverage.filter(row => row.status === "unread").length,

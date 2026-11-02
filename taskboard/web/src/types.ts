@@ -68,6 +68,7 @@ export interface AiChatModel {
 
 export interface AiChatSkill {
   id: string;
+  name?: string;
   label: string;
   description: string;
   path: string;
@@ -98,6 +99,7 @@ export interface AiChatRun {
   id: string;
   threadId: string;
   status: AiChatRunStatus;
+  handoff?: "awaiting-native" | "accepted" | "reconciling";
   exitCode?: number | null;
   error?: string | null;
   startedAt?: string;
@@ -133,7 +135,18 @@ export interface AiChatThreadSnapshot {
   thread: AiChatThread;
   events: AiChatEvent[];
   runs: AiChatRun[];
+  interactions?: AiChatInteraction[];
 }
+
+export type AiChatSubmissionStatus = { clientRequestId: string; status: "unknown" | "retired" | "acknowledged";
+  kind?: "thread" | "turn"; scope?: string; thread?: AiChatThread; run?: AiChatRun };
+
+export type AiChatInteraction = {
+  id: string; runId: string; submitted?: boolean; error?: string;
+} & ({ kind: "approval"; title: string; command?: string; options: Array<{ id: string; label: string; description: string }> }
+  | { kind: "user-input"; questions: Array<{ id: string; header: string; question: string; isSecret?: boolean;
+    valueSchema?: { type: "string" | "number" | "integer" | "boolean"; enum?: string[]; minLength?: number; maxLength?: number; minimum?: number; maximum?: number };
+    options?: Array<{ label: string; description: string }> }> });
 
 export interface WorkflowCapabilityOption {
   id: string;

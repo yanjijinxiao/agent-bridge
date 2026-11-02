@@ -12,6 +12,7 @@ import type {
   CodexTurnStatus
 } from "../codex/backend.js";
 import { listCodexCliProjects } from "../codex/cli-projects.js";
+import { desktopProjectHint } from "../codex/desktop-session-membership.js";
 
 export type CodexProjectCandidate = {
   readonly name: string;
@@ -202,14 +203,13 @@ export function mergeCodexProjectCandidates(
   const desktopProjects = readCodexDesktopProjects(codexHome);
   const merged = [...desktopProjects];
   const registeredIds = new Set(desktopProjects.flatMap((project) => project.projectId ? [project.projectId] : []));
-  const registeredLocalWorkspaces = new Set(desktopProjects
-    .filter((project) => project.projectKind !== "remote")
-    .map((project) => project.workspace));
+  const registeredAliases = new Set(desktopProjects.flatMap(project => project.projectId
+    ? [desktopProjectHint(project.projectId, codexHome, project.hostId)?.nativeId].filter((id): id is string => Boolean(id)) : []));
 
   for (const project of appServerProjects) {
-    if (registeredIds.has(project.id)) continue;
+    if (registeredIds.has(project.id) || registeredAliases.has(project.id)) continue;
     const workspace = project.roots.map((root) => resolveDirectory(root)).find(Boolean);
-    if (!workspace || registeredLocalWorkspaces.has(workspace)) continue;
+    if (!workspace) continue;
     merged.push({
       projectId: project.id,
       projectKind: "local",
@@ -221,7 +221,6 @@ export function mergeCodexProjectCandidates(
       available: true
     });
     registeredIds.add(project.id);
-    registeredLocalWorkspaces.add(workspace);
   }
 
   return merged;

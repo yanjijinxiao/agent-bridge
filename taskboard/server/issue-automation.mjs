@@ -1,133 +1,86 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
-import {
-  buildTaskboardAutomationPrompt,
-  parseStoredTaskboardAutomationPolicy,
-} from "../shared/taskboard-automation.mjs";
+import { readFile, realpath } from "node:fs/promises";
+import { buildTaskboardAutomationPrompt, parseStoredTaskboardAutomationPolicy } from "../shared/taskboard-automation.mjs";
 import { readCodexQuotaStatus } from "../scripts/codex-rate-limits.mjs";
-import { buildCodexArgs, spawnCodexTurn } from "./ai-chat-process.mjs";
 
-export function createIssueAutomation({
-  automationPoliciesPath,
-  codexExecutable,
-  processEnv = process.env,
-  readQuota = readCodexQuotaStatus,
-  spawnTurn = spawnCodexTurn,
-  logger = console,
-}) {
-  const activeRuns = new Map();
-  const pendingStarts = new Map();
-  let closing = false;
+/** Event policy owns scheduling only. AiChatService owns the durable native
+ * handoff, exact turn observation and interactions, just as for a manual turn. */
+export function createIssueAutomation({ automationPoliciesPath, aiChat, database,
+  nativeBackend, readQuota = model => readCodexQuotaStatus(model, nativeBackend), logger = console }) {
+  const pendingStarts = new Map(), subscriptions = new Map();
+  let closing = false, paused = false;
 
   async function readPolicy(projectId) {
     let stored;
-    try {
-      stored = JSON.parse(await readFile(automationPoliciesPath, "utf8"));
-    } catch (error) {
-      if (error?.code === "ENOENT") return null;
-      throw error;
-    }
-    if (!stored || typeof stored !== "object" || Array.isArray(stored)) return null;
-    return parseStoredTaskboardAutomationPolicy(stored[projectId]);
+    try { stored = JSON.parse(await readFile(automationPoliciesPath, "utf8")); }
+    catch (error) { if (error?.code === "ENOENT") return null; throw error; }
+    return stored && typeof stored === "object" && !Array.isArray(stored)
+      ? parseStoredTaskboardAutomationPolicy(stored[projectId]) : null;
+  }
+
+  function follow(record) {
+    if (closing || !record?.threadId || subscriptions.has(record.projectId)) return;
+    const unsubscribe = aiChat.subscribe(record.threadId, event => {
+      if (closing || event?.type !== "ai.run" || event.run.status === "running") return;
+      const current = database.getAutomationRun(record.projectId);
+      if (current?.runId !== event.run.id) return;
+      subscriptions.get(record.projectId)?.(); subscriptions.delete(record.projectId);
+      if (current.dirty) {
+        // Completion can precede the startTurn HTTP response. Retire that
+        // admission promise before asking for the next drain worker.
+        const admission = pendingStarts.get(record.projectId) ?? Promise.resolve();
+        void admission.then(() => trigger({ projectId: record.projectId }))
+          .catch(error => logger.error(`Taskboard automation follow-up failed: ${error.message}`));
+      }
+    });
+    subscriptions.set(record.projectId, unsubscribe);
   }
 
   async function start(projectId) {
-    if (closing) return { started: false, reason: "closing" };
-    const active = activeRuns.get(projectId);
-    if (active) {
-      active.triggeredWhileRunning = true;
+    if (closing || paused) return { started: false, reason: closing ? "closing" : "paused" };
+    const existing = database.getAutomationRun(projectId);
+    if (existing?.runId && database.getAiChatRun(existing.runId)?.status === "running") {
+      follow(existing); aiChat.recover();
       return { started: false, reason: "already-running" };
     }
-
     const policy = await readPolicy(projectId);
-    if (closing) return { started: false, reason: "closing" };
+    if (closing || paused) return { started: false, reason: closing ? "closing" : "paused" };
     if (!policy?.enabledByUser) return { started: false, reason: "disabled" };
-
     if (policy.quotaAware) {
       const quota = await readQuota(policy.model);
-      if (closing) return { started: false, reason: "closing" };
-      if (quota?.state !== "available") {
-        return { started: false, reason: "quota", quota };
-      }
-      const currentPolicy = await readPolicy(projectId);
-      if (closing) return { started: false, reason: "closing" };
-      if (JSON.stringify(currentPolicy) !== JSON.stringify(policy)) {
-        // The quota result belongs to the original model and execution scope.
-        // Disabling or editing that policy cannot authorize a late old worker.
-        return { started: false, reason: "policy-changed" };
-      }
+      if (closing || paused) return { started: false, reason: closing ? "closing" : "paused" };
+      if (quota?.state !== "available") return { started: false, reason: "quota", quota };
     }
-
-    const taskboardRoot = path.resolve(path.dirname(policy.skillPath), "../..");
-    const thread = {
-      sandbox: "workspace-write",
-      model: policy.model,
-      reasoningEffort: policy.reasoningEffort,
-      codexThreadId: null,
-      origin: {
-        projectId: policy.taskboardProjectId,
-        projectName: policy.projectName,
-        workspacePath: policy.workspacePath,
-      },
-    };
-    const args = buildCodexArgs(thread, [taskboardRoot]);
-    const prompt = buildTaskboardAutomationPrompt(policy);
-    const run = spawnTurn({
-      executable: codexExecutable,
-      args,
-      prompt,
-      env: processEnv,
-      onRawEvent(raw) {
-        if (raw?.type === "turn.failed" || raw?.type === "error") {
-          logger.error(`Taskboard issue automation event failed for ${projectId}: ${raw.error?.message ?? raw.message ?? "unknown error"}`);
-        }
-      },
-    });
-    const record = {
-      child: run.child,
-      completion: run.completion,
-      triggeredWhileRunning: false,
-    };
-    activeRuns.set(projectId, record);
-    logger.info(`Taskboard issue automation started for ${projectId}`);
-
-    run.completion
-      .then(({ exitCode, signal }) => {
-        if (exitCode !== 0) {
-          logger.error(`Taskboard issue automation exited for ${projectId} (${signal ?? exitCode})`);
-        }
-      })
-      .catch((error) => {
-        logger.error(`Taskboard issue automation failed for ${projectId}: ${error.message}`);
-      })
-      .finally(() => {
-        if (activeRuns.get(projectId) !== record) return;
-        activeRuns.delete(projectId);
-        logger.info(`Taskboard issue automation stopped for ${projectId}`);
-        if (!closing && record.triggeredWhileRunning) {
-          trigger({ projectId }).catch((error) => {
-            logger.error(`Taskboard issue automation retrigger failed for ${projectId}: ${error.message}`);
-          });
-        }
-      });
-
+    if (JSON.stringify(await readPolicy(projectId)) !== JSON.stringify(policy)) return { started: false, reason: "policy-changed" };
+    if (closing || paused) return { started: false, reason: closing ? "closing" : "paused" };
+    const thread = await aiChat.createThread({ projectId, title: `自动处理 · ${policy.projectName}`,
+      model: policy.model, reasoningEffort: policy.reasoningEffort, sandbox: "workspace-write" });
+    const workspace = await realpath(policy.workspacePath);
+    if (closing || paused) return { started: false, reason: closing ? "closing" : "paused" };
+    if (workspace !== thread.origin.workspacePath) throw new Error("Automation policy workspace no longer matches its selected project");
+    if (JSON.stringify(await readPolicy(projectId)) !== JSON.stringify(policy)) return { started: false, reason: "policy-changed" };
+    if (closing || paused) return { started: false, reason: closing ? "closing" : "paused" };
+    // Bind the thread before startTurn. Its run creation transaction writes the
+    // run id into this same row before any native input can be sent.
+    const record = database.setAutomationRun(projectId, { threadId: thread.id, runId: null, dirty: false });
+    subscriptions.get(projectId)?.(); subscriptions.delete(projectId); follow(record);
+    try { await aiChat.startTurn(thread.id, { message: buildTaskboardAutomationPrompt(policy) }); }
+    catch (error) {
+      const current = database.getAutomationRun(projectId);
+      if (current?.threadId === thread.id && !current.runId) database.setAutomationRun(projectId, { dirty: true });
+      throw error;
+    }
+    logger.info(`Taskboard issue automation submitted for ${projectId}`);
     return { started: true };
   }
 
   function trigger(task) {
     const projectId = task?.projectId;
-    if (typeof projectId !== "string" || projectId.length === 0) {
-      return Promise.resolve({ started: false, reason: "invalid-task" });
-    }
-    const active = activeRuns.get(projectId);
-    if (active) {
-      active.triggeredWhileRunning = true;
-      return Promise.resolve({ started: false, reason: "already-running" });
-    }
+    if (typeof projectId !== "string" || !projectId) return Promise.resolve({ started: false, reason: "invalid-task" });
+    if (closing) return Promise.resolve({ started: false, reason: "closing" });
+    database.setAutomationRun(projectId, { dirty: true });
+    if (paused) return Promise.resolve({ started: false, reason: "paused" });
     const pending = pendingStarts.get(projectId);
     if (pending) return pending;
-
     const tracked = start(projectId).finally(() => {
       if (pendingStarts.get(projectId) === tracked) pendingStarts.delete(projectId);
     });
@@ -135,37 +88,22 @@ export function createIssueAutomation({
     return tracked;
   }
 
-  async function close() {
-    closing = true;
-    pendingStarts.clear();
-    const running = [...activeRuns.values()];
-    for (const { child } of running) {
-      if (!Number.isInteger(child.pid)) continue;
-      try {
-        process.kill(-child.pid, "SIGTERM");
-      } catch {
-        child.kill("SIGTERM");
-      }
+  function recover() {
+    if (closing || paused) return;
+    aiChat.recover();
+    for (const record of database.listAutomationRuns()) {
+      if (record.runId && database.getAiChatRun(record.runId)?.status === "running") follow(record);
+      else if (record.dirty) void trigger({ projectId: record.projectId }).catch(error => logger.error(`Taskboard automation reconciliation failed: ${error.message}`));
     }
-    let graceTimeout;
-    const gracePeriod = new Promise((resolve) => {
-      graceTimeout = setTimeout(resolve, 2_000);
-    });
-    await Promise.race([
-      Promise.allSettled(running.map((run) => run.completion)),
-      gracePeriod,
-    ]);
-    clearTimeout(graceTimeout);
-    for (const { child } of activeRuns.values()) {
-      if (!Number.isInteger(child.pid)) continue;
-      try {
-        process.kill(-child.pid, "SIGKILL");
-      } catch {
-        child.kill("SIGKILL");
-      }
-    }
-    activeRuns.clear();
   }
 
-  return { trigger, close };
+  async function close() {
+    closing = true;
+    for (const unsubscribe of subscriptions.values()) unsubscribe();
+    subscriptions.clear();
+    // In-flight native work belongs to the independent service, not this event
+    // subscriber. Dirty flags and run receipts remain in SQLite for reconnect.
+  }
+  return { trigger, recover, close, pauseForRestart() { paused = true; },
+    resumeAfterCancelledRestart() { paused = false; recover(); } };
 }

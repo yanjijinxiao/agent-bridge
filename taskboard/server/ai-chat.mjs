@@ -1,15 +1,13 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
+import { createHash } from "node:crypto";
 import path from "node:path";
 
 import { ApiError } from "./database.mjs";
 import { discoverAiCatalog, resolveAiWorkspace } from "./ai-chat-catalog.mjs";
-import {
-  buildCodexArgs,
-  buildCodexPrompt,
-  normalizeCodexEvent,
-  spawnCodexTurn,
-} from "./ai-chat-process.mjs";
+import { buildCodexPrompt } from "./ai-chat-process.mjs";
+import { createTaskboardNativeBackend } from "./native-backend.mjs";
+import { aiSubmission, findAiSubmission, readAiSubmission } from "./ai-chat-submissions.mjs";
 
 const SANDBOXES = new Set(["read-only", "workspace-write", "danger-full-access"]);
 const ERROR_CONTENT_LIMIT = 65_536;
@@ -25,33 +23,19 @@ function cappedError(value) {
   return message.slice(0, ERROR_CONTENT_LIMIT);
 }
 
-function signalProcessGroup(child, signal) {
-  if (Number.isInteger(child?.pid)) {
-    try {
-      process.kill(-child.pid, signal);
-      return;
-    } catch {}
-  }
-  try {
-    child?.kill(signal);
-  } catch {}
-}
-
-function wait(milliseconds) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, milliseconds);
-    timer.unref();
-  });
-}
-
 export class AiChatService {
   constructor(options) {
     this.database = options.database;
+    this.projectCatalog = options.projectCatalog ?? options.database;
     this.codexExecutable = options.codexExecutable;
     this.codexStatePath = options.codexStatePath;
     this.manageTaskboardSkillPath = options.manageTaskboardSkillPath;
     this.processEnv = options.processEnv ?? process.env;
-    this.killGraceMs = options.killGraceMs ?? 1_000;
+    this.nativeBackend = options.nativeBackend ?? createTaskboardNativeBackend(options);
+    this.ownsBackend = !options.nativeBackend;
+    this.closed = false;
+    this.paused = false;
+    this.pendingInteractions = new Map();
     this.active = new Map();
     this.listeners = new Map();
     this.completions = new Map();
@@ -74,11 +58,13 @@ export class AiChatService {
   }
 
   getThreadSnapshot(threadId) {
+    this.recover();
     const thread = this.getThread(threadId);
     return {
       thread,
       events: this.database.listAiChatEvents(threadId),
       runs: this.database.listAiChatRuns(threadId),
+      interactions: [...this.pendingInteractions.values()].filter(item => item.threadId === threadId).map(item => item.public),
     };
   }
 
@@ -105,18 +91,21 @@ export class AiChatService {
 
   async getCatalog(projectId) {
     return discoverAiCatalog({
-      codexExecutable: this.codexExecutable,
+      nativeBackend: this.nativeBackend,
       codexStatePath: this.codexStatePath,
-      database: this.database,
+      database: this.projectCatalog,
       projectId,
       processEnv: this.processEnv,
     });
   }
 
   async createThread(input) {
+    const submission = aiSubmission(input, "thread", input.projectId);
+    const existing = findAiSubmission(this.database, submission);
+    if (existing) return existing;
     const [catalog, resolved] = await Promise.all([
       this.getCatalog(input.projectId),
-      resolveAiWorkspace(input.projectId, this.codexStatePath, this.database),
+      resolveAiWorkspace(input.projectId, this.codexStatePath, this.projectCatalog),
     ]);
     const model = this.#resolveModel(catalog, input.model);
     const reasoningEffort = input.reasoningEffort ?? model.defaultReasoningEffort;
@@ -136,7 +125,10 @@ export class AiChatService {
       }
     }
 
+    const confirmed = findAiSubmission(this.database, submission);
+    if (confirmed) return confirmed;
     return this.database.createAiChatThread({
+      submission,
       title: input.title ?? issue?.identifier ?? "New conversation",
       origin: {
         projectId: resolved.project.id,
@@ -189,6 +181,11 @@ export class AiChatService {
   }
 
   async startTurn(threadId, input) {
+    if (this.closed || this.paused) throw new ApiError(503, "SERVICE_CLOSED", "Taskboard native handoffs are paused");
+    this.#validateTurnInput(input);
+    const submission = aiSubmission(input, "turn", threadId);
+    const existing = findAiSubmission(this.database, submission);
+    if (existing) return existing;
     let thread = this.getThread(threadId);
     if (this.#threadIsActive(thread)) {
       throw new ApiError(
@@ -208,10 +205,12 @@ export class AiChatService {
 
     const [catalog, resolved] = await Promise.all([
       this.getCatalog(thread.origin.projectId),
-      resolveAiWorkspace(thread.origin.projectId, this.codexStatePath, this.database),
+      resolveAiWorkspace(thread.origin.projectId, this.codexStatePath, this.projectCatalog),
     ]);
 
     thread = this.getThread(threadId);
+    const confirmed = findAiSubmission(this.database, submission);
+    if (confirmed) return confirmed;
     this.#assertReadyToSpawn(thread, input, catalog, resolved);
 
     const skillIds = input.skillIds ?? [];
@@ -237,8 +236,9 @@ export class AiChatService {
       // Attachment preparation yields even for an empty list. Use the latest
       // stored settings and active-run identity at the final spawn boundary.
       thread = this.getThread(threadId);
+      const confirmed = findAiSubmission(this.database, submission);
+      if (confirmed) { if (temporaryDirectory) await rm(temporaryDirectory, { recursive: true, force: true }); return confirmed; }
       this.#assertReadyToSpawn(thread, input, catalog, resolved);
-      const args = buildCodexArgs(thread, resolved.addDirectories, imagePaths);
       const prompt = buildCodexPrompt(
         thread,
         {
@@ -248,8 +248,8 @@ export class AiChatService {
         },
         this.manageTaskboardSkillPath,
       );
-      const run = this.database.createAiChatRun({ threadId });
-      this.#emit(threadId, { type: "ai.run", run });
+      const receipt = { version: 1, phase: "prepared", nativeThreadId: thread.codexThreadId,
+        nativeTurnId: null, temporaryDirectory, clientUserMessageId: submission?.id ?? crypto.randomUUID() };
       const userEventData = {};
       if (skillIds.length > 0) userEventData.skillIds = skillIds;
       if (attachments.length > 0) {
@@ -259,81 +259,26 @@ export class AiChatService {
           size,
         }));
       }
-      const userEvent = this.database.insertAiChatEvent({
-        threadId,
-        runId: run.id,
+      const userEvent = {
+        id: crypto.randomUUID(),
         type: "user_message",
         role: "user",
         content: input.message,
         data: Object.keys(userEventData).length > 0 ? userEventData : undefined,
-      });
-      this.#emit(threadId, { type: "ai.event", event: userEvent });
+      };
+      const run = this.database.createAiChatRun({ threadId, nativeReceipt: receipt, userEvent, submission });
+      this.#emit(threadId, { type: "ai.run", run });
+      this.#emit(threadId, { type: "ai.event" });
 
-      const resumingThreadId = thread.codexThreadId;
-      let startedThreadId = null;
-      let terminalOutcome = null;
-      let terminalError = "";
-      const { child, completion } = spawnCodexTurn({
-        executable: this.codexExecutable,
-        args,
-        prompt,
-        env: this.processEnv,
-        onRawEvent: (raw) => {
-          const normalized = normalizeCodexEvent(raw);
-          if (!normalized) return;
-          if (normalized.kind === "thread.started") {
-            if (
-              (resumingThreadId && normalized.threadId !== resumingThreadId)
-              || (startedThreadId && normalized.threadId !== startedThreadId)
-            ) {
-              throw new Error("Codex returned an unexpected thread id");
-            }
-            startedThreadId = normalized.threadId;
-            this.database.updateAiChatThread(threadId, { codexThreadId: normalized.threadId });
-            return;
-          }
-          const event = this.database.insertAiChatEvent({
-            threadId,
-            runId: run.id,
-            type: normalized.type,
-            role: normalized.role,
-            content: normalized.content,
-            data: normalized.data,
-          });
-          if (raw.type === "turn.completed" && terminalOutcome === null) {
-            terminalOutcome = "completed";
-          } else if (raw.type === "turn.failed" || raw.type === "error") {
-            terminalOutcome = "failed";
-            terminalError ||= normalized.content;
-          }
-          this.#emit(threadId, { type: "ai.event", event });
+      this.#startNative(run, receipt, { prompt, cwd: resolved.workspacePath,
+        imagePaths, threadId: thread.codexThreadId ?? undefined, model: thread.model, effort: thread.reasoningEffort,
+        nativeSettings: {
+          sandbox: thread.sandbox === "danger-full-access" ? "danger-full-access" : "workspace-write",
+          approvalPolicy: thread.sandbox === "danger-full-access" ? "never" : "on-request",
+          approvalsReviewer: thread.sandbox === "read-only" ? "user" : "auto_review",
+          runtimeWorkspaceRoots: [resolved.workspacePath, ...resolved.addDirectories],
         },
       });
-
-      const active = { child, threadId, interrupted: false, temporaryDirectory };
-      this.active.set(run.id, active);
-      const finalization = completion.then(
-        (result) => this.#finishRun({
-          run,
-          active,
-          result,
-          resumingThreadId,
-          startedThreadId: () => startedThreadId,
-          terminalOutcome: () => terminalOutcome,
-          terminalError: () => terminalError,
-        }),
-        (error) => this.#finishRun({
-          run,
-          active,
-          error,
-          resumingThreadId,
-          startedThreadId: () => startedThreadId,
-          terminalOutcome: () => terminalOutcome,
-          terminalError: () => terminalError,
-        }),
-      );
-      this.completions.set(run.id, finalization);
-      void finalization.finally(() => this.completions.delete(run.id)).catch(() => {});
       return run;
     } catch (error) {
       if (temporaryDirectory) {
@@ -343,55 +288,225 @@ export class AiChatService {
     }
   }
 
+  /** Resume observation only. A prepared/unknown receipt never authorizes replay. */
+  getSubmission(id) { return readAiSubmission(this.database, id); }
+
+  recover() {
+    if (this.closed || this.paused) return;
+    for (const run of this.database.listNativeRunningAiChatRuns()) {
+      const active = this.active.get(run.id);
+      if (active) {
+        if (active.needsInteractionRefresh && !active.refreshingInteractions && active.observer) {
+          active.needsInteractionRefresh = false; active.refreshingInteractions = true;
+          void this.nativeBackend.observeThreadInteractions(active.receipt.nativeThreadId, "local", active.observer, "taskboard")
+            .catch(() => { if (!this.closed) active.needsInteractionRefresh = true; })
+            .finally(() => { active.refreshingInteractions = false; });
+        }
+        continue;
+      }
+      const receipt = this.database.getAiChatNativeReceipt(run.id);
+      if (!receipt?.nativeThreadId) {
+        this.#uncertain(run, "提交回执待核对，未自动重发。原生会话身份尚未确认。");
+        continue;
+      }
+      this.#startNative(run, receipt);
+    }
+  }
+
+  #activity(run, activity) {
+    if (this.closed || this.database.getAiChatRun(run.id)?.status !== "running") return;
+    const identity = activity.data?.itemId;
+    const event = this.database.insertAiChatEvent({ ...activity, threadId: run.threadId, runId: run.id,
+      ...(identity ? { id: `native:${run.id}:${createHash("sha256").update(`${activity.type}:${identity}`).digest("hex")}` } : {}) });
+    this.#emit(run.threadId, { type: "ai.event", event });
+  }
+
+  #uncertain(run, message) {
+    if (this.closed) return;
+    const previous = this.database.getAiChatRun(run.id);
+    if (previous?.status !== "running" || previous.error === message) return;
+    const updated = this.database.updateAiChatRun(run.id, { error: message });
+    this.#emit(run.threadId, { type: "ai.run", run: updated });
+  }
+
+  #interaction(run, kind, request) {
+    if (this.closed) return Promise.resolve(undefined);
+    const receipt = this.database.getAiChatNativeReceipt(run.id);
+    if (receipt?.nativeThreadId !== request.threadId || receipt.nativeTurnId && receipt.nativeTurnId !== request.turnId) return Promise.resolve(undefined);
+    const id = createHash("sha256").update(JSON.stringify([run.id, kind, request.nativeKey ?? request.requestId ?? request.itemId])).digest("hex");
+    const existing = this.pendingInteractions.get(id);
+    if (existing && !existing.public.submitted) return existing.promise;
+    // Only a fresh native pending-request observation can offer another answer
+    // after an uncertain flush. Never return a promise resolved to the old one.
+    if (existing) this.pendingInteractions.delete(id);
+    const { promise, resolve } = Promise.withResolvers();
+    const publicRequest = kind === "approval" ? {
+      kind, id, runId: run.id, title: request.reason || "Codex 请求批准", command: request.command,
+      options: (request.options ?? []).map(({ id, label, description }) => ({ id, label, description })),
+    } : { kind, id, runId: run.id, questions: request.questions };
+    this.pendingInteractions.set(id, { id, threadId: run.threadId, runId: run.id, nativeTurnId: request.turnId,
+      public: publicRequest, request, resolve, promise });
+    this.#emit(run.threadId, { type: "ai.event" });
+    return promise;
+  }
+
+  #interactionResult(run, request, result) {
+    if (this.closed) return;
+    for (const [id, pending] of this.pendingInteractions) {
+      if (pending.runId !== run.id || pending.request.itemId !== request.itemId || pending.request.turnId !== request.turnId
+        || (pending.request.nativeKey ?? pending.request.requestId) !== (request.nativeKey ?? request.requestId)) continue;
+      if (["confirmed", "withdrawn", "suspended"].includes(result)) this.pendingInteractions.delete(id);
+      else {
+        pending.public.error = "原生服务未确认答案，正在核对原请求；不会自动重发答案。";
+        const active = this.active.get(run.id);
+        if (active) active.needsInteractionRefresh = true;
+      }
+    }
+    this.#emit(run.threadId, { type: "ai.event" });
+  }
+
+  answerInteraction(threadId, id, answer) {
+    if (this.closed || this.paused) throw new ApiError(503, "SERVICE_CLOSED", "Taskboard native handoffs are paused");
+    this.getThread(threadId);
+    const pending = this.pendingInteractions.get(id);
+    const receipt = pending && this.database.getAiChatNativeReceipt(pending.runId);
+    if (!pending || pending.threadId !== threadId || pending.public.submitted
+      || this.database.getAiChatRun(pending.runId)?.status !== "running" || receipt.nativeTurnId !== pending.nativeTurnId)
+      throw new ApiError(409, "INTERACTION_CHANGED", "原生交互已变化，请刷新后核对。");
+    if (pending.public.kind === "approval") {
+      if (typeof answer !== "string" || !pending.public.options.some(option => option.id === answer))
+        throw new ApiError(400, "INVALID_ANSWER", "请选择原生请求提供的审批选项。");
+    } else {
+      if (!answer || typeof answer !== "object" || Array.isArray(answer)
+        || Object.keys(answer).some(id => !pending.request.questions.some(question => question.id === id))
+        || pending.request.questions.some(question => !Array.isArray(answer[question.id]?.answers)
+          || answer[question.id].answers.length > 20 || answer[question.id].answers.some(value => typeof value !== "string" || value.length > 100000)))
+        throw new ApiError(400, "INVALID_ANSWER", "请按原生问题填写答案。");
+    }
+    // Answers, especially secret fields, are never written to event history.
+    pending.public.submitted = true;
+    pending.resolve(answer);
+    this.#emit(threadId, { type: "ai.event" });
+    return { status: "submitted" };
+  }
+
+  #startNative(run, receipt, submission) {
+    const record = { threadId: run.threadId, receipt };
+    this.active.set(run.id, record);
+    const current = () => {
+      if (this.closed || this.paused || this.active.get(run.id) !== record)
+        throw Object.assign(new Error("Taskboard source detached before native handoff"), { submission: "not-submitted" });
+    };
+    const callbacks = {
+      assertCurrent: current,
+      clientUserMessageId: receipt.clientUserMessageId,
+      onThreadCreated: async nativeThreadId => {
+        current(); receipt.nativeThreadId = nativeThreadId;
+        this.database.saveAiChatNativeReceipt(run.id, receipt);
+        this.database.updateAiChatThread(run.threadId, { codexThreadId: nativeThreadId });
+        await this.nativeBackend.observeThreadInteractions(nativeThreadId, "local", record.observer, "taskboard");
+      },
+      onTurnStarted: event => {
+        current();
+        if (receipt.nativeThreadId && receipt.nativeThreadId !== event.threadId
+          || receipt.nativeTurnId && receipt.nativeTurnId !== event.turnId) throw new Error("Native accepted identity mismatch");
+        Object.assign(receipt, { phase: "accepted", nativeThreadId: event.threadId, nativeTurnId: event.turnId });
+        this.database.saveAiChatNativeReceipt(run.id, receipt);
+        const accepted = this.database.updateAiChatRun(run.id, { error: null });
+        this.#emit(run.threadId, { type: "ai.run", run: accepted });
+      },
+      onItem: activity => this.#activity(run, activity),
+      onProgress: content => this.#activity(run, { type: "progress", role: "activity", content, data: {} }),
+      onApproval: request => this.#interaction(run, "approval", request),
+      onApprovalResult: (request, result) => this.#interactionResult(run, request, result),
+      onUserInput: request => this.#interaction(run, "user-input", request),
+      onUserInputResult: (request, result) => this.#interactionResult(run, request, result),
+    };
+    record.observer = {
+      onApproval: envelope => callbacks.onApproval(envelope.request),
+      onResult: (envelope, result) => callbacks.onApprovalResult(envelope.request, result),
+      onUserInput: envelope => callbacks.onUserInput(envelope.request),
+      onUserInputResult: (envelope, result) => callbacks.onUserInputResult(envelope.request, result),
+    };
+    // Interaction consumers share one native subscription. Keeping UI answers
+    // in the observer fanout also lets an IM binding observe this same task.
+    const { onApproval, onApprovalResult, onUserInput, onUserInputResult, ...executionCallbacks } = callbacks;
+    const completion = (async () => {
+      try {
+        let result;
+        if (submission) {
+          current(); receipt.phase = "submitting";
+          this.database.saveAiChatNativeReceipt(run.id, receipt);
+          if (receipt.nativeThreadId) await this.nativeBackend.observeThreadInteractions(receipt.nativeThreadId, "local", record.observer, "taskboard");
+          current();
+          result = await this.nativeBackend.run({ ...submission, ...executionCallbacks });
+        } else {
+          // No prompt or queue id: this API can only adopt the exact stored
+          // native turn/client id, never start a replacement task.
+          await this.nativeBackend.observeThreadInteractions(receipt.nativeThreadId, "local", record.observer, "taskboard");
+          current();
+          result = await this.nativeBackend.runQueuedSubmission({ ...executionCallbacks, threadId: receipt.nativeThreadId,
+            cwd: this.getThread(run.threadId).origin.workspacePath, acceptedTurnId: receipt.nativeTurnId ?? undefined });
+        }
+        if (this.closed) return;
+        // Reconcile public items missed during disconnection before retiring
+        // the run. Stable item ids replace progress rather than duplicating it.
+        for (const activity of await this.nativeBackend.readTurnActivities(result.threadId, result.turnId)) this.#activity(run, activity);
+        if (!this.database.listAiChatEvents(run.threadId).some(event => event.runId === run.id && event.role === "assistant"))
+          this.#activity(run, { type: "agent_message", role: "assistant", content: result.text, data: {} });
+        await this.#finishNative(run, receipt, "completed");
+      } catch (error) {
+        if (this.closed) return;
+        if (error?.name === "CodexTurnExecutionError") await this.#finishNative(run, receipt, error.status, cappedError(error));
+        else if (submission && (error?.submission === "not-submitted" || ["CodexRunAdmissionError", "CodexThreadStateError"].includes(error?.name)))
+          await this.#finishNative(run, receipt, "failed", cappedError(error));
+        else this.#uncertain(run, "原生提交或进展回执待核对；未自动重发输入。" + cappedError(error));
+      } finally {
+        if (this.active.get(run.id) === record) this.active.delete(run.id);
+        this.completions.delete(run.id);
+      }
+    })();
+    this.completions.set(run.id, completion);
+    void completion.catch(error => { if (!this.closed) console.error("Taskboard native observation failed:", cappedError(error)); });
+  }
+
+  async #finishNative(run, receipt, status, error = null) {
+    if (this.closed) return;
+    const updated = this.database.updateAiChatRun(run.id, { status, error, exitCode: status === "completed" ? 0 : null,
+      finishedAt: new Date().toISOString() });
+    for (const [id, item] of this.pendingInteractions) if (item.runId === run.id) { item.resolve(undefined); this.pendingInteractions.delete(id); }
+    this.#emit(run.threadId, { type: "ai.run", run: updated });
+    if (receipt.nativeThreadId) await this.nativeBackend.unobserveThreadInteractions(receipt.nativeThreadId, "local", "taskboard").catch(() => {});
+    if (receipt.temporaryDirectory) await rm(receipt.temporaryDirectory, { recursive: true, force: true });
+  }
+
   async interrupt(runId) {
-    let run = this.getRun(runId);
+    if (this.closed || this.paused) throw new ApiError(503, "SERVICE_CLOSED", "Taskboard native handoffs are paused");
+    const run = this.getRun(runId);
     if (run.status !== "running") return run;
-
-    const active = this.active.get(runId);
-    if (!active) {
-      run = this.database.updateAiChatRun(runId, {
-        status: "interrupted",
-        error: "Interrupted",
-        finishedAt: new Date().toISOString(),
-      });
-      this.#emit(run.threadId, { type: "ai.run", run });
-      return run;
-    }
-
-    active.interrupted = true;
-    signalProcessGroup(active.child, "SIGTERM");
-    const timer = setTimeout(() => {
-      if (this.active.has(runId)) signalProcessGroup(active.child, "SIGKILL");
-    }, this.killGraceMs);
-    timer.unref();
-
-    const completion = this.completions.get(runId);
-    if (completion) {
-      await Promise.race([completion.catch(() => {}), wait(this.killGraceMs + 25)]);
-    }
+    const receipt = this.database.getAiChatNativeReceipt(runId);
+    if (!receipt?.nativeThreadId || !receipt.nativeTurnId) throw new ApiError(409, "NATIVE_RECEIPT_PENDING", "原生轮次身份尚未确认，不能停止其他任务。");
+    await this.nativeBackend.interruptTurn(receipt.nativeThreadId, receipt.nativeTurnId, undefined, () => {
+      if (this.closed || this.paused) throw new Error("Taskboard source detached before interrupt handoff");
+    });
+    // An interrupt acknowledgement is not a terminal event. Reconcile the
+    // original turn; never synthesize interruption or target the newest turn.
+    this.recover();
     return this.getRun(runId);
   }
 
   async close() {
-    const entries = [...this.active.entries()];
-    for (const [, active] of entries) {
-      active.interrupted = true;
-      signalProcessGroup(active.child, "SIGTERM");
-    }
-
-    const completions = entries
-      .map(([runId]) => this.completions.get(runId))
-      .filter(Boolean);
-    if (completions.length > 0) {
-      const settled = Promise.allSettled(completions);
-      await Promise.race([settled, wait(this.killGraceMs)]);
-      for (const [runId, active] of entries) {
-        if (this.active.has(runId)) signalProcessGroup(active.child, "SIGKILL");
-      }
-      await settled;
-    }
+    this.closed = true;
+    for (const item of this.pendingInteractions.values()) item.resolve(undefined);
+    this.pendingInteractions.clear();
     this.listeners.clear();
+    const threads = new Set([...this.active.values()].map(active => active.receipt.nativeThreadId).filter(Boolean));
+    await Promise.allSettled([...threads].map(threadId => this.nativeBackend.unobserveThreadInteractions(threadId, "local", "taskboard")));
+    if (this.ownsBackend) await this.nativeBackend.close();
   }
+
+  pauseForRestart() { this.paused = true; }
+  resumeAfterCancelledRestart() { this.paused = false; this.recover(); }
 
   #resolveModel(catalog, requestedModel) {
     const model = requestedModel === undefined
@@ -410,6 +525,7 @@ export class AiChatService {
   }
 
   #assertReadyToSpawn(thread, input, catalog, resolved) {
+    if (this.closed || this.paused) throw new ApiError(503, "SERVICE_CLOSED", "Taskboard native handoffs are paused");
     if (this.#threadIsActive(thread)) {
       throw new ApiError(409, "THREAD_BUSY", `AI chat thread '${thread.id}' has a running turn`);
     }
@@ -503,70 +619,6 @@ export class AiChatService {
   #threadIsActive(thread) {
     return Boolean(thread.currentRun)
       || [...this.active.values()].some((active) => active.threadId === thread.id);
-  }
-
-  async #finishRun({
-    run,
-    active,
-    result,
-    error,
-    resumingThreadId,
-    startedThreadId,
-    terminalOutcome,
-    terminalError,
-  }) {
-    let status;
-    let publicError = null;
-    if (active.interrupted) {
-      status = "interrupted";
-      publicError = "Interrupted";
-    } else if (error) {
-      status = "failed";
-      publicError = cappedError(error) || "Codex turn failed";
-    } else if (terminalOutcome() === "failed") {
-      status = "failed";
-      publicError = terminalError() || "Codex reported a failed turn";
-    } else if (result.exitCode !== 0) {
-      status = "failed";
-      publicError = result.exitCode === null
-        ? `Codex exited due to signal ${result.signal ?? "unknown"}`
-        : `Codex exited with code ${result.exitCode}`;
-    } else if (terminalOutcome() !== "completed") {
-      status = "failed";
-      publicError = "Codex exited without reporting turn completion";
-    } else if (!resumingThreadId && !startedThreadId()) {
-      status = "failed";
-      publicError = "Codex did not provide a thread id";
-    } else {
-      status = "completed";
-    }
-
-    try {
-      if (status === "failed" && terminalOutcome() !== "failed") {
-        const errorEvent = this.database.insertAiChatEvent({
-          threadId: run.threadId,
-          runId: run.id,
-          type: "error",
-          role: "error",
-          content: cappedError(publicError),
-          data: { status: "failed" },
-        });
-        this.#emit(run.threadId, { type: "ai.event", event: errorEvent });
-      }
-      const updated = this.database.updateAiChatRun(run.id, {
-        status,
-        exitCode: result?.exitCode ?? null,
-        error: publicError === null ? null : cappedError(publicError),
-        finishedAt: new Date().toISOString(),
-      });
-      this.#emit(run.threadId, { type: "ai.run", run: updated });
-      return updated;
-    } finally {
-      this.active.delete(run.id);
-      if (active.temporaryDirectory) {
-        await rm(active.temporaryDirectory, { recursive: true, force: true });
-      }
-    }
   }
 
   #emit(threadId, event) {

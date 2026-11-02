@@ -1,335 +1,174 @@
 import assert from "node:assert/strict";
-import { chmod, mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdtemp, mkdir, realpath, rm, writeFile, access } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-
 import { TaskboardDatabase } from "../server/database.mjs";
 import { AiChatService } from "../server/ai-chat.mjs";
-import { normalizeCodexEvent } from "../server/ai-chat-process.mjs";
+import { fakeNativeCore } from "./helpers/native-backend.mjs";
 
-async function waitFor(predicate, timeout = 4_000) {
+async function waitFor(predicate, timeout = 4000) {
   const deadline = Date.now() + timeout;
-  while (Date.now() < deadline) {
-    const value = await predicate();
-    if (value) return value;
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  }
-  throw new Error("Timed out waiting for condition");
+  while (Date.now() < deadline) { const value = await predicate(); if (value) return value; await new Promise(r => setTimeout(r, 10)); }
+  throw new Error("Timed out waiting for native fixture");
 }
-
-test("normalized item events retain a bounded public item id", () => {
-  const itemId = "x".repeat(70_000);
-  const normalized = normalizeCodexEvent({
-    type: "item.updated",
-    item: {
-      id: itemId,
-      type: "command_execution",
-      command: "npm test",
-      status: "in_progress",
-    },
-  });
-
-  assert.equal(normalized.data.itemId, itemId.slice(0, 65_536));
-});
-
-async function createFixture() {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "taskboard-ai-runner-"));
-  const workspacePath = path.join(directory, "workspace");
-  const otherWorkspacePath = path.join(directory, "other-workspace");
-  await Promise.all([mkdir(workspacePath), mkdir(otherWorkspacePath)]);
-  const [workspace, otherWorkspace] = await Promise.all([
-    realpath(workspacePath),
-    realpath(otherWorkspacePath),
-  ]);
-  const capturePath = path.join(directory, "capture.jsonl");
-  const descendantPath = path.join(directory, "descendant-alive");
-  const executable = path.join(directory, "fake-codex.mjs");
-  await writeFile(executable, `#!/usr/bin/env node
-import { appendFileSync } from "node:fs";
-import { spawn } from "node:child_process";
-const args = process.argv.slice(2);
-if (args[0] === "debug" && args[1] === "models") {
-  if (args.length !== 2) process.exit(2);
-  process.stdout.write(JSON.stringify({models:[{
-    slug:"gpt-real", display_name:"GPT Real", description:"Real fixture",
-    default_reasoning_level:"medium",
-    supported_reasoning_levels:[{effort:"low"},{effort:"medium"},{effort:"high"}],
-    service_tiers:[{id:"priority",name:"Fast",description:"fixture"}]
-  }]}));
-  process.exit(0);
-}
-if (args[0] === "app-server") {
-  process.stdin.setEncoding("utf8");
-  let buffer = "";
-  process.stdin.on("data", (chunk) => {
-    buffer += chunk;
-    let index;
-    while ((index = buffer.indexOf("\\n")) >= 0) {
-      const line = buffer.slice(0, index); buffer = buffer.slice(index + 1);
-      if (!line.trim()) continue;
-      const message = JSON.parse(line);
-      if (message.id === 1) process.stdout.write('{"id":1,"result":{"platformFamily":"unix"}}\\n');
-      if (message.id === 2) process.stdout.write('{"id":2,"result":{"data":[{"skills":[{"name":"real-skill","path":"/fixture/real-skill/SKILL.md","description":"Fixture skill","enabled":true,"scope":"repo","interface":{"displayName":"Real Skill"}},{"name":"disabled","enabled":false,"scope":"user"}]}]}}\\n');
-    }
-  });
-} else if (args[0] === "exec") {
-  process.stdin.setEncoding("utf8");
-  let prompt = "";
-  process.stdin.on("data", (chunk) => { prompt += chunk; });
-  process.stdin.on("end", () => {
-    appendFileSync(process.env.FAKE_CAPTURE_PATH, JSON.stringify({args,prompt}) + "\\n");
-    const emit = (value) => process.stdout.write(JSON.stringify(value) + "\\n");
-    if (!args.includes("resume")) emit({type:"thread.started",thread_id:"codex-thread-1"});
-    emit({type:"turn.started"});
-    if (prompt.includes("MALFORMED_STUBBORN") || prompt.includes("CALLBACK_FATAL_STUBBORN")) {
-      spawn(process.execPath, [
-        "-e",
-        'process.on("SIGTERM", () => {}); setTimeout(() => require("node:fs").writeFileSync(process.env.FAKE_DESCENDANT_PATH, "alive"), 300); setInterval(() => {}, 1000)',
-      ], {env:process.env,stdio:"ignore"});
-      process.on("SIGTERM", () => {});
-      setInterval(() => {}, 1000);
-      if (prompt.includes("CALLBACK_FATAL_STUBBORN")) {
-        emit({type:"thread.started",thread_id:"unexpected-thread"});
-      } else {
-        process.stdout.write("{not-json}\\n");
-      }
-      return;
-    }
-    if (prompt.includes("MALFORMED")) {
-      process.stdout.write("{not-json}\\n");
-      return;
-    }
-    emit({type:"item.completed",item:{type:"reasoning",text:"SECRET REASONING"}});
-    emit({type:"item.completed",item:{type:"agent_message",text:"Visible answer"}});
-    emit({type:"item.completed",item:{type:"command_execution",command:"npm test",status:"completed",exit_code:0,aggregated_output:"ok"}});
-    if (prompt.includes("TURN_FAILED_ZERO")) {
-      emit({type:"turn.failed",error:{message:"Protocol turn failed"}});
-      return;
-    }
-    if (prompt.includes("ROOT_ERROR_ZERO")) {
-      emit({type:"error",message:"Protocol root error"});
-      return;
-    }
-    if (prompt.includes("NO_TERMINAL")) return;
-    if (prompt.includes("ITEM_ERROR")) {
-      emit({type:"item.completed",item:{id:"item-error-1",type:"error",message:"Recoverable item error"}});
-    }
-    if (prompt.includes("WAIT")) {
-      const timer = setTimeout(() => { emit({type:"turn.completed",usage:{input_tokens:1,output_tokens:2}}); }, 800);
-      process.on("SIGTERM", () => { clearTimeout(timer); process.exit(143); });
-      return;
-    }
-    if (prompt.includes("FAIL")) process.exit(7);
-    emit({type:"turn.completed",usage:{input_tokens:1,output_tokens:2}});
-  });
-}
-`);
-  await chmod(executable, 0o755);
-
-  const codexStatePath = path.join(directory, "codex-state.json");
-  await writeFile(codexStatePath, JSON.stringify({
-    "local-projects": {
-      project: { rootPaths: [workspace] },
-      other: { rootPaths: [otherWorkspace] },
-    },
-  }));
+async function createFixture(options = {}) {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "taskboard-ai-native-"));
+  const workspace = await realpath(directory), codexStatePath = path.join(directory, "codex-state.json");
+  await writeFile(codexStatePath, JSON.stringify({ "local-projects": { project: { rootPaths: [workspace] } } }));
   const databasePath = path.join(directory, "taskboard.sqlite");
   const database = new TaskboardDatabase(databasePath);
-  database.createProject({ id: "project", name: "Project", workspacePath: null });
-  database.createProject({ id: "other", name: "Other", workspacePath: null });
-  const service = new AiChatService({
-    database,
-    codexExecutable: executable,
-    codexStatePath,
-    manageTaskboardSkillPath: "/fixture/manage-taskboard/SKILL.md",
-    processEnv: {
-      ...process.env,
-      FAKE_CAPTURE_PATH: capturePath,
-      FAKE_DESCENDANT_PATH: descendantPath,
-    },
-    killGraceMs: 50,
-  });
-  return {
-    capturePath,
-    database,
-    databasePath,
-    descendantPath,
-    directory,
-    otherWorkspace,
-    service,
-    workspace,
-    async close() {
-      await this.service.close();
-      this.database.close();
-      await rm(directory, { recursive: true, force: true });
-    },
-  };
+  database.createProject({ id: "project", name: "Project", workspacePath: workspace });
+  const core = fakeNativeCore(options), backend = core.client();
+  const service = new AiChatService({ database, nativeBackend: backend, codexStatePath,
+    manageTaskboardSkillPath: "/fixture/manage-taskboard/SKILL.md" });
+  return { directory, workspace, databasePath, database, service, core, backend,
+    async close() { await this.service.close(); await backend.close(); this.database.close(); await rm(directory, { recursive: true, force: true }); } };
 }
 
-test("Codex turns use stdin, explicit resume ids, server-owned cwd and sanitized visible events", async () => {
-  const fixture = await createFixture();
-  try {
-    const catalog = await fixture.service.getCatalog("project");
-    assert.deepEqual(catalog.models, [{
-      slug: "gpt-real",
-      displayName: "GPT Real",
-      description: "Real fixture",
-      defaultReasoningEffort: "medium",
-      supportedReasoningEfforts: ["low", "medium", "high"],
-      serviceTiers: [{ id: "priority", name: "Fast" }],
-    }]);
-    assert.deepEqual(catalog.skills, [{ id: "real-skill", label: "Real Skill", description: "Fixture skill", path: "/fixture/real-skill/SKILL.md", scope: "repo" }]);
+test("native turns retain selected cwd, exact continuation id, chosen permissions and visible item identity", async t => {
+  const f = await createFixture(); t.after(() => f.close());
+  const catalog = await f.service.getCatalog("project");
+  assert.equal(catalog.skills[0].path, "/fixture/real-skill/SKILL.md");
+  const thread = await f.service.createThread({ projectId: "project", reasoningEffort: "high" });
+  const first = await f.service.startTurn(thread.id, { message: "HIDDEN_SENTINEL \uFFFC first", skillIds: ["real-skill"] });
+  await waitFor(() => f.service.getRun(first.id).status !== "running");
+  const second = await f.service.startTurn(thread.id, { message: "second" });
+  await waitFor(() => f.service.getRun(second.id).status !== "running");
+  assert.equal(f.core.calls.length, 2);
+  assert.equal(f.core.calls[0].cwd, f.workspace);
+  assert.equal(f.core.calls[0].threadId, undefined);
+  assert.equal(f.core.calls[1].threadId, f.service.getThread(thread.id).codexThreadId);
+  assert.deepEqual(f.core.calls[0].nativeSettings, { sandbox: "workspace-write", approvalPolicy: "on-request", approvalsReviewer: "auto_review", runtimeWorkspaceRoots: [f.workspace] });
+  assert.equal(f.core.calls[0].model, "gpt-real"); assert.equal(f.core.calls[0].effort, "high");
+  assert.match(f.core.calls[0].prompt, /\[\$real-skill\]\(\/fixture\/real-skill\/SKILL.md\)/);
+  const events = f.service.getThreadSnapshot(thread.id).events;
+  assert.equal(events.filter(event => event.role === "assistant").length, 2, "live item plus history reconciliation is one item per turn");
+  assert.equal(events.filter(event => event.role === "user")[0].content, "HIDDEN_SENTINEL \uFFFC first");
+});
 
-    const thread = await fixture.service.createThread({
-      projectId: "project",
-      model: "gpt-real",
-      reasoningEffort: "high",
-      sandbox: "workspace-write",
-    });
-    assert.equal(thread.origin.workspacePath, fixture.workspace);
+test("same-thread admission locks while different native threads run concurrently and explicit stop targets one exact turn", async t => {
+  const holds = new Map();
+  const f = await createFixture({ onRun(input) { if (!input.prompt.includes("WAIT")) return "Done"; const hold = Promise.withResolvers(); holds.set(input.clientUserMessageId, hold); return hold.promise; } });
+  t.after(() => { for (const hold of holds.values()) hold.resolve("Done"); return f.close(); });
+  const a = await f.service.createThread({ projectId: "project" }), b = await f.service.createThread({ projectId: "project" });
+  const ra = await f.service.startTurn(a.id, { message: "WAIT A" }), rb = await f.service.startTurn(b.id, { message: "WAIT B" });
+  await waitFor(() => f.core.calls.length === 2);
+  await assert.rejects(f.service.startTurn(a.id, { message: "duplicate" }), error => error.code === "THREAD_BUSY");
+  const receipt = f.database.getAiChatNativeReceipt(ra.id);
+  await f.service.interrupt(ra.id); await waitFor(() => f.service.getRun(ra.id).status === "interrupted");
+  assert.deepEqual(f.core.interrupts, [{ threadId: receipt.nativeThreadId, turnId: receipt.nativeTurnId }]);
+  assert.equal(f.service.getRun(rb.id).status, "running");
+  holds.get(f.database.getAiChatNativeReceipt(rb.id).clientUserMessageId).resolve("B done");
+  await waitFor(() => f.service.getRun(rb.id).status === "completed");
+});
 
-    const first = await fixture.service.startTurn(thread.id, {
-      message: "HIDDEN_SENTINEL \uFFFC first",
-      skillIds: ["real-skill"],
-    });
-    await waitFor(() => fixture.service.getRun(first.id)?.status !== "running");
-    const second = await fixture.service.startTurn(thread.id, { message: "second" });
-    await waitFor(() => fixture.service.getRun(second.id)?.status !== "running");
-
-    const captures = (await readFile(fixture.capturePath, "utf8")).trim().split("\n").map(JSON.parse);
-    assert.deepEqual(captures[0].args, [
-      "exec", "--json", "--color", "never",
-      "-C", fixture.workspace,
-      "-s", "workspace-write",
-      "-c", 'approval_policy="on-request"',
-      "-c", 'approvals_reviewer="auto_review"',
-      "-m", "gpt-real",
-      "-c", 'model_reasoning_effort="high"',
-      "-",
-    ]);
-    assert.equal(captures[0].args.join(" ").includes("HIDDEN_SENTINEL"), false);
-    assert.match(captures[0].prompt, /\[\$manage-taskboard\]\(\/fixture\/manage-taskboard\/SKILL\.md\) e-taskboard/);
-    assert.match(captures[0].prompt, /\$real-skill/);
-    assert.ok(captures[0].prompt.includes("HIDDEN_SENTINEL [$real-skill](/fixture/real-skill/SKILL.md) first"));
-    assert.deepEqual(captures[1].args, [
-      "exec", "--json", "--color", "never",
-      "-C", fixture.workspace,
-      "-s", "workspace-write",
-      "-c", 'approval_policy="on-request"',
-      "-c", 'approvals_reviewer="auto_review"',
-      "-m", "gpt-real",
-      "-c", 'model_reasoning_effort="high"',
-      "resume", "codex-thread-1", "-",
-    ]);
-    assert.equal(captures[1].args.includes("--last"), false);
-
-    const snapshot = fixture.service.getThreadSnapshot(thread.id);
-    assert.equal(snapshot.thread.codexThreadId, "codex-thread-1");
-    assert.equal(snapshot.events.some((event) => event.content?.includes("SECRET REASONING")), false);
-    assert.equal(snapshot.events.some((event) => event.content === "Visible answer"), true);
-    assert.equal(snapshot.events.some((event) => event.type === "command_execution"), true);
-    const serialized = JSON.stringify(snapshot);
-    assert.equal(serialized.includes("HIDDEN_SENTINEL"), true);
-    assert.equal(serialized.includes("<taskboard_context>"), false);
-    const persisted = JSON.stringify(
-      fixture.database.database.prepare("SELECT * FROM ai_chat_events").all(),
-    );
-    assert.equal(persisted.includes("<taskboard_context>"), false);
-    assert.equal(persisted.includes("SECRET REASONING"), false);
-  } finally {
-    await fixture.close();
+test("native failure is terminal while an uncertain accepted observation stays unreplayed", async t => {
+  for (const uncertain of [false, true]) {
+    const f = await createFixture({ onRun() { throw Object.assign(new Error("Isolated failure"), uncertain
+      ? { name: "CodexCommunicationError", submission: "accepted" }
+      : { name: "CodexTurnExecutionError", status: "failed" }); } });
+    try {
+      const thread = await f.service.createThread({ projectId: "project" });
+      const run = await f.service.startTurn(thread.id, { message: "execute once" });
+      await waitFor(() => f.service.getRun(run.id).error);
+      assert.equal(f.service.getRun(run.id).status, uncertain ? "running" : "failed");
+      if (uncertain) assert.equal(f.service.getRun(run.id).handoff, "reconciling");
+      f.service.recover(); await new Promise(r => setTimeout(r, 10));
+      assert.equal(f.core.calls.length, 1);
+    } finally { await f.close(); }
   }
 });
 
-test("same-thread turns are locked, different threads run concurrently, failures and interrupts settle", async () => {
-  const fixture = await createFixture();
-  try {
-    const firstThread = await fixture.service.createThread({ projectId: "project" });
-    const secondThread = await fixture.service.createThread({ projectId: "other" });
-    const waiting = await fixture.service.startTurn(firstThread.id, { message: "WAIT" });
-    await assert.rejects(
-      fixture.service.startTurn(firstThread.id, { message: "must reject" }),
-      (error) => error.code === "THREAD_BUSY",
-    );
-    const parallel = await fixture.service.startTurn(secondThread.id, { message: "normal" });
-    await waitFor(() => fixture.service.getRun(parallel.id)?.status === "completed");
-    const interrupted = await fixture.service.interrupt(waiting.id);
-    assert.equal(interrupted.id, waiting.id);
-    await waitFor(() => fixture.service.getRun(waiting.id)?.status === "interrupted");
-
-    const failed = await fixture.service.startTurn(firstThread.id, { message: "FAIL" });
-    await waitFor(() => fixture.service.getRun(failed.id)?.status === "failed");
-    assert.equal(fixture.service.getRun(failed.id).exitCode, 7);
-    assert.equal(
-      fixture.service.getThreadSnapshot(firstThread.id).events.some(
-        (event) => event.role === "error" && event.content.includes("code 7"),
-      ),
-      true,
-    );
-  } finally {
-    await fixture.close();
-  }
+test("a failed durable user-event transaction sends no native input and leaves no running claim", async t => {
+  const f = await createFixture(); t.after(() => f.close());
+  const thread = await f.service.createThread({ projectId: "project" });
+  f.database.setAutomationRun("project", { threadId: thread.id, dirty: true });
+  f.database.insertAiChatEvent = () => { throw new Error("Isolated disk failure"); };
+  await assert.rejects(f.service.startTurn(thread.id, { message: "must be durable before native write" }), /disk failure/);
+  assert.equal(f.core.calls.length, 0);
+  assert.equal(f.database.listAiChatRuns(thread.id).length, 0);
+  assert.equal(f.database.getAutomationRun("project").runId, null);
+  assert.equal(f.service.getThread(thread.id).status, "idle");
 });
 
-test("malformed Codex JSONL fails the run", async () => {
-  const fixture = await createFixture();
-  try {
-    const thread = await fixture.service.createThread({ projectId: "project" });
-    const run = await fixture.service.startTurn(thread.id, { message: "MALFORMED" });
-    await waitFor(() => fixture.service.getRun(run.id)?.status === "failed");
-
-    const failed = fixture.service.getRun(run.id);
-    assert.equal(failed.error, "Codex emitted malformed JSONL");
-    assert.equal(
-      fixture.service.getThreadSnapshot(thread.id).events.some(
-        (event) => event.role === "error"
-          && event.content === "Codex emitted malformed JSONL",
-      ),
-      true,
-    );
-  } finally {
-    await fixture.close();
-  }
+test("native questions are scoped to their run and secret answers never enter SQLite events", async t => {
+  const request = { threadId: "", turnId: "", itemId: "question", requestId: 7,
+    questions: [{ id: "secret", header: "Local field", question: "Isolated secret value", isSecret: true }] };
+  let received;
+  const f = await createFixture({ async onRun(input, entry) {
+    Object.assign(request, { threadId: entry.threadId, turnId: entry.turnId });
+    received = await input.onUserInput(request);
+    await input.onUserInputResult(request, "confirmed");
+    return "Answered";
+  } });
+  t.after(() => f.close());
+  const thread = await f.service.createThread({ projectId: "project" });
+  const run = await f.service.startTurn(thread.id, { message: "ask once" });
+  await waitFor(() => f.service.getThreadSnapshot(thread.id).interactions.length);
+  const interaction = f.service.getThreadSnapshot(thread.id).interactions[0];
+  assert.equal(interaction.questions[0].isSecret, true);
+  const other = await f.service.createThread({ projectId: "project" });
+  assert.throws(() => f.service.answerInteraction(other.id, interaction.id, { secret: { answers: ["SECRET_VALUE"] } }), /变化/);
+  f.service.pauseForRestart();
+  assert.throws(() => f.service.answerInteraction(thread.id, interaction.id, { secret: { answers: ["SECRET_VALUE"] } }), /paused/);
+  await assert.rejects(f.service.interrupt(run.id), /paused/);
+  f.service.resumeAfterCancelledRestart();
+  f.service.answerInteraction(thread.id, interaction.id, { secret: { answers: ["SECRET_VALUE"] } });
+  await waitFor(() => f.service.getRun(run.id).status === "completed");
+  assert.deepEqual(received, { secret: { answers: ["SECRET_VALUE"] } });
+  assert.equal(JSON.stringify(f.database.listAiChatEvents(thread.id)).includes("SECRET_VALUE"), false);
+  assert.equal(f.service.getThreadSnapshot(thread.id).interactions.length, 0);
 });
 
-test("parser and event callback failures kill a SIGTERM-resistant process group", async () => {
-  const fixture = await createFixture();
-  try {
-    for (const [message, expectedError] of [
-      ["MALFORMED_STUBBORN", "Codex emitted malformed JSONL"],
-      ["CALLBACK_FATAL_STUBBORN", "Codex returned an unexpected thread id"],
-    ]) {
-      await rm(fixture.descendantPath, { force: true });
-      const thread = await fixture.service.createThread({ projectId: "project" });
-      const run = await fixture.service.startTurn(thread.id, { message });
-      await waitFor(() => fixture.service.getRun(run.id).status === "failed", 700);
-      assert.equal(fixture.service.getRun(run.id).error, expectedError);
-      await new Promise((resolve) => setTimeout(resolve, 350));
-      await assert.rejects(readFile(fixture.descendantPath), (error) => error.code === "ENOENT");
-    }
-  } finally {
-    await fixture.close();
-  }
+test("an uncertain approval flush rereads its pending request without automatically resending the old decision", async t => {
+  const decisions = [], refreshed = Promise.withResolvers(); let second;
+  const request = { threadId: "", turnId: "", itemId: "approval", nativeKey: "original-request",
+    options: [{ id: "accept", label: "允许一次" }, { id: "decline", label: "拒绝" }] };
+  const f = await createFixture({ async onRun(input, entry) {
+    Object.assign(request, { threadId: entry.threadId, turnId: entry.turnId });
+    decisions.push(await input.onApproval(request));
+    input.onApprovalResult(request, "failed");
+    await refreshed.promise;
+    decisions.push(await second);
+    input.onApprovalResult(request, "confirmed");
+    return "Done";
+  } });
+  t.after(() => f.close());
+  const observe = f.backend.observeThreadInteractions.bind(f.backend);
+  f.backend.observeThreadInteractions = async (...args) => {
+    await observe(...args);
+    if (decisions.length === 1) { second = args[2].onApproval({ request }); refreshed.resolve(); }
+  };
+  const thread = await f.service.createThread({ projectId: "project" });
+  const run = await f.service.startTurn(thread.id, { message: "ask once" });
+  await waitFor(() => f.service.getThreadSnapshot(thread.id).interactions.length);
+  const id = f.service.getThreadSnapshot(thread.id).interactions[0].id;
+  f.service.answerInteraction(thread.id, id, "accept");
+  await waitFor(() => f.service.getThreadSnapshot(thread.id).interactions.some(item => !item.submitted));
+  assert.deepEqual(decisions, ["accept"], "a fresh pending request must await another explicit answer");
+  f.service.answerInteraction(thread.id, id, "decline");
+  await waitFor(() => f.service.getRun(run.id).status === "completed");
+  assert.deepEqual(decisions, ["accept", "decline"]);
+  assert.equal(f.core.calls.length, 1);
 });
 
-test("protocol terminal events determine run success and item errors remain non-fatal", async () => {
-  const fixture = await createFixture();
-  try {
-    for (const [message, expectedStatus] of [
-      ["TURN_FAILED_ZERO", "failed"],
-      ["ROOT_ERROR_ZERO", "failed"],
-      ["NO_TERMINAL", "failed"],
-      ["ITEM_ERROR", "completed"],
-    ]) {
-      const thread = await fixture.service.createThread({ projectId: "project" });
-      const run = await fixture.service.startTurn(thread.id, { message });
-      await waitFor(() => fixture.service.getRun(run.id).status !== "running");
-      assert.equal(fixture.service.getRun(run.id).status, expectedStatus, message);
-    }
-  } finally {
-    await fixture.close();
-  }
+test("attachments survive a detached observer and cleanup follows the confirmed native terminal event", async t => {
+  const release = Promise.withResolvers(); const f = await createFixture({ onRun: () => release.promise });
+  t.after(() => { release.resolve("done"); return f.close(); });
+  const thread = await f.service.createThread({ projectId: "project" });
+  const run = await f.service.startTurn(thread.id, { message: "selected image", attachments: [{ filename: "image.png", contentType: "image/png", size: 3, data: Buffer.from("png") }] });
+  await waitFor(() => f.core.calls.length === 1);
+  const image = f.core.calls[0].imagePaths[0]; await access(image);
+  await f.service.close(); await f.backend.close();
+  await access(image); assert.equal(f.service.getRun(run.id).status, "running");
+  const backend = f.core.client();
+  f.service = new AiChatService({ database: f.database, nativeBackend: backend, codexStatePath: path.join(f.directory, "codex-state.json") });
+  f.service.recover(); release.resolve("done");
+  await waitFor(() => f.service.getRun(run.id).status === "completed");
+  await waitFor(async () => { try { await access(image); return false; } catch { return true; } });
+  await backend.close();
 });
 
 test("startTurn revalidates the latest danger sandbox and persisted model settings", async () => {
@@ -390,10 +229,10 @@ test("settings changed during attachment preparation govern the process that is 
     };
     const run = await fixture.service.startTurn(thread.id, { message: "use current permission", dangerFullAccessConfirmed: true });
     await waitFor(() => fixture.service.getRun(run.id).status !== "running");
-    const captures = (await readFile(fixture.capturePath, "utf8")).trim().split("\n").map(JSON.parse);
+    const captures = fixture.core.calls;
     assert.equal(captures.length, 1);
-    assert.equal(captures[0].args.includes("danger-full-access"), false, "the old broad permission must not survive an asynchronous preparation boundary");
-    assert.ok(captures[0].args.includes('approvals_reviewer="user"'));
+    assert.equal(captures[0].nativeSettings.sandbox === "danger-full-access", false, "the old broad permission must not survive an asynchronous preparation boundary");
+    assert.equal(captures[0].nativeSettings.approvalsReviewer, "user");
   } finally { await fixture.close(); }
 });
 
@@ -413,7 +252,7 @@ test("startup marks abandoned runs interrupted while preserving the Codex thread
   fixture.database = new TaskboardDatabase(fixture.databasePath);
   const restarted = new AiChatService({
     database: fixture.database,
-    codexExecutable: path.join(fixture.directory, "fake-codex.mjs"),
+    nativeBackend: fixture.core.client(),
     codexStatePath: path.join(fixture.directory, "codex-state.json"),
     manageTaskboardSkillPath: "/fixture/manage-taskboard/SKILL.md",
   });
@@ -424,4 +263,53 @@ test("startup marks abandoned runs interrupted while preserving the Codex thread
   } finally {
     await fixture.close();
   }
+});
+
+
+test("HTTP operation identities retain the original thread/turn across completion and restart without replay", async t => {
+  const release = Promise.withResolvers(), f = await createFixture({ onRun: () => release.promise });
+  t.after(() => { release.resolve("done"); return f.close(); });
+  const create = { projectId:"project", clientRequestId:randomUUID() };
+  const [one,two] = await Promise.all([f.service.createThread(create), f.service.createThread(create)]);
+  assert.equal(one.id,two.id); assert.equal(f.database.listAiChatThreads().length,1);
+  const input = {message:"one actual native input",clientRequestId:randomUUID()};
+  const [first,duplicate] = await Promise.all([f.service.startTurn(one.id,input),f.service.startTurn(one.id,input)]);
+  assert.equal(first.id,duplicate.id);
+  await waitFor(()=>f.core.calls.length===1);
+  assert.equal(f.core.calls[0].clientUserMessageId,input.clientRequestId);
+  assert.equal(f.service.getSubmission(input.clientRequestId).run.id,first.id);
+  release.resolve("done"); await waitFor(()=>f.service.getRun(first.id).status==='completed');
+  assert.equal((await f.service.startTurn(one.id,input)).id,first.id);
+  assert.equal(f.core.calls.length,1);
+  await f.service.close(); f.database.close();
+  f.database=new TaskboardDatabase(f.databasePath);
+  f.service=new AiChatService({database:f.database,nativeBackend:f.backend,codexStatePath:path.join(f.directory,"codex-state.json")});
+  assert.equal((await f.service.startTurn(one.id,input)).id,first.id);
+  assert.equal(f.core.calls.length,1);
+  assert.equal(f.service.getSubmission(randomUUID()).status,"unknown");
+  await assert.rejects(f.service.startTurn(one.id,{...input,message:"changed body"}), e=>e.code==='REQUEST_ID_CONFLICT');
+  await assert.rejects(f.service.createThread({...create,title:"changed title"}), e=>e.code==='REQUEST_ID_CONFLICT');
+  f.service.deleteThread(one.id);
+  assert.equal(f.service.getSubmission(input.clientRequestId).status,"retired");
+  await assert.rejects(f.service.startTurn(one.id,input), e=>e.code==='REQUEST_RETIRED');
+  await assert.rejects(f.service.createThread(create), e=>e.code==='REQUEST_RETIRED');
+  assert.equal(f.core.calls.length,1);
+});
+
+test("submission identity binds scope, kind and attachment bytes, and a failed receipt transaction creates no turn", async t => {
+  const f=await createFixture();t.after(()=>f.close());
+  const thread=await f.service.createThread({projectId:'project'}), other=await f.service.createThread({projectId:'project'});
+  const input={message:'attached',clientRequestId:randomUUID(),attachments:[{filename:'a.txt',contentType:'text/plain',size:3,data:Buffer.from('one')}]};
+  const first=await f.service.startTurn(thread.id,input);await waitFor(()=>f.service.getRun(first.id).status==='completed');
+  await assert.rejects(f.service.startTurn(other.id,input), e=>e.code==='REQUEST_ID_CONFLICT');
+  await assert.rejects(f.service.createThread({projectId:'project',clientRequestId:input.clientRequestId}), e=>e.code==='REQUEST_ID_CONFLICT');
+  await assert.rejects(f.service.startTurn(thread.id,{...input,attachments:[{...input.attachments[0],data:Buffer.from('two')}]}),e=>e.code==='REQUEST_ID_CONFLICT');
+  const save=f.database.saveAiChatSubmission;f.database.saveAiChatSubmission=()=>{throw Error('Isolated receipt write failure');};
+  const failedId=randomUUID(), previousEvents=f.database.listAiChatEvents(thread.id).length;
+  await assert.rejects(f.service.startTurn(thread.id,{message:'not committed',clientRequestId:failedId}),/receipt write failure/);
+  await assert.rejects(f.service.createThread({projectId:'project',clientRequestId:randomUUID()}),/receipt write failure/);
+  f.database.saveAiChatSubmission=save;
+  assert.equal(f.database.listAiChatThreads().length,2);assert.equal(f.database.listAiChatRuns(thread.id).length,1);
+  assert.equal(f.database.listAiChatEvents(thread.id).length,previousEvents);assert.equal(f.core.calls.length,1);
+  assert.equal(f.service.getSubmission(failedId).status,'unknown');
 });

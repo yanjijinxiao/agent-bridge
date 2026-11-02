@@ -50,7 +50,7 @@ test("retired exec selection fails before resolving any remote host",()=>{
 test("routes remote project turns and history to a host-specific app-server transport", async (t) => {
   const hosts: string[] = [];
   const fixture = path.join(fixturesDir, "fake-codex-app-server.mjs");
-  const runner = new HybridCodexRunner({
+  const runner = new HybridCodexRunner({ appServerTransport: "stdio",
     backend: "app-server",
     codexBin: fixture,
     timeoutMs: 2_000,

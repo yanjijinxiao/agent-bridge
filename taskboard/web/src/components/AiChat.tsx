@@ -19,6 +19,7 @@ import {
   deleteAiChatThread,
   getAiChatCatalog,
   getAiChatThread,
+  getAiChatSubmission,
   interruptAiChatRun,
   listAiChatThreads,
   startAiChatTurn,
@@ -51,6 +52,8 @@ import type {
   AiChatThreadSnapshot,
 } from "../types";
 import { LinearIcon, type LinearIconName } from "./LinearIcon";
+import { AiNativeInteraction } from "./AiNativeInteraction";
+import { beginAiReceipt, knownAiRejection, readAiReceipts, retireAiReceipt, type AiSubmissionReceipt } from "../aiSubmissionReceipts";
 
 interface AiChatProps {
   available: boolean;
@@ -306,7 +309,7 @@ function canonicalComposerFragment(
     const skillId = fragment.skillIds[index] ?? "";
     index += 1;
     const skill = skillsById.get(skillId);
-    return skill ? `[$${skill.id}](${skill.path})` : SKILL_MARKER;
+    return skill ? `[$${skill.name ?? skill.id}](${skill.path})` : SKILL_MARKER;
   });
 }
 
@@ -431,7 +434,7 @@ function composerFragmentFromPlainText(
   for (const match of text.matchAll(referencePattern)) {
     const path = decodedSkillPath(match[2]);
     const skill = path ? skillsByPath.get(path) : null;
-    if (!skill || skill.id !== match[1]) continue;
+    if (!skill || (skill.name ?? skill.id) !== match[1]) continue;
     message += text.slice(cursor, match.index).replaceAll(SKILL_MARKER, "\uFFFD");
     message += SKILL_MARKER;
     skillIds.push(skill.id);
@@ -954,7 +957,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
   const [menu, setMenu] = useState<MenuName>(null);
   const [threads, setThreads] = useState<AiChatThread[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(
-    () => window.localStorage.getItem(LAST_THREAD_KEY),
+    () => { try { return window.localStorage.getItem(LAST_THREAD_KEY); } catch { return null; } },
   );
   const [snapshot, setSnapshot] = useState<AiChatThreadSnapshot | null>(null);
   const [draftOrigin, setDraftOrigin] = useState<DraftThreadOrigin | null>(null);
@@ -976,6 +979,8 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
   const [draftSandbox, setDraftSandbox] = useState<AiChatSandbox>("workspace-write");
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submissionReceipts, setSubmissionReceipts] = useState<ReturnType<typeof readAiReceipts>>({ receipts: [], unavailable: false });
+  const [reviewingSubmission, setReviewingSubmission] = useState(false);
   const [deletingThreadId, setDeletingThreadId] = useState<string | null>(null);
   const [attachmentDragActive, setAttachmentDragActive] = useState(false);
   const [panelGeometry, setPanelGeometry] = useState<PanelGeometry | null>(
@@ -994,6 +999,8 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
   const panelRef = useRef<HTMLElement>(null);
   const panelResizeSessionRef = useRef<PanelResizeSession | null>(null);
   const selectedThreadRef = useRef(selectedThreadId);
+  const receiptProjectRef = useRef(projectId ?? "");
+  const receiptDraftsRef = useRef(new Map<string, { generation: number; revision: number }>());
   const draftReturnThreadIdRef = useRef<string | null>(null);
   const panelOpenRef = useRef(panelOpen);
   const snapshotRequestRef = useRef(0);
@@ -1005,11 +1012,16 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     selectedThreadRef.current = threadId;
     setSelectedThreadId(threadId);
   }, []);
+  const refreshSubmissionReceipts = useCallback(() => {
+    setSubmissionReceipts(readAiReceipts(receiptProjectRef.current, selectedThreadRef.current));
+  }, []);
 
   useEffect(() => {
     selectedThreadRef.current = selectedThreadId;
-    if (selectedThreadId) window.localStorage.setItem(LAST_THREAD_KEY, selectedThreadId);
-    else window.localStorage.removeItem(LAST_THREAD_KEY);
+    try {
+      if (selectedThreadId) window.localStorage.setItem(LAST_THREAD_KEY, selectedThreadId);
+      else window.localStorage.removeItem(LAST_THREAD_KEY);
+    } catch { setError("无法保存浏览器会话记录；发送前仍会核对提交回执，草稿保留在当前页面。"); }
   }, [selectedThreadId]);
 
   useEffect(() => {
@@ -1028,10 +1040,10 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
         session.captureTarget.releasePointerCapture(session.pointerId);
       }
       if (window.innerWidth > 719) {
-        window.localStorage.setItem(
+        try { window.localStorage.setItem(
           PANEL_GEOMETRY_KEY,
           JSON.stringify(session.geometry),
-        );
+        ); } catch { setError("未能保存面板尺寸；当前消息草稿不受影响。"); }
       }
       panelResizeSessionRef.current = null;
       setPanelResizeEdge(null);
@@ -1266,6 +1278,13 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     ?? selectedThreadSummary?.origin.projectId
     ?? draftOrigin?.projectId
     ?? projectId;
+  receiptProjectRef.current = catalogProjectId ?? "";
+  useEffect(() => { refreshSubmissionReceipts(); }, [catalogProjectId, selectedThreadId, refreshSubmissionReceipts]);
+  useEffect(() => {
+    const refresh = () => refreshSubmissionReceipts();
+    window.addEventListener("storage", refresh); window.addEventListener("focus", refresh);
+    return () => { window.removeEventListener("storage", refresh); window.removeEventListener("focus", refresh); };
+  }, [refreshSubmissionReceipts]);
   const activeCatalog = catalogLoadedProjectId === catalogProjectId ? catalog : null;
   useEffect(() => {
     if (!available || !catalogProjectId) {
@@ -1374,6 +1393,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     || submitting
     || settingsSaving
     || composerBlocked
+    || submissionReceipts.unavailable || submissionReceipts.receipts.length > 0
     || Boolean(selectedThreadId && !snapshot);
   const threadSettingsBlocked = loading || Boolean(selectedThreadId && !snapshot);
   const attachmentBlocked = composerBlocked;
@@ -1494,6 +1514,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
       sandbox: draftSandbox,
     };
     setLoading(true);
+    let receipt: AiSubmissionReceipt | undefined;
     try {
       const targetCatalog = catalogLoadedProjectId === input.projectId && activeCatalog
         ? activeCatalog
@@ -1513,10 +1534,13 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
         reasoningEffort: normalized?.reasoningEffort ?? inheritedSettings.reasoningEffort,
         sandbox,
       };
+      receipt = beginAiReceipt("thread", input.projectId); refreshSubmissionReceipts();
       const thread = await createAiChatThread({
         ...input,
         ...settings,
+        clientRequestId: receipt.id,
       });
+      retireAiReceipt(receipt); refreshSubmissionReceipts();
       replaceThread(thread);
       if (ownsDraft()) {
         selectThread(thread.id);
@@ -1528,6 +1552,8 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
       }
       return thread;
     } catch (nextError) {
+      if (receipt && knownAiRejection(nextError)) { try { retireAiReceipt(receipt); } catch {} }
+      refreshSubmissionReceipts();
       if (ownsDraft()) setError(messageFor(nextError));
       return null;
     } finally {
@@ -1761,6 +1787,8 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     boundAttachments?: AiChatAttachmentInput[],
   ) {
     if (sendBlocked || submittingRef.current) return;
+    const unresolved = readAiReceipts(receiptProjectRef.current, selectedThreadRef.current);
+    if (unresolved.unavailable || unresolved.receipts.length) { setSubmissionReceipts(unresolved); return; }
     const trimmed = message.trim();
     const submittedSkillIds = boundSkillIds ?? [...realSkillIdsForMessage()];
     const messageAttachments = boundAttachments ?? attachments.map((attachment) => ({
@@ -1784,6 +1812,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     const revision = composerRevisionRef.current;
     submittingRef.current = true;
     setSubmitting(true);
+    let receipt: AiSubmissionReceipt | undefined;
     try {
       if (!thread) thread = await createThreadForDraftOrigin();
       if (!thread) return;
@@ -1801,7 +1830,11 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
         dangerConfirmed,
         messageAttachments,
       );
-      const run = await startAiChatTurn(targetThread.id, turnInput);
+      receipt = beginAiReceipt("turn", targetThread.id);
+      receiptDraftsRef.current.set(receipt.id!, { generation, revision });
+      refreshSubmissionReceipts();
+      const run = await startAiChatTurn(targetThread.id, { ...turnInput, clientRequestId: receipt.id });
+      retireAiReceipt(receipt); receiptDraftsRef.current.delete(receipt.id!); refreshSubmissionReceipts();
       if (clearSubmittedDraft && generation === composerGenerationRef.current
         && revision === composerRevisionRef.current && selectedThreadRef.current === targetThread.id) {
         resetComposer();
@@ -1809,14 +1842,18 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
       observedRunStatusesRef.current.set(run.id, run.status);
       setSnapshot((current) => current?.thread.id === targetThread.id ? {
           ...current,
-          thread: { ...current.thread, status: "running", currentRun: run },
+          thread: { ...current.thread, status: run.status === "running" ? "running" : run.status === "failed" ? "failed" : "idle", currentRun: run.status === "running" ? run : null },
           runs: [run, ...current.runs.filter((candidate) => candidate.id !== run.id)],
         } : current);
-      replaceThread({ ...targetThread, status: "running", currentRun: run });
+      replaceThread({ ...targetThread, status: run.status === "running" ? "running" : run.status === "failed" ? "failed" : "idle", currentRun: run.status === "running" ? run : null });
       if (selectedThreadRef.current === targetThread.id) {
         void selectedHintRefreshQueue.request(targetThread.id);
       }
     } catch (nextError) {
+      if (receipt && knownAiRejection(nextError)) {
+        try { retireAiReceipt(receipt); receiptDraftsRef.current.delete(receipt.id!); } catch {}
+      }
+      refreshSubmissionReceipts();
       if (thread && generation === composerGenerationRef.current && selectedThreadRef.current === thread.id) {
         setError(messageFor(nextError));
         void selectedHintRefreshQueue.request(thread.id);
@@ -1825,6 +1862,44 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
       submittingRef.current = false;
       setSubmitting(false);
     }
+  }
+
+  async function reviewSubmissions() {
+    const captured = [...submissionReceipts.receipts], generation = composerGenerationRef.current;
+    const selected = selectedThreadRef.current, project = receiptProjectRef.current;
+    const current = () => generation === composerGenerationRef.current && selected === selectedThreadRef.current && project === receiptProjectRef.current;
+    setReviewingSubmission(true);
+    try {
+      for (const receipt of captured) {
+        if (!receipt.id) throw Error("本地回执格式无法核对；不会重发输入。请先检查原对话。");
+        const result = await getAiChatSubmission(receipt.id);
+        if (result.status === "unknown") throw Error("原请求尚无法确认；记录继续保留，未重发输入。");
+        if (result.kind !== receipt.kind || result.scope !== receipt.scope) throw Error("原请求的范围不匹配，未清除回执。");
+        if (result.status === "acknowledged") {
+          if (receipt.kind === "thread") {
+            if (!result.thread?.id || result.thread.origin.projectId !== receipt.scope) throw Error("原会话回执无效。");
+            replaceThread(result.thread);
+            if (current()) { selectThread(result.thread.id); setSnapshot({ thread: result.thread, runs: [], events: [] }); setDraftOrigin(null); }
+          } else {
+            if (!result.run?.id || result.run.threadId !== receipt.scope) throw Error("原轮次回执无效。");
+            const owner = receiptDraftsRef.current.get(receipt.id);
+            if (current() && owner?.generation === composerGenerationRef.current && owner.revision === composerRevisionRef.current) resetComposer();
+            if (selectedThreadRef.current === receipt.scope) void selectedHintRefreshQueue.request(receipt.scope);
+          }
+        }
+        retireAiReceipt(receipt); receiptDraftsRef.current.delete(receipt.id);
+      }
+      if (current()) setError("原提交已核对，未重新发送。当前保留的草稿再次发送将作为新输入。");
+    } catch (nextError) { if (current()) setError(messageFor(nextError)); }
+    finally { refreshSubmissionReceipts(); setReviewingSubmission(false); }
+  }
+
+  function endSubmissionReview() {
+    try {
+      for (const receipt of submissionReceipts.receipts) { retireAiReceipt(receipt); if (receipt.id) receiptDraftsRef.current.delete(receipt.id); }
+      setError("仅结束了本地核对；原生任务可能仍在执行，再次发送会作为新输入。");
+    } catch (nextError) { setError(messageFor(nextError)); }
+    refreshSubmissionReceipts();
   }
 
   function attachmentFiles(files: FileList | File[]): File[] {
@@ -2175,10 +2250,13 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
                   events={snapshot.events}
                   skills={activeCatalog?.skills ?? []}
                 />
+                {snapshot.interactions?.map(request => <AiNativeInteraction key={request.id}
+                  threadId={snapshot.thread.id} request={request} />)}
+                {currentRun?.error && <p className="ai-chat-error" role="status">{currentRun.error}</p>}
                 {snapshot.thread.status === "running" && (
                   <div className="ai-chat-running" role="status">
                     <span className="ai-chat-spinner" />
-                    Codex 正在处理
+                    {currentRun?.handoff === "reconciling" ? "正在核对原生回执" : currentRun?.handoff === "awaiting-native" ? "消息已保存，正在交接" : "Codex 正在处理"}
                   </div>
                 )}
                 {retryableUserEvent && (
@@ -2217,6 +2295,12 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
               <span>{error ?? catalogError}</span>
             </div>
           )}
+
+          {(submissionReceipts.unavailable || submissionReceipts.receipts.length > 0) && <div className="ai-chat-submission-review" role="status">
+            <p>{submissionReceipts.unavailable ? "无法读取浏览器提交记录，尚未发送新输入。" : "有提交回执待核对，未自动重发。"}</p>
+            <button type="button" disabled={reviewingSubmission} onClick={() => submissionReceipts.unavailable ? refreshSubmissionReceipts() : void reviewSubmissions()}>核对原提交</button>
+            {submissionReceipts.receipts.length > 0 && <button type="button" disabled={reviewingSubmission} onClick={endSubmissionReview}>结束本地核对</button>}
+          </div>}
 
           <div
             className={`ai-chat-composer${attachmentDragActive ? " is-attachment-drag-active" : ""}`}

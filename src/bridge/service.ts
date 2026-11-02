@@ -735,7 +735,7 @@ export class BridgeService {
   }
 
   private ensureBoundProjectContext(senderId: string): boolean {
-    if (this.options.stateStore.getBoundSession(senderId)?.projectBinding === "none") return false;
+    if (this.options.stateStore.getBoundSession(senderId)?.projectBinding) return false;
     const projects = this.options.stateStore.listProjects();
     const activeProject = this.options.stateStore.getActiveProject(senderId);
     if (activeProject && projects.some((project) => project.id === activeProject.id)) {
@@ -1577,9 +1577,9 @@ export class BridgeService {
       // Explicit native membership supersedes old edges even with follow off.
       // Unknown membership preserves the edge; cwd itself is still observed.
       const observedProjectId = state.projectId || state.projectMembership === "none" ? project?.id : existing.projectId;
-      store.reconcileThreadProject(threadId, hostId, observedProjectId, state.cwd);
+      if (state.projectId || state.projectMembership === "none") store.reconcileThreadProject(threadId, hostId, observedProjectId, state.cwd);
     }
-    const session = existing ? store.activateSession(existing.id) : store.createSession(senderId, state.cwd, state.title || `会话 ${threadId.slice(0,8)}`, project?.id, "session", undefined, { standalone: !project, hostId });
+    const session = existing ? store.activateSession(existing.id) : store.createSession(senderId, state.cwd, state.title || `会话 ${threadId.slice(0,8)}`, project?.id, "session", undefined, { standalone: !project, hostId, membershipUnknown: !project && state.projectMembership !== "none" });
     if (!existing) store.setSessionThread(session.id, threadId);
     const canFollow = this.runner.backendInfo?.(hostId).capabilities.liveFollow ?? this.options.config.codexBackend !== "exec";
     if (!canFollow) store.setSessionFollow(session.id, false);
@@ -2533,7 +2533,7 @@ export class BridgeService {
     const pinned = queued ? this.options.stateStore.getSession(queued.receipt.sessionId) : undefined;
     const activeProject = queued ? this.options.stateStore.getProject(pinned?.projectId ?? "") : this.options.stateStore.getActiveProject(message.senderId);
     const activeSession = pinned ?? currentSession;
-    const standalone = !activeProject && activeSession?.projectBinding === "none" ? activeSession : undefined;
+    const standalone = !activeProject && activeSession?.projectBinding ? activeSession : undefined;
     if (!activeProject && !standalone) throw new Error("请先发送 /sessions 选择会话，或 /project 选择项目。");
     // Turn execution must not wait for a fresh catalog request. Account start
     // and project/session selection already establish the execution context.
@@ -3182,7 +3182,9 @@ export class BridgeService {
         console.log(`[codex-im-gateway] updated action card "${card.title}"`);
         return;
       } catch (error) {
-        console.warn(`Action card update failed for ${senderId}; sending a new card: ${error instanceof Error ? error.message : String(error)}`);
+        // The platform may have applied the update before losing its receipt.
+        // Keep the original surface; an exception never authorizes a new card.
+        throw error;
       }
     }
     try {
@@ -3197,9 +3199,7 @@ export class BridgeService {
         throw error;
       }
       console.warn(`Action card delivery failed for ${senderId}: ${error instanceof Error ? error.message : String(error)}`);
-      for (const page of resultPages(card.fallbackText, 1800)) {
-        await this.reply(senderId, page.text);
-      }
+      throw error;
     }
   }
 
@@ -3220,7 +3220,7 @@ export class BridgeService {
         console.log(`[codex-im-gateway] updated Taskboard card ${card.identifier}`);
         return;
       } catch (error) {
-        console.warn(`Taskboard card update failed for ${senderId}; sending a new card: ${error instanceof Error ? error.message : String(error)}`);
+        throw error;
       }
     }
     try {
@@ -3235,7 +3235,9 @@ export class BridgeService {
         throw error;
       }
       console.warn(`Taskboard card delivery failed for ${senderId}: ${error instanceof Error ? error.message : String(error)}`);
-      await this.reply(senderId, card.fallbackText);
+      // Text-only capability fallback is selected by ChannelClient before its
+      // first write. Do not send the body again after an uncertain card write.
+      throw error;
     }
   }
 
