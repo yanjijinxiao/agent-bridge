@@ -261,6 +261,43 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
   const chooseFile = selector => evaluate(`(()=>{const input=document.querySelector(${JSON.stringify(selector)}),data=new DataTransfer();
     data.items.add(new File(['fixture evidence'],'audit.txt',{type:'text/plain'}));input.files=data.files;
     input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  await t.test("context menu ignores punctuation safely while its status keyboard shortcut still selects the requested status", async () => {
+    await call("Emulation.setDeviceMetricsOverride", { width: 1200, height: 900, deviceScaleFactor: 1, mobile: false });
+    await call("Page.navigate", { url: `${base}/?view=menu` });
+    await until(() => evaluate("Boolean(document.querySelector('.task-context-menu [data-root-shortcut]'))"), "context menu missing");
+    await evaluate("audit.keyErrors=[];window.addEventListener('error',e=>{audit.keyErrors.push(e.message);e.preventDefault()});document.querySelector('.task-context-menu [data-root-shortcut]').focus()");
+    for (const key of ['"', "\\", "["]) {
+      await call("Input.dispatchKeyEvent", { type: "keyDown", key, code: key === '"' ? "Quote" : key === "\\" ? "Backslash" : "BracketLeft" });
+    }
+    assert.deepEqual(await evaluate("audit.keyErrors"), []);
+    await call("Input.dispatchKeyEvent", { type: "keyDown", key: "s", code: "KeyS" });
+    await until(() => evaluate("Boolean(document.querySelector('[data-submenu-panel=status]'))"), "status shortcut no longer opens the menu");
+    await evaluate("document.querySelectorAll('[data-submenu-panel=status] button')[1].click()");
+    await until(() => evaluate("!document.querySelector('.task-context-menu')"), "status selection did not close the menu");
+    assert.deepEqual(await evaluate("audit.menuActions"), ["todo"]);
+  });
+  await t.test("relation keyboard selection is single-flight while pending and a rejected selection remains explicitly retryable", async () => {
+    for (const outcome of ["success", "failure"]) {
+      await call("Page.navigate", { url: `${base}/?view=relations` });
+      await until(() => evaluate("Boolean(document.querySelector('.issue-relation-add'))"), "relation picker missing");
+      await evaluate("document.querySelector('.issue-relation-add').click()");
+      await until(() => evaluate("Boolean(document.querySelector('.issue-relation-search input'))"), "relation search missing");
+      await evaluate("document.querySelector('.issue-relation-search input').focus()");
+      await enter();
+      await until(() => evaluate("audit.relations.length>=1"), "first relation selection missing");
+      await enter();
+      assert.equal(await evaluate("audit.relations.length"), 1, "pending Enter must not invoke the same mutation twice");
+      if (outcome === "failure") {
+        await evaluate("audit.rejectRelation()");
+        await until(() => evaluate("!document.querySelector('.issue-relation-results button').disabled"), "rejected selection did not become retryable");
+        await enter();
+        await until(() => evaluate("audit.relations.length===2"), "explicit retry did not invoke the mutation");
+      }
+      await evaluate("audit.acceptRelation()");
+      await until(() => evaluate("!document.querySelector('.issue-relation-popover')"), "accepted relation did not close the picker");
+      assert.deepEqual(await evaluate("audit.relations[0]"), { type: "parent", id: "task-two" });
+    }
+  });
   await t.test("comment floor and composer have equal width and both real editors retain their focus appearance", async () => {
     await issueView("detail");
     const bounds = await evaluate("(()=>{const a=document.querySelector('.comment-card').getBoundingClientRect(),b=document.querySelector('.comment-composer').getBoundingClientRect();return {a:{left:a.left,width:a.width},b:{left:b.left,width:b.width}}})()");
@@ -290,6 +327,28 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
     await evaluate("document.querySelector('.delete-dialog .danger').click()");
     await until(() => evaluate("!document.querySelector('.comment-attachment-list')"), "deleted comment attachment remains");
     assert.equal(await evaluate("audit.requests.filter(r=>r.method==='DELETE' && r.path==='/api/attachments/attachment-1').length"), 1);
+  });
+  await t.test("a confirmed comment clears only its unchanged draft and preserves edits made while its request was pending", async () => {
+    for (const edited of [false, true]) {
+      await issueView("detail");
+      await evaluate("document.querySelector('.comment-inline-media textarea').focus()");
+      await call("Input.insertText", { text: "Original comment" });
+      await evaluate("audit.holdWrite='comment'; document.querySelector('.comment-composer button[type=submit]').click()");
+      await until(() => evaluate("typeof audit.releaseWrite==='function'"), "comment request did not reach its pending boundary");
+      if (edited) {
+        await evaluate("document.querySelector('.comment-inline-media textarea').focus()");
+        await call("Input.insertText", { text: " plus later edits" });
+      }
+      await evaluate("audit.releaseWrite()");
+      await until(() => evaluate("document.querySelector('.comment-composer button[type=submit]').textContent==='评论'"), "comment request did not finish");
+      const expected = edited ? "Original comment plus later edits" : "";
+      assert.equal(await evaluate("document.querySelector('.comment-inline-media textarea').value"), expected);
+      assert.equal(await evaluate("localStorage.getItem('taskboard.comment-draft.task-one') ?? ''"), expected);
+      const requests = await evaluate("audit.requests.filter(r=>r.method==='POST' && r.path==='/api/tasks/task-one/comments')");
+      assert.equal(requests.length, 1);
+      assert.equal(requests[0].body.body, "Original comment");
+      assert.ok(await evaluate("[...document.querySelectorAll('.comment-body')].some(e=>e.textContent.includes('Original comment'))"));
+    }
   });
   await t.test("new issue uses the shared pending attachment component and hands the original file to save", async () => {
     await issueView("editor"); await chooseFile('.task-dialog input[type="file"]');

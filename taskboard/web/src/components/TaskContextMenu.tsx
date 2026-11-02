@@ -244,9 +244,9 @@ export function TaskContextMenu({
     }
 
     if (!event.metaKey && !event.ctrlKey && !event.altKey && event.key.length === 1) {
-      const shortcut = menuRef.current?.querySelector<HTMLButtonElement>(
-        `[data-root-shortcut="${event.key.toLowerCase()}"]`,
-      );
+      const shortcut = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>(
+        "[data-root-shortcut]",
+      ) ?? []).find((button) => button.dataset.rootShortcut === event.key.toLowerCase());
       if (shortcut?.dataset.submenu) {
         event.preventDefault();
         shortcut.focus();

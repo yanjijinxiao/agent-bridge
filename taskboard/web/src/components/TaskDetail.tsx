@@ -235,6 +235,7 @@ export function TaskDetail({
   const composerRef = useRef<InlineMediaComposerHandle>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const commentAttachmentInputRef = useRef<HTMLInputElement>(null);
+  const commentDraftRevision = useRef(0);
   const workflowAvailable = !currentTask.workflowId
     || workflows.some((workflow) => workflow.id === currentTask.workflowId);
   const draft = serializeInlineMedia(commentSegments);
@@ -403,6 +404,7 @@ export function TaskDetail({
   async function submitComment() {
     const body = draft.trim();
     if ((!body && pendingCommentFiles.length === 0 && commentInlineImages.length === 0) || submitting) return;
+    const submittedRevision = commentDraftRevision.current;
     setSubmitting(true);
     setCommentsError(null);
     try {
@@ -423,7 +425,10 @@ export function TaskDetail({
           )
         : { ...comment, attachments: [...comment.attachments, ...uploaded] };
       setComments((current) => [...current, nextComment]);
-      setCommentSegments(createInlineMediaSegments());
+      if (commentDraftRevision.current === submittedRevision) {
+        setCommentSegments(createInlineMediaSegments());
+        requestAnimationFrame(() => composerRef.current?.focus());
+      }
       setPendingCommentFiles([]);
       if (commentAttachmentInputRef.current) commentAttachmentInputRef.current.value = "";
       const failed = results.length - uploaded.length;
@@ -433,7 +438,6 @@ export function TaskDetail({
           ? "评论和附件已发布。"
           : "评论已发布。",
       );
-      requestAnimationFrame(() => composerRef.current?.focus());
     } catch (error) {
       setCommentsError(messageFor(error));
     } finally {
@@ -908,7 +912,10 @@ export function TaskDetail({
                   segments={commentSegments}
                   placeholder="留下评论…"
                   ariaLabel="留下评论"
-                  onChange={setCommentSegments}
+                  onChange={(segments) => {
+                    commentDraftRevision.current += 1;
+                    setCommentSegments(segments);
+                  }}
                   onError={setCommentsError}
                   onKeyDown={handleSubmitShortcut}
                 />

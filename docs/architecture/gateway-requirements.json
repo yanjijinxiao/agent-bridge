@@ -7710,7 +7710,7 @@
           "scenario": "上线后构建号/绑定/准入/浏览器grant/IDE全核对，不称push即上线",
           "status": "planned",
           "tests": [],
-          "testGap": "本轮未发布线上，因此没有当前部署构建号、手机入口和旧grant保全的上线验收结果。"
+          "testGap": "已实际验证763cddd构建号、绑定、14份grant、90天期限与3个IDE端点；手机实际入口/渲染未验，后续UI代码仍须按独立release验收。"
         },
         {
           "id": "REL-02.4",
@@ -7842,7 +7842,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "d29c220c56c810065c4e8b19d1520c46d21ebf939afec25b8fcee064eec03dd6"
+              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/index.html",
@@ -7944,7 +7944,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "d29c220c56c810065c4e8b19d1520c46d21ebf939afec25b8fcee064eec03dd6"
+              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
             }
           ]
         }
@@ -8018,7 +8018,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/TaskDetail.tsx",
-              "sha256": "6777f75ab0083352a81705e0aec9b3f12b99b2d5932f5d581921976e89447cc5"
+              "sha256": "12a83a0b3cb22d1321b34cc87e3a44844386984fc85bb531104d2e9ef1a205b3"
             },
             {
               "file": "taskboard/web/src/components/TaskEditor.tsx",
@@ -8038,7 +8038,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "d29c220c56c810065c4e8b19d1520c46d21ebf939afec25b8fcee064eec03dd6"
+              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
             }
           ]
         },
@@ -8056,7 +8056,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/TaskDetail.tsx",
-              "sha256": "6777f75ab0083352a81705e0aec9b3f12b99b2d5932f5d581921976e89447cc5"
+              "sha256": "12a83a0b3cb22d1321b34cc87e3a44844386984fc85bb531104d2e9ef1a205b3"
             },
             {
               "file": "taskboard/web/src/components/TaskEditor.tsx",
@@ -8076,7 +8076,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "d29c220c56c810065c4e8b19d1520c46d21ebf939afec25b8fcee064eec03dd6"
+              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
             }
           ]
         },
@@ -8094,7 +8094,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/TaskDetail.tsx",
-              "sha256": "6777f75ab0083352a81705e0aec9b3f12b99b2d5932f5d581921976e89447cc5"
+              "sha256": "12a83a0b3cb22d1321b34cc87e3a44844386984fc85bb531104d2e9ef1a205b3"
             },
             {
               "file": "taskboard/web/src/components/TaskEditor.tsx",
@@ -8114,14 +8114,14 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "d29c220c56c810065c4e8b19d1520c46d21ebf939afec25b8fcee064eec03dd6"
+              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
             }
           ]
         },
         {
           "id": "TB-03.4",
           "auditKey": "partial-upload-retry",
-          "scenario": "评论已创建后某张内联图/普通附件上传失败：保留精确评论回执和未完成资源，重试不能重复创建评论或丢失可重试文件；发布等待期间新输入不能被旧成功响应清空。此项为阅读发现的失败路径候选，尚未复现或修复。",
+          "scenario": "评论已创建后某张内联图/普通附件上传失败：保留精确评论回执和未完成资源，重试不能重复创建评论或丢失可重试文件；发布等待期间新输入不能被旧成功响应清空。部分上传仍是未复现候选；同任务后来草稿的保护已独立在TB-09.4复现并修复。",
           "status": "planned",
           "tests": [],
           "testGap": "实际评论先创建再逐文件上传，部分成功与重复retry尚无可执行故障例；不以正常单文件Chrome测试外推。"
@@ -8362,7 +8362,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "d29c220c56c810065c4e8b19d1520c46d21ebf939afec25b8fcee064eec03dd6"
+              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
             }
           ]
         }
@@ -8424,9 +8424,46 @@
         {
           "id": "TB-09.3",
           "scenario": "评论提交中用户编辑新草稿，旧成功不能清空新内容；TaskDetail已用task.id key，父级回调仍需反例。",
-          "status": "planned",
-          "tests": [],
-          "testGap": "TaskDetail以task.id为key排除简单串组件猜测；提交中编辑同任务草稿及父回调仍需真实竞态反例。"
+          "status": "partial",
+          "tests": [
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed comment clears only its unchanged draft and preserves edits made while its request was pending"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "taskboard/web/src/components/TaskDetail.tsx",
+              "sha256": "12a83a0b3cb22d1321b34cc87e3a44844386984fc85bb531104d2e9ef1a205b3"
+            },
+            {
+              "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
+              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+            }
+          ],
+          "verifiedBoundary": "真实Chrome同任务提交等待中编辑不被清空；正常原草稿被清理、原评论body只发一次。父App切项目回调、部分上传、未知接收仍未覆盖。"
+        },
+        {
+          "id": "TB-09.4",
+          "scenario": "实际评论HTTP请求等待中继续编辑，旧成功只清理未改动的提交草稿；已更改正文及其本地自动保存保留，原评论仍只创建一次。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed comment clears only its unchanged draft and preserves edits made while its request was pending"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "taskboard/web/src/components/TaskDetail.tsx",
+              "sha256": "12a83a0b3cb22d1321b34cc87e3a44844386984fc85bb531104d2e9ef1a205b3"
+            },
+            {
+              "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
+              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+            }
+          ],
+          "verifiedBoundary": "真实Chrome生产TaskDetail/InlineMediaComposer，fetch为本地替身。旧版实际把later edits清成空串；正常未编辑仍清理。未验证未知create幂等或附件部分成功。"
         }
       ]
     },
@@ -8574,6 +8611,60 @@
           "verifiedBoundary": "真实临时SQLite导出→写盘包/重读→Miniflare D1/R2→真实Worker任务API，branchless worktree仍保type，普通branch仍正确且不泄本机路径；原版API实际返回null。旧包已丢信息不可逆，本修复仅保全新导出包。"
         }
       ]
+    },
+    {
+      "id": "TB-12",
+      "module": "taskboard",
+      "title": "议题键盘操作的合法性与单次交接",
+      "sourceRecords": [],
+      "contract": "本轮按既有菜单/关联选择器的职责推演：键盘字符仅选择既定快捷键，不能被解析成任意CSS选择器；鼠标与Enter共用同一异步选择入口，等待中不重复调用，明确失败后可显式重试。不是新增业务权限或运行门禁。",
+      "implementationReview": "listed keyboard faults reproduced and repaired; direct browser scenarios verified",
+      "cases": [
+        {
+          "id": "TB-12.1",
+          "scenario": "菜单收到双引号、反斜杠或括号不抛DOM异常；正常S快捷键仍打开状态菜单并选择精确todo。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "context menu ignores punctuation safely while its status keyboard shortcut still selects the requested status"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "taskboard/web/src/components/TaskContextMenu.tsx",
+              "sha256": "43ab675e22b9071e44b7536f62b1461cb47be3c2a73532a6f30891bce102cc1e"
+            },
+            {
+              "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
+              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+            }
+          ],
+          "verifiedBoundary": "真实Chrome原组件与Input.dispatchKeyEvent；旧版双引号产生window error，修后零error且正常状态回调一次。API写入由父组件负责，不借此宣称完整任务变更链路。"
+        },
+        {
+          "id": "TB-12.2",
+          "scenario": "关联议题选择尚未返回时再按Enter只调用一次；成功关闭弹层，明确拒绝后保留弹层并允许显式重试。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "relation keyboard selection is single-flight while pending and a rejected selection remains explicitly retryable"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "taskboard/web/src/components/IssueRelations.tsx",
+              "sha256": "8efb3dd60b37c58a9407843c8454597180758c7334d1d966afbbe2e545da968e"
+            },
+            {
+              "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
+              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+            }
+          ],
+          "verifiedBoundary": "真实Chrome IssueParentLink/IssuePicker，onSelect为可控制本地promise。旧版等待中实际调用2次；修后1次，失败后手动retry可再次调用。不是未知HTTP写回执的自动重试策略。"
+        }
+      ]
     }
   ],
   "reviewPass": {
@@ -8581,7 +8672,7 @@
     "artifactsInspected": 25,
     "baselineUnread": 0,
     "verification": "open",
-    "deployment": "not performed during this audit",
-    "functionRecords": "36 selected manually documented functions; not a claim that all repository functions have individual executable cases."
+    "deployment": "The initial audit was undeployed; 763cddd was subsequently pushed and verified live. Follow-up fixes use separate release verification.",
+    "functionRecords": "39 selected manually documented functions; not a claim that all repository functions have individual executable cases."
   }
 }

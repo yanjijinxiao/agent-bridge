@@ -4,6 +4,8 @@ import { AiChat } from "../../../web/src/components/AiChat";
 import { TaskDetail } from "../../../web/src/components/TaskDetail";
 import { TaskEditor } from "../../../web/src/components/TaskEditor";
 import { TaskCard } from "../../../web/src/components/TaskCard";
+import { TaskContextMenu } from "../../../web/src/components/TaskContextMenu";
+import { IssueParentLink } from "../../../web/src/components/IssueRelations";
 import "../../../web/src/styles.css";
 
 // Isolated component fixture. It renders production React/CSS/API code, but
@@ -39,7 +41,8 @@ window.fetch = async (input: any, init?: RequestInit) => {
     : init?.body instanceof File ? { filename: init.body.name, size: init.body.size } : undefined;
   audit.requests.push({ path: url.pathname, search: url.search, method, body });
   const writeKind = method === "POST" && url.pathname === "/api/local/ai/threads" ? "create"
-    : method === "POST" && url.pathname.endsWith("/turns") ? "turn" : null;
+    : method === "POST" && url.pathname.endsWith("/turns") ? "turn"
+    : method === "POST" && url.pathname === `/api/tasks/${task.id}/comments` ? "comment" : null;
   if (writeKind && audit.holdWrite === writeKind) {
     audit.holdWrite = null;
     await new Promise<void>(resolve => { audit.releaseWrite = resolve; });
@@ -92,8 +95,27 @@ class LocalEvents extends EventTarget { constructor(_url: string) { super(); } c
 localStorage.setItem("taskboard.aiChat.lastThreadId", "thread-a");
 function Fixture() {
   const [project, setProject] = useState("a"); audit.project = setProject; audit.currentProject = project;
+  const [menuOpen, setMenuOpen] = useState(true);
   const view = new URL(location.href).searchParams.get("view");
   const shared = { currentUser: actor, workflows: [], developmentScan: { workspacePath: null, contexts: [] }, developmentScanLoading: false };
+  if (view === "menu") {
+    audit.menuActions ??= [];
+    return menuOpen ? <TaskContextMenu task={task} position={{ x: 100, y: 100 }} labels={[]}
+      onClose={() => setMenuOpen(false)} onEdit={() => {}} onPriorityChange={() => {}} onLabelsChange={() => {}}
+      onDuplicate={() => {}} onCopy={() => {}} onOpenInThread={() => {}} onArchive={() => {}}
+      onStatusChange={(_task, status) => audit.menuActions.push(status)} /> : <p>Menu closed</p>;
+  }
+  if (view === "relations") {
+    audit.relations ??= [];
+    const candidate = { ...task, id: "task-two", identifier: "TEST-2", title: "Candidate task" };
+    return <IssueParentLink task={task} tasks={[task, candidate]} onOpenTask={() => {}}
+      onRemoveRelation={async () => ({ task, relatedTask: candidate })}
+      onAddRelation={async (_task, type, id) => {
+        audit.relations.push({ type, id });
+        await new Promise<void>((resolve, reject) => { audit.acceptRelation = resolve; audit.rejectRelation = () => reject(new Error("Fixture rejected relation")); });
+        return { task, relatedTask: candidate };
+      }} />;
+  }
   if (view === "card") return <TaskCard task={{ ...task, dueDate: new URL(location.href).searchParams.get("date") }}
     statusIndex={1} isDragging={false} dragShift={0} isMoving={false} isSettling={false} isContextMenuOpen={false}
     onEdit={() => {}} onContextMenu={() => {}} onMove={() => {}} onDragStart={() => {}} onDragEnd={() => {}} onOpenThread={() => {}} />;

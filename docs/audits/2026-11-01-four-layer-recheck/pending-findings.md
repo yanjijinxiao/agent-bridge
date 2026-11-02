@@ -5,7 +5,7 @@
 1. 原生队列 idle：一次全量出现 queue/observe 未确认，后续单独、12 次并发隔离及另一轮全量均通过。保留原日志；尚无根因。后续报告器保留失败调用栈以定位真正分支。
 2. Taskboard 旧 UI/样式/流程六项中，附件/宽度/聚焦的四项已读实际组件并通过真实 Chrome 验证，确认是旧断言过时，已更新。仍有两项 WorkflowBoard/moveWorkflowNode 断言待读全真实流程并验证，未直接改正则。
 3. Taskboard 渠道：ensureProject/getIssue等待后降权/解绑/ABA仍写入，六个原版反例确认；本地补每请求来源guard到实际fetch前与本地bind/workflow前，只允许己方同步绑定推进lease。21个来源/正常/late-ack/文件读取场景通过，Gateway全量2419通过1跳过。首次全量三个旧in-memory测试替身缺新增withWriteGuard接口，已补替身契约而保留原业务断言；原失败保留。请求ID仍仅内存，未知写失败释放或重启重复写尚未解决，workflow更多分支仍待场景。
-4. Taskboard 评论部分上传：submitComment 先创建评论，inline 图片 Promise.all 失败后保留原草稿；普通附件失败又清空暂存区。需验证是否重复创建评论、遗失可重试文件，以及旧任务响应是否更新新任务详情。App 的 TaskDetail 实际使用 task.id key，已排除单纯本地 setState 串到另一任务组件的猜测；父级回调仍待核对。
+4. Taskboard 评论部分上传：submitComment 先创建评论，inline 图片 Promise.all 失败后保留原草稿；普通附件失败又清空暂存区。需验证是否重复创建评论、遗失可重试文件，以及旧任务响应是否更新新任务详情。App 的 TaskDetail 实际使用 task.id key，已排除单纯本地 setState 串到另一任务组件的猜测；父级回调仍待核对。同任务评论提交等待中later edits被旧成功清空已有真实Chrome反例，已本地按草稿revision保留，未编辑正常清理作为对照；部分上传另待核。
 5. 原生项目与 Desktop 别名：codex-projects.ts 按主目录排除 native ID，resolveProjectId 按 cwd 翻译未知 ID、创建仅传主根。需明确完整 rootPaths、同目录多 native 项目、旧 Desktop 别名与真正原生 ID 的关系及迁移；不能简单删兼容路径，也不能把 UI 元数据当执行身份。
 6. 项目 unknown：ManagedSession 只支持显式 none；新绑定的原生项目归属 unknown 是否被错误记为 none，且不能继续准确展示/核验 IDE 范围，需要实际绑定反例。
 7. 控制响应归属：goal get/set/clear 以及恢复模型/强度继承后的异步查询，迟到结果可能按新的绑定展示；原生修改已完成后不能再伪称“未提交”。需分别验证查询丢弃旧显示、已接收写入保留回执。
@@ -42,7 +42,7 @@
 31. Taskboard App本体已逐行读完：saveEditor、duplicate、restore及undo完成后不核对原project，可能把旧项目数据插入新列表；inline上传失败时已创建issue但保留草稿，再试可能重复创建。与comment相同职责需要实际浏览器失败/正常对照。
 32. App reconcileProjectAutomation会把localStorage旧policy再次apply，需核对其他页面关闭后是否被自动重新启用；本轮未开启任何实际自动化。
 33. 真实local HTTP与D1 Worker复现非法日期被接受，真实Chrome卡片RangeError崩溃。已本地统一日历校验、旧异常值可见不崩溃；非法create/PATCH不变更、闰年/普通日期/null与浏览器正常对照通过，未改生产数据。
-34. TaskContextMenu键盘单字符直接拼进CSS选择器，双引号/反斜杠可能抛DOMException；IssuePicker pending期间Enter也可重复choose。两者待实际浏览器后再修。
+34. TaskContextMenu标点键及IssuePicker pending重复Enter均已真实Chrome复现：旧版window error、同选择调用2次。已本地改固定selector匹配和choose入口同步single-flight，正常S精确状态及失败后显式重试对照保留；相关40项通过，不借此自动重发未知HTTP写。
 35. 主App基线就用SHOW_WORKFLOW_BOARD_ENTRY=false隐藏节点模式，历史公开用户文字没有找到明确的节点移动决定；不能把两个失败测试静默改绿，也不能用测试里的旧期望擅自恢复整个入口。保留实际功能意图核验。
 
 36. 独立injector仍通过私有Desktop automation RPC和单独额度server运行；这是统一协议范围实际缺口，已明确登记不隐藏。额度helper的stdin EPIPE宿主崩溃已真实复现并本地修复，其他CDP JSON/late composer/同名项目label优先ID候选待具体反例。
@@ -56,3 +56,5 @@
 41. 原生NativeAsyncQuestions的通知微任务和steer连接等待后缺最终source guard：撤销observer/撤回widget/end/disconnect仍写旧答案，微任务前撤回仍发旧问题，5原版失败已复现并本地修复。增加peer/edited与正常对照；相关65通过，最终Gateway全量2398通过、1Windows专用跳过。追加edited测试夹具曾把旧已答promise用于新题，已纠正且保留该失败日志。
 
 基线文件未读0；其余尚未映射场景和尚未验收设备，以需求清单的testGap与review-conclusions.md为准。此页不代表全部审查发现，也不是完整自检结论。
+
+后续发布：初次审查快照763cddd已push并实际上线，钉钉重连、3个IDE端点及14份浏览器授权保留，原生执行器PID不变。本段后三个UI修复继续按独立发布验收记录，不把本地通过当已部署。

@@ -52,6 +52,7 @@ function IssuePicker({
   const [savingId, setSavingId] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const selectingRef = useRef(false);
   const results = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
     if (!normalized) return candidates;
@@ -73,6 +74,8 @@ function IssuePicker({
   }, [open]);
 
   async function choose(task: Task) {
+    if (disabled || selectingRef.current) return;
+    selectingRef.current = true;
     setSavingId(task.id);
     try {
       await onSelect(task);
@@ -80,6 +83,7 @@ function IssuePicker({
       setQuery("");
     } catch {
     } finally {
+      selectingRef.current = false;
       setSavingId(null);
     }
   }
