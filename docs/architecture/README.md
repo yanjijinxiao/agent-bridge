@@ -19,6 +19,7 @@
 
 | 模块 | 说明 |
 | --- | --- |
+| 实验 Connector | [Peer 的原生边界、授权和当前接口子集](modules/peer-transport.md) |
 | 原生协议与连接 | [同一核心、权限继承、读写连接和生命周期](modules/native-protocol.md) |
 | 消息接收与交接 | [来源、提交、接收和未知回执](modules/inbound-forwarding.md) |
 | 持久状态与账号 | [版本、迁移、内存/磁盘一致性和特殊标识](modules/persistent-state.md) |

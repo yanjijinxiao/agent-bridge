@@ -1,6 +1,6 @@
 # Connector 契约修复与合入范围
 
-基线：`origin/main f108f81`。修复针对 A1/A2 和重复的文件、浏览器授权端口；原审查报告和 reproduction.txt 保留为修复前证据。
+运行修复：`2f4280e`；基线：`origin/main f108f81`。真实钉钉验收见 [实机记录](./real-validation.md)。修复针对 A1/A2 和重复的文件、浏览器授权端口；原审查报告和 reproduction.txt 保留为修复前证据。
 
 ## 已修复
 
@@ -8,13 +8,14 @@
 - `writeGuard: 1` 是协商门槛。新 Gateway 拒绝旧 Connector 写入；两端需要一起升级。已经接受/提交未知的回执不会变成“未提交”。最终检查阻止的 turn/start 则不会污染原生 unknown-start 状态，可以在重新获准后安全重试。
 - **A2 / 审批未作答**：缺少 handler、回调错误、非法答案、断连均返回 undefined。只有明确且合法的选项才成为原生决定。
 - 独立交互订阅经 Peer 转接 main 的观察器、fanout、request monitor 和渠道控制器。订阅退休不终止 turn；断连撤下旧 UI，重新订阅同一原生进程的待处理请求。原生已退休 handler 不再遮蔽观察器，未提交的审批可被重新播放；不自动重放旧答案。
+- 实机复测发现运行内待审卡在断连后残留，补充 run 回调退休：以原请求对象报告 withdrawn/failed，旧卡退出待审；独立观察器重播后只保留新卡。新增正式回归，不修改渠道 Controller。
 - 文件回传删除 `fetchOutboundFile/OutboundFile`，统一使用 `fetchOutputFile/OutputFileLease`。Peer 在公共参数上增加 account/conversation/thread scope，继续验证分块、校验和、工作区路径、grant 和发送前绑定，沿用公共媒体投递与 finally 清理。
 - 共享文本页删除自己的 pending/browser 授权 Map，复用 `IDEAuthorization` 的浏览器证明、CSRF、持久会话和来源绑定。入口及浏览器会话持久化到资源配置旁的状态文件；共享授权到期时间是浏览器期限上限，每次资源访问仍重新核对 owner grant。仍是受限文本工作区，不提供终端。
 
 ## 自动化证据
 
 - `npm run typecheck`、`npm run build` 通过。
-- `npm test`：2822 项，2789 通过、33 跳过、0 失败。
+- `npm test`：2823 项，2790 通过、33 跳过、0 失败。
 - `peer-write-boundary`：真实 Bridge/角色状态与 WebSocket 反例；11 条原生 JSONL 写路径在等待中撤权后没有写入；resume 后撤权不发 turn/start，重新授权仅执行一次；旧 Connector 拒绝、无 handler/错误/断连不生成 decline，显式拒绝保持有效。
 - `peer-interactions`：请求对象身份、host 重映射、错误范围、断线后 UI 退休与重新观察；真实 JSONL 同一进程跨 Peer 重连，没有默认答复，人工选择后仅一条原生 response。
 - `peer-files`：统一文件端口保持大文件、身份、路径、篡改和失败清理覆盖；`peer-sharing` 验证持久浏览器重启后仍可访问、到期上限和撤销。
@@ -47,4 +48,4 @@
 - 会话命名、归档/恢复命令、空会话与项目别名修正作用于支持这些能力的所有 backend，并非被 Peer 开关隔离。原有回归随全量执行，应在 PR 中单独列明。
 - 本轮公共层新增的是最终 guard 原语、交互退休/重播修正、文件 scope 和可限期的持久浏览器授权；没有改写渠道渲染、复制框、主 Web UI 或 code-server 流程。
 - 默认不开启 Peer，需显式配置。旧共享委托仍需重新批准，不自动扩大权限。升级先备份当前状态、准备依赖和构建制品，通过隔离冒烟后再切换；不要用恢复旧授权状态回滚。
-- 本轮不执行 main 合并或推送。实机结果另记，不能把先前 6b9bcde 的实机记录作为本次修复已部署的证据。
+- 本轮不执行 main 合并或推送。本轮实机记录单列，不能用先前 6b9bcde 的记录替代。

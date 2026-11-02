@@ -76,7 +76,7 @@ owner 与工作目录的变更需要本机再次确认；变更会撤销原委�
 
 访问者发送 `/ide` 后打开链接，浏览器显示 `/share browser 六位码`。在同一个已授权的机器人聊天发送该命令，再回原浏览器检查授权。链接和六位码均不是访问凭据：浏览器还必须持有自己的 HttpOnly proof Cookie，确认操作必须来自该委托对应的用户和聊天。
 
-浏览器会话最多 1 小时，资源授权更早到期时立即失效；每个请求在 Connector 重新检查授权。Cookie 不放 URL，采用 HttpOnly、SameSite=Strict，HTTPS 下增加 Secure；API 验证 Origin、Host 和 CSRF，页面禁用第三方脚本、iframe 及内容执行。资源入口重启后需重新获取链接并确认浏览器，不保留旧浏览器凭据。
+浏览器证明和会话复用主分支的 IDEAuthorization，默认上限为 90 天；访问者的资源授权更早到期时，浏览器会话同步到期，每次请求仍在 Connector 重新检查授权。入口与已批准的浏览器会话分别持久化到 Peer 配置旁的 .resources.json 和 .resources.json.sessions；重启不续期、不撤销现有授权，也不自动恢复已经撤销的资源。待确认申请仍为短时内存状态。Cookie 不放 URL，采用 HttpOnly、SameSite=Strict，HTTPS 下增加 Secure；API 验证 Origin、Host 和 CSRF，页面禁用第三方脚本、iframe 及内容执行。
 
 目录边界通过真实路径和目录身份校验。拒绝路径穿越、符号链接、硬链接、二进制、特殊文件及超过 128 KiB 的文本文件；`.git`、`.ssh`、`.aws`、`.codex` 和 `.env*` 不在共享接口中开放。仅能保存现有文本文件，保存需要匹配当前内容摘要；冲突或撤销时保留浏览器中的本地修改，服务端不覆盖文件。
 
