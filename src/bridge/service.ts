@@ -1220,7 +1220,14 @@ export class BridgeService {
       return;
     }
     const input = arg.trim();
-    const assertCurrent = this.controlGuard(senderId, session, "participant");
+    const assertCurrent = this.controlGuard(senderId, session, requiredCommandRole("goal", input));
+    const replyToOriginalSource = async (reply: () => Promise<void>) => {
+      // A successful native mutation is already applied to the original thread.
+      // Retire only its stale presentation; throwing the pre-write guard here
+      // would falsely report "not submitted" and could invite another mutation.
+      try { assertCurrent(); } catch { return; }
+      await reply();
+    };
     if (/^(?:new|form|set)$/i.test(input)) {
       const project = this.options.stateStore.getActiveProject(senderId);
       await this.replyTaskCard(message, createGoalFormCard(project?.name ?? "当前项目"));
@@ -1229,7 +1236,7 @@ export class BridgeService {
     if (/^clear$/i.test(input)) {
       assertCurrent();
       await this.runner.clearGoal(session.threadId, this.sessionHostId(session), assertCurrent);
-      await this.reply(senderId, "已清除当前 Codex 目标。");
+      await replyToOriginalSource(() => this.reply(senderId, "已清除当前 Codex 目标。"));
       return;
     }
     const statusMatch = /^(pause|resume|complete)$/i.exec(input);
@@ -1239,7 +1246,7 @@ export class BridgeService {
       ];
       assertCurrent();
       const goal = await this.runner.setGoal(session.threadId, { status }, this.sessionHostId(session), assertCurrent);
-      await this.replyGoalCard(message, goal);
+      await replyToOriginalSource(() => this.replyGoalCard(message, goal));
       return;
     }
     const setMatch = /^(?:set\s+)?(.+)$/is.exec(input);
@@ -1252,10 +1259,12 @@ export class BridgeService {
         this.sessionHostId(session),
         assertCurrent
       );
-      await this.replyGoalCard(message, goal);
+      await replyToOriginalSource(() => this.replyGoalCard(message, goal));
       return;
     }
-    await this.replyGoalCard(message, await this.runner.getGoal(session.threadId, this.sessionHostId(session)));
+    assertCurrent();
+    const goal = await this.runner.getGoal(session.threadId, this.sessionHostId(session));
+    await replyToOriginalSource(() => this.replyGoalCard(message, goal));
   }
 
   private async replyGoalCard(message: ChannelMessage, goal: CodexThreadGoal | undefined): Promise<void> {

@@ -357,6 +357,7 @@ stop只影响指定host/thread/turn；目标设置显式set，模型/effort按�
 - CTRL-04.1：停止空闲线程不误停另一活动线程
 - CTRL-04.2：goal内容pause/clear是文本可设置
 - CTRL-04.3：模型数字/default/目录重排仍选准确值
+- CTRL-04.4：目标 get/set/clear 返回后按原来源核验展示；换绑、ABA、权限不足、撤权及停止后的旧结果不发送，已成功的原生修改不误报未提交，viewer 查询保持可用。详见 modules/goal-controls.md。
 
 **CTRL-05 · 状态与帮助**
 

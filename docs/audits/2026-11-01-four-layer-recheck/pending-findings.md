@@ -8,7 +8,7 @@
 4. Taskboard 评论部分上传：submitComment 先创建评论，inline 图片 Promise.all 失败后保留原草稿；普通附件失败又清空暂存区。需验证是否重复创建评论、遗失可重试文件，以及旧任务响应是否更新新任务详情。App 的 TaskDetail 实际使用 task.id key，已排除单纯本地 setState 串到另一任务组件的猜测；父级回调仍待核对。同任务评论提交等待中later edits被旧成功清空已有真实Chrome反例，已本地按草稿revision保留，未编辑正常清理作为对照；部分上传另待核。
 5. 原生项目与 Desktop 别名：codex-projects.ts 按主目录排除 native ID，resolveProjectId 按 cwd 翻译未知 ID、创建仅传主根。需明确完整 rootPaths、同目录多 native 项目、旧 Desktop 别名与真正原生 ID 的关系及迁移；不能简单删兼容路径，也不能把 UI 元数据当执行身份。
 6. 项目 unknown：ManagedSession 只支持显式 none；新绑定的原生项目归属 unknown 是否被错误记为 none，且不能继续准确展示/核验 IDE 范围，需要实际绑定反例。
-7. 控制响应归属：goal get/set/clear 以及恢复模型/强度继承后的异步查询，迟到结果可能按新的绑定展示；原生修改已完成后不能再伪称“未提交”。需分别验证查询丢弃旧显示、已接收写入保留回执。
+7. 控制响应归属：goal get/set/clear 以及恢复模型/强度继承后的异步查询，迟到结果可能按新的绑定展示；原生修改已完成后不能再伪称“未提交”。需分别验证查询丢弃旧显示、已接收写入保留回执。目标get/set/clear本次已有19过期展示旧版反例及5正常对照，修复保原生成功事实、旧展示退休和viewer查询，24项及相关77通过；模型/强度继承仍待。
 8. 显式及普通输入异步准备转向：已有隔离失败证据，四种下载/转存/状态等待加三种引用解析均可转向新线程。已本地修复并补 14 个反例/对照；当前完整 Gateway 回归 2354 项通过、1 项 Windows 专用跳过；同线程 Taskboard 展示不当失效的本轮回归也已修正并保留正常用例。原输入的“明确未提交”分类还需检查，避免因 handleCommand 过早标记 submitting 而把准备拒绝写成回执未知；不能把 Taskboard 已产生外部副作用的命令一概重置为 received。本次已用真实journal复现3项准备拒绝误记unknown及steer查询后Bridge层守卫缺口，修复专限steer/queue正文边界，19项来源/正常/持久化对照通过；后端内等待及其他控制拒绝分类仍保留待验。
 9. 审批/提问：Service.requestApproval 的 setActivity await 后两项失效反例已复现并修复：换绑/停止不发旧审批，保留无绑定项目通知路线。相同 requestUserInput 场景原本已在底层eligibility正确拦住，作为正常对照；两者未合成决定。其他角色/原生问题更新路线仍待验。
 10. 重启边界：onTurnStarted 等待跟随/卡片准备后才释放部分 accepted 标记；需区分真正卡片传输与只读订阅等待。CapacityRecovery checking/settling、SystemRecovery pending 和命令查询等待的保护粒度仍需逐路径验证，不能直接删除保护。

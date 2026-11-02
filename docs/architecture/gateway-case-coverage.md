@@ -31,7 +31,7 @@ verified只表示JSON中注明的窄场景；partial不是通过；failed保留�
 | CTRL-01 · 普通忙时 steer | controls | 3 | 0 | 3 | 0 | 无 |
 | CTRL-02 · Codex 原生持久队列 | controls | 3 | 1 | 2 | 0 | 无 |
 | CTRL-03 · 队列恢复和取消 | controls | 4 | 2 | 2 | 0 | 无 |
-| CTRL-04 · 停止及目标身份 | controls | 3 | 1 | 1 | 0 | CTRL-04.2 |
+| CTRL-04 · 停止及目标身份 | controls | 4 | 2 | 1 | 0 | CTRL-04.2 |
 | CTRL-05 · 状态与帮助 | controls | 3 | 1 | 2 | 0 | 无 |
 | AUTH-01 · IM个人和群准入 | access | 3 | 0 | 2 | 0 | AUTH-01.3 |
 | AUTH-02 · 远程准入审批 | access | 3 | 2 | 1 | 0 | 无 |
