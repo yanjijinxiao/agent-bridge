@@ -9868,7 +9868,7 @@
       "module": "taskboard",
       "title": "事件处理器的执行授权与生命周期",
       "sourceRecords": [],
-      "contract": "本轮按已有事件自动处理器职责推演：仅已由用户启用的原策略允许启动任务；等待额度等外部检查后须重新核对同一有效策略，关闭期间不得迟到启动。自有 CLI 执行器与独立原生任务生命周期必须明确区分，不能把等待/停止语义混用。此项不是开启自动化的指令，本轮所有测试使用临时策略和假 Codex。",
+      "contract": "事件自动处理只允许用户已启用的原策略启动；等待额度等外部检查后重新核对同一有效策略。AI、自动处理、模型/Skill/MCP目录与额度共用选定原生端口；嵌入Taskboard借用Gateway原适配器，独立Taskboard使用同一协议适配器。关闭观察不interrupt已由独立核心接收的任务；显式私有stdio的生命周期限制单独说明。此契约不授权开启自动化。",
       "implementationReview": "partial; quota wait policy scenarios verified; executor architecture remains under review",
       "cases": [
         {

@@ -48,6 +48,25 @@
 
 未覆盖的设备、真实供应商回执、纯 CLI 环境及未解决失败持续列在审查记录中，不以全套 Gateway 测试通过抹去。
 
+## 近期功能索引
+
+以下按当前用户可见行为定位功能契约、模块说明和 case；表示文档已覆盖，不把部分测试或手机未验改成验收完成。
+
+| 功能点 | 功能与 case | 模块说明 |
+| --- | --- | --- |
+| 审批消息 @ 原参与者；原生确认批准后新 AI 卡继续同一任务 | INT-01.8、INT-04.4 | [原生审批与提问](modules/native-interactions.md) |
+| /sessions 按项目+session显示，保留空项目、置顶和稳定分页编号 | CAT-02.4 | [目录与历史](modules/catalog-history.md) |
+| 进行中及心跳卡保留 IDE 链接；远端重连不删除固定入口 | IDE-01、IDE-09.4 | [IDE访问](modules/ide-access.md)、[结果与渠道](modules/delivery-channels.md) |
+| IDE前置核验超时明确未批准；不改任务或绑定 | IDE-05.4 | [IDE访问](modules/ide-access.md) |
+| 单一原生App Server、续聊权限继承、Taskboard共用原生执行与目录 | NATIVE-02.5、TB-04.2/.4 | [原生协议](modules/native-protocol.md)、[Taskboard执行](modules/taskboard-native-execution.md) |
+| 重启仅保护实际消息交接；已接收任务继续，既有远端重连不锁重启 | REL-01.9、REL-02.5 | [发布与重启](modules/release-lifecycle.md) |
+| systemError恢复、容量只读对账不阻塞重启或重放原输入 | REC-01.4、REC-02.4 | [恢复协调](modules/recovery-coordinators.md) |
+| /stop独立复制框、连续卡片更新、分段后最终@与IDE归属 | DEL-10.1、DEL-09.3、DEL-08.4 | [结果与渠道](modules/delivery-channels.md) |
+| Web区分执行完成与答复待投递；审批漏重放与可信问题快照 | DEL-01.3、INT-02.1/.2 | [管理UI](modules/management-ui.md)、[原生交互](modules/native-interactions.md) |
+| 原28项补测、精确断言和剩余范围；33种流程节点的配置与执行边界 | AUDIT-01、TB-10.3 | [审查方法](modules/audit-method.md)、[节点对照](taskboard-node-contracts.md) |
+
+功能总文档的主清单现逐项列出全部304个case，与JSON身份一一对应；旧审计报告中的“当时未完成”保留其历史语境，以当前功能清单、模块说明和验证边界为准。
+
 ## 最新补测检查点
 
 原28项已补直接命名测试，304case均有测试映射；199窄边界通过、105部分覆盖。功能及模块文档和JSON同步更新。具体证据见../audits/2026-11-01-four-layer-recheck/2026-11-02-gap-regressions.md；[工作流节点配置/执行对照](taskboard-node-contracts.md)明确33kind仍缺的执行与授权边界。手机实机验收继续记为未完成，不是新的发布门禁。
