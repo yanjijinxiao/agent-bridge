@@ -11,7 +11,7 @@ export type SharedBrowserRef = { principal: PeerPrincipal; target: SharedTarget;
 type Portal = { entry(ref: SharedBrowserRef): string; approve(principal: PeerPrincipal, code: string): Promise<string> };
 const stateSchema = z.object({ version: z.literal(1), invites: z.array(z.object({ hash: z.string(), hostId: z.string(), expiresAt: z.number() }).strict()) }).strict();
 const hash = (code: string) => crypto.createHash("sha256").update(code).digest("hex");
-const usage = "用法：/share claim [--ide]；/share invite；/share requests；/share approve 申请ID read|chat|control [--ide read|write] [--files] [--manage] [--hours 24]；/share deny 申请ID；/share list；/share revoke 授权ID。";
+const usage = "用法：/share claim [--ide]；/share invite；/share requests；/share approve 申请ID [--ide read|write] [--files] [--hours 24]；/share deny 申请ID；/share list；/share revoke 授权ID。";
 
 export class PeerSharingGateway implements PeerSharingPort {
   private state: z.infer<typeof stateSchema>;
@@ -20,10 +20,6 @@ export class PeerSharingGateway implements PeerSharingPort {
     this.state = stateSchema.parse(readJsonFile(file, { version: 1, invites: [] }));
   }
   admitted(principal: PeerPrincipal): boolean { return this.registry.grantsFor(principal).some(g => Boolean(g.delegation)); }
-  role(principal: PeerPrincipal): "viewer" | "participant" | "controller" {
-    const permissions = this.registry.grantsFor(principal).flatMap(g => g.delegation?.permissions ?? []);
-    return permissions.some(p => ["stop", "approve", "manage"].includes(p)) ? "controller" : permissions.includes("chat") ? "participant" : "viewer";
-  }
   async command(principal: PeerPrincipal, command: "share" | "join", arg: string, target: SharedTarget | undefined, guard: () => void): Promise<SharingCommandResult> {
     if (command === "join") {
       const code = arg.trim().toUpperCase();
@@ -36,7 +32,7 @@ export class PeerSharingGateway implements PeerSharingPort {
         const grant = this.registry.addSharedGrant(result.grant);
         return { text: "所有者已授权此会话；该授权仅用于当前用户和当前聊天。", bind: { hostId: grant.hostId, threadId: grant.threadId! } };
       }
-      return { text: result.request.status === "denied" ? "所有者已拒绝此申请。" : `访问申请已登记：${result.request.id}\n请所有者发送 /share requests，再批准具体权限与有效期。批准后重新发送本条 /join 命令。` };
+      return { text: result.request.status === "denied" ? "所有者已拒绝此申请。" : `访问申请已登记：${result.request.id}\n请所有者发送 /share requests，再批准访问与有效期。批准后重新发送本条 /join 命令。` };
     }
     if (!target) return { text: "请先选择自己的会话，再使用 /share claim 在 Connector 本机确认所有权。" };
     const call = (method: string, input: object = {}) => this.registry.sharingCall(target.hostId, method, { ...target, ...input }, principal, guard);
@@ -59,7 +55,7 @@ export class PeerSharingGateway implements PeerSharingPort {
       const result = await call("status");
       return { text: [`会话所有者：${result.resource.owner.actorId}`,
         "待批准申请：", ...result.requests.map((q: any) => `${q.id}\n用户：${q.principal.actorId}；聊天：${q.principal.conversationId}`),
-        "有效授权：", ...result.grants.map((g: PeerGrant) => `${g.id}\n用户：${g.principal.actorId}；聊天：${g.principal.conversationId}\n权限：${g.delegation!.permissions.join(", ")}；到期：${new Date(g.delegation!.expiresAt).toISOString()}`), usage].join("\n\n") };
+        "有效授权：", ...result.grants.map((g: PeerGrant) => `${g.id}\n用户：${g.principal.actorId}；聊天：${g.principal.conversationId}\n附加资源：${g.delegation!.permissions.join(", ") || "无"}；到期：${new Date(g.delegation!.expiresAt).toISOString()}`), usage].join("\n\n") };
     }
     const decide = /^(deny|revoke)\s+([a-f0-9-]{36})$/i.exec(arg.trim());
     if (decide) {
@@ -67,16 +63,16 @@ export class PeerSharingGateway implements PeerSharingPort {
       if (result.revoked) this.registry.removeSharedGrants(result.revoked);
       return { text: result.revoked ? "已撤销授权，后续请求和 Web 编辑器访问立即失效；已经开始的原生任务不会因此自动终止。" : "已拒绝访问申请。" };
     }
-    const approve = /^approve\s+([a-f0-9-]{36})\s+(read|chat|control)(?:\s+--ide\s+(read|write))?(\s+--files)?(\s+--manage)?(?:\s+--hours\s+(\d+))?$/i.exec(arg.trim());
+    const approve = /^approve\s+([a-f0-9-]{36})(?:\s+--ide\s+(read|write))?(\s+--files)?(?:\s+--hours\s+(\d+))?$/i.exec(arg.trim());
     if (!approve) return { text: usage };
-    const permissions: SharedPermission[] = approve[2].toLowerCase() === "control" ? ["read", "chat", "stop", "approve"] : approve[2].toLowerCase() === "chat" ? ["read", "chat"] : ["read"];
-    if (approve[3]) permissions.push("ide-read", ...(approve[3].toLowerCase() === "write" ? ["ide-write" as const] : []));
-    if (approve[4]) permissions.push("files"); if (approve[5]) permissions.push("manage");
-    const hours = approve[6] ? Number(approve[6]) : 24;
+    const permissions: SharedPermission[] = [];
+    if (approve[2]) permissions.push("ide-read", ...(approve[2].toLowerCase() === "write" ? ["ide-write" as const] : []));
+    if (approve[3]) permissions.push("files");
+    const hours = approve[4] ? Number(approve[4]) : 24;
     if (!Number.isInteger(hours) || hours < 1 || hours > 168) return { text: "授权有效期需为 1–168 小时。" };
     const result = await call("approve", { id: approve[1], permissions, hours });
     const grant = this.registry.addSharedGrant(result.grant);
-    return { text: `已批准会话访问。\n授权 ID：${grant.id}\n权限：${grant.delegation!.permissions.join(", ")}\n到期：${new Date(grant.delegation!.expiresAt).toISOString()}\n访问者重新发送原 /join 命令即可绑定；也可以发送 /sessions 选择。\n撤销：/share revoke ${grant.id}` };
+    return { text: `已批准会话访问。\n授权 ID：${grant.id}\n会话操作沿用访问者所在聊天的 /role 权限。\n附加资源：${grant.delegation!.permissions.join(", ") || "无"}\n到期：${new Date(grant.delegation!.expiresAt).toISOString()}\n访问者重新发送原 /join 命令即可绑定；也可以发送 /sessions 选择。\n撤销：/share revoke ${grant.id}` };
   }
   async ide(principal: PeerPrincipal, target: SharedTarget, guard: () => void): Promise<string> {
     if (!this.portal) throw new PeerError("unsupported", "共享 Web 编辑器入口尚未配置，请在 Peer 服务端配置 resources 监听地址与 publicOrigin。");

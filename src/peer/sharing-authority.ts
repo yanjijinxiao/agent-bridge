@@ -31,7 +31,7 @@ export class PeerSharingAuthority {
   private resource(id: string) { const r = this.data.resources.find(r => r.id === id); if (!r) throw unavailable(); return r; }
   private current(grant: SharedPeerGrant): void {
     const stored = this.data.grants.find(g => g.id === grant.id);
-    if (!stored || JSON.stringify(stored) !== JSON.stringify(grant) || !grant.delegation || grant.delegation.expiresAt <= this.now()) throw unavailable();
+    if (!stored || JSON.stringify(stored) !== JSON.stringify(grant) || !grant.delegation || grant.delegation.version !== 2 || grant.delegation.expiresAt <= this.now()) throw unavailable();
     const r = this.resource(grant.delegation.resourceId);
     if (r.threadId !== grant.threadId || r.hostId !== grant.hostId) throw unavailable();
   }
@@ -53,16 +53,18 @@ export class PeerSharingAuthority {
     }
     this.current(grant);
     const permissions = grant.delegation.permissions;
-    const permission = method === "run" || method === "steer" || method === "submitThreadMessage" || method.startsWith("fileUpload") ? "chat"
-      : method === "stop" ? "stop" : ["renameThread", "archiveThread", "unarchiveThread"].includes(method) ? "manage"
-      : method.startsWith("fileDownload") ? "files" : method === "workspace.write" ? "ide-write" : method.startsWith("workspace.") ? "ide-read" : "read";
-    if (!permissions.includes(permission) || ["createThread", "deleteThread", "getAccountRateLimits", "receipt", "listModels"].includes(method)) throw unavailable();
+    // Identity, resource scope, expiry and revocation are owned here. Session
+    // roles and operation approval remain the Gateway's existing policy.
+    const permission = method.startsWith("fileDownload") ? "files"
+      : method === "workspace.write" ? "ide-write" : method.startsWith("workspace.") ? "ide-read" : undefined;
+    if (permission && !permissions.includes(permission)
+      || ["createThread", "deleteThread", "getAccountRateLimits", "receipt", "listModels"].includes(method)) throw unavailable();
     if (thread && thread !== grant.threadId) throw unavailable();
   }
   visible(grant: SharedPeerGrant, threadId: string): boolean {
     try { this.assert(grant, "inspectThread", [threadId]); return true; } catch {
       return !grant.delegation && this.data.grants.some(g => g.threadId === threadId && g.hostId === grant.hostId && sameChatPerson(g.principal, grant.principal)
-        && this.valid(g) && g.delegation!.permissions.includes("read"));
+        && this.valid(g));
     }
   }
   async verify(grant: SharedPeerGrant, method: string, args: unknown[]): Promise<void> {
@@ -76,7 +78,7 @@ export class PeerSharingAuthority {
   async call(method: string, raw: unknown, grant: SharedPeerGrant | undefined, live: () => void, serialized = false): Promise<any> {
     const input = z.object({ threadId: z.string().min(1).optional(), hostId: z.string().optional(), code: z.string().max(100).optional(),
       principal: sharingPrincipalSchema.optional(), workspace: z.boolean().optional(), resourceId: z.string().uuid().optional(), id: z.string().uuid().optional(), hours: z.number().int().min(1).max(168).optional(),
-      permissions: z.array(sharedPermissionSchema).min(1).max(8).optional(), path: z.string().max(4096).optional(), text: z.string().max(384 * 1024).optional(), hash: z.string().regex(/^[a-f0-9]{64}$/).optional() }).strict().parse(raw);
+      permissions: z.array(sharedPermissionSchema).max(3).optional(), path: z.string().max(4096).optional(), text: z.string().max(384 * 1024).optional(), hash: z.string().regex(/^[a-f0-9]{64}$/).optional() }).strict().parse(raw);
     if (method === "claim" && !serialized) return this.claims.run(`${grant?.hostId}:${input.threadId ?? grant?.threadId}`, () => this.call(method, raw, grant, live, true));
     if (method === "request") {
       if (!input.code || !input.principal) throw unavailable();
@@ -135,12 +137,11 @@ export class PeerSharingAuthority {
       this.save({ ...this.data, requests: this.data.requests.map(q => q === request ? { ...q, status: "denied" } : q) }); return { denied: request.id };
     }
     if (method !== "approve") throw unavailable();
-    const permissions: SharedPermission[] = [...new Set(input.permissions ?? ["read" as const])];
+    const permissions: SharedPermission[] = [...new Set(input.permissions ?? [])];
     if (permissions.some(p => p.startsWith("ide-")) && !r.directory) throw new PeerError("workspace", "请先通过 /share claim --ide 在本机确认共享目录。");
     if (permissions.includes("ide-write") && !permissions.includes("ide-read")) permissions.push("ide-read");
-    if (!permissions.includes("read")) permissions.unshift("read");
     const delegated = peerGrantSchema.parse({ id: crypto.randomUUID(), hostId: r.hostId, threadId, principal: request.principal,
-      delegation: { resourceId: r.id, permissions, expiresAt: this.now() + (input.hours ?? 24) * 3600_000 } });
+      delegation: { version: 2, resourceId: r.id, permissions, expiresAt: this.now() + (input.hours ?? 24) * 3600_000 } });
     this.save({ ...this.data, grants: [...this.data.grants, delegated], requests: this.data.requests.map(q => q === request ? { ...q, status: "approved", grantId: delegated.id } : q) });
     return { grant: delegated };
   }

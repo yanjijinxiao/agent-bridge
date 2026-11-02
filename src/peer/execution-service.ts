@@ -74,7 +74,7 @@ export class PeerExecutionService {
     return new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
       files: { version: 1 },
       management: { version: 1 },
-      sharing: { version: 1 },
+      sharing: { version: 2 },
       thread: state ? { ...state, cwd: state.cwd! } : undefined,
       info: { id: info.id, capabilities }, independent: options.independent === true });
   }
@@ -223,7 +223,6 @@ export class PeerExecutionService {
       onApproval: async request => {
         try {
           this.sharing.assert(call.grant, method, args);
-          if (call.grant.delegation && !call.grant.delegation.permissions.includes("approve")) return "decline";
           const decision = await callback("onApproval", [request]);
           this.sharing.assert(call.grant, method, args);
           return approvalOptions(request).some(option => option.id === decision) ? decision as CodexApprovalDecision : "decline";

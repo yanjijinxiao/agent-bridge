@@ -2,9 +2,18 @@ import { z } from "zod";
 import type { PeerPrincipal } from "./context.js";
 
 export const sharingPrincipalSchema = z.object({ accountId: z.string().min(1).max(512), conversationId: z.string().min(1).max(512), actorId: z.string().min(1).max(512) }).strict();
-export const sharedPermissionSchema = z.enum(["read", "chat", "stop", "approve", "manage", "files", "ide-read", "ide-write"]);
+// Session operations use the Gateway's existing SessionRole rules. Only
+// independently shared resources have permissions in a delegation.
+export const sharedPermissionSchema = z.enum(["files", "ide-read", "ide-write"]);
 export type SharedPermission = z.infer<typeof sharedPermissionSchema>;
-export const delegationSchema = z.object({ resourceId: z.string().uuid(), permissions: z.array(sharedPermissionSchema).min(1).max(8), expiresAt: z.number().int().positive().safe() }).strict();
+const legacyPermissionSchema = z.enum(["read", "chat", "stop", "approve", "manage", "files", "ide-read", "ide-write"]);
+const resourceFields = { resourceId: z.string().uuid(), expiresAt: z.number().int().positive().safe() };
+export const delegationSchema = z.union([
+  z.object({ version: z.literal(2), ...resourceFields, permissions: z.array(sharedPermissionSchema).max(3) }).strict(),
+  // Parse old state so owners can keep their resources and reapprove access.
+  // Legacy grants are never usable under the new admission-only semantics.
+  z.object({ version: z.undefined().optional(), ...resourceFields, permissions: z.array(legacyPermissionSchema).min(1).max(8) }).strict()
+]);
 export const peerGrantSchema = z.object({ id: z.string().uuid(), principal: sharingPrincipalSchema, hostId: z.string(), threadId: z.string().min(1).optional(), scope: z.literal("device").optional(), delegation: delegationSchema.optional() }).strict()
   .refine(g => g.scope === "device" ? g.threadId === undefined && !g.delegation : Boolean(g.threadId), "Explicit device or session scope required");
 export type SharedPeerGrant = z.infer<typeof peerGrantSchema>;
@@ -15,7 +24,6 @@ export type SharingCommandResult = { text: string; bind?: SharedTarget };
 export interface PeerSharingPort {
   command(principal: PeerPrincipal, command: "share" | "join", arg: string, target: SharedTarget | undefined, guard: () => void): Promise<SharingCommandResult>;
   admitted(principal: PeerPrincipal): boolean;
-  role(principal: PeerPrincipal): "viewer" | "participant" | "controller";
   ide(principal: PeerPrincipal, target: SharedTarget, guard: () => void): Promise<string>;
   browser(principal: PeerPrincipal, code: string): Promise<string>;
 }

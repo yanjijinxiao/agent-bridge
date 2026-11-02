@@ -100,7 +100,7 @@ const BUILT_IN_HELP_LINES = [
   "会话所有权与共享",
   "/share claim [--ide] - 在本机确认会话及可选目录所有权；/share invite - 邀请访问者",
   "/join 邀请码 - 申请指定会话访问；/share requests|list - 所有者查看申请与授权",
-  "/share approve 申请ID read|chat|control [--ide read|write] [--files] [--manage] [--hours 24]；/share revoke 授权ID",
+  "/share approve 申请ID [--ide read|write] [--files] [--hours 24]；/share revoke 授权ID",
   "",
   "项目与工作模式",
   "/status（/st）- 查看当前任务、项目、模型和运行状态",

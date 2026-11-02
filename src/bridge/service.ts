@@ -410,8 +410,7 @@ export class BridgeService {
 
   private role(conversationId: string, actorId = this.actor.getStore() ?? conversationId): SessionRole {
     return this.options.stateStore.roleFor(conversationId, actorId)
-      ?? (this.access.isAllowed(actorId) ? "controller" : this.options.stateStore.roleFor(conversationId, "*")
-        ?? (this.options.peer?.sharing?.admitted(this.peerIdentity(actorId, conversationId)) ? this.options.peer.sharing.role(this.peerIdentity(actorId, conversationId)) : "participant"));
+      ?? (this.access.isAllowed(actorId) ? "controller" : this.options.stateStore.roleFor(conversationId, "*") ?? "participant");
   }
 
   private peerIdentity(actorId: string, conversationId: string) { return { accountId: this.options.accountId ?? "standalone", conversationId, actorId }; }
@@ -478,11 +477,11 @@ export class BridgeService {
       return;
     }
     if (!access.allowed && shared) {
-      const permitted = new Set(["sessions", "session", "history", "status", "help", "ide", "share", "leave", "unbind", "stop", "approve", "reject", "answer", "skip", "steer"]);
+      const permitted = new Set(["sessions", "session", "history", "status", "help", "ide", "share", "leave", "unbind", "stop", "approve", "reject", "answer", "skip", "steer", "role"]);
       const bound = this.executionSession(replyTargetId), host = bound && this.sessionHostId(bound);
       const specified = control && /(?:^|\s)--host\s+(\S+)/.exec(control.arg)?.[1];
       if (control && !permitted.has(control.name) || specified && !this.options.peer!.hosts(this.peerIdentity(message.senderId, replyTargetId)).includes(specified)
-        || (!control || !["sessions", "session", "help", "share", "leave", "unbind"].includes(control.name)) && (!host?.startsWith("peer:") || !this.options.peer!.hosts(this.peerIdentity(message.senderId, replyTargetId)).includes(host))) {
+        || (!control || !["sessions", "session", "help", "share", "leave", "unbind", "role"].includes(control.name)) && (!host?.startsWith("peer:") || !this.options.peer!.hosts(this.peerIdentity(message.senderId, replyTargetId)).includes(host))) {
         await this.reply(replyTargetId, "你获得的是指定会话的资源授权。请通过 /sessions 选择已授权会话；此入口不能操作 Gateway 的其他资源。"); return;
       }
     }
