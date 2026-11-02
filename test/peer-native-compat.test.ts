@@ -7,6 +7,29 @@ import type { CodexPublicActivity } from "../src/codex/public-item.js";
 import { withPeerBackend } from "../src/peer/backend.js";
 import { PeerError } from "../src/peer/rpc.js";
 import { peerFixture, principal } from "./peer-fixture.js";
+import path from "node:path";
+import { AccountManager } from "../src/server/account-manager.js";
+import { PeerRegistry } from "../src/peer/registry.js";
+import { RuntimeStateStore } from "../src/state/runtime-state.js";
+import { resolveStatePaths } from "../src/state/paths.js";
+
+test("Gateway restart retains a persisted peer follow binding before device registration", async t => {
+  const f = await peerFixture(t); await f.bind();
+  const store = new RuntimeStateStore(resolveStatePaths(path.join(f.root, "account-state")));
+  const session = store.createSession(principal.conversationId, f.thread.cwd!, "Persisted device task", undefined, "session", undefined,
+    { standalone: true, hostId: f.ticket.hostId });
+  store.setSessionThread(session.id, f.thread.threadId);
+  const offline = withPeerBackend(f.backend, new PeerRegistry(path.join(f.root, "server", "grants.json")));
+  const context = { entries: new Map([[principal.accountId, { status: "running", store, client: {} }]]),
+    runner: offline, configProvider: () => ({ codexBackend: "app-server", streamReplies: false }), isSessionResponding: () => false };
+  const subscriptions = Reflect.apply((AccountManager.prototype as any).threadSubscriptions, context, []);
+  assert.equal(subscriptions.length, 1);
+  assert.equal(subscriptions[0].enabled, true);
+  assert.equal(subscriptions[0].hostId, f.ticket.hostId);
+  assert.equal(subscriptions[0].threadId, f.thread.threadId);
+  await assert.rejects(f.as(() => offline.run(f.input())), e => e instanceof CodexCommunicationError && e.submission === "not-submitted");
+  assert.equal(f.runs.length, 0);
+});
 
 for (const reason of ["active", "handoff"] as const) test(`native ${reason} admission remains not submitted across peer RPC`, async t => {
   const f = await peerFixture(t); await f.bind();

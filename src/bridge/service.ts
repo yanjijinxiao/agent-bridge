@@ -1674,7 +1674,10 @@ export class BridgeService {
       const firstCatalog = this.runner.listSessionCatalog?.(catalogInput, firstHost);
       if (firstCatalog) await firstCatalog.catch(() => undefined); // Report once in the host loop below.
       let projectCatalog: readonly CodexProjectCandidate[] = [];
-      try { if (!hostFilter) projectCatalog = await this.codexProjectCandidates(); }
+      try {
+        if (hostFilter?.startsWith("peer:")) projectCatalog = projectCandidatesFromPeerCatalog(await this.runner.listProjects(hostFilter), hostFilter);
+        else if (!hostFilter) projectCatalog = await this.codexProjectCandidates();
+      }
       catch { warnings.push("项目目录暂不可用，项目名称及远程主机列表可能不完整；仍保留可读取的会话。"); }
       if (projectOnly) { hosts.clear(); hosts.add(activeProject?.hostId ?? "local"); }
       else if (!hostFilter && this.options.config.codexBackend !== "exec") {
