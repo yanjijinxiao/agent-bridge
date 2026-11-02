@@ -6,7 +6,24 @@ import { pathToFileURL } from "node:url";
 import test from "node:test";
 import { readBuildInfo } from "../src/server/build-info.js";
 // @ts-ignore JS release tooling is intentionally independent of the application runtime.
-import { testCounts, treeHash, assertReleaseDirectory } from "../scripts/release-local.mjs";
+import { testCounts, treeHash, assertReleaseDirectory, endpointReadinessPreserved } from "../scripts/release-local.mjs";
+
+test("release preserves ready endpoints and permits only the same already-reconnecting remote publication", () => {
+  const local = { key: JSON.stringify(["local", "https://192.0.2.1:8790", false, true]), state: "ready" };
+  const remote = { key: JSON.stringify(["remote:ssh", "https://203.0.113.10:20015", false, false]), state: "reconnecting" };
+  const before = [local, remote];
+  assert.equal(endpointReadinessPreserved(before, before), true, "an existing external outage does not block Gateway restart");
+  for (const state of ["connecting", "reconnecting", "ready"]) assert.equal(endpointReadinessPreserved(before, [local, { ...remote, state }]), true);
+  assert.equal(endpointReadinessPreserved([local, { ...remote, state: "ready" }], before), false, "a healthy relay cannot regress");
+  assert.equal(endpointReadinessPreserved(before, [{ ...local, state: "reconnecting" }, remote]), false);
+  assert.equal(endpointReadinessPreserved(before, [local, { ...remote, state: "error" }]), false);
+  assert.equal(endpointReadinessPreserved(before, [local]), false);
+  for (const identity of [["other", "https://203.0.113.10:20015", false, false], ["remote:ssh", "https://203.0.113.11:20015", false, false]])
+    assert.equal(endpointReadinessPreserved(before, [local, { ...remote, key: JSON.stringify(identity) }]), false);
+  assert.equal(endpointReadinessPreserved([{ ...remote, key: "invalid" }], [{ ...remote, key: "invalid" }]), false);
+  const localFailure = { ...local, state: "reconnecting" };
+  assert.equal(endpointReadinessPreserved([localFailure], [localFailure]), false);
+});
 
 test("release requires a complete successful regression, including no cancelled tests", () => {
   const log = "ℹ tests 100\nℹ pass 96\nℹ skipped 4\nℹ fail 0\nℹ cancelled 0\n";

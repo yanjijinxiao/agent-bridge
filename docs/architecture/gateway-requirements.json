@@ -8589,7 +8589,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "16ff17c22dd2eb392de99d22b9258aab087b691b333fbc59b40ec3ea81574d07"
+              "sha256": "ea5114f9fbeb3616b5de04cf09cce9d774e8f09ba1352b213bed74fda81b46fc"
             },
             {
               "file": "src/server/release-admission.ts",
@@ -8720,7 +8720,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "16ff17c22dd2eb392de99d22b9258aab087b691b333fbc59b40ec3ea81574d07"
+              "sha256": "ea5114f9fbeb3616b5de04cf09cce9d774e8f09ba1352b213bed74fda81b46fc"
             }
           ],
           "verifiedBoundary": "stage边界和制品hash，隔离release main另由rollback四场景；未发布真实服务。"
@@ -8742,7 +8742,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "16ff17c22dd2eb392de99d22b9258aab087b691b333fbc59b40ec3ea81574d07"
+              "sha256": "ea5114f9fbeb3616b5de04cf09cce9d774e8f09ba1352b213bed74fda81b46fc"
             }
           ],
           "verifiedBoundary": "真实临时lock竞态和错误cleanup；全发布崩溃/各平台回滚尚不完整。"
@@ -8779,6 +8779,25 @@
               "sha256": "1b94f2539390a4629fc0267ee69cac6733b0e67e136187bf32961d1f9e445844"
             }
           ]
+        },
+        {
+          "id": "REL-02.5",
+          "scenario": "已有远端中继reconnecting不阻止Gateway重启；原ready入口不得退化，端点/固定地址身份保持；授权及绑定另行严格核对。",
+          "status": "verified",
+          "sourceNote": "用户既有门禁边界及2026-11-02远端入口重连反馈。",
+          "tests": [
+            {
+              "file": "test/release-local.test.ts",
+              "name": "release preserves ready endpoints and permits only the same already-reconnecting remote publication"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "scripts/release-local.mjs",
+              "sha256": "ea5114f9fbeb3616b5de04cf09cce9d774e8f09ba1352b213bed74fda81b46fc"
+            }
+          ],
+          "verifiedBoundary": "发布端点比较函数真实输入组合与既有rollback/lease测试；不宣称远程网络已恢复或完成手机验收。"
         }
       ]
     },

@@ -33,6 +33,22 @@ export function testCounts(log) {
   if (!(tests > 0) || passed + skipped !== tests || get('fail') !== 0 || get('cancelled') !== 0) throw Error('Full regression did not pass');
   return { tests, passed, skipped };
 }
+/** Compare the same published endpoints, rather than requiring an unrelated
+ * remote network outage to recover before Gateway itself can restart. Ready
+ * endpoints may not regress; only an already-reconnecting remote relay may
+ * remain connecting/reconnecting. Credentials and bindings are checked apart. */
+export function endpointReadinessPreserved(before, after) {
+  if (before.length !== after.length) return false;
+  return before.every((prior, index) => {
+    const current = after[index];
+    if (!current || current.key !== prior.key) return false;
+    if (current.state === 'ready') return true;
+    let identity; try { identity = JSON.parse(prior.key); } catch { return false; }
+    return prior.state === 'reconnecting' && ['connecting', 'reconnecting'].includes(current.state)
+      && Array.isArray(identity) && typeof identity[0] === 'string' && identity[0] !== 'local' && identity[0].length > 0
+      && identity[3] === false;
+  });
+}
 export function assertReleaseDirectory(dir, repo, state) {
   const within = (child, parent) => { const relative = path.relative(parent, child); return !relative || relative !== '..' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative); };
   for (const protectedPath of [repo, state]) if (within(dir, protectedPath) || within(protectedPath, dir)) throw Error('Release directory overlaps source or state');
@@ -173,7 +189,7 @@ export async function main(argv) {
         [current, build] = await Promise.all([health(), api('/api/build')]);
         ready = build.build?.commit === m.commit && build.build?.sourceHash === m.source
           && !current.authorizationError && current.ideRunning === before.health.ideRunning && current.ttlDays === before.health.ttlDays
-          && current.endpoints.length === before.health.endpoints.length && current.endpoints.every((e, index) => e.state === 'ready' && e.key === before.health.endpoints[index].key)
+          && endpointReadinessPreserved(before.health.endpoints, current.endpoints)
           && before.health.accounts.filter(a => a.status === 'running').every(a => current.accounts.some(b => a.id === b.id && b.status === 'running' && (!a.connection || a.connection === b.connection)));
         if (ready) break;
       } catch { /* bounded readiness polling, never native task mutation */ }
@@ -228,7 +244,7 @@ export async function main(argv) {
   let stopped = false, oldDead = false, installed = false;
   try {
     const before = { health: await health(), grants: grants(), permissions: permissions() };
-    if (before.health.authorizationError || before.health.ideRunning && before.health.endpoints.some(e => e.state !== 'ready')) throw Error('Existing Gateway is not ready for cutover');
+    if (before.health.authorizationError || !endpointReadinessPreserved(before.health.endpoints, before.health.endpoints)) throw Error('Existing Gateway is not ready for cutover');
     save(path.join(dir, 'before.json'), before);
     m.status = 'switching'; save(manifest, m);
     execFileSync('/bin/launchctl', ['bootout', options.service]); stopped = true; await dead(m.previousPid); oldDead = true;

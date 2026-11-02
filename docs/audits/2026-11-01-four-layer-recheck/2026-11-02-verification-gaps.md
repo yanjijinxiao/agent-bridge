@@ -1,6 +1,6 @@
 # 尚缺验证和部分覆盖逐项清单（2026-11-02）
 
-来源：docs/architecture/gateway-requirements.json。当前共 303 个 case；28 项没有直接测试映射，97 项只覆盖部分条件。新增 CAT-02.4 的9例属于窄边界验证，不能把其余缺口改成通过。
+来源：docs/architecture/gateway-requirements.json。当前共 304 个 case；28 项没有直接测试映射，97 项只覆盖部分条件。新增 CAT-02.4 的9例属于窄边界验证，不能把其余缺口改成通过。
 
 原清单中的旧提交号或旧授权数量属于当时记录，不代表当前线上状态。
 
