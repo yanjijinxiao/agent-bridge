@@ -1,3 +1,4 @@
+import { withChannelWriteLeases } from "../bridge/channel-write-leases.js";
 import { AdmissionService } from "../bridge/admission.js";
 import crypto from "node:crypto";
 import { migrateCardBootstrap } from "./migrate-card-bootstrap.js";
@@ -680,7 +681,7 @@ export class AccountManager {
     const config = this.configProvider();
     store.prepareBindingExpiry(config.bindingIdleDays);
     const adapter = this.adapterFactory(account, { inboundDir: statePaths.inboundDir, maxInboundBytes: config.maxInboundBytes });
-    const client = adapter.client;
+    const client = withChannelWriteLeases(adapter.client, this.resultRestartWork);
     const runner = this.runnerFor(config);
     const service = this.bridgeFactory({
       assertRuntimeWritable: () => this.assertRuntimeWritable(),
@@ -1687,12 +1688,12 @@ export class AccountManager {
       safePathSegment(sessionId),
       crypto.randomUUID()
     );
-    fs.mkdirSync(sessionDir, { recursive: true });
+    fs.mkdirSync(sessionDir, { recursive: true, mode: 0o700 });
     try {
       return uploads.map((upload) => {
         const label = sanitizeFileName(upload.name);
         const targetPath = uniqueFilePath(sessionDir, label);
-        fs.writeFileSync(targetPath, upload.data, { flag: "wx" });
+        fs.writeFileSync(targetPath, upload.data, { flag: "wx", mode: 0o600 });
         return {
           kind: inferMediaKind(label),
           label,

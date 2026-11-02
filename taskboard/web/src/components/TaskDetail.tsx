@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -14,6 +14,7 @@ import {
   updateComment,
 } from "../api";
 import { TASK_STATUSES } from "../types";
+import { ownsSubmissionReceipt, pendingSubmissionKeys, submissionKey, submissionReceiptState } from "../submissionReceipts";
 import type {
   ActorIdentity,
   Attachment,
@@ -52,6 +53,7 @@ import {
   serializeInlineMedia,
   type InlineMediaComposerHandle,
   type InlineMediaSegment,
+  type PendingInlineImage,
 } from "./InlineMediaComposer";
 import {
   IssueParentLink,
@@ -218,9 +220,10 @@ export function TaskDetail({
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [commentSegments, setCommentSegments] = useState<InlineMediaSegment[]>(
-    () => createInlineMediaSegments(
-      window.localStorage.getItem(`taskboard.comment-draft.${task.id}`) ?? "",
-    ),
+    () => {
+      try { return createInlineMediaSegments(window.localStorage.getItem(`taskboard.comment-draft.${task.id}`) ?? ""); }
+      catch { return createInlineMediaSegments(); }
+    },
   );
   const [pendingCommentFiles, setPendingCommentFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -236,6 +239,25 @@ export function TaskDetail({
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const commentAttachmentInputRef = useRef<HTMLInputElement>(null);
   const commentDraftRevision = useRef(0);
+  const commentWrite = useRef<{
+    id: string; body: string; revision: number; files: File[]; images: PendingInlineImage[];
+    comment?: Comment; uploaded: Map<File, Attachment>;
+  } | null>(null);
+  const commentSubmitting = useRef(false);
+  const draftOwnerKey = `taskboard.comment-draft-owner.${task.id}`;
+  const [draftOwner] = useState(() => crypto.randomUUID());
+  useLayoutEffect(() => {
+    try { window.localStorage.setItem(draftOwnerKey, draftOwner); }
+    catch { setCommentsError("浏览器草稿存储不可用，当前页面的编辑仍保留。"); }
+  }, [draftOwnerKey, draftOwner]);
+  const [commentReview, setCommentReview] = useState(() => {
+    try { return { keys: pendingSubmissionKeys("comment", task.id), unavailable: false }; }
+    catch { return { keys: [] as string[], unavailable: true }; }
+  });
+  const commentReviewKeys = commentReview.keys;
+  const commentNeedsReview = commentReview.unavailable || commentReviewKeys.length > 0;
+  const commentReviewPending = useRef(commentNeedsReview);
+  const [retryComment, setRetryComment] = useState(false);
   const workflowAvailable = !currentTask.workflowId
     || workflows.some((workflow) => workflow.id === currentTask.workflowId);
   const draft = serializeInlineMedia(commentSegments);
@@ -297,10 +319,13 @@ export function TaskDetail({
 
   useEffect(() => {
     const key = `taskboard.comment-draft.${task.id}`;
-    const text = inlineMediaText(commentSegments);
-    if (text) window.localStorage.setItem(key, text);
-    else window.localStorage.removeItem(key);
-  }, [commentSegments, task.id]);
+    try {
+      if (window.localStorage.getItem(draftOwnerKey) !== draftOwner) return;
+      const text = inlineMediaText(commentSegments);
+      if (text) window.localStorage.setItem(key, text);
+      else window.localStorage.removeItem(key);
+    } catch { setCommentsError("浏览器草稿存储不可用，当前页面的编辑仍保留。"); }
+  }, [commentSegments, task.id, draftOwnerKey, draftOwner]);
 
   useEffect(() => {
     function handleShortcut(event: globalThis.KeyboardEvent) {
@@ -403,44 +428,83 @@ export function TaskDetail({
 
   async function submitComment() {
     const body = draft.trim();
-    if ((!body && pendingCommentFiles.length === 0 && commentInlineImages.length === 0) || submitting) return;
-    const submittedRevision = commentDraftRevision.current;
+    if (commentSubmitting.current || commentReviewPending.current
+      || (!commentWrite.current && !body && pendingCommentFiles.length === 0 && commentInlineImages.length === 0)) return;
+    // One confirmed comment owns the whole upload operation. A partial failure
+    // resumes this operation, never POSTs the comment or a confirmed file again.
+    const write: NonNullable<typeof commentWrite.current> = commentWrite.current ??= {
+      id: crypto.randomUUID(), body, revision: commentDraftRevision.current, files: [...pendingCommentFiles],
+      images: [...commentInlineImages], uploaded: new Map(),
+    };
+    const commentReceiptKey = submissionKey("comment", task.id, write.id);
+    const ownsCommentReceipt = () => ownsSubmissionReceipt(commentReceiptKey, write.id);
+    commentSubmitting.current = true;
     setSubmitting(true);
     setCommentsError(null);
+    const alreadyCreated = Boolean(write.comment);
+    let receiptSaved = alreadyCreated;
     try {
-      const comment = await createComment(task.id, body);
-      const [results, inlineAttachments] = await Promise.all([
-        Promise.allSettled(
-          pendingCommentFiles.map((file) => uploadCommentAttachment(comment.id, file)),
-        ),
-        Promise.all(
-          commentInlineImages.map((image) => uploadCommentAttachment(comment.id, image.file)),
-        ),
-      ]);
-      const uploaded = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
-      const nextComment = commentInlineImages.length > 0
-        ? await updateComment(
-            comment,
-            resolveInlineMediaMarkdown(body, commentInlineImages, inlineAttachments),
-          )
-        : { ...comment, attachments: [...comment.attachments, ...uploaded] };
-      setComments((current) => [...current, nextComment]);
-      if (commentDraftRevision.current === submittedRevision) {
+      // Retain a body-free receipt boundary across page reloads. Files remain
+      // owned by this mounted composer; reload cannot silently recreate them.
+      if (!alreadyCreated) window.localStorage.setItem(commentReceiptKey, JSON.stringify({ id: write.id, phase: "creating" }));
+      receiptSaved = true;
+      if (!write.comment) write.comment = await createComment(task.id, write.body);
+      if (!ownsCommentReceipt()) return;
+      const comment = write.comment;
+      setComments((current) => [...current.filter(item => item.id !== comment.id), comment]);
+      // This receipt is already durable on a partial retry. Rewriting it is
+      // unnecessary and a later quota failure cannot erase a confirmed ID.
+      if (!alreadyCreated) window.localStorage.setItem(commentReceiptKey, JSON.stringify({ id: write.id, phase: "uploading", commentId: comment.id }));
+      for (const file of [...write.files, ...write.images.map(image => image.file)]) {
+        if (write.uploaded.has(file)) continue;
+        const uploaded = await uploadCommentAttachment(comment.id, file);
+        if (!ownsCommentReceipt()) return;
+        write.uploaded.set(file, uploaded);
+        setPendingCommentFiles(current => current.filter(candidate => candidate !== file));
+        const updated = { ...comment, attachments: [...comment.attachments, ...write.uploaded.values()] };
+        setComments(current => current.map(item => item.id === comment.id ? updated : item));
+      }
+      const nextComment = write.images.length
+        ? await updateComment(comment, resolveInlineMediaMarkdown(write.body, write.images,
+          write.images.map(image => write.uploaded.get(image.file)!)))
+        : { ...comment, attachments: [...comment.attachments, ...write.uploaded.values()] };
+      if (!ownsCommentReceipt()) return;
+      setComments(current => current.map(item => item.id === comment.id ? nextComment : item));
+      window.localStorage.removeItem(commentReceiptKey);
+      commentWrite.current = null;
+      setRetryComment(false);
+      if (commentDraftRevision.current === write.revision) {
         setCommentSegments(createInlineMediaSegments());
+        if (window.localStorage.getItem(draftOwnerKey) === draftOwner)
+          window.localStorage.removeItem(`taskboard.comment-draft.${task.id}`);
         requestAnimationFrame(() => composerRef.current?.focus());
       }
-      setPendingCommentFiles([]);
       if (commentAttachmentInputRef.current) commentAttachmentInputRef.current.value = "";
-      const failed = results.length - uploaded.length;
-      if (failed > 0) setCommentsError(`评论已发布，但有 ${failed} 个附件上传失败。`);
-      else onAnnounce(
-        uploaded.length + inlineAttachments.length > 0
-          ? "评论和附件已发布。"
-          : "评论已发布。",
-      );
+      onAnnounce(write.uploaded.size ? "评论和附件已发布。" : "评论已发布。");
     } catch (error) {
-      setCommentsError(messageFor(error));
+      if (!receiptSaved) {
+        commentWrite.current = null;
+        setCommentsError("无法保存评论提交记录，评论尚未提交。请检查浏览器存储后重试。");
+        return;
+      }
+      if (submissionReceiptState(commentReceiptKey, write.id) === "retired") return;
+      if (!(error instanceof ApiError) || error.status === 0 || error.status >= 500 || error.code === "VERSION_CONFLICT"
+        || submissionReceiptState(commentReceiptKey, write.id) === "unavailable") {
+        // A network/5xx failure can follow an applied write. Preserve the
+        // receipt and require review; retry must never infer non-execution.
+        setCommentReview({ keys: [commentReceiptKey], unavailable: false });
+        commentReviewPending.current = true;
+        setCommentsError("评论或附件的接收结果尚未确认。请先核对上方评论，原操作不会自动重发。");
+      } else if (write.comment) {
+        setRetryComment(true);
+        setCommentsError(`评论已创建，部分附件或正文尚未完成：${messageFor(error)}。可继续本次提交，不会重复创建评论。`);
+      } else {
+        window.localStorage.removeItem(commentReceiptKey);
+        commentWrite.current = null;
+        setCommentsError(messageFor(error));
+      }
     } finally {
+      commentSubmitting.current = false;
       setSubmitting(false);
     }
   }
@@ -913,15 +977,43 @@ export function TaskDetail({
                   placeholder="留下评论…"
                   ariaLabel="留下评论"
                   onChange={(segments) => {
+                    try { window.localStorage.setItem(draftOwnerKey, draftOwner); }
+                    catch { setCommentsError("浏览器草稿存储不可用，当前页面的编辑仍保留。"); }
                     commentDraftRevision.current += 1;
                     setCommentSegments(segments);
                   }}
                   onError={setCommentsError}
                   onKeyDown={handleSubmitShortcut}
                 />
+                {commentNeedsReview && <div role="status" className="comments-error">
+                  <p>{commentReview.unavailable ? "无法读取浏览器提交记录，请恢复浏览器存储后重新检查；当前草稿保留。" : "上次评论提交尚未确认或在页面关闭前未完成。请核对已有评论；附件和原评论不会自动重发。"}</p>
+                  {commentReview.unavailable && <button type="button" className="button" onClick={() => {
+                    try {
+                      const keys = pendingSubmissionKeys("comment", task.id);
+                      setCommentReview({ keys, unavailable: false });
+                      commentReviewPending.current = keys.length > 0;
+                    } catch { setCommentsError("浏览器提交记录仍不可读取，评论未提交。"); }
+                  }}>重新检查浏览器存储</button>}
+                  <button type="button" className="button" onClick={() => {
+                    void listComments(task.id).then(setComments, error => setCommentsError(messageFor(error)));
+                  }}>刷新评论</button>
+                  <button type="button" className="button" disabled={commentReview.unavailable} onClick={() => {
+                    try { for (const key of commentReviewKeys) window.localStorage.removeItem(key); }
+                    catch { setCommentsError("无法结束浏览器提交记录，原记录和草稿仍保留。"); return; }
+                    const write = commentWrite.current;
+                    if (commentDraftRevision.current === 0 || write && commentDraftRevision.current === write.revision)
+                      setCommentSegments(createInlineMediaSegments());
+                    commentWrite.current = null;
+                    setCommentReview({ keys: [], unavailable: false });
+                    commentReviewPending.current = false;
+                    setRetryComment(false);
+                    setPendingCommentFiles([]);
+                    setCommentsError(null);
+                  }}>结束本次提交</button>
+                </div>}
                 <PendingAttachments
                   files={pendingCommentFiles}
-                  disabled={submitting}
+                  disabled={submitting || retryComment || commentNeedsReview}
                   uploadLabel="发布后上传"
                   ariaLabel="待上传评论附件"
                   className="comment-composer-files"
@@ -932,7 +1024,7 @@ export function TaskDetail({
                     <button
                       className="comment-attach-button"
                       type="button"
-                      disabled={submitting}
+                      disabled={submitting || retryComment || commentNeedsReview}
                       aria-label="添加评论附件"
                       title="添加附件"
                       onClick={() => commentAttachmentInputRef.current?.click()}
@@ -944,6 +1036,7 @@ export function TaskDetail({
                       ref={commentAttachmentInputRef}
                       type="file"
                       multiple
+                      disabled={submitting || retryComment || commentNeedsReview}
                       hidden
                       onChange={(event) => {
                         if (event.currentTarget.files) stageCommentFiles(event.currentTarget.files);
@@ -955,13 +1048,13 @@ export function TaskDetail({
                     <button
                       className="button primary"
                       type="submit"
-                      disabled={(
+                      disabled={((
                         !draft.trim()
                         && pendingCommentFiles.length === 0
                         && commentInlineImages.length === 0
-                      ) || submitting}
+                      ) && !retryComment) || submitting || commentNeedsReview}
                     >
-                      {submitting ? "发布中…" : "评论"}
+                      {submitting ? "发布中…" : retryComment ? "继续本次提交" : "评论"}
                     </button>
                   </div>
                 </footer>

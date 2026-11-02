@@ -6,11 +6,14 @@ import { TaskEditor } from "../../../web/src/components/TaskEditor";
 import { TaskCard } from "../../../web/src/components/TaskCard";
 import { TaskContextMenu } from "../../../web/src/components/TaskContextMenu";
 import { IssueParentLink } from "../../../web/src/components/IssueRelations";
+import { App } from "../../../web/src/App";
+import { WorkflowBoard } from "../../../web/src/components/WorkflowBoard";
+import { paletteData } from "../../../web/src/components/workflowCatalog";
 import "../../../web/src/styles.css";
 
 // Isolated component fixture. It renders production React/CSS/API code, but
 // records requests locally and never starts Codex, reads a workspace or sends IM.
-const audit: any = (window as any).audit = { requests: [], saved: [], releaseSnapshot: () => {}, project: (_id: string) => {} };
+const audit: any = (window as any).audit = { documentId: crypto.randomUUID(), requests: [], saved: [], releaseSnapshot: () => {}, project: (_id: string) => {} };
 const now = new Date().toISOString();
 const actor = { type: "user" as const, id: "fixture-user", name: "Fixture User", avatarUrl: null };
 const task: any = { id: "task-one", identifier: "TEST-1", projectId: "a", title: "Fixture task", description: "Fixture description",
@@ -25,6 +28,25 @@ const threads: any[] = [{ id: "thread-a", title: "Existing conversation", origin
   codexThreadId: "PRIVATE_NATIVE_THREAD", workspacePath: "/PRIVATE_HOST_PATH",
   model: "a-model", reasoningEffort: "high", sandbox: "workspace-write", status: "idle", createdAt: now, updatedAt: now }];
 const originalFetch = window.fetch.bind(window);
+const appView = new URL(location.href).searchParams.get("view") === "app";
+const workflowView = new URL(location.href).searchParams.get("view") === "workflow";
+const workflowRecords = new Map<string, any>();
+function seededWorkflow() {
+  const spec = [["trigger","issue-trigger"],["condition","condition"],["yes","codex-review"],["no","codex-review"],
+    ["plan","basic-planning"],["child-one","skill"],["child-two","mcp"],["after","issue-update"]];
+  const nodes = spec.map(([id,kind],i)=>({id,type:"workflow",position:{x:0,y:i*180},data:{...paletteData(kind),title:id},
+    ...(id.startsWith("child-")?{parentId:"plan"}: {})}));
+  const step=(nodeId:string)=>({type:"step",nodeId});
+  const flow={version:2,root:{items:[step("trigger"),{type:"condition",nodeId:"condition",branches:{true:{items:[step("yes")]},false:{items:[step("no")]}}},step("plan"),step("after")]}};
+  return {version:1,tabs:[{id:"fixture",name:"Fixture workflow"}],activeWorkflowId:"fixture",snapshots:{fixture:{nodes,flow,selectedNodeId:null}}};
+}
+audit.workflowRecord = (projectId: string) => workflowRecords.get(projectId);
+const boardTasks = [task, { ...task, id: "task-b", projectId: "b", identifier: "B-1", title: "Project B only" }];
+const boardProjects = ["a", "b"].map(id => ({id, name: `Project ${id.toUpperCase()}`, workspacePath: null,
+  issueCount: 1, createdAt: now, updatedAt: now}));
+audit.reviseBoard = () => { for (const issue of boardTasks.filter(t=>t.projectId === "a")) {
+  issue.title = "Later native change"; issue.version += 1;
+} };
 let holdSnapshot = new URL(location.href).searchParams.has("hold");
 const heldSnapshot = new Promise<void>(resolve => { audit.releaseSnapshot = () => { holdSnapshot = false; resolve(); }; });
 const events = [
@@ -40,6 +62,63 @@ window.fetch = async (input: any, init?: RequestInit) => {
   const method = init?.method ?? "GET", body = typeof init?.body === "string" ? JSON.parse(init.body)
     : init?.body instanceof File ? { filename: init.body.name, size: init.body.size } : undefined;
   audit.requests.push({ path: url.pathname, search: url.search, method, body });
+  if (workflowView) {
+    if (url.pathname === "/api/workflow-capabilities") return Response.json({skills:[],mcpServers:[]});
+    if (!url.pathname.endsWith("/workflow-workspace")) throw Error("Unexpected workflow fixture request");
+    const projectId=url.pathname.split("/")[3];
+    const record=workflowRecords.get(projectId) ?? {projectId,version:1,workspace:new URL(location.href).searchParams.has("seed") ? seededWorkflow() : null};
+    workflowRecords.set(projectId,record);
+    if (method === "GET" && new URL(location.href).searchParams.has("holdWorkflow") && !audit.workflowReleased) {
+      await new Promise<void>(resolve=>{audit.releaseWorkflow=()=>{audit.workflowReleased=true;resolve();};});
+    }
+    if (method === "PUT") {
+      if (audit.holdWorkflowSave) {audit.holdWorkflowSave=false;await new Promise<void>(resolve=>{audit.releaseWorkflowSave=resolve;});}
+      if (audit.conflictWorkflowNext || body.version !== record.version) {
+        if (audit.conflictWorkflowNext) {
+          record.workspace=structuredClone(record.workspace ?? body.workspace);
+          record.workspace.tabs[0].name="Remote workflow";
+          record.version+=1; audit.conflictWorkflowNext=false;
+        }
+        return Response.json({error:{code:"VERSION_CONFLICT",message:"Fixture workflow changed"}},{status:409});
+      }
+      record.workspace=structuredClone(body.workspace);record.version+=1;
+    }
+    return Response.json({workflow:record});
+  }
+  if (appView) {
+    let result: any;
+    if (url.pathname === "/api/projects") result = {projects: boardProjects};
+    else if (url.pathname === "/api/meta") result = {mode: "local", capabilities: {localAiChat: false}};
+    else if (url.pathname === "/api/device-workspaces") result = {workspaces:{}};
+    else if (url.pathname.endsWith("/workflow-workspace")) result = {workflow:{workspace:null,version:1}};
+    else if (url.pathname.endsWith("/development-contexts")) result = {workspacePath:null, contexts:[]};
+    else if (url.pathname === "/api/revisions") result = {changed:false,revision:1};
+    else if (url.pathname === "/api/tasks" && method === "GET") result = {tasks: boardTasks.filter(t=>t.projectId===url.searchParams.get("projectId") && !t.archivedAt)};
+    else if (url.pathname === "/api/tasks" && method === "POST") {
+      const created = {...task,...body,id:`created-${boardTasks.length}`,identifier:`A-${boardTasks.length}`,version:1};
+      boardTasks.push(created); result={task:{...created}};
+      if (audit.dropCreateAck) { audit.dropCreateAck=false; throw new TypeError("Fixture lost create response"); }
+    } else if (/^\/api\/tasks\/[^/]+\/attachments$/.test(url.pathname) && method === "POST") {
+      if (audit.failUpload === body?.filename) {
+        audit.failUpload=null;
+        return new Response(JSON.stringify({error:{message:"Fixture rejected attachment"}}),{status:400,headers:{"Content-Type":"application/json"}});
+      }
+      result={attachment:{id:`board-file-${audit.requests.filter((r:any)=>r.body?.filename).length}`,taskId:url.pathname.split("/")[3],
+        filename:body.filename,size:body.size,contentType:"application/octet-stream",createdAt:now}};
+    } else if (url.pathname.startsWith("/api/tasks/")) {
+      const current=boardTasks.find(t=>t.id===url.pathname.split("/")[3]);
+      if (!current) throw Error("Fixture unknown task");
+      if (url.pathname.endsWith("/archive")) Object.assign(current,{archivedAt:now,version:current.version+1});
+      else if (url.pathname.endsWith("/restore")) Object.assign(current,{archivedAt:null,version:current.version+1});
+      else if (method === "PATCH") Object.assign(current,body,{version:current.version+1});
+      result={task:{...current}};
+    } else throw Error(`Unsupported isolated App request ${method} ${url.pathname}`);
+    if (method !== "GET" && audit.holdBoardWrite) {
+      audit.holdBoardWrite=false;
+      await new Promise<void>(resolve=>{audit.releaseBoardWrite=resolve;});
+    }
+    return new Response(JSON.stringify(result),{headers:{"Content-Type":"application/json"}});
+  }
   const writeKind = method === "POST" && url.pathname === "/api/local/ai/threads" ? "create"
     : method === "POST" && url.pathname.endsWith("/turns") ? "turn"
     : method === "POST" && url.pathname === `/api/tasks/${task.id}/comments` ? "comment" : null;
@@ -53,18 +132,31 @@ window.fetch = async (input: any, init?: RequestInit) => {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
+  if (/^\/api\/comments\/.+\/attachments$/.test(url.pathname) && method === "POST" && audit.failUpload === body?.filename) {
+    audit.failUpload = null;
+    return new Response(JSON.stringify({ error: { message: "Fixture rejected attachment" } }), {
+      status: 400, headers: { "Content-Type": "application/json" },
+    });
+  }
   let result: any;
   if (url.pathname === `/api/tasks/${task.id}/comments`) {
     if (method === "GET") result = { comments };
     else { const comment = { ...comments[0], ...body, id: `comment-${comments.length + 1}`, attachments: [] };
-      comments.push(comment); result = { comment }; }
+      comments.push(comment); result = { comment };
+      if (audit.dropCommentAck) { audit.dropCommentAck = false; throw new TypeError("Fixture lost comment response"); }
+    }
   } else if (url.pathname === `/api/tasks/${task.id}/attachments`) result = { attachments: [] };
+  else if (/^\/api\/comments\/[^/]+$/.test(url.pathname) && method === "PATCH") {
+    const comment = comments.find(c => c.id === url.pathname.split("/")[3]);
+    Object.assign(comment, { body: body.body, version: comment.version + 1 }); result = { comment };
+  }
   else if (/^\/api\/comments\/.+\/attachments$/.test(url.pathname)) {
     const comment = comments.find(c => c.id === url.pathname.split("/")[3]);
     const attachment = { id: `attachment-${comment.attachments.length + 1}`, taskId: task.id, commentId: comment.id,
       filename: body.filename, contentType: init?.headers instanceof Headers ? init.headers.get("Content-Type") : "text/plain",
       size: body.size, createdAt: now };
     comment.attachments.push(attachment); result = { attachment };
+    if (audit.dropUploadAck) { audit.dropUploadAck = false; throw new TypeError("Fixture lost attachment response"); }
   } else if (url.pathname.startsWith("/api/attachments/") && method === "DELETE") {
     for (const c of comments) c.attachments = c.attachments.filter((a: any) => a.id !== url.pathname.split("/")[3]);
     result = {};
@@ -93,11 +185,20 @@ window.fetch = async (input: any, init?: RequestInit) => {
 class LocalEvents extends EventTarget { constructor(_url: string) { super(); } close() {} }
 (window as any).EventSource = LocalEvents;
 localStorage.setItem("taskboard.aiChat.lastThreadId", "thread-a");
+if(new URL(location.href).searchParams.has("storageFull")){
+  const native=Storage.prototype.setItem; audit.storageFull=true;
+  Storage.prototype.setItem=function(key,value){if(audit.storageFull && key.startsWith("taskboard."))throw new DOMException("Fixture full","QuotaExceededError");return native.call(this,key,value);};
+}
 function Fixture() {
   const [project, setProject] = useState("a"); audit.project = setProject; audit.currentProject = project;
   const [menuOpen, setMenuOpen] = useState(true);
+  const [detailInstance, setDetailInstance] = useState<number | null>(0);
+  audit.hideDetail = () => setDetailInstance(null);
+  audit.remountDetail = () => setDetailInstance(value => (value ?? 0) + 1);
   const view = new URL(location.href).searchParams.get("view");
+  if (view === "app") return <App />;
   const shared = { currentUser: actor, workflows: [], developmentScan: { workspacePath: null, contexts: [] }, developmentScanLoading: false };
+  if (view === "workflow") return <div style={{height:"100vh",display:"flex",flexDirection:"column"}}><WorkflowBoard projectId={project} projectName={`Project ${project}`} revision={0} onWorkflowsChange={workflows=>{audit.workflowOptions=workflows;}} /></div>;
   if (view === "menu") {
     audit.menuActions ??= [];
     return menuOpen ? <TaskContextMenu task={task} position={{ x: 100, y: 100 }} labels={[]}
@@ -121,10 +222,12 @@ function Fixture() {
     onEdit={() => {}} onContextMenu={() => {}} onMove={() => {}} onDragStart={() => {}} onDragEnd={() => {}} onOpenThread={() => {}} />;
   if (view === "editor") return <TaskEditor {...shared} task={null} initialStatus="todo" labels={[]} onCancel={() => {}}
     onSave={async (draft, files) => { audit.saved.push({ draft, filenames: files.map(f => f.name) }); }} />;
-  if (view === "detail") return <TaskDetail {...shared} task={task} tasks={[task]} availableLabels={[]}
+  const detail = (key: number) => <TaskDetail key={key} {...shared} task={task} tasks={[task]} availableLabels={[]}
     commentsRevision={0} attachmentsRevision={0} onUpdate={async (_t, changes) => ({ ...task, ...changes })}
     onOpenTask={() => {}} onAddRelation={async () => ({ task, relatedTask: task })} onRemoveRelation={async () => ({ task, relatedTask: task })}
     onOpenThread={() => {}} onOpenInThread={() => {}} openingThread={false} onError={() => {}} onAnnounce={() => {}} />;
+  if (view === "detail") return detailInstance === null ? <p>Detail closed</p> : detail(detailInstance);
+  if (view === "dual-detail") return <><div data-pane="first">{detail(1)}</div><div data-pane="second">{detail(2)}</div></>;
   return <AiChat available={true} projectId={project} issueId={null} />;
 }
 createRoot(document.getElementById("root")!).render(<Fixture />);

@@ -246,3 +246,22 @@ test("new native recovery identity keeps each bound chat on its original card, e
   assert.equal(starts.length, 2);
   assert.deepEqual(frames.filter(f => f.finalize).map(f => f.messageId).sort(), ["original-chat-a", "original-chat-b"]);
 });
+
+for(const phase of ['checking','settling']) test(`capacity ${phase} only reads native state and does not hold restart`,async t=>{
+  const f=fixture(t); f.coordinator.stop();
+  const old={...scope,backend:'app-server',turns:['failed'],attempts:1,nextAt:0,status:phase==='checking'?'finished':'uncertain',acceptedTurnId:'accepted'};
+  fs.writeFileSync(f.options.filePath,JSON.stringify({records:{[JSON.stringify(['local','thread'])]:old}}));
+  const entered=Promise.withResolvers<void>(), release=Promise.withResolvers<void>();
+  (f.options.backend() as any).readThreadSnapshot=async()=>{entered.resolve();await release.promise;return {state:{threadId:'thread'},turns:[]};};
+  const coordinator=new CapacityRecoveryCoordinator(f.options);t.after(()=>coordinator.stop());
+  if(phase==='checking')coordinator.offer({...scope,turnId:'new-failure'});else coordinator.start();
+  await entered.promise;
+  try {
+    assert.equal(coordinator.hasInFlightWork(),true);
+    assert.equal(coordinator.hasRestartBlockingWork(),false);
+    coordinator.stop();const saved=fs.readFileSync(f.options.filePath,'utf8');
+    release.resolve(); await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(fs.readFileSync(f.options.filePath,'utf8'),saved);
+    assert.equal(f.calls.length,0);assert.equal(f.terminals.length,0);
+  }finally{release.resolve();}
+});

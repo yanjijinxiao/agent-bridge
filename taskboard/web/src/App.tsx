@@ -57,6 +57,7 @@ import { TaskDetail } from "./components/TaskDetail";
 import { TaskEditor } from "./components/TaskEditor";
 import { TaskFilterMenu } from "./components/TaskFilterMenu";
 import { buildIssueUrl, readIssueIdentifier } from "./issueRoute";
+import { ownsSubmissionReceipt, pendingSubmissionKeys, submissionKey, submissionReceiptState } from "./submissionReceipts";
 import { DEFAULT_LABELS } from "./labels";
 import {
   EMPTY_TASK_FILTERS,
@@ -69,6 +70,7 @@ import {
 import {
   TASK_STATUSES,
   type ActorIdentity,
+  type Attachment,
   type DevelopmentScan,
   type HostContext,
   type IssueRelationType,
@@ -100,6 +102,15 @@ const WorkflowBoard = lazy(() => import("./components/WorkflowBoard").then((modu
 interface EditorState {
   task: Task | null;
   status: TaskStatus;
+}
+
+interface IssueCreation {
+  id: string;
+  editor: EditorState;
+  task?: Task;
+  savedDraft?: string;
+  uploaded: Map<File, Attachment>;
+  uncertain?: boolean;
 }
 
 interface ContextMenuState {
@@ -529,6 +540,10 @@ export function App() {
   const [columnVisibilityByProject, setColumnVisibilityByProject] = useState(readColumnVisibilityByProject);
   const [boardView, setBoardView] = useState<BoardView>("issues");
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [issueNeedsReview, setIssueNeedsReview] = useState(false);
+  const [resumingIssue, setResumingIssue] = useState(false);
+  const issueCreationRef = useRef<IssueCreation | null>(null);
+  const issueReviewKeysRef = useRef<string[]>([]);
   const [detailTaskIdentifier, setDetailTaskIdentifier] = useState<string | null>(
     () => readIssueIdentifier(window.location.search),
   );
@@ -556,10 +571,40 @@ export function App() {
   const tasksRef = useRef<Task[]>([]);
   const undoSequenceRef = useRef(0);
   const undoStackRef = useRef<UndoOperation[]>([]);
-  const undoInFlightRef = useRef(false);
+  const undoInFlightRef = useRef<{ generation: number } | null>(null);
   const dragRegionRef = useRef<HTMLDivElement>(null);
   const selectedProjectIdRef = useRef(selectedProjectId);
-  selectedProjectIdRef.current = selectedProjectId;
+  const projectViewGenerationRef = useRef(0);
+  const renderedProjectGeneration = projectViewGenerationRef.current;
+  const isCurrentProjectView = () => selectedProjectIdRef.current === selectedProjectId
+    && projectViewGenerationRef.current === renderedProjectGeneration;
+  const selectProjectView = useCallback((projectId: string) => {
+    if (selectedProjectIdRef.current !== projectId) {
+      // Retire the old view synchronously, including a switch away and back.
+      // Its acknowledged writes still belong to their original backend entity.
+      projectViewGenerationRef.current += 1;
+      selectedProjectIdRef.current = projectId;
+      tasksRequestRef.current += 1;
+      undoStackRef.current = [];
+      setUndoNotice(null);
+      setEditor(null);
+      issueCreationRef.current = null;
+      setResumingIssue(false);
+      setIssueNeedsReview(false);
+      issueReviewKeysRef.current = [];
+      setContextMenu(null);
+      setTasks([]);
+      setHasLoadedTasks(false);
+      setActionError(null);
+      setMovingTaskId(null);
+      setOpeningProjectId(null);
+      setOpeningThreadTaskId(null);
+      setDraggedTaskId(null);
+      setDraggedTaskHeight(0);
+      setDropTarget(null);
+    }
+    setSelectedProjectId(projectId);
+  }, []);
 
   const revisionPollingInterval = getRevisionPollingInterval(taskboardMetadata);
   const pendingAutomationRequestsRef = useRef(new Map<string, PendingAutomationRequest>());
@@ -873,14 +918,14 @@ export function App() {
       setDetailTaskIdentifier(readIssueIdentifier(url.search));
       if (routeProjectId === selectedProjectId) return;
       setBoardView("issues");
-      setSelectedProjectId(routeProjectId);
+      selectProjectView(routeProjectId);
       if (routeProjectId) window.localStorage.setItem(LAST_PROJECT_KEY, routeProjectId);
       else window.localStorage.removeItem(LAST_PROJECT_KEY);
     }
 
     window.addEventListener("popstate", syncRouteFromLocation);
     return () => window.removeEventListener("popstate", syncRouteFromLocation);
-  }, [selectedProjectId]);
+  }, [selectedProjectId, selectProjectView]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -1026,20 +1071,18 @@ export function App() {
         return next;
       });
       setProjects(nextProjects);
-      setSelectedProjectId((current) => {
-        const fromQuery = new URLSearchParams(window.location.search).get("project");
-        const remembered = window.localStorage.getItem(LAST_PROJECT_KEY);
-        if (fromQuery && nextProjects.some((project) => project.id === fromQuery)) return fromQuery;
-        if (current && nextProjects.some((project) => project.id === current)) return current;
-        if (remembered && nextProjects.some((project) => project.id === remembered)) return remembered;
-        return "";
-      });
+      const fromQuery = new URLSearchParams(window.location.search).get("project");
+      const remembered = window.localStorage.getItem(LAST_PROJECT_KEY);
+      const current = selectedProjectIdRef.current;
+      selectProjectView(fromQuery && nextProjects.some(project => project.id === fromQuery) ? fromQuery
+        : current && nextProjects.some(project => project.id === current) ? current
+        : remembered && nextProjects.some(project => project.id === remembered) ? remembered : "");
     } catch (error) {
       if ((error as Error).name !== "AbortError") setLoadError(errorMessage(error));
     } finally {
       setProjectsLoading(false);
     }
-  }, []);
+  }, [selectProjectView]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1089,8 +1132,10 @@ export function App() {
   }, [refreshTasks, selectedProjectId]);
 
   const refreshWorkflowOptions = useCallback(async (projectId: string, signal?: AbortSignal) => {
+    const generation = projectViewGenerationRef.current;
     const record = await getWorkflowWorkspace<unknown>(projectId, signal);
-    if (!signal?.aborted) setWorkflowOptions(workflowOptionsFromWorkspace(record.workspace));
+    if (!signal?.aborted && projectId === selectedProjectIdRef.current
+      && generation === projectViewGenerationRef.current) setWorkflowOptions(workflowOptionsFromWorkspace(record.workspace));
   }, []);
 
   useEffect(() => {
@@ -1101,7 +1146,7 @@ export function App() {
     setWorkflowOptions(workflowOptionsFromWorkspace(readLegacyWorkflowWorkspace(selectedProjectId)));
     const controller = new AbortController();
     void refreshWorkflowOptions(selectedProjectId, controller.signal).catch((error) => {
-      if ((error as Error).name !== "AbortError") {
+      if ((error as Error).name !== "AbortError" && isCurrentProjectView()) {
         setWorkflowOptions(workflowOptionsFromWorkspace(readLegacyWorkflowWorkspace(selectedProjectId)));
       }
     });
@@ -1188,6 +1233,7 @@ export function App() {
   ]);
 
   function pushUndo(message: string, undo: () => Promise<void>, showNotice = true) {
+    if (!isCurrentProjectView()) return;
     const operation = { id: ++undoSequenceRef.current, message, undo };
     undoStackRef.current = [...undoStackRef.current.slice(-19), operation];
     setAnnouncementValue("");
@@ -1195,11 +1241,12 @@ export function App() {
   }
 
   async function performUndo() {
-    if (undoInFlightRef.current) return;
+    if (!isCurrentProjectView() || undoInFlightRef.current?.generation === renderedProjectGeneration) return;
     const operation = undoStackRef.current.at(-1);
     if (!operation) return;
     undoStackRef.current = undoStackRef.current.slice(0, -1);
-    undoInFlightRef.current = true;
+    const pending = { generation: renderedProjectGeneration };
+    undoInFlightRef.current = pending;
     setUndoNotice(null);
     setProjectMenuOpen(false);
     closeContextMenu();
@@ -1207,10 +1254,11 @@ export function App() {
     try {
       await operation.undo();
     } catch (error) {
+      if (!isCurrentProjectView()) return;
       setActionError(`无法撤回这次操作：${errorMessage(error)}`);
       if (selectedProjectId) void refreshTasks(selectedProjectId, { quiet: true });
     } finally {
-      undoInFlightRef.current = false;
+      if (undoInFlightRef.current === pending) undoInFlightRef.current = null;
     }
   }
 
@@ -1219,13 +1267,14 @@ export function App() {
     changed: Task,
     assigneeTarget = assigneeTargetForActor(snapshot.assignee, currentUser),
   ) {
+    if (!isCurrentProjectView()) return;
     const candidate = tasksRef.current.find((task) => task.id === changed.id);
     const current = candidate && candidate.version >= changed.version ? candidate : changed;
     const restored = await updateTaskRequest(current, {
       ...taskToDraft(snapshot),
       ...(assigneeTarget ? { assigneeTarget } : {}),
     });
-    setTasks((tasks) => sortTasks(tasks.map((task) => task.id === restored.id ? restored : task)));
+    if (isCurrentProjectView()) setTasks((tasks) => sortTasks(tasks.map((task) => task.id === restored.id ? restored : task)));
   }
 
   useEffect(() => {
@@ -1252,7 +1301,7 @@ export function App() {
         && boardView === "issues"
       ) {
         event.preventDefault();
-        setEditor({ task: null, status: "backlog" });
+        openTaskEditor("backlog");
       }
       if (event.key === "/" && !detailTaskId && selectedProjectId && boardView === "issues") {
         event.preventDefault();
@@ -1326,55 +1375,101 @@ export function App() {
     setBoardView(view);
   }
 
+  function openTaskEditor(status: TaskStatus) {
+    if (!isCurrentProjectView() || !selectedProjectId) return;
+    issueCreationRef.current = null;
+    setResumingIssue(false);
+    try {
+      const keys = pendingSubmissionKeys("issue", selectedProjectId);
+      issueReviewKeysRef.current = keys;
+      setIssueNeedsReview(keys.length > 0);
+    } catch {
+      setActionError("无法读取浏览器提交记录，尚未创建议题。请恢复浏览器存储后重试。");
+      return;
+    }
+    setEditor({ task: null, status });
+  }
+
   async function saveEditor(
     draft: TaskDraft,
     attachments: File[],
     inlineImages: PendingInlineImage[],
   ) {
     if (!selectedProjectId || !editor) return;
+    if (!isCurrentProjectView()) return;
+    if (issueNeedsReview) throw Error("上次创建的接收结果尚未确认，请先核对已有议题。");
     setActionError(null);
+    const creating = editor.task === null;
+    const write: IssueCreation | undefined = creating ? issueCreationRef.current?.editor === editor
+      ? issueCreationRef.current
+      : (issueCreationRef.current = { id: crypto.randomUUID(), editor, uploaded: new Map() }) : undefined;
+    const key = write ? submissionKey("issue", selectedProjectId, write.id) : "";
+    if (write?.uncertain) throw Error("上次创建尚未确认，请先核对已有议题。");
+    const ownsReceipt = () => Boolean(write && ownsSubmissionReceipt(key, write.id));
+    let receiptSaved = Boolean(write?.task);
     try {
-      const creating = editor.task === null;
+      if (write) {
+        if (!write.task) window.localStorage.setItem(key, JSON.stringify({ id: write.id }));
+        receiptSaved = true;
+      }
       let saved = editor.task
         ? await updateTaskRequest(editor.task, draft)
-        : await createTaskRequest(selectedProjectId, draft);
-      if (creating) {
+        : write!.task ?? await createTaskRequest(selectedProjectId, draft);
+      if (write && !ownsReceipt()) return;
+      if (write && !write.task) {
+        write.task = saved;
+        write.savedDraft = JSON.stringify(draft);
+        window.localStorage.setItem(key, JSON.stringify({ id: write.id, taskId: saved.id }));
         setProjects((current) => current.map((project) => (
           project.id === selectedProjectId
             ? { ...project, issueCount: project.issueCount + 1 }
             : project
         )));
       }
+      if (write && write.savedDraft !== JSON.stringify(draft)) {
+        saved = await updateTaskRequest(saved, draft);
+        if (!ownsReceipt()) return;
+        write.task = saved;
+        write.savedDraft = JSON.stringify(draft);
+      }
+      if (write && isCurrentProjectView()) {
+        setResumingIssue(true);
+        setTasks(current => sortTasks([...current.filter(task => task.id !== saved.id), saved]));
+      }
       let uploadedAttachments = 0;
-      let failedAttachments = 0;
-      if (creating && (attachments.length > 0 || inlineImages.length > 0)) {
-        const [results, inlineAttachments] = await Promise.all([
-          Promise.allSettled(
-            attachments.map((file) => uploadAttachment(saved.id, file)),
-          ),
-          Promise.all(
-            inlineImages.map((image) => uploadAttachment(saved.id, image.file)),
-          ),
-        ]);
-        uploadedAttachments = results.filter((result) => result.status === "fulfilled").length;
-        failedAttachments = results.length - uploadedAttachments;
+      if (write && (attachments.length > 0 || inlineImages.length > 0)) {
+        // The confirmed entity and each file receipt survive a failed save in
+        // this editor. Retrying continues this issue, never POSTs a second one.
+        for (const file of [...attachments, ...inlineImages.map(image => image.file)]) {
+          if (write.uploaded.has(file)) continue;
+          const uploaded = await uploadAttachment(saved.id, file);
+          if (!ownsReceipt()) return;
+          write.uploaded.set(file, uploaded);
+        }
+        uploadedAttachments = attachments.filter(file => write.uploaded.has(file)).length;
         if (inlineImages.length > 0) {
           const description = resolveInlineMediaMarkdown(
             draft.description,
             inlineImages,
-            inlineAttachments,
+            inlineImages.map(image => write.uploaded.get(image.file)!),
           );
           saved = await updateTaskRequest(saved, { ...draft, description });
+          if (!ownsReceipt()) return;
+          write.task = saved;
         }
       }
+      if (write) {
+        if (!ownsReceipt()) return;
+        window.localStorage.removeItem(key);
+        if (issueCreationRef.current === write) issueCreationRef.current = null;
+      }
+      if (!isCurrentProjectView()) return;
       setTasks((current) => sortTasks([
         ...current.filter((task) => task.id !== saved.id),
         saved,
       ]));
       setEditor(null);
-      if (failedAttachments > 0) {
-        setActionError(`${saved.identifier} 已创建，但有 ${failedAttachments} 个附件上传失败，可在详情页重试。`);
-      }
+      setResumingIssue(false);
       if (creating) {
         const totalUploaded = uploadedAttachments + inlineImages.length;
         const message = `${saved.identifier} 已创建${totalUploaded > 0 ? `，已上传 ${totalUploaded} 个附件` : ""}。`;
@@ -1382,6 +1477,7 @@ export function App() {
           const candidate = tasksRef.current.find((task) => task.id === saved.id);
           const current = candidate && candidate.version >= saved.version ? candidate : saved;
           await archiveTaskRequest(current);
+          if (!isCurrentProjectView()) return;
           setTasks((tasks) => tasks.filter((task) => task.id !== saved.id));
         });
       } else if (editor.task) {
@@ -1395,6 +1491,24 @@ export function App() {
         }
       }
     } catch (error) {
+      if (!isCurrentProjectView()) return;
+      if (write) {
+        if (!receiptSaved) {
+          issueCreationRef.current = null;
+          throw Error("无法保存议题提交记录，尚未创建议题。请检查浏览器存储后重试。");
+        }
+        if (submissionReceiptState(key, write.id) === "retired") return;
+        if (!(error instanceof ApiError) || error.status === 0 || error.status >= 500 || error.code === "VERSION_CONFLICT"
+          || submissionReceiptState(key, write.id) === "unavailable") {
+          write.uncertain = true;
+          setIssueNeedsReview(true);
+          issueReviewKeysRef.current = [key];
+          throw Error("议题或附件的接收结果尚未确认。请核对看板已有议题，原操作不会自动重发。");
+        }
+        if (write.task) throw Error(`${write.task.identifier} 已创建，附件或正文尚未完成：${errorMessage(error)}。继续保存会使用同一议题。`);
+        window.localStorage.removeItem(key);
+        issueCreationRef.current = null;
+      }
       if (error instanceof ApiError && error.code === "VERSION_CONFLICT") {
         void refreshTasks(selectedProjectId, { quiet: true });
       }
@@ -1451,6 +1565,7 @@ export function App() {
 
     try {
       const moved = await moveTaskRequest(task, status, sortOrder);
+      if (!isCurrentProjectView()) return;
       setTasks((current) => sortTasks(current.map((candidate) =>
         candidate.id === moved.id ? moved : candidate,
       )));
@@ -1461,9 +1576,11 @@ export function App() {
         const candidate = tasksRef.current.find((current) => current.id === moved.id);
         const current = candidate && candidate.version >= moved.version ? candidate : moved;
         const restored = await moveTaskRequest(current, previous.status, previous.sortOrder);
+        if (!isCurrentProjectView()) return;
         setTasks((tasks) => sortTasks(tasks.map((item) => item.id === restored.id ? restored : item)));
       }, !silent);
     } catch (error) {
+      if (!isCurrentProjectView()) return;
       setTasks((current) => sortTasks(current.map((candidate) =>
         candidate.id === previous.id ? previous : candidate,
       )));
@@ -1472,10 +1589,12 @@ export function App() {
         : errorMessage(error));
       if (selectedProjectId) void refreshTasks(selectedProjectId, { quiet: true });
     } finally {
-      setMovingTaskId(null);
-      setDropTarget(null);
-      setDraggedTaskId(null);
-      setDraggedTaskHeight(0);
+      if (isCurrentProjectView()) {
+        setMovingTaskId(null);
+        setDropTarget(null);
+        setDraggedTaskId(null);
+        setDraggedTaskHeight(0);
+      }
     }
   }
 
@@ -1507,6 +1626,7 @@ export function App() {
 
     try {
       const updated = await updateTaskRequest(task, { ...taskToDraft(task), ...changes });
+      if (!isCurrentProjectView()) return updated;
       setTasks((current) => sortTasks(current.map((candidate) =>
         candidate.id === updated.id ? updated : candidate,
       )));
@@ -1519,6 +1639,7 @@ export function App() {
       }
       return updated;
     } catch (error) {
+      if (!isCurrentProjectView()) throw error;
       setTasks((current) => sortTasks(current.map((candidate) =>
         candidate.id === previous.id ? previous : candidate,
       )));
@@ -1541,6 +1662,7 @@ export function App() {
       const result = action === "add"
         ? await addTaskRelation(task, type, relatedTaskId)
         : await removeTaskRelation(task, type, relatedTaskId);
+      if (!isCurrentProjectView()) return result;
       setTasks((current) => sortTasks(current.map((candidate) => {
         if (candidate.id === result.task.id) return result.task;
         if (candidate.id === result.relatedTask.id) return result.relatedTask;
@@ -1549,6 +1671,7 @@ export function App() {
       if (selectedProjectId) void refreshTasks(selectedProjectId, { quiet: true });
       return result;
     } catch (error) {
+      if (!isCurrentProjectView()) throw error;
       setActionError(error instanceof ApiError && error.code === "VERSION_CONFLICT"
         ? "该议题已在其他位置更新，看板已重新同步。"
         : errorMessage(error));
@@ -1565,14 +1688,17 @@ export function App() {
         assigneeTarget: assigneeTargetForActor(task.assignee, currentUser),
         developmentContext: null,
       });
+      if (!isCurrentProjectView()) return;
       setTasks((current) => sortTasks([...current, duplicated]));
       pushUndo(`${duplicated.identifier} 副本已创建。`, async () => {
         const candidate = tasksRef.current.find((current) => current.id === duplicated.id);
         const current = candidate && candidate.version >= duplicated.version ? candidate : duplicated;
         await archiveTaskRequest(current);
+        if (!isCurrentProjectView()) return;
         setTasks((tasks) => tasks.filter((item) => item.id !== duplicated.id));
       });
     } catch (error) {
+      if (!isCurrentProjectView()) return;
       setActionError(errorMessage(error));
     }
   }
@@ -1581,15 +1707,18 @@ export function App() {
     setActionError(null);
     try {
       const archived = await archiveTaskRequest(task);
+      if (!isCurrentProjectView()) return;
       setTasks((current) => current.filter((candidate) => candidate.id !== task.id));
       pushUndo(`${task.identifier} 已归档。`, async () => {
         const restored = await restoreTaskRequest(archived);
+        if (!isCurrentProjectView()) return;
         setTasks((current) => sortTasks([
           ...current.filter((candidate) => candidate.id !== restored.id),
           restored,
         ]));
       });
     } catch (error) {
+      if (!isCurrentProjectView()) return;
       setActionError(error instanceof ApiError && error.code === "VERSION_CONFLICT"
         ? "该议题已在其他位置更新，看板已重新同步。"
         : errorMessage(error));
@@ -1668,7 +1797,7 @@ export function App() {
     setProjectMenuOpen(false);
     setDetailTaskIdentifier(null);
     setBoardView("issues");
-    setSelectedProjectId(projectId);
+    selectProjectView(projectId);
     window.localStorage.setItem(LAST_PROJECT_KEY, projectId);
     setSearch("");
     setFilters(EMPTY_TASK_FILTERS);
@@ -1683,7 +1812,7 @@ export function App() {
     closeContextMenu();
     setProjectMenuOpen(false);
     setDetailTaskIdentifier(null);
-    setSelectedProjectId("");
+    selectProjectView("");
     window.localStorage.removeItem(LAST_PROJECT_KEY);
     setSearch("");
     setFilters(EMPTY_TASK_FILTERS);
@@ -1730,11 +1859,11 @@ export function App() {
           if (!project) throw error;
         }
       }
-      changeProject(project.id);
+      if (isCurrentProjectView()) changeProject(project.id);
     } catch (error) {
-      setActionError(errorMessage(error));
+      if (isCurrentProjectView()) setActionError(errorMessage(error));
     } finally {
-      setOpeningProjectId(null);
+      if (isCurrentProjectView()) setOpeningProjectId(null);
     }
   }
 
@@ -1937,7 +2066,7 @@ export function App() {
               <button
                 className="icon-button header-create-button"
                 type="button"
-                onClick={() => setEditor({ task: null, status: "backlog" })}
+                onClick={() => openTaskEditor("backlog")}
                 aria-label="新建议题"
                 title="新建议题 (C)"
               >
@@ -2127,8 +2256,8 @@ export function App() {
             onOpenThread={openThread}
             onOpenInThread={openTaskInThread}
             openingThread={openingThreadTaskId === detailTask.id}
-            onError={setActionError}
-            onAnnounce={setAnnouncement}
+            onError={message => { if (isCurrentProjectView()) setActionError(message); }}
+            onAnnounce={message => { if (isCurrentProjectView()) setAnnouncement(message); }}
           />
         ) : boardView === "workflow" ? (
           <Suspense fallback={<div className="workflow-board-loading">正在打开节点模式…</div>}>
@@ -2182,7 +2311,7 @@ export function App() {
                   movingTaskId={movingTaskId}
                   settlingTaskId={settlingTaskId}
                   contextMenuTaskId={contextMenu?.taskId ?? null}
-                  onCreate={(initialStatus) => setEditor({ task: null, status: initialStatus })}
+                  onCreate={openTaskEditor}
                   onEdit={openTaskDetail}
                   onContextMenu={(task, position) => setContextMenu({ taskId: task.id, ...position })}
                   onMove={(task, destination) => void moveTask(task, destination)}
@@ -2230,6 +2359,17 @@ export function App() {
           developmentScan={developmentScan}
           developmentScanLoading={developmentScanLoading}
           onCancel={() => setEditor(null)}
+          resumingCreation={resumingIssue}
+          submissionNeedsReview={issueNeedsReview}
+          onEndSubmission={() => {
+            for (const key of issueReviewKeysRef.current) window.localStorage.removeItem(key);
+            issueReviewKeysRef.current = [];
+            issueCreationRef.current = null;
+            setIssueNeedsReview(false);
+            setResumingIssue(false);
+            setEditor(null);
+            void refreshTasks(selectedProjectId, { quiet: true });
+          }}
           onSave={saveEditor}
         />
       )}

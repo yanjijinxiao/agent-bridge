@@ -73,9 +73,15 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
     if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text);
     return result.result?.value;
   };
+  t.afterEach(async()=>{await evaluate("for(const k of Object.keys(localStorage))if(k.startsWith('taskboard.submission:') || k.startsWith('taskboard.comment-draft'))localStorage.removeItem(k)");});
   const base = `http://127.0.0.1:${server.address().port}`;
+  const navigate = async url => {
+    const previous = await evaluate("window.audit?.documentId");
+    await call("Page.navigate", { url });
+    await until(() => evaluate(`Boolean(window.audit?.documentId && window.audit.documentId !== ${JSON.stringify(previous) ?? "null"} && document.readyState === 'complete')`), "new document was not loaded");
+  };
   const open = async (suffix = "") => {
-    await call("Page.navigate", { url: `${base}/${suffix}` });
+    await navigate(`${base}/${suffix}`);
     await until(() => evaluate("Boolean(window.audit && document.querySelector('.ai-chat-launcher'))"), "AI launcher missing");
     await evaluate("document.querySelector('.ai-chat-launcher').click()");
     await until(() => evaluate("Boolean(document.querySelector('.ai-chat-composer-editor'))"), "composer missing");
@@ -87,7 +93,7 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
 
   await t.test("issue cards render existing malformed dates without crashing and retain valid date labels", async () => {
     for (const date of ["2026-13-01", "2026-02-30", "2028-02-29"]) {
-      await call("Page.navigate", { url: `${base}/?view=card&date=${date}` });
+      await navigate(`${base}/?view=card&date=${date}`);
       await until(() => evaluate("Boolean(document.querySelector('.task-card'))"), `card crashed for ${date}`);
       assert.equal(await evaluate(`document.querySelector('.due-date-chip')?.getAttribute('title')`), `截止日期 ${date}`);
       if (date === "2028-02-29") assert.ok(await evaluate("document.querySelector('.due-date-chip').textContent.includes('29')"));
@@ -254,16 +260,180 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
   });
   const issueView = async view => {
     await call("Emulation.setDeviceMetricsOverride", { width: 1200, height: 900, deviceScaleFactor: 1, mobile: false });
-    await call("Page.navigate", { url: `${base}/?view=${view}` });
+    await navigate(`${base}/?view=${view}`);
     await until(() => evaluate(view === "editor" ? "Boolean(document.querySelector('.task-dialog[open]'))"
       : "Boolean(document.querySelector('.comment-card') && document.querySelector('.comment-inline-media textarea'))"), "issue component missing");
   };
   const chooseFile = selector => evaluate(`(()=>{const input=document.querySelector(${JSON.stringify(selector)}),data=new DataTransfer();
     data.items.add(new File(['fixture evidence'],'audit.txt',{type:'text/plain'}));input.files=data.files;
     input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  for (const operation of ["duplicate", "archive", "restore", "create"]) {
+   for (const route of ["unchanged", "switch", "aba"]) {
+    await t.test(`a confirmed ${operation} retains its original view ownership (${route})`, async () => {
+      await navigate(`${base}/?view=app&project=a`);
+      await until(()=>evaluate("Boolean(document.querySelector('.task-card[data-task-id=\"task-one\"]'))"),"full App board missing");
+      await evaluate("document.fonts.ready.then(()=>{const board=document.querySelector('.board-scroll');board.scrollTo(0,0);return new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))})");
+      if (operation === "create") {
+        await evaluate("document.querySelector('[aria-label=\"新建议题\"]').click()");
+        await until(()=>evaluate("Boolean(document.querySelector('.task-dialog[open]'))"),"App editor missing");
+        await evaluate("document.querySelector('.composer-title input').focus()"); await call("Input.insertText",{text:"New original issue"});
+        await evaluate("audit.holdBoardWrite=true;document.querySelector('.task-dialog button[type=submit]').click()");
+      } else {
+        await evaluate("audit.viewportEvents=[];for(const type of ['scroll','blur','resize'])window.addEventListener(type,e=>audit.viewportEvents.push({type,target:e.target?.className,focus:document.activeElement?.className}),true);document.querySelector('.task-card').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:200,clientY:200}))");
+        try { await until(()=>evaluate("Boolean(document.querySelector('.task-context-menu'))"),"App context menu missing"); }
+        catch(error) { throw Error(`${error.message}: ${JSON.stringify(await evaluate('audit.viewportEvents'))}`); }
+        if (operation !== "restore") await evaluate("audit.holdBoardWrite=true");
+        const label=operation === "duplicate" ? "创建副本" : "归档议题";
+        await evaluate(`[...document.querySelectorAll('.task-context-menu button')].find(b=>b.textContent.trim().startsWith(${JSON.stringify(label)})).click()`);
+        if (operation === "restore") {
+          await until(()=>evaluate("Boolean(document.querySelector('.undo-toast button'))"),"archive undo missing");
+          await evaluate("audit.holdBoardWrite=true;document.querySelector('.undo-toast button').click()");
+        }
+      }
+      await until(()=>evaluate("typeof audit.releaseBoardWrite==='function'"),"native write hold missing");
+      if (route !== "unchanged" && operation === "create") {
+        // Browser navigation can change routes even while the native dialog is modal.
+        await evaluate("history.pushState(null,'','?view=app&project=b');dispatchEvent(new PopStateEvent('popstate'))");
+      } else if (route !== "unchanged") {
+        await evaluate("document.querySelector('[aria-label=\"切换项目\"]').click()");
+        await evaluate("[...document.querySelectorAll('.header-project-menu button')].find(b=>b.textContent.includes('Project B')).click()");
+      }
+      if (route !== "unchanged") await until(()=>evaluate("Boolean(document.querySelector('.task-card[data-task-id=\"task-b\"]'))"),"target project missing");
+      if (route === "aba") {
+        await evaluate("audit.reviseBoard();document.querySelector('[aria-label=\"切换项目\"]').click()");
+        await evaluate("[...document.querySelectorAll('.header-project-menu button')].find(b=>b.textContent.includes('Project A')).click()");
+        await until(()=>evaluate("document.querySelector('[aria-label=\"切换项目\"] .project-name').textContent==='Project A' && !document.querySelector('.loading-board')"),"ABA route missing");
+      }
+      await evaluate("audit.releaseBoardWrite()");
+      await evaluate("new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");
+      const expected = route === "switch" ? ["task-b"] : operation === "archive" ? []
+        : operation === "restore" ? ["task-one"] : ["created-2", "task-one"];
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('.task-card')].map(t=>t.dataset.taskId).sort()"),expected.sort());
+      if (route === "aba" && operation !== "archive")
+        assert.ok(await evaluate("[...document.querySelectorAll('.task-card h3')].every(t=>t.textContent==='Later native change')"));
+      assert.equal(await evaluate("document.querySelector('[aria-label=\"切换项目\"] .project-name').textContent"),route === "switch" ? "Project B" : "Project A");
+      const mutations = await evaluate("audit.requests.filter(r=>r.method!=='GET').length");
+      await evaluate("document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'z',ctrlKey:true,bubbles:true}))");
+      await evaluate("new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");
+      assert.equal(await evaluate("audit.requests.filter(r=>r.method!=='GET').length"),mutations + (route === "unchanged" && operation !== "restore" ? 1 : 0),"only a live view may retain its undo operation");
+    });
+   }
+  }
+  for (const quota of [false,true]) for (const inline of [false,true]) await t.test(`a partial new issue upload retains its confirmed entity and retries only failed files (inline=${inline}, storageFull=${quota})`,async()=>{
+    await navigate(`${base}/?view=app&project=a`);
+    await until(()=>evaluate("Boolean(document.querySelector('.task-card[data-task-id=\"task-one\"]'))"),"App missing");
+    await evaluate("document.querySelector('[aria-label=\"新建议题\"]').click()");
+    await until(()=>evaluate("Boolean(document.querySelector('.task-dialog[open]'))"),"new issue missing");
+    await evaluate("document.querySelector('.composer-title input').focus()"); await call("Input.insertText",{text:"Partial original issue"});
+    await evaluate(`(()=>{const input=document.querySelector('.task-dialog input[type=file]'),files=new DataTransfer();
+      files.items.add(new File(['good'],'good.txt',{type:'text/plain'}));
+      ${inline ? "" : "files.items.add(new File(['bad'],'bad.txt',{type:'text/plain'}));"}
+      input.files=files.files;input.dispatchEvent(new Event('change',{bubbles:true}));audit.failUpload=${JSON.stringify(inline ? "inline.png" : "bad.txt")};})()`);
+    if(inline)await evaluate("(()=>{const files=new DataTransfer();files.items.add(new File(['png'],'inline.png',{type:'image/png'}));document.querySelector('.inline-media-description textarea').dispatchEvent(new ClipboardEvent('paste',{clipboardData:files,bubbles:true,cancelable:true}));})()");
+    await evaluate("document.querySelector('.task-dialog button[type=submit]').click()");
+    await until(()=>evaluate("!document.querySelector('.task-dialog[open]') || document.querySelector('.task-dialog button[type=submit]').textContent!=='正在保存…'"),"initial save did not settle");
+    assert.equal(await evaluate("Boolean(document.querySelector('.task-dialog[open]'))"),true,"failed files remain available for the original issue");
+    if(quota)await evaluate("audit.nativeSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k.startsWith('taskboard.submission:'))throw new DOMException('Fixture full','QuotaExceededError');return audit.nativeSetItem.call(this,k,v);}");
+    await evaluate("document.querySelector('.task-dialog button[type=submit]').click()");
+    await until(()=>evaluate("!document.querySelector('.task-dialog[open]')"),"resumed save did not finish");
+    const writes=await evaluate("audit.requests.filter(r=>r.method==='POST')");
+    assert.equal(writes.filter(r=>r.path==='/api/tasks').length,1);
+    assert.equal(writes.filter(r=>r.body?.filename==='good.txt').length,1);
+    assert.equal(writes.filter(r=>r.body?.filename===(inline ? 'inline.png' : 'bad.txt')).length,2);
+    assert.ok(writes.filter(r=>r.body?.filename).every(r=>r.path==='/api/tasks/created-2/attachments'));
+    assert.equal(await evaluate("Object.keys(localStorage).filter(k=>k.startsWith('taskboard.submission:[\"issue\",\"a\"]:')).length"),0);
+  });
+  await t.test("a lost new issue acknowledgement is retained across reload without authorizing another creation",async()=>{
+    await navigate(`${base}/?view=app&project=a`);
+    await until(()=>evaluate("Boolean(document.querySelector('.task-card'))"),"App missing");
+    await evaluate("document.querySelector('[aria-label=\"新建议题\"]').click()");
+    await until(()=>evaluate("Boolean(document.querySelector('.task-dialog[open]'))"),"editor missing");
+    await evaluate("document.querySelector('.composer-title input').focus()");await call("Input.insertText",{text:"Unknown original issue"});
+    await evaluate("audit.dropCreateAck=true;document.querySelector('.task-dialog button[type=submit]').click()");
+    await until(()=>evaluate("Boolean(document.querySelector('.task-dialog [data-submission-review]'))"),"unknown create not held");
+    assert.equal(await evaluate("document.querySelector('.task-dialog button[type=submit]').disabled"),true);
+    await navigate(`${base}/?view=app&project=a`);
+    await until(()=>evaluate("Boolean(document.querySelector('.task-card'))"),"reloaded App missing");
+    await evaluate("document.querySelector('[aria-label=\"新建议题\"]').click()");
+    await until(()=>evaluate("Boolean(document.querySelector('.task-dialog [data-submission-review]'))"),"reload lost create receipt");
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST').length"),0);
+    await evaluate("[...document.querySelectorAll('.task-dialog button')].find(b=>b.textContent==='结束本次提交').click()");
+    assert.equal(await evaluate("Object.keys(localStorage).filter(k=>k.startsWith('taskboard.submission:[\"issue\",\"a\"]:')).length"),0);
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST').length"),0);
+  });
+  await t.test("workflow controls wait for hydration and an old project save cannot replace the new workspace", async()=>{
+    await navigate(`${base}/?view=workflow&seed=1&holdWorkflow=1`);
+    await until(()=>evaluate("Boolean(audit.releaseWorkflow)"),"workspace read not held");
+    assert.equal(await evaluate("document.querySelector('.workflow-tab-add').disabled"),true);
+    assert.equal(await evaluate("document.querySelector('.workflow-canvas').inert"),true);
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='PUT').length"),0);
+    await evaluate("audit.releaseWorkflow()");
+    await until(()=>evaluate("!document.querySelector('.workflow-tab-add').disabled"),"workspace controls not released");
+    await evaluate("audit.holdWorkflowSave=true;document.querySelector('.workflow-tab').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))");
+    await until(()=>evaluate("Boolean(document.querySelector('[aria-label=\"流程名称\"]'))"),"rename input missing");
+    await evaluate("document.querySelector('[aria-label=\"流程名称\"]').focus();document.querySelector('[aria-label=\"流程名称\"]').select()");
+    await call("Input.insertText",{text:"Project A pending edit"});
+    await evaluate("document.querySelector('[aria-label=\"流程名称\"]').blur()");
+    await until(()=>evaluate("Boolean(audit.releaseWorkflowSave)"),"save not held");
+    await evaluate("audit.project('b')");
+    await until(()=>evaluate("Boolean(audit.workflowRecord('b')?.workspace && document.querySelector('.workflow-tab')?.textContent.includes('Fixture workflow'))"),"project B not loaded");
+    await evaluate("audit.releaseWorkflowSave();new Promise(r=>setTimeout(r,220))");
+    assert.ok(await evaluate("document.querySelector('.workflow-tab').textContent.includes('Fixture workflow')"));
+    assert.equal(await evaluate("audit.workflowRecord('a').workspace.tabs[0].name"),"Project A pending edit");
+    assert.equal(await evaluate("audit.workflowRecord('b').workspace.tabs[0].name"),"Fixture workflow");
+  });
+  for (const choice of ["normal","keep-local","load-remote"]) await t.test(`workflow persistence keeps local edits until an explicit conflict resolution (${choice})`,async()=>{
+    await navigate(`${base}/?view=workflow`);
+    await until(()=>evaluate("Boolean(audit.workflowRecord('a')?.workspace && document.querySelector('.workflow-tab'))"),"workflow not hydrated");
+    await evaluate("new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");
+    if(choice!=="normal")await evaluate("audit.conflictWorkflowNext=true");
+    await evaluate("document.querySelector('.workflow-tab').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))");
+    await until(()=>evaluate("Boolean(document.querySelector('[aria-label=\"流程名称\"]'))"),"rename input missing");
+    await evaluate("document.querySelector('[aria-label=\"流程名称\"]').focus();document.querySelector('[aria-label=\"流程名称\"]').select()");
+    await call("Input.insertText",{text:"Local edited workflow"});
+    await evaluate("document.querySelector('[aria-label=\"流程名称\"]').blur()");
+    await until(()=>evaluate("audit.requests.filter(r=>r.method==='PUT').length>=2"),"workflow not saved");
+    await evaluate("new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");
+    assert.ok(await evaluate("document.querySelector('.workflow-tab').textContent.includes('Local edited workflow')"),"a remote conflict cannot discard the local edit");
+    if(choice==="normal") {
+      assert.equal(await evaluate("audit.workflowRecord('a').workspace.tabs[0].name"),"Local edited workflow");return;
+    }
+    assert.ok(await evaluate("Boolean(document.querySelector('[data-workflow-conflict]'))"));
+    const label=choice==="keep-local" ? "保留本地并保存" : "载入远端版本";
+    await evaluate(`[...document.querySelectorAll('[data-workflow-conflict] button')].find(b=>b.textContent===${JSON.stringify(label)}).click()`);
+    const expected=choice==="keep-local" ? "Local edited workflow" : "Remote workflow";
+    await until(()=>evaluate(`document.querySelector('.workflow-tab').textContent.includes(${JSON.stringify(expected)}) && audit.workflowRecord('a').workspace.tabs[0].name===${JSON.stringify(expected)}`),"conflict choice not applied");
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='PUT').length"),choice==="keep-local" ? 3 : 2);
+  });
+  for(const kind of ["root-step","condition","plan-child","trigger"]) await t.test(`workflow dragging preserves canonical sequence and subtree ownership (${kind})`,async()=>{
+    await call("Emulation.setDeviceMetricsOverride",{width:1800,height:2200,deviceScaleFactor:1,mobile:false});
+    await navigate(`${base}/?view=workflow&seed=1`);
+    await until(()=>evaluate("Boolean(document.querySelector('.react-flow__node[data-id=after]'))"),"seeded graph missing");
+    await evaluate("document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))");
+    const source=kind==="root-step" ? "after" : kind==="condition" ? "condition" : kind==="plan-child" ? "child-one" : "trigger";
+    const target=kind==="root-step" ? "condition" : kind==="condition" ? "plan" : kind==="plan-child" ? "child-two" : "plan";
+    const rect=async id=>evaluate(`(()=>{const r=document.querySelector('.react-flow__node[data-id=${id}]').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+20,height:r.height}})()`);
+    await until(async()=>{const before=await rect(source);await evaluate("new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");const after=await rect(source);return before.x===after.x && before.y===after.y;},"workflow viewport did not settle");
+    const from=await rect(source),to=await rect(target);
+    assert.equal(await evaluate(`document.elementFromPoint(${from.x},${from.y})?.closest(".react-flow__node")?.dataset.id`),source);
+    const endY=to.y+(kind==="root-step" ? -25 : to.height/2+30);
+    await call("Input.dispatchMouseEvent",{type:"mouseMoved",x:from.x,y:from.y});
+    await call("Input.dispatchMouseEvent",{type:"mousePressed",x:from.x,y:from.y,button:"left",clickCount:1});
+    for(let n=1;n<=8;n++)await call("Input.dispatchMouseEvent",{type:"mouseMoved",x:from.x,y:from.y+(endY-from.y)*n/8,buttons:1});
+    await call("Input.dispatchMouseEvent",{type:"mouseReleased",x:from.x,y:endY,button:"left",clickCount:1});
+    await evaluate("new Promise(r=>setTimeout(r,300))");
+    const snapshot=await evaluate("audit.workflowRecord('a').workspace.snapshots.fixture");
+    const root=snapshot.flow.root.items.map(i=>i.nodeId);
+    assert.deepEqual(root,kind==="root-step" ? ["trigger","after","condition","plan"] : kind==="condition" ? ["trigger","plan","condition","after"] : ["trigger","condition","plan","after"]);
+    const condition=snapshot.flow.root.items.find(i=>i.nodeId==="condition");
+    assert.deepEqual(condition.branches.true.items.map(i=>i.nodeId),["yes"]);
+    assert.deepEqual(condition.branches.false.items.map(i=>i.nodeId),["no"]);
+    const children=snapshot.nodes.filter(n=>n.parentId==="plan").sort((a,b)=>a.position.y-b.position.y).map(n=>n.id);
+    assert.deepEqual(children,kind==="plan-child" ? ["child-two","child-one"] : ["child-one","child-two"]);
+  });
   await t.test("context menu ignores punctuation safely while its status keyboard shortcut still selects the requested status", async () => {
     await call("Emulation.setDeviceMetricsOverride", { width: 1200, height: 900, deviceScaleFactor: 1, mobile: false });
-    await call("Page.navigate", { url: `${base}/?view=menu` });
+    await navigate(`${base}/?view=menu`);
     await until(() => evaluate("Boolean(document.querySelector('.task-context-menu [data-root-shortcut]'))"), "context menu missing");
     await evaluate("audit.keyErrors=[];window.addEventListener('error',e=>{audit.keyErrors.push(e.message);e.preventDefault()});document.querySelector('.task-context-menu [data-root-shortcut]').focus()");
     for (const key of ['"', "\\", "["]) {
@@ -278,7 +448,7 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
   });
   await t.test("relation keyboard selection is single-flight while pending and a rejected selection remains explicitly retryable", async () => {
     for (const outcome of ["success", "failure"]) {
-      await call("Page.navigate", { url: `${base}/?view=relations` });
+      await navigate(`${base}/?view=relations`);
       await until(() => evaluate("Boolean(document.querySelector('.issue-relation-add'))"), "relation picker missing");
       await evaluate("document.querySelector('.issue-relation-add').click()");
       await until(() => evaluate("Boolean(document.querySelector('.issue-relation-search input'))"), "relation search missing");
@@ -349,6 +519,105 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
       assert.equal(requests[0].body.body, "Original comment");
       assert.ok(await evaluate("[...document.querySelectorAll('.comment-body')].some(e=>e.textContent.includes('Original comment'))"));
     }
+  });
+  await t.test("a full browser store retains the comment editor and draft before any request, and recovers on explicit retry",async()=>{
+    await navigate(`${base}/?view=detail&storageFull=1`);
+    await until(()=>evaluate("Boolean(document.querySelector('.comment-inline-media textarea'))"),"storage failure removed the composer");
+    await evaluate("document.querySelector('.comment-inline-media textarea').focus()");await call("Input.insertText",{text:"Keep unsubmitted draft"});
+    await evaluate("document.querySelector('.comment-composer button[type=submit]').click()");
+    await until(()=>evaluate("document.querySelector('.comments-error')?.textContent.includes('尚未提交')"),"storage failure not reported before write");
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST').length"),0);
+    assert.equal(await evaluate("document.querySelector('.comment-inline-media textarea').value"),"Keep unsubmitted draft");
+    await evaluate("audit.storageFull=false;document.querySelector('.comment-composer button[type=submit]').click()");
+    await until(()=>evaluate("document.querySelector('.comment-inline-media textarea').value===''"),"explicit retry did not finish");
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST' && r.path.endsWith('/comments')).length"),1);
+  });
+  await t.test("a partially uploaded comment resumes only its failed files on the same confirmed comment", async () => {
+    for (const quota of [false,true]) for (const inline of [false, true]) {
+      await issueView("detail");
+      await evaluate(`(()=>{const input=document.querySelector('.comment-composer input[type=file]'),data=new DataTransfer();
+        data.items.add(new File(['first'], 'good.txt', {type:'text/plain'}));
+        ${inline ? "" : "data.items.add(new File(['second'], 'bad.txt', {type:'text/plain'}));"}
+        input.files=data.files; input.dispatchEvent(new Event('change',{bubbles:true}));
+        audit.failUpload=${JSON.stringify(inline ? "inline.png" : "bad.txt")};})()`);
+      if (inline) await evaluate(`(()=>{const data=new DataTransfer();data.items.add(new File(['png'], 'inline.png', {type:'image/png'}));
+        document.querySelector('.comment-inline-media textarea').dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));})()`);
+      await evaluate("document.querySelector('.comment-composer button[type=submit]').click()");
+      await until(() => evaluate("document.querySelector('.comment-composer button[type=submit]').textContent==='继续本次提交'"), "partial upload was not resumable");
+      assert.ok(await evaluate("Boolean(document.querySelector('.comment-composer').innerText.includes('bad.txt') || document.querySelector('.inline-media-image'))"));
+      if(quota)await evaluate("audit.nativeSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k.startsWith('taskboard.submission:'))throw new DOMException('Fixture full','QuotaExceededError');return audit.nativeSetItem.call(this,k,v);}");
+      await evaluate("document.querySelector('.comment-composer button[type=submit]').click()");
+      await until(() => evaluate("document.querySelector('.comment-composer button[type=submit]').textContent==='评论'"), "resumed upload did not finish");
+      const writes = await evaluate("audit.requests.filter(r=>r.method==='POST')");
+      assert.equal(writes.filter(r=>r.path.endsWith('/comments')).length, 1);
+      assert.equal(writes.filter(r=>r.body?.filename==='good.txt').length, 1);
+      assert.equal(writes.filter(r=>r.body?.filename === (inline ? "inline.png" : "bad.txt")).length, 2);
+      assert.ok(writes.filter(r=>r.body?.filename).every(r=>r.path==='/api/comments/comment-2/attachments'));
+      assert.equal(await evaluate("Object.keys(localStorage).filter(k=>k.startsWith('taskboard.submission:[\"comment\",\"task-one\"]:')).length"), 0);
+    }
+  });
+  await t.test("an applied comment or attachment with a lost response is held across reload and never reposted", async () => {
+    for (const upload of [false, true]) {
+      await issueView("detail");
+      if (upload) await chooseFile('.comment-composer input[type="file"]');
+      await evaluate(`audit.${upload ? "dropUploadAck" : "dropCommentAck"}=true; document.querySelector('.comment-inline-media textarea').focus()`);
+      await call("Input.insertText", {text:"Original uncertain comment"});
+      await evaluate("document.querySelector('.comment-composer button[type=submit]').click()");
+      await until(() => evaluate("Boolean(document.querySelector('.comment-composer button[type=submit]').disabled && document.querySelector('.comment-composer [role=status]'))"), "unknown write was not retained");
+      assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST' && r.path.endsWith('/comments')).length"), 1);
+      await evaluate("document.querySelector('.comment-inline-media textarea').focus()");
+      await call("Input.dispatchKeyEvent", {type:"keyDown",key:"Enter",code:"Enter",modifiers:4,windowsVirtualKeyCode:13});
+      assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST' && r.path.endsWith('/comments')).length"), 1);
+      await navigate(await evaluate("location.href"));
+      await until(() => evaluate("Boolean(document.querySelector('.comment-composer [role=status]'))"), "reload lost receipt");
+      assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST').length"), 0);
+      assert.equal(await evaluate("document.querySelector('.comment-composer button[type=submit]').disabled"), true);
+      await evaluate("[...document.querySelectorAll('.comment-composer button')].find(b=>b.textContent==='结束本次提交').click()");
+      assert.equal(await evaluate("Object.keys(localStorage).filter(k=>k.startsWith('taskboard.submission:[\"comment\",\"task-one\"]:')).length"), 0);
+      assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST').length"), 0);
+    }
+  });
+  await t.test("a late comment acknowledgement clears its detached draft but preserves a remounted composer's later draft", async () => {
+    for (const remounted of [false, true]) {
+      await issueView("detail");
+      await evaluate("document.querySelector('.comment-inline-media textarea').focus()");
+      await call("Input.insertText",{text:"Original pending comment"});
+      await evaluate("audit.holdWrite='comment';document.querySelector('.comment-composer button[type=submit]').click()");
+      await until(()=>evaluate("typeof audit.releaseWrite==='function'"),"comment not held");
+      if (remounted) {
+        await evaluate("audit.remountDetail()");
+        await until(()=>evaluate("Boolean(document.querySelector('.comment-composer [role=status]'))"),"remounted receipt missing");
+        await evaluate("document.querySelector('.comment-inline-media textarea').focus();document.querySelector('.comment-inline-media textarea').select()");
+        await call("Input.insertText",{text:"Keep remounted draft"});
+      } else await evaluate("audit.hideDetail()");
+      await evaluate("audit.releaseWrite()");
+      await until(()=>evaluate(`Object.keys(localStorage).filter(k=>k.startsWith('taskboard.submission:["comment","task-one"]:')).length===0`),"comment did not confirm");
+      if (!remounted) {
+        await evaluate("audit.remountDetail()");
+        await until(()=>evaluate("Boolean(document.querySelector('.comment-inline-media textarea'))"),"detail missing");
+      }
+      assert.equal(await evaluate("document.querySelector('.comment-inline-media textarea').value"),remounted ? "Keep remounted draft" : "");
+      assert.equal(await evaluate("localStorage.getItem('taskboard.comment-draft.task-one') ?? ''"),remounted ? "Keep remounted draft" : "");
+      assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST' && r.path.endsWith('/comments')).length"),1);
+    }
+  });
+  await t.test("two composers retain independent receipt ownership when one response is lost and the other confirms",async()=>{
+    await navigate(`${base}/?view=dual-detail`);
+    await until(()=>evaluate("document.querySelectorAll('.comment-inline-media textarea').length===2"),"two composers missing");
+    await evaluate("document.querySelector('[data-pane=first] textarea[aria-label=\"留下评论\"]').focus()");
+    await call("Input.insertText",{text:"First pending source"});
+    await evaluate("audit.holdWrite='comment';document.querySelector('[data-pane=first] .comment-composer button[type=submit]').click()");
+    await until(()=>evaluate("typeof audit.releaseWrite==='function'"),"first source not held");
+    const receipt=await evaluate("Object.keys(localStorage).filter(k=>k.startsWith('taskboard.submission:[\"comment\",\"task-one\"]:')).map(k=>JSON.parse(localStorage.getItem(k)))[0].id");
+    await evaluate("document.querySelector('[data-pane=second] textarea[aria-label=\"留下评论\"]').focus()");
+    await call("Input.insertText",{text:"Second explicit source"});
+    await evaluate("document.querySelector('[data-pane=second] .comment-composer button[type=submit]').click()");
+    await until(()=>evaluate("document.querySelector('[data-pane=second] textarea[aria-label=\"留下评论\"]').value===''"),"second source not confirmed");
+    assert.equal(await evaluate(`Object.values(localStorage).some(v=>{try{return JSON.parse(v)?.id===${JSON.stringify(receipt)}}catch{return false}})`),true,"confirming one source cannot erase another source's receipt");
+    await evaluate("audit.dropCommentAck=true;audit.releaseWrite()");
+    await until(()=>evaluate("Boolean(document.querySelector('[data-pane=first] .comment-composer [role=status]'))"),"lost first response not retained");
+    assert.equal(await evaluate("document.querySelector('[data-pane=first] .comment-composer button[type=submit]').disabled"),true);
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST' && r.path.endsWith('/comments')).length"),2);
   });
   await t.test("new issue uses the shared pending attachment component and hands the original file to save", async () => {
     await issueView("editor"); await chooseFile('.task-dialog input[type="file"]');

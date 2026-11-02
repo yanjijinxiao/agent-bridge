@@ -56,9 +56,9 @@ test("new issues stage attachments in the composer and upload them after creatio
   assert.match(editorSource, /<PendingAttachments\s+files=\{attachments\}/);
   assert.match(pendingAttachmentsSource, /className="composer-attachment-list"/);
   assert.match(editorSource, /保存后上传/);
-  assert.match(appSource, /Promise\.allSettled/);
+  // Real request order and partial-failure continuation are covered by the
+  // browser App scenarios; the Promise scheduling strategy is not a UI contract.
   assert.match(appSource, /uploadAttachment\(saved\.id, file\)/);
-  assert.match(appSource, /附件上传失败，可在详情页重试/);
 });
 
 test("the issue composer includes Linear-style labels and scheduling", () => {

@@ -64,3 +64,22 @@ test("an expired start RPC cannot permanently gate restart after a native comple
   await assert.rejects(runner.run({ cwd: "/tmp", prompt: "delayed-turn-receipt" }), { submission: "unconfirmed" });
   assert.equal(runner.hasRestartBlockingWork(), false, "unknown start identity is retained for reconciliation, not an infinite restart latch");
 });
+
+for(const boundary of ['follow-read','result-send'])test(`accepted Bridge execution protects the actual ${boundary} boundary`,async t=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'bridge-accepted-drain-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const store=new RuntimeStateStore(resolveStatePaths(root)),project=store.createProject('Fixture',root),session=store.createSession('actor',root,'Fixture',project.id);
+ store.setSessionThread(session.id,'thread');
+ const entered=Promise.withResolvers<void>(),release=Promise.withResolvers<void>(),finished=Promise.withResolvers<void>(),accepted=Promise.withResolvers<void>();
+ const service=new BridgeService({stateStore:store,config:{...defaultConfig(root),allowedSenderIds:['actor'],streamReplies:false},
+  onTurnStarted:async()=>{accepted.resolve();if(boundary==='follow-read'){entered.resolve();await release.promise;}},
+  channel:createChannelClient('generic',TEXT_CAPABILITIES,{async sendText(){entered.resolve();await release.promise;return {messageId:'result'};}}),
+  runner:{isIndependentObservation(){return true;},async run(input){await input.onTurnStarted?.({threadId:'thread',turnId:'turn'});await finished.promise;return {threadId:'thread',turnId:'turn',text:'Confirmed result',raw:''};}} as never});
+ const pending=service.handleMessage({id:'one',senderId:'actor',text:'Original task',raw:{}});
+ try {
+  await accepted.promise;
+  if(boundary==='result-send'){assert.equal(service.hasRestartBlockingWork(),false);finished.resolve();}
+  await entered.promise;
+  assert.equal(service.hasRestartBlockingWork(),boundary==='result-send',boundary==='follow-read'?'a read-only follower cannot keep an accepted input critical':'the native task is independent, but this result send is still Gateway work');
+ }finally{release.resolve();finished.resolve();await pending;}
+ assert.equal(service.hasRestartBlockingWork(),false);
+});

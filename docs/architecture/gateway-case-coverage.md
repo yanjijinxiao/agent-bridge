@@ -31,7 +31,7 @@ verified只表示JSON中注明的窄场景；partial不是通过；failed保留�
 | CTRL-01 · 普通忙时 steer | controls | 3 | 0 | 3 | 0 | 无 |
 | CTRL-02 · Codex 原生持久队列 | controls | 3 | 1 | 2 | 0 | 无 |
 | CTRL-03 · 队列恢复和取消 | controls | 4 | 2 | 2 | 0 | 无 |
-| CTRL-04 · 停止及目标身份 | controls | 4 | 2 | 1 | 0 | CTRL-04.2 |
+| CTRL-04 · 停止及目标身份 | controls | 5 | 3 | 1 | 0 | CTRL-04.2 |
 | CTRL-05 · 状态与帮助 | controls | 3 | 1 | 2 | 0 | 无 |
 | AUTH-01 · IM个人和群准入 | access | 3 | 0 | 2 | 0 | AUTH-01.3 |
 | AUTH-02 · 远程准入审批 | access | 3 | 2 | 1 | 0 | 无 |
@@ -40,8 +40,8 @@ verified只表示JSON中注明的窄场景；partial不是通过；failed保留�
 | INT-03 · 提问、表单与安全URL | interactions | 4 | 3 | 1 | 0 | 无 |
 | INT-04 · 答案及决定回执 | interactions | 3 | 1 | 2 | 0 | 无 |
 | INT-05 · 异步状态不卡主线 | interactions | 3 | 2 | 1 | 0 | 无 |
-| REC-01 · systemError自动恢复 | recovery | 3 | 2 | 1 | 0 | 无 |
-| REC-02 · 容量恢复 | recovery | 3 | 2 | 1 | 0 | 无 |
+| REC-01 · systemError自动恢复 | recovery | 4 | 3 | 1 | 0 | 无 |
+| REC-02 · 容量恢复 | recovery | 4 | 3 | 1 | 0 | 无 |
 | DEL-01 · 执行、送达和显示独立 | delivery | 6 | 3 | 2 | 0 | DEL-01.3 |
 | DEL-02 · 单卡分阶段持久化 | delivery | 3 | 2 | 1 | 0 | 无 |
 | DEL-03 · 不追加文本兜底 | delivery | 3 | 2 | 1 | 0 | 无 |
@@ -49,12 +49,12 @@ verified只表示JSON中注明的窄场景；partial不是通过；failed保留�
 | DEL-05 · 分段而非任务完成 | delivery | 3 | 2 | 1 | 0 | 无 |
 | DEL-06 · 最终参与者原生提醒 | delivery | 3 | 2 | 1 | 0 | 无 |
 | DEL-07 · 长回答完整可读 | delivery | 3 | 2 | 0 | 0 | DEL-07.3 |
-| DEL-08 · 进展真实且简洁 | delivery | 4 | 0 | 2 | 0 | DEL-08.3, DEL-08.4 |
+| DEL-08 · 进展真实且简洁 | delivery | 5 | 1 | 2 | 0 | DEL-08.3, DEL-08.4 |
 | DEL-09 · Markdown语义完整 | delivery | 4 | 2 | 1 | 0 | DEL-09.3 |
 | DEL-10 · 复制按用户任务 | delivery | 3 | 1 | 2 | 0 | 无 |
 | CHAN-01 · 四种IM统一前端 | channel | 3 | 1 | 2 | 0 | 无 |
 | CHAN-02 · 网络生命周期有界 | channel | 3 | 3 | 0 | 0 | 无 |
-| CHAN-03 · 媒体发送不误判 | channel | 5 | 3 | 0 | 0 | CHAN-03.2, CHAN-03.3 |
+| CHAN-03 · 媒体发送不误判 | channel | 6 | 4 | 0 | 0 | CHAN-03.2, CHAN-03.3 |
 | CHAN-04 · 轮询游标与重连 | channel | 3 | 1 | 2 | 0 | 无 |
 | IDE-01 · 项目与worktree唯一入口 | ide | 4 | 4 | 0 | 0 | 无 |
 | IDE-02 · 完整多根授权 | ide | 3 | 1 | 2 | 0 | 无 |
@@ -70,18 +70,18 @@ verified只表示JSON中注明的窄场景；partial不是通过；failed保留�
 | WEB-02 · 可选模块不阻塞核心 | web | 3 | 1 | 0 | 0 | WEB-02.2, WEB-02.3 |
 | TB-01 · 任务板可选集成 | taskboard | 4 | 1 | 2 | 0 | TB-01.1 |
 | KB-01 · 知识库与QA边界 | knowledge | 4 | 1 | 2 | 0 | KB-01.2 |
-| REL-01 · 重启仅保护Gateway交接 | release | 7 | 4 | 3 | 0 | 无 |
+| REL-01 · 重启仅保护Gateway交接 | release | 8 | 5 | 3 | 0 | 无 |
 | REL-02 · 直接发布与真实制品 | release | 4 | 2 | 1 | 0 | REL-02.3 |
 | AUDIT-01 · 四层职责和按行证据 | audit | 4 | 0 | 0 | 0 | AUDIT-01.1, AUDIT-01.2, AUDIT-01.3, AUDIT-01.4 |
-| TB-02 · 独立 AI 面板的实现职责 | taskboard | 5 | 3 | 2 | 0 | 无 |
+| TB-02 · 独立 AI 面板的实现职责 | taskboard | 6 | 4 | 2 | 0 | 无 |
 | WEB-03 · 管理接口和静态资源的实际响应 | web | 2 | 2 | 0 | 0 | 无 |
-| TB-03 · 议题与评论附件的实际界面 | taskboard | 4 | 3 | 0 | 0 | TB-03.4 |
+| TB-03 · 议题与评论附件的实际界面 | taskboard | 4 | 4 | 0 | 0 | 无 |
 | TB-04 · 事件处理器的执行授权与生命周期 | taskboard | 3 | 2 | 0 | 0 | TB-04.2 |
 | TB-05 · 本地与云端任务接口契约一致 | taskboard | 1 | 1 | 0 | 0 | 无 |
 | TB-06 · 议题人类可读编号的唯一性与稳定性 | taskboard | 1 | 1 | 0 | 0 | 无 |
 | TB-07 · 议题日期的输入与呈现边界 | taskboard | 2 | 2 | 0 | 0 | 无 |
 | TB-08 · 本地schema迁移保全业务字段 | taskboard | 1 | 1 | 0 | 0 | 无 |
-| TB-09 · 异步议题写入的来源与部分成功 | taskboard | 4 | 1 | 1 | 0 | TB-09.1, TB-09.2 |
-| TB-10 · 工作流编辑与执行能力分开核验 | taskboard | 3 | 0 | 0 | 1 | TB-10.2, TB-10.3 |
+| TB-09 · 异步议题写入的来源与部分成功 | taskboard | 4 | 3 | 1 | 0 | 无 |
+| TB-10 · 工作流编辑与执行能力分开核验 | taskboard | 3 | 2 | 0 | 0 | TB-10.3 |
 | TB-11 · 云迁移提交与补偿的独立事实 | taskboard | 3 | 3 | 0 | 0 | 无 |
 | TB-12 · 议题键盘操作的合法性与单次交接 | taskboard | 2 | 2 | 0 | 0 | 无 |

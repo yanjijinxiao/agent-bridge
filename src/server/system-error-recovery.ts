@@ -240,6 +240,10 @@ export class SystemErrorRecoveryCoordinator {
     finally { if (timer) clearTimeout(timer); }
   }
   private save(row: SystemRecoveryStatus): void {
+    // Shutdown retires this journal writer. A late read or a compensation
+    // callback must not overwrite the record now owned by the next process.
+    // Restoration intent was persisted before any native archive write.
+    if (this.stopped) return;
     const next = { ...this.records, [key(row)]: structuredClone(row) };
     // Bounded terminal metadata; an in-flight operation is never evicted.
     const old = Object.entries(next).filter(([id, item]) => !this.pending.has(id) && !item.restoreActive && !["recovering", "waiting"].includes(item.phase))
@@ -256,7 +260,7 @@ export class SystemErrorRecoveryCoordinator {
   hasInFlightWork(): boolean { return this.pending.size > 0 || Object.values(this.records).some(row => row.restoreActive); }
   /** A durable restoration obligation can survive restart. Only the actual
    * native mutation/receipt handoff currently on the stack needs draining. */
-  hasRestartBlockingWork(): boolean { return this.pending.size > 0; }
+  hasRestartBlockingWork(): boolean { return this.options.backend().hasRestartBlockingWork?.() ?? false; }
   private scheduleRestores(): void {
     if (this.stopped || this.restoreTimer || !Object.values(this.records).some(row => row.restoreActive)) return;
     this.restoreTimer = setTimeout(() => {
@@ -265,6 +269,14 @@ export class SystemErrorRecoveryCoordinator {
       this.scheduleRestores();
     }, 5_000); this.restoreTimer.unref();
   }
-  async stop(): Promise<void> { this.stopped = true; if (this.restoreTimer) clearTimeout(this.restoreTimer); this.restoreTimer = undefined; await Promise.allSettled(this.pending.values()); await Promise.allSettled(this.notifications); }
+  async stop(): Promise<void> {
+    this.stopped = true;
+    this.sourceTokens.clear();
+    if (this.restoreTimer) clearTimeout(this.restoreTimer);
+    this.restoreTimer = undefined;
+    // Native transport leases drain actual RPC writes. Reads can be detached;
+    // they recheck stopped before another mutation and cannot save afterward.
+    await Promise.allSettled(this.notifications);
+  }
   private now(): number { return (this.options.now ?? Date.now)(); }
 }

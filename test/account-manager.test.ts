@@ -1770,6 +1770,10 @@ test("stores Web uploads per session and exposes them in user history", async (t
   });
   const attachment = await manager.getSessionAttachment("account-one", session.id, "user-1", 0);
   assert.equal(fs.readFileSync(attachment.path, "utf8"), "report body");
+  if (process.platform !== "win32") {
+    assert.equal(fs.statSync(attachment.path).mode & 0o777, 0o600);
+    assert.equal(fs.statSync(path.dirname(attachment.path)).mode & 0o777, 0o700);
+  }
   assert.equal(attachment.path.startsWith(path.join(root, "inbound", "account-one", "web", session.id)), true);
 });
 

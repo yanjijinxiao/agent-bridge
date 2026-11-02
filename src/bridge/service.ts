@@ -1,3 +1,4 @@
+import { withChannelWriteLeases } from "./channel-write-leases.js";
 import { AdmissionService, admissionPrincipal } from "./admission.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
@@ -252,10 +253,10 @@ export class BridgeService {
 
   constructor(private readonly options: BridgeServiceOptions) {
     if (!options.channel && !options.weixin) throw new Error("A channel adapter client is required");
-    this.channel = options.channel ?? adaptLegacyClient(options.weixin!, {
+    this.channel = withChannelWriteLeases(options.channel ?? adaptLegacyClient(options.weixin!, {
       inboundDir: options.inboundDir ?? path.join(options.config.defaultCwd, ".codex-im-gateway-inbound"),
       maxInboundBytes: options.config.maxInboundBytes, cdnBaseUrl: options.cdnBaseUrl, mediaFetch: options.mediaFetch
-    });
+    }), this.restartWork);
     this.controls = options.sessionControls ?? new SessionControlJournal(options.stateStore.controlJournalPath);
     this.turnAudience = options.turnAudience ?? new TurnAudienceJournal(
       path.join(path.dirname(options.stateStore.controlJournalPath), "turn-audience.json"));
@@ -2201,6 +2202,9 @@ export class BridgeService {
       assertCurrent();
       this.updateExecutionRuntime(senderId, { model: null });
       const runtime = await this.effectiveRuntime(senderId);
+      // The local setting is already saved. Retire an obsolete audience
+      // without reporting that this confirmed change was never submitted.
+      try { assertCurrent(); } catch { return; }
       await this.reply(senderId, `已恢复继承 Web/Codex 模型设置。\n当前模型：${runtime.model ?? "Codex 默认"}`);
       return;
     }
@@ -2279,6 +2283,7 @@ export class BridgeService {
       assertCurrent();
       this.updateExecutionRuntime(senderId, { effort: null });
       const nextRuntime = await this.effectiveRuntime(senderId);
+      try { assertCurrent(); } catch { return; }
       await this.reply(senderId, `已恢复继承 Web/Codex 推理强度设置。\n当前推理强度：${formatEffort(nextRuntime.effort)}`);
       return;
     }
@@ -2653,12 +2658,12 @@ export class BridgeService {
             saveNativeThread(startedThreadId);
             recordParticipant(startedThreadId, turnId);
             const running = status === undefined || status === "inProgress";
+            if (running) acceptedWork({ hostId: this.sessionHostId(session) ?? "local", threadId: startedThreadId, turnId });
             if (queued && running) { await prepareReplyStream(turnId); markActive(); }
             if (replyStream) this.activePresentations.set(session.id, { hostId: this.sessionHostId(session) ?? "local",
               threadId: startedThreadId, turnId, stream: replyStream });
             await this.options.onTurnStarted?.(session, turnId, status);
             if (queued && running && wantsProgress() && replyStream?.supported) await replyStream.progress("🤔 原生队列任务已开始…");
-            if (running) acceptedWork({ hostId: this.sessionHostId(session) ?? "local", threadId: startedThreadId, turnId });
           },
           ...(qaContext ? {
             dynamicTools: llmWikiDynamicTools(),

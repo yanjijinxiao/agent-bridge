@@ -29,7 +29,9 @@ import {
   deleteWorkflowNode,
   deriveWorkflowLayout,
   findWorkflowItem,
+  getWorkflowSequence,
   insertWorkflowNode,
+  moveWorkflowNode,
   normalizeWorkflowSnapshot,
   serializeWorkflowSnapshot,
   workflowNodeIds,
@@ -126,6 +128,16 @@ interface PlanDragPreview {
   sourceOrderIds: string[];
   sourceIndex: number;
   targetIndex: number;
+}
+
+interface SequenceDragPreview {
+  nodeId: string;
+  sequenceRef: WorkflowSequenceRef;
+  sourceOrderIds: string[];
+  targetIndex: number;
+  positions: Map<string, { x: number; y: number }>;
+  deltaY: number;
+  pointerOffsetY?: number;
 }
 
 const WORKFLOW_STEP_WIDTH = 250;
@@ -487,7 +499,13 @@ function planDragShift(
   return 0;
 }
 
-export function WorkflowBoard({
+export function WorkflowBoard(props: WorkflowBoardProps) {
+  // A project change owns a fresh hydration/save queue. Old requests may finish
+  // against their original project, but never publish into the replacement.
+  return <ProjectWorkflowBoard key={props.projectId} {...props} />;
+}
+
+function ProjectWorkflowBoard({
   projectId,
   projectName,
   workspacePath,
@@ -508,11 +526,17 @@ export function WorkflowBoard({
   const [workflowTabMenu, setWorkflowTabMenu] = useState<WorkflowTabMenu | null>(null);
   const [pickerTarget, setPickerTarget] = useState<StepPickerTarget | null>(null);
   const [planDragPreview, setPlanDragPreview] = useState<PlanDragPreview | null>(null);
+  const [sequenceDragPreview, setSequenceDragPreview] = useState<SequenceDragPreview | null>(null);
   const [settlingNodeId, setSettlingNodeId] = useState<string | null>(null);
   const [workflowCapabilities, setWorkflowCapabilities] = useState<WorkflowCapabilities | null>(null);
   const [workflowCapabilitiesFailed, setWorkflowCapabilitiesFailed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [persistenceError, setPersistenceError] = useState("");
+  const [saveState, setSaveState] = useState<"loading" | "dirty" | "saving" | "saved" | "failed" | "conflict">("loading");
+  const [saveRetry, setSaveRetry] = useState(0);
+  const [saveConflict, setSaveConflict] = useState<{ version: number; workspace: ReturnType<typeof createInitialWorkflowWorkspace> } | null>(null);
+  const conflictRef = useRef<typeof saveConflict>(null);
+  const latestSerializedRef = useRef("");
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [canvasZoom, setCanvasZoom] = useState(1);
   const [contentBounds, setContentBounds] = useState(
@@ -530,6 +554,8 @@ export function WorkflowBoard({
   const mountedRef = useRef(true);
   const settleTimerRef = useRef<number | null>(null);
   const planDragSessionRef = useRef<PlanDragPreview | null>(null);
+  const sequenceDragSessionRef = useRef<SequenceDragPreview | null>(null);
+  const pointerGrabRef = useRef<{nodeId: string; offsetY: number} | null>(null);
 
   const layout = useMemo(() => deriveWorkflowLayout(flow, nodes), [flow, nodes]);
   const rootStepIds = flow.root.items.map((item) => item.nodeId);
@@ -552,6 +578,10 @@ export function WorkflowBoard({
   }, [canvasSize.height, canvasSize.width, canvasZoom, contentBounds]);
 
   const applyWorkspace = useCallback((workspace: ReturnType<typeof createInitialWorkflowWorkspace>) => {
+    planDragSessionRef.current = null;
+    sequenceDragSessionRef.current = null;
+    setPlanDragPreview(null);
+    setSequenceDragPreview(null);
     const snapshot = normalizeSnapshot(workspace.snapshots.get(workspace.activeWorkflowId)!);
     workflowSnapshotsRef.current = new Map(workspace.snapshots);
     workflowSnapshotsRef.current.set(workspace.activeWorkflowId, snapshot);
@@ -591,7 +621,9 @@ export function WorkflowBoard({
   }, []);
 
   useLayoutEffect(() => {
+    if (planDragSessionRef.current || sequenceDragSessionRef.current) return;
     const frame = window.requestAnimationFrame(() => {
+      if (planDragSessionRef.current || sequenceDragSessionRef.current) return;
       const rootNodeIds = nodes
         .filter((node) => !node.parentId && !isVirtualWorkflowNodeId(node.id))
         .map((node) => node.id);
@@ -624,7 +656,7 @@ export function WorkflowBoard({
     if (!translateExtent) return;
     const frame = window.requestAnimationFrame(() => {
       const instance = flowRef.current;
-      if (instance) void instance.zoomTo(instance.getZoom(), { duration: 0 });
+      if (instance && !planDragSessionRef.current && !sequenceDragSessionRef.current) void instance.zoomTo(instance.getZoom(), { duration: 0 });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [translateExtent]);
@@ -675,9 +707,11 @@ export function WorkflowBoard({
         clearLegacyWorkflowWorkspace(projectId);
         applyWorkspace(workspace);
         setPersistenceError("");
+        setSaveState("saved");
       } catch {
         if (cancelled) return;
         setPersistenceError("流程暂时无法同步到任务面板服务");
+        setSaveState("failed");
         onWorkflowsChange(initialWorkspace.tabs);
       } finally {
         if (!cancelled) setHydrated(true);
@@ -695,7 +729,7 @@ export function WorkflowBoard({
     setWorkflowCapabilities(null);
     setWorkflowCapabilitiesFailed(false);
     void listWorkflowCapabilities(workspacePath, controller.signal)
-      .then(setWorkflowCapabilities)
+      .then(capabilities => { if (!controller.signal.aborted) setWorkflowCapabilities(capabilities); })
       .catch(() => {
         if (controller.signal.aborted) return;
         setWorkflowCapabilities({ skills: [], mcpServers: [] });
@@ -716,13 +750,19 @@ export function WorkflowBoard({
       workflowSnapshotsRef.current,
     );
     onWorkflowsChange(workflowTabs);
-    if (!hydrated) return;
+    // Pointer positions are previews. Persist only the canonical drop result.
+    if (!hydrated || planDragPreview || sequenceDragPreview) return;
     const serialized = JSON.stringify(workspace);
-    if (serialized === lastRemoteWorkspaceRef.current) return;
+    latestSerializedRef.current = serialized;
+    if (conflictRef.current) return;
+    if (serialized === lastRemoteWorkspaceRef.current) { setSaveState("saved"); return; }
+    setSaveState("dirty");
     const timer = window.setTimeout(() => {
       saveQueueRef.current = saveQueueRef.current.then(async () => {
-        if (!mountedRef.current || serialized === lastRemoteWorkspaceRef.current) return;
+        if (!mountedRef.current || conflictRef.current || serialized !== latestSerializedRef.current
+          || serialized === lastRemoteWorkspaceRef.current) return;
         try {
+          setSaveState("saving");
           const saved = await saveWorkflowWorkspace(
             projectId,
             workspace,
@@ -733,6 +773,7 @@ export function WorkflowBoard({
           lastRemoteWorkspaceRef.current = serialized;
           clearLegacyWorkflowWorkspace(projectId);
           setPersistenceError("");
+          setSaveState(serialized === latestSerializedRef.current ? "saved" : "dirty");
         } catch (error) {
           if (!mountedRef.current) return;
           if (error instanceof ApiError && error.code === "VERSION_CONFLICT") {
@@ -740,10 +781,13 @@ export function WorkflowBoard({
               const latest = await getWorkflowWorkspace<WorkflowWorkspace>(projectId);
               const latestWorkspace = parseWorkflowWorkspace(latest.workspace);
               if (latestWorkspace && mountedRef.current) {
-                remoteVersionRef.current = latest.version;
-                lastRemoteWorkspaceRef.current = JSON.stringify(latest.workspace);
-                applyWorkspace(latestWorkspace);
-                setPersistenceError("");
+                // A conflict is not permission to discard the local editor or
+                // overwrite the other writer with a newly fetched version.
+                const conflict = { version: latest.version, workspace: latestWorkspace };
+                conflictRef.current = conflict;
+                setSaveConflict(conflict);
+                setPersistenceError("流程版本冲突，本地编辑已保留");
+                setSaveState("conflict");
                 return;
               }
             } catch {
@@ -751,6 +795,7 @@ export function WorkflowBoard({
             }
           }
           setPersistenceError("流程保存失败，请稍后重试");
+          setSaveState("failed");
         }
       });
     }, 180);
@@ -764,6 +809,9 @@ export function WorkflowBoard({
     onWorkflowsChange,
     projectId,
     workflowTabs,
+    saveRetry,
+    planDragPreview,
+    sequenceDragPreview,
   ]);
 
   useEffect(() => {
@@ -774,10 +822,19 @@ export function WorkflowBoard({
         if (record.version <= remoteVersionRef.current) return;
         const workspace = parseWorkflowWorkspace(record.workspace);
         if (!workspace) return;
+        if (conflictRef.current || latestSerializedRef.current !== lastRemoteWorkspaceRef.current) {
+          const conflict = { version: record.version, workspace };
+          conflictRef.current = conflict;
+          setSaveConflict(conflict);
+          setPersistenceError("流程版本冲突，本地编辑已保留");
+          setSaveState("conflict");
+          return;
+        }
         remoteVersionRef.current = record.version;
         lastRemoteWorkspaceRef.current = JSON.stringify(record.workspace);
         applyWorkspace(workspace);
         setPersistenceError("");
+        setSaveState("saved");
       })
       .catch((error) => {
         if ((error as Error).name !== "AbortError") {
@@ -958,9 +1015,12 @@ export function WorkflowBoard({
     const enriched = nodes.map((node) => {
       const stepIndex = orderedIds.indexOf(node.id);
       const dragShiftY = node.parentId ? planDragShift(node.id, planDragPreview) : 0;
+      const groupPosition = sequenceDragPreview?.nodeId !== node.id
+        ? sequenceDragPreview?.positions.get(node.id) : undefined;
       return {
         ...node,
-        draggable: Boolean(node.parentId),
+        ...(groupPosition ? { position: { x: groupPosition.x, y: groupPosition.y + sequenceDragPreview!.deltaY } } : {}),
+        draggable: Boolean(node.parentId) || node.id !== pinnedTriggerId,
         data: {
           ...node.data,
           displayTitle: workflowNodeDisplayTitle(node.data),
@@ -978,7 +1038,7 @@ export function WorkflowBoard({
           isTrigger: node.id === pinnedTriggerId,
           childCount: childCounts.get(node.id) ?? 0,
           dragShiftY,
-          dragActive: planDragPreview?.nodeId === node.id,
+          dragActive: planDragPreview?.nodeId === node.id || sequenceDragPreview?.positions.has(node.id),
           settleActive: settlingNodeId === node.id,
           onDuplicate: () => duplicateNode(node.id),
           onDelete: () => deleteNode(node.id),
@@ -1024,6 +1084,7 @@ export function WorkflowBoard({
     nodes,
     openPlanStepPicker,
     planDragPreview,
+    sequenceDragPreview,
     rootStepIds,
     settlingNodeId,
     workflowCapabilities,
@@ -1101,13 +1162,30 @@ export function WorkflowBoard({
 
   const onNodesChange = useCallback((changes: NodeChange<WorkflowCanvasNode>[]) => {
     setNodes((current) => applyNodeChanges(
-      changes.filter((change) => change.type !== "remove" || !isVirtualWorkflowNodeId(change.id)),
+      changes.filter((change) => change.type !== "remove" || !isVirtualWorkflowNodeId(change.id)).map(change => {
+        const session = sequenceDragSessionRef.current;
+        const original = session?.positions.get(session.nodeId);
+        return change.type === "position" && change.position && session?.nodeId === change.id && original
+          ? { ...change, position: { ...change.position, x: original.x } } : change;
+      }),
       current,
     ));
   }, []);
 
   const onNodeDragStart = useCallback<OnNodeDrag<WorkflowCanvasNode>>((_, node) => {
-    if (!node.parentId) return;
+    if (!node.parentId) {
+      const found = findWorkflowItem(flow, node.id);
+      if (!found || isWorkflowTriggerKind(node.data.kind)) return;
+      const ids = workflowNodeIds({ version: 2, root: { items: [found.item] } });
+      const positions = new Map(nodes.filter(item => ids.includes(item.id)).map(item => [item.id, { ...item.position }]));
+      const session: SequenceDragPreview = { nodeId: node.id, sequenceRef: found.sequenceRef,
+        sourceOrderIds: getWorkflowSequence(flow, found.sequenceRef).items.map(item => item.nodeId),
+        targetIndex: found.index, positions, deltaY: 0 };
+      if (pointerGrabRef.current?.nodeId === node.id) session.pointerOffsetY = pointerGrabRef.current.offsetY;
+      sequenceDragSessionRef.current = session;
+      setSequenceDragPreview(session);
+      return;
+    }
     const sourceOrderIds = nodes
       .filter((candidate) => candidate.parentId === node.parentId)
       .sort((left, right) => left.position.y - right.position.y)
@@ -1122,14 +1200,14 @@ export function WorkflowBoard({
     planDragSessionRef.current = preview;
     setPlanDragPreview(preview);
     setSettlingNodeId(null);
-  }, [nodes]);
+  }, [flow, nodes]);
 
   const onNodeDrag = useCallback<OnNodeDrag<WorkflowCanvasNode>>((_, node) => {
     const instance = flowRef.current;
     const internal = instance?.getInternalNode(node.id);
     if (!instance || !internal) return;
     const height = internal.measured.height ?? (node.parentId ? PLAN_ITEM_HEIGHT : WORKFLOW_STEP_HEIGHT);
-    const centerY = internal.internals.positionAbsolute.y + height / 2;
+    const centerY = (node.parentId ? internal.internals.positionAbsolute.y : node.position.y) + height / 2;
     if (node.parentId && planDragSessionRef.current?.nodeId === node.id) {
       const session = planDragSessionRef.current;
       const siblings = session.sourceOrderIds
@@ -1141,20 +1219,47 @@ export function WorkflowBoard({
           + (candidate.measured.height ?? PLAN_ITEM_HEIGHT) / 2
       ));
       const targetIndex = index < 0 ? siblings.length : index;
-      setPlanDragPreview({ ...session, targetIndex });
+      session.targetIndex = targetIndex;
+      setPlanDragPreview({ ...session });
+    } else if (sequenceDragSessionRef.current?.nodeId === node.id) {
+      const session = sequenceDragSessionRef.current;
+      const siblings = session.sourceOrderIds.filter(id => id !== node.id)
+        .map(id => instance.getInternalNode(id)).filter(candidate => candidate !== undefined);
+      const index = siblings.findIndex(candidate => centerY < candidate.internals.positionAbsolute.y
+        + (candidate.measured.height ?? WORKFLOW_STEP_HEIGHT) / 2);
+      session.targetIndex = Math.max(session.sequenceRef.length === 0 ? 1 : 0, index < 0 ? siblings.length : index);
+      session.deltaY = node.position.y - session.positions.get(node.id)!.y;
+      setSequenceDragPreview({ ...session });
     }
   }, []);
 
-  const onNodeDragStop = useCallback<OnNodeDrag<WorkflowCanvasNode>>((_, node) => {
+  const onNodeDragStop = useCallback<OnNodeDrag<WorkflowCanvasNode>>((event, node) => {
+    // React Flow may coalesce the last pointer move. The drop coordinates,
+    // rather than the previous render's preview, decide the durable order.
+    const sessionAtDrop = sequenceDragSessionRef.current;
+    const pointer = "clientX" in event ? event : event.changedTouches[0];
+    const finalNode = sessionAtDrop?.nodeId === node.id && sessionAtDrop.pointerOffsetY !== undefined && pointer && flowRef.current
+      ? { ...node, position: { ...node.position, y: flowRef.current.screenToFlowPosition({x:pointer.clientX,y:pointer.clientY}).y - sessionAtDrop.pointerOffsetY } }
+      : node;
+    onNodeDrag(event, finalNode, [finalNode]);
+    if (!node.parentId && sequenceDragSessionRef.current?.nodeId === node.id) {
+      const session = sequenceDragSessionRef.current;
+      sequenceDragSessionRef.current = null;
+      setSequenceDragPreview(null);
+      // Reorder the canonical item. Conditions carry both branch sequences;
+      // dragging their visual node must never detach or flatten descendants.
+      commitFlow(nodes, moveWorkflowNode(flow, node.id, session.sequenceRef, session.targetIndex));
+      return;
+    }
     if (!node.parentId || planDragSessionRef.current?.nodeId !== node.id) return;
     const session = planDragSessionRef.current;
-    reorderPlanItem(session.parentId, node.id, planDragPreview?.targetIndex ?? session.sourceIndex);
+    reorderPlanItem(session.parentId, node.id, session.targetIndex);
     planDragSessionRef.current = null;
     setPlanDragPreview(null);
     setSettlingNodeId(node.id);
     if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
     settleTimerRef.current = window.setTimeout(() => setSettlingNodeId(null), 220);
-  }, [planDragPreview, reorderPlanItem]);
+  }, [commitFlow, flow, nodes, onNodeDrag, reorderPlanItem]);
 
   function activateWorkflow(workflowId: string) {
     setWorkflowTabMenu(null);
@@ -1339,6 +1444,7 @@ export function WorkflowBoard({
                   onDoubleClick={() => startWorkflowRename(workflow)}
                   onContextMenu={(event) => openWorkflowTabMenu(event, workflow.id)}
                   onKeyDown={(event) => handleWorkflowTabKeyDown(event, workflow.id)}
+                  disabled={!hydrated}
                   title="双击重命名"
                 >
                   <LinearIcon name="dashboard" />
@@ -1349,6 +1455,7 @@ export function WorkflowBoard({
             <button
               className="workflow-tab-add"
               type="button"
+              disabled={!hydrated}
               aria-label="新建流程"
               title="新建流程"
               onClick={createWorkflow}
@@ -1359,15 +1466,44 @@ export function WorkflowBoard({
           <div className="workflow-toolbar-status">
             <span className={persistenceError ? "has-error" : ""}>
               <i aria-hidden="true" />
-              {persistenceError || "已自动保存"}
+              {persistenceError || ({ loading: "正在加载流程…", dirty: "尚未保存", saving: "正在保存…", saved: "已自动保存", failed: "保存尚未确认", conflict: "流程版本冲突" } as const)[saveState]}
             </span>
           </div>
         </div>
+        {saveConflict && <div className="comments-error" role="alert" data-workflow-conflict>
+          <span>流程已在其他位置更新，本地编辑已保留。请选择要保存的版本。</span>
+          <button type="button" className="button" onClick={() => {
+            const conflict = conflictRef.current;
+            if (!conflict) return;
+            remoteVersionRef.current = conflict.version;
+            lastRemoteWorkspaceRef.current = JSON.stringify(serializeWorkflowWorkspace(conflict.workspace.tabs, conflict.workspace.activeWorkflowId, conflict.workspace.snapshots));
+            conflictRef.current = null;
+            setSaveConflict(null);
+            setPersistenceError("");
+            setSaveRetry(value => value + 1);
+          }}>保留本地并保存</button>
+          <button type="button" className="button" onClick={() => {
+            const conflict = conflictRef.current;
+            if (!conflict) return;
+            remoteVersionRef.current = conflict.version;
+            lastRemoteWorkspaceRef.current = JSON.stringify(serializeWorkflowWorkspace(conflict.workspace.tabs, conflict.workspace.activeWorkflowId, conflict.workspace.snapshots));
+            conflictRef.current = null;
+            setSaveConflict(null);
+            applyWorkspace(conflict.workspace);
+            setPersistenceError("");
+            setSaveState("saved");
+          }}>载入远端版本</button>
+        </div>}
         <div
           ref={canvasRef}
           className="workflow-canvas"
+          inert={!hydrated}
           id="workflow-canvas-panel"
           role="tabpanel"
+          onPointerDownCapture={event => {
+            const element = event.target instanceof Element ? event.target.closest<HTMLElement>(".react-flow__node") : null;
+            pointerGrabRef.current = element?.dataset.id ? {nodeId:element.dataset.id, offsetY:(event.clientY-element.getBoundingClientRect().top)/(flowRef.current?.getZoom() ?? 1)} : null;
+          }}
           aria-label="流程编排区"
           aria-labelledby={`workflow-tab-${activeWorkflowId}`}
         >

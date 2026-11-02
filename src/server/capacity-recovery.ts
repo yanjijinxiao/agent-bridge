@@ -49,6 +49,7 @@ export class CapacityRecoveryCoordinator {
   private readonly executing = new Set<string>();
   private readonly checking = new Map<string, { previous: RecordState; scopes: Map<string, CapacityFailure> }>();
   private readonly settling = new Map<string, symbol>();
+  private deliveries = 0;
   private reconciliationTimer?: NodeJS.Timeout;
   private readonly delays: readonly number[];
   private readonly now: () => number;
@@ -74,7 +75,9 @@ export class CapacityRecoveryCoordinator {
       || Object.values(this.records).some(record => !["finished", "cancelled"].includes(record.status)));
   }
   hasRestartBlockingWork(): boolean {
-    if (this.checking.size || this.settling.size) return true;
+    // Reconciliation only reads. Its generation guard prevents a retired
+    // observation from starting execution or changing the successor's ledger.
+    if (this.deliveries || this.options.backend().hasRestartBlockingWork?.()) return true;
     return [...this.executing].some(key => {
       const row = this.records[key];
       return !row || row.status !== "running" || !row.acceptedTurnId || row.turnId !== row.acceptedTurnId
@@ -277,9 +280,9 @@ export class CapacityRecoveryCoordinator {
       const archived = ["archived", "missing"].includes(snapshot.state.persistence);
       if (!archived && !(snapshot.state.persistence === "active" && ["idle", "systemError"].includes(snapshot.state.runtimeStatus)
         && !snapshot.state.activeFlags.length && !snapshot.state.pendingTurnWithoutId && this.terminal(accepted))) return;
-      await this.options.retireProjection({ ...record, turnId: record.acceptedTurnId }, archived
+      await this.deliver(() => this.options.retireProjection!({ ...record, turnId: record.acceptedTurnId! }, archived
         ? "这张恢复进度卡显示有误：它来自已结束的历史记录，原会话已归档或不存在。本次没有启动新的任务；误显示的加载状态已关闭。"
-        : "这张恢复进度卡显示有误：它来自已经结束的历史轮次。本次没有启动新的任务；误显示的加载状态已关闭。");
+        : "这张恢复进度卡显示有误：它来自已经结束的历史轮次。本次没有启动新的任务；误显示的加载状态已关闭。"));
     } catch { /* Missing proof cannot authorize any card creation or execution. */ }
   }
   private reconciliationDiagnostic(record: RecordState, status: "closed" | "protected", reason?: string, detail?: { elapsedMs: number; errorType: string }): void {
@@ -314,8 +317,13 @@ export class CapacityRecoveryCoordinator {
       // waiting plan. Its backend still rechecks the exact tail before writing.
       if (previous.status === "waiting" && this.options.eligible(previous)
         && this.options.backend().backendInfo(previous.hostId).id === previous.backend) this.schedule(previous);
-      await this.options.terminal(scope, "上游报告所选模型当前容量不足。当前失败轮次或旧恢复的结束状态尚未核对清楚，未安排自动恢复；保留原记录，未重复提交任务。可用 /status、/history 查看。", "failed");
+      await this.deliver(() => this.options.terminal(scope, "上游报告所选模型当前容量不足。当前失败轮次或旧恢复的结束状态尚未核对清楚，未安排自动恢复；保留原记录，未重复提交任务。可用 /status、/history 查看。", "failed"));
     } finally { if (this.checking.get(key) === check) this.checking.delete(key); }
+  }
+
+  private async deliver(write: () => Promise<void>): Promise<void> {
+    this.deliveries++;
+    try { await write(); } finally { this.deliveries--; }
   }
 
   private defer(record: RecordState): boolean {

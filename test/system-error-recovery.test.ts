@@ -250,3 +250,26 @@ for (const recovered of [true, false]) test(`a new IM message may submit only af
   else await assert.rejects(input, /本条输入尚未提交/);
   assert.equal(recoveries, 1); assert.equal(runs, recovered ? 1 : 0); assert.equal(store.getSession(session.id)?.threadId, "thread");
 });
+
+test("a read-only system recovery wait neither blocks restart nor overwrites its successor after stop", async t => {
+  const f=fixture(t), entered=Promise.withResolvers<void>(), release=Promise.withResolvers<void>();
+  f.backend.readThreadSnapshot=async()=>{entered.resolve();await release.promise;return failed();};
+  const pending=f.manager.request(scope); await entered.promise;
+  try {
+  assert.equal(f.manager.hasInFlightWork(),true);
+  assert.equal(f.manager.hasRestartBlockingWork(),false,"the native transport owns mutation drain, a snapshot wait has no outgoing input");
+  const stopped=f.manager.stop();
+  assert.equal(await Promise.race([stopped.then(()=>true),new Promise(resolve=>setTimeout(()=>resolve(false),50))]),true,"shutdown must not wait for a read-only response");
+  const original=fs.readFileSync(f.filePath,"utf8");
+  release.resolve(); await pending;
+  assert.equal(f.calls(),0);
+  assert.equal(fs.readFileSync(f.filePath,"utf8"),original,"a retired coordinator cannot replace a successor's journal");
+  } finally {release.resolve(); await pending;}
+});
+
+test("system recovery delegates active native handoff protection to the transport", async t=>{
+  const f=fixture(t); let writing=false;
+  f.backend.hasRestartBlockingWork=()=>writing;
+  assert.equal(f.manager.hasRestartBlockingWork(),false);
+  writing=true;assert.equal(f.manager.hasRestartBlockingWork(),true);
+});

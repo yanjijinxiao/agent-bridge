@@ -19,7 +19,7 @@ async function existingDirectory(value) {
   }
 }
 
-export async function loadDeviceWorkspaces(codexStatePath, database) {
+async function loadDeviceWorkspaceRoots(codexStatePath, database) {
   const workspaces = new Map();
   let localProjects = {};
   try {
@@ -35,20 +35,26 @@ export async function loadDeviceWorkspaces(codexStatePath, database) {
 
   for (const [projectId, project] of Object.entries(localProjects)) {
     if (!Array.isArray(project?.rootPaths)) continue;
+    const roots = [];
     for (const rootPath of project.rootPaths) {
       const workspacePath = await existingDirectory(rootPath);
       if (!workspacePath) continue;
-      workspaces.set(projectId, workspacePath);
-      break;
+      if (!roots.includes(workspacePath)) roots.push(workspacePath);
     }
+    if (roots.length) workspaces.set(projectId, roots);
   }
 
   for (const project of await database.listProjects()) {
     if (workspaces.has(project.id)) continue;
     const workspacePath = await existingDirectory(project.workspacePath);
-    if (workspacePath) workspaces.set(project.id, workspacePath);
+    if (workspacePath) workspaces.set(project.id, [workspacePath]);
   }
   return workspaces;
+}
+
+export async function loadDeviceWorkspaces(codexStatePath, database) {
+  const roots = await loadDeviceWorkspaceRoots(codexStatePath, database);
+  return new Map([...roots].map(([id, paths]) => [id, paths[0]]));
 }
 
 export async function resolveAiWorkspace(projectId, codexStatePath, database) {
@@ -56,8 +62,8 @@ export async function resolveAiWorkspace(projectId, codexStatePath, database) {
   if (!project) {
     throw new ApiError(404, "PROJECT_NOT_FOUND", `Project '${projectId}' does not exist`);
   }
-  const workspaces = await loadDeviceWorkspaces(codexStatePath, database);
-  const workspacePath = workspaces.get(projectId);
+  const workspaces = await loadDeviceWorkspaceRoots(codexStatePath, database);
+  const [workspacePath, ...addDirectories] = workspaces.get(projectId) ?? [];
   if (!workspacePath) {
     throw new ApiError(
       409,
@@ -67,7 +73,9 @@ export async function resolveAiWorkspace(projectId, codexStatePath, database) {
   }
   return {
     workspacePath,
-    addDirectories: [...new Set(workspaces.values())].filter((candidate) => candidate !== workspacePath),
+    // Project membership supplies writable roots. A device-wide directory
+    // picker is presentation data, never authority to write other projects.
+    addDirectories,
     project,
   };
 }

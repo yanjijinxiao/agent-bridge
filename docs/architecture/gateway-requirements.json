@@ -416,11 +416,11 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             },
             {
               "file": "src/codex/backend.ts",
@@ -469,7 +469,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -724,7 +724,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -810,7 +810,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "实际Bridge四渠道替身：自然语言完整进入原线程，零AI控制分类；非真实IM网络。"
@@ -832,7 +832,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/channels/dingtalk.ts",
@@ -866,7 +866,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "四渠道普通消息及显式help覆盖；所有任务/QA扩展组合未完整核验。"
@@ -900,7 +900,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             }
           ]
         }
@@ -1067,7 +1067,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ]
         },
@@ -1156,7 +1156,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/inbound-receipts.ts",
@@ -1289,7 +1289,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/channel-commands.ts",
@@ -1430,7 +1430,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/weixin/media.ts",
@@ -1483,7 +1483,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/channels/client.ts",
@@ -1513,7 +1513,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "附件准备结束后线程/角色/准入复核；远端实际SSH转存中撤权的独立场景仍需补。"
@@ -1651,7 +1651,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             }
           ],
           "verifiedBoundary": "实际账号启动/刷新及独立停止，但monitor/runner替身，不证明所有并发清理异常。"
@@ -1673,7 +1673,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             },
             {
               "file": "src/ide/approval-service.ts",
@@ -1809,7 +1809,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             }
           ],
           "verifiedBoundary": "账号API和webhook投影不输出原token/key；全仓错误日志泄密边界尚未穷尽。"
@@ -1852,7 +1852,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -1886,7 +1886,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "detach持久、模式槽位与显式新建不复活旧关系；Gateway真实进程重启另需端到端。"
@@ -1908,7 +1908,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -1964,7 +1964,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "旧项目漂移保独立绑定，四渠道项目命令不覆盖；普通真实native续聊权限另证。"
@@ -1986,7 +1986,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "真实scope generation，模式session切换ABA不复活；其他任意项目变更由来源测试另核。"
@@ -2098,7 +2098,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "实际显式queue/steer准备后来源守卫，全部降权/停账号组合仍待。"
@@ -2185,7 +2185,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ]
         }
@@ -2243,7 +2243,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             },
             {
               "file": "src/bridge/interaction-routing.ts",
@@ -2341,7 +2341,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -2430,7 +2430,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/codex/desktop-session-catalog.ts",
@@ -2620,7 +2620,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "完整快照稳定R身份，翻页/resize不重排，原生pin与metadata时间分开。"
@@ -2638,7 +2638,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -2668,7 +2668,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "跨host同名/同projectID分组隔离；同host同roots多个native身份创建仍是独立未决项。"
@@ -2702,7 +2702,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/new-session.ts",
@@ -2779,7 +2779,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ]
         }
@@ -2849,7 +2849,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             }
           ],
           "verifiedBoundary": "展示引用/字面附件不发送，全部历史分页API及native格式组合仍待映射。"
@@ -2974,7 +2974,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "真实JSONL预期turn比较和Bridge默认steer，ACK中的全部thread/turn反例未在这组穷尽。"
@@ -3030,7 +3030,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "普通消息写前来源复核，原生steer连接等待后原角色/个人准入仍需另一末次lease场景。"
@@ -3291,7 +3291,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -3405,10 +3405,72 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "真实Bridge、绑定/角色状态和来源journal，原生接口/渠道替身，4种操作×6种来源共24项；先完成原生动作再挂起返回，旧结果零发送、原host/thread恰好一次、重开journal handled不重放。viewer只读降权仍允许。真实远端及发送已进入供应商后的撤权窗口另验。"
+        },
+        {
+          "id": "CTRL-04.5",
+          "scenario": "恢复model/effort继承先保存设置，查询回执后来源换绑/ABA/降权/撤权/停止只退休旧展示；不能把已保存设置称作未提交。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring model inheritance retains the local write and retires stale presentation (unchanged)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring model inheritance retains the local write and retires stale presentation (binding)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring model inheritance retains the local write and retires stale presentation (aba)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring model inheritance retains the local write and retires stale presentation (role)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring model inheritance retains the local write and retires stale presentation (access)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring model inheritance retains the local write and retires stale presentation (stopped)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring effort inheritance retains the local write and retires stale presentation (unchanged)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring effort inheritance retains the local write and retires stale presentation (binding)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring effort inheritance retains the local write and retires stale presentation (aba)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring effort inheritance retains the local write and retires stale presentation (role)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring effort inheritance retains the local write and retires stale presentation (access)"
+            },
+            {
+              "file": "test/runtime-default-response-source.test.ts",
+              "name": "restoring effort inheritance retains the local write and retires stale presentation (stopped)"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
+            }
+          ],
+          "verifiedBoundary": "实际Bridge+RuntimeStateStore，2种设置×6种来源结果；原10反例失败及2正常对照。"
         }
       ]
     },
@@ -3446,7 +3508,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -3472,7 +3534,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/channel-commands.ts",
@@ -3506,7 +3568,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "首屏和status不挡的各自故障已覆盖；Taskboard挂起时IMstatus的联合场景未专测。"
@@ -3543,7 +3605,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/access.ts",
@@ -3569,7 +3631,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/access.ts",
@@ -3625,7 +3687,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "真实准入服务和Bridge，actor/group范围、原任务不重放，管理者必须显式登记。"
@@ -3778,7 +3840,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -3841,7 +3903,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -4231,7 +4293,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -4431,7 +4493,7 @@
             },
             {
               "file": "src/server/system-error-recovery.ts",
-              "sha256": "4d3b869a5217d3e7e368cd6a22d89ff066e1950888d76519d1dd145013c2875c"
+              "sha256": "fa3a9e47eef26a962eecf8d747cf8bb5795f01d3f63314c03dc292f719694f67"
             }
           ],
           "verifiedBoundary": "已验证write-ahead/未知archive回执/补偿中断、重启无原绑定仍恢复active。项目归属字段迁移和真实中途进程崩溃尚无独立断言。"
@@ -4493,7 +4555,7 @@
           "implementation": [
             {
               "file": "src/server/system-error-recovery.ts",
-              "sha256": "4d3b869a5217d3e7e368cd6a22d89ff066e1950888d76519d1dd145013c2875c"
+              "sha256": "fa3a9e47eef26a962eecf8d747cf8bb5795f01d3f63314c03dc292f719694f67"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -4504,6 +4566,28 @@
               "sha256": "f8e032324e44a02f82f93bf7413a7ae0a45e826496b5c63abfff24335bb6c1f8"
             }
           ]
+        },
+        {
+          "id": "REC-01.4",
+          "scenario": "systemError只读查询不阻塞重启；stop不等只读pending，旧工作不覆盖后续journal；实际native handoff仍委托transport保护。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/system-error-recovery.test.ts",
+              "name": "a read-only system recovery wait neither blocks restart nor overwrites its successor after stop"
+            },
+            {
+              "file": "test/system-error-recovery.test.ts",
+              "name": "system recovery delegates active native handoff protection to the transport"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/system-error-recovery.ts",
+              "sha256": "fa3a9e47eef26a962eecf8d747cf8bb5795f01d3f63314c03dc292f719694f67"
+            }
+          ],
+          "verifiedBoundary": "真实协调器和文件；backend快照/写入替身。原2例失败，恢复补偿真实native场景另属REC-01.2。"
         }
       ]
     },
@@ -4565,7 +4649,7 @@
           "implementation": [
             {
               "file": "src/server/capacity-recovery.ts",
-              "sha256": "d9d2eb88c4322260a4a6b1d65153b6005354d80dae71873ef7a6556f54bfa93d"
+              "sha256": "5a0393a129a13148b2bfb5a95af9986b7e2fa8abf4095766451f05462f62aa97"
             }
           ]
         },
@@ -4590,7 +4674,7 @@
           "implementation": [
             {
               "file": "src/server/capacity-recovery.ts",
-              "sha256": "d9d2eb88c4322260a4a6b1d65153b6005354d80dae71873ef7a6556f54bfa93d"
+              "sha256": "5a0393a129a13148b2bfb5a95af9986b7e2fa8abf4095766451f05462f62aa97"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -4636,13 +4720,39 @@
           "implementation": [
             {
               "file": "src/server/capacity-recovery.ts",
-              "sha256": "d9d2eb88c4322260a4a6b1d65153b6005354d80dae71873ef7a6556f54bfa93d"
+              "sha256": "5a0393a129a13148b2bfb5a95af9986b7e2fa8abf4095766451f05462f62aa97"
             },
             {
               "file": "src/server/thread-event-hub.ts",
               "sha256": "8b86953cb9e30cc2c55d6aeb44dfc116b2930a75e907703bc523a49d835c96ea"
             }
           ]
+        },
+        {
+          "id": "REC-02.4",
+          "scenario": "容量checking/settling只读不锁重启；stop后迟到查询不发新恢复/终态、不改已保存记录，实际投递与执行接受阶段保留保护。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/capacity-recovery.test.ts",
+              "name": "capacity restart protection ends at durable native acceptance and returns for terminal delivery"
+            },
+            {
+              "file": "test/capacity-recovery.test.ts",
+              "name": "capacity checking only reads native state and does not hold restart"
+            },
+            {
+              "file": "test/capacity-recovery.test.ts",
+              "name": "capacity settling only reads native state and does not hold restart"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/capacity-recovery.ts",
+              "sha256": "5a0393a129a13148b2bfb5a95af9986b7e2fa8abf4095766451f05462f62aa97"
+            }
+          ],
+          "verifiedBoundary": "两种只读阶段与实际终态投递正常对照；真实协调器和临时journal。"
         }
       ]
     },
@@ -4706,7 +4816,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "结果投递失败保原终态payload，不发替代答案；native executor终态在更下层fixture。"
@@ -4955,7 +5065,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "永久错单次非答案提示，终态仍只更新原handle，重启不替代答案。"
@@ -5204,7 +5314,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/turn-audience.ts",
@@ -5379,7 +5489,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "包含真实多次compaction phase进入同卡，不仅去重单一文本；真实客户端圆环/排版未验。"
@@ -5397,6 +5507,24 @@
           "status": "planned",
           "tests": [],
           "testGap": "旧图确认用户反馈，不能作为现版本验收；需真实钉钉当前版本同turn分段/最终@/页脚联合重现。"
+        },
+        {
+          "id": "DEL-08.5",
+          "scenario": "文件watcher触发的scanNow拒绝被捕获，宿主不因unhandledRejection退出；保持已有轮次和文件观察责任。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/codex-session-monitor.test.ts",
+              "name": "a watcher-triggered scan rejection is contained without crashing the host"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/codex-session-monitor.ts",
+              "sha256": "1b4996b7550d223e319155d9d1bb220e12566cf9633f0436eb95e3b571060cb7"
+            }
+          ],
+          "verifiedBoundary": "隔离真实子进程、受控fs.watch回调和scan拒绝。原退出42，修后0并记录异常。"
         }
       ]
     },
@@ -5799,7 +5927,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             },
             {
               "file": "src/channels/feishu.ts",
@@ -5958,7 +6086,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/format.ts",
@@ -6035,13 +6163,31 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/turn-result-actions.ts",
               "sha256": "5f0dd2adc5b6e3ec6be72a10e43326e24214acc74d9146c288db17e123a2d4de"
             }
           ]
+        },
+        {
+          "id": "CHAN-03.6",
+          "scenario": "Web入站附件新建操作目录0700、文件0600，历史按原session读取且正文保真。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/account-manager.test.ts",
+              "name": "stores Web uploads per session and exposes them in user history"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
+            }
+          ],
+          "verifiedBoundary": "真实临时文件stat和历史读取；Windows保留内容/归属但不假测POSIX mode。"
         }
       ]
     },
@@ -6157,7 +6303,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             },
             {
               "file": "src/ide/project-identity.ts",
@@ -6182,7 +6328,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             },
             {
               "file": "src/ide/manager.ts",
@@ -6413,7 +6559,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             }
           ],
           "verifiedBoundary": "可选IDE构造/ingress失败隔离，不借输入；所有运行异常/绑定不变仍需组合。"
@@ -6459,7 +6605,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             }
           ],
           "verifiedBoundary": "个人准入唯一权威；群准入不自动授权，停账号/重启保持，不新建额外名单或密码。"
@@ -6489,7 +6635,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             }
           ],
           "verifiedBoundary": "持久epoch fencing覆盖重新允许旧grant失效；本地HTTP/WS试验，不是手机端。"
@@ -7512,7 +7658,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             },
             {
               "file": "src/bridge/taskboard-channel-controller.ts",
@@ -7561,7 +7707,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             }
           ],
           "verifiedBoundary": "远程项目不能作为本地目录QA默认值；已绑定QA所有动态tool读取同host仍需执行路径证明。"
@@ -7650,7 +7796,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "3f62f88f392a5299ba494333f86aa6e8a0c8bead930a8e114a7afd939390ddde"
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
             },
             {
               "file": "src/server/restart.ts",
@@ -7658,7 +7804,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ],
           "verifiedBoundary": "真实Web/Bridge业务计数分界，native通过fixture接收；accept落盘失败的整个release组合还需联动。"
@@ -7737,7 +7883,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ]
         },
@@ -7806,7 +7952,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ]
         },
@@ -7827,7 +7973,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "cc36690ad7ffe8d652cb6ae5ab74a2e71e0870f1b0930d7846d713ae9310810f"
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
             }
           ]
         },
@@ -7864,6 +8010,96 @@
               "sha256": "e29654c8d6558f2417b65998bf06f09deb45a283d91e82831bc198f5a7474aa8"
             }
           ]
+        },
+        {
+          "id": "REL-01.9",
+          "scenario": "原生接收后不等只读跟随初始化才放行；独立执行期间所有文本/卡片/媒体实际发送另保护交接，成功/失败都释放，不把typing或入站读取当结果交接。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/restart-handoff-boundaries.test.ts",
+              "name": "accepted Bridge execution protects the actual follow-read boundary"
+            },
+            {
+              "file": "test/restart-handoff-boundaries.test.ts",
+              "name": "accepted Bridge execution protects the actual result-send boundary"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel sendText holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel sendMentionNotification holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel sendProgressText holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel startTextStream holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel resumeTextStream holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel updateTextStream holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel sendActionCard holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel updateActionCard holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel sendTaskCard holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel updateTaskCard holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel sendMedia holds only its provider write even while native execution is independent"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel resolveReferences is not an outgoing message lease"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel resolveAttachments is not an outgoing message lease"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel sendTyping is not an outgoing message lease"
+            },
+            {
+              "file": "test/channel-write-leases.test.ts",
+              "name": "channel write rejection releases its lease and remains an error"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "4242a03a0347347e1b86183df9f9e9ae765eae1a9255893b33a43b5e3735685f"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "353d03795cf6e99d5868ad7f551ecd55099864afa9b2d6910504f49136ce717c"
+            },
+            {
+              "file": "src/bridge/channel-write-leases.ts",
+              "sha256": "37362a403abe2d7e8ef84f8913c556722f9e4e98b65386d2c42c543d3d31cfee"
+            }
+          ],
+          "verifiedBoundary": "实际Bridge两原版反例；11个channel写方法、3个非消息方法及异常释放。平台为替身，不替代实际上线重启。"
         }
       ]
     },
@@ -8062,7 +8298,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/index.html",
@@ -8112,7 +8348,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "d29c220c56c810065c4e8b19d1520c46d21ebf939afec25b8fcee064eec03dd6"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ],
           "verifiedBoundary": "已验证原草稿正常与读取期间新建对话；换项目、切历史会话及迟到错误尚须独立场景。"
@@ -8143,7 +8379,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "d29c220c56c810065c4e8b19d1520c46d21ebf939afec25b8fcee064eec03dd6"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ]
         },
@@ -8164,9 +8400,27 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ]
+        },
+        {
+          "id": "TB-02.6",
+          "scenario": "AI可写目录只来自所选项目的全部有效根，不把其他项目目录加入；真实路径去重，设备picker仍显示首根。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "taskboard/test/ai-workspace-scope.test.mjs",
+              "name": "AI writable directories contain every selected project root and no other project root"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "taskboard/server/ai-chat-catalog.mjs",
+              "sha256": "cd8401ec0c8407bbf9c8016014525a885b7d7543bab52bb1d8268995b6d054b6"
+            }
+          ],
+          "verifiedBoundary": "真实临时多项目/目录/软链接与database fallback；不改变生产会话权限，也不代表独立exec已迁移。"
         }
       ]
     },
@@ -8238,11 +8492,11 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/TaskDetail.tsx",
-              "sha256": "12a83a0b3cb22d1321b34cc87e3a44844386984fc85bb531104d2e9ef1a205b3"
+              "sha256": "7ad80b2b358982691582b0849a5661793493cd36675413057b4e8f101fb503ec"
             },
             {
               "file": "taskboard/web/src/components/TaskEditor.tsx",
-              "sha256": "ec21a0d7b79e9b2e96688cc6dc5ca4e0d45b040f171209c04ac3f8ab4ea5f86a"
+              "sha256": "dfed35959c64abd16643ca6894fd9b5f64e464e8baf6c7bb47052a63bb2ffec9"
             },
             {
               "file": "taskboard/web/src/components/PendingAttachments.tsx",
@@ -8258,7 +8512,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ]
         },
@@ -8276,11 +8530,11 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/TaskDetail.tsx",
-              "sha256": "12a83a0b3cb22d1321b34cc87e3a44844386984fc85bb531104d2e9ef1a205b3"
+              "sha256": "7ad80b2b358982691582b0849a5661793493cd36675413057b4e8f101fb503ec"
             },
             {
               "file": "taskboard/web/src/components/TaskEditor.tsx",
-              "sha256": "ec21a0d7b79e9b2e96688cc6dc5ca4e0d45b040f171209c04ac3f8ab4ea5f86a"
+              "sha256": "dfed35959c64abd16643ca6894fd9b5f64e464e8baf6c7bb47052a63bb2ffec9"
             },
             {
               "file": "taskboard/web/src/components/PendingAttachments.tsx",
@@ -8296,7 +8550,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ]
         },
@@ -8314,11 +8568,11 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/TaskDetail.tsx",
-              "sha256": "12a83a0b3cb22d1321b34cc87e3a44844386984fc85bb531104d2e9ef1a205b3"
+              "sha256": "7ad80b2b358982691582b0849a5661793493cd36675413057b4e8f101fb503ec"
             },
             {
               "file": "taskboard/web/src/components/TaskEditor.tsx",
-              "sha256": "ec21a0d7b79e9b2e96688cc6dc5ca4e0d45b040f171209c04ac3f8ab4ea5f86a"
+              "sha256": "dfed35959c64abd16643ca6894fd9b5f64e464e8baf6c7bb47052a63bb2ffec9"
             },
             {
               "file": "taskboard/web/src/components/PendingAttachments.tsx",
@@ -8334,17 +8588,52 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ]
         },
         {
           "id": "TB-03.4",
           "auditKey": "partial-upload-retry",
-          "scenario": "评论已创建后某张内联图/普通附件上传失败：保留精确评论回执和未完成资源，重试不能重复创建评论或丢失可重试文件；发布等待期间新输入不能被旧成功响应清空。部分上传仍是未复现候选；同任务后来草稿的保护已独立在TB-09.4复现并修复。",
-          "status": "planned",
-          "tests": [],
-          "testGap": "实际评论先创建再逐文件上传，部分成功与重复retry尚无可执行故障例；不以正常单文件Chrome测试外推。"
+          "scenario": "评论已创建后普通/内嵌附件部分失败，沿原实体只续传未确认文件；未知接收跨刷新不重发。卸载/重挂、同议题双表单及配额耗尽不清他人草稿或丢已确认ID。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a full browser store retains the comment editor and draft before any request, and recovers on explicit retry"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a partially uploaded comment resumes only its failed files on the same confirmed comment"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "an applied comment or attachment with a lost response is held across reload and never reposted"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a late comment acknowledgement clears its detached draft but preserves a remounted composer's later draft"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "two composers retain independent receipt ownership when one response is lost and the other confirms"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "taskboard/web/src/components/TaskDetail.tsx",
+              "sha256": "7ad80b2b358982691582b0849a5661793493cd36675413057b4e8f101fb503ec"
+            },
+            {
+              "file": "taskboard/web/src/submissionReceipts.ts",
+              "sha256": "847a0b835729f05e9a08a85ad88a124e23aa20d26ef51df296acd8ca712a6e09"
+            },
+            {
+              "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
+            }
+          ],
+          "verifiedBoundary": "生产组件与HTTP替身、真实Chrome；普通/内嵌附件与两类配额阶段有对照，不代表云端通用幂等或跨页面File内容恢复。"
         }
       ]
     },
@@ -8582,7 +8871,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ]
         }
@@ -8629,17 +8918,115 @@
       "cases": [
         {
           "id": "TB-09.1",
-          "scenario": "切换项目后旧save/duplicate/restore完成，不把旧项目实体放进新项目列表；对原项目的真实成功保留。",
-          "status": "planned",
-          "tests": [],
-          "testGap": "父App保存/复制/恢复后未核原project的疑点尚需真实组件切换时的可执行反例。"
+          "scenario": "复制/新建/归档/撤回恢复的迟到回执只更新原项目view；A→B→A不复活旧回调；已完成HTTP写保留原实体，旧撤回不移入新视图。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed duplicate retains its original view ownership (unchanged)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed duplicate retains its original view ownership (switch)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed duplicate retains its original view ownership (aba)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed archive retains its original view ownership (unchanged)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed archive retains its original view ownership (switch)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed archive retains its original view ownership (aba)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed restore retains its original view ownership (unchanged)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed restore retains its original view ownership (switch)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed restore retains its original view ownership (aba)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed create retains its original view ownership (unchanged)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed create retains its original view ownership (switch)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a confirmed create retains its original view ownership (aba)"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "taskboard/web/src/App.tsx",
+              "sha256": "46be87e6486df891b7a10f7d4972c20688785bd795be96269a3726a49e5b4734"
+            },
+            {
+              "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
+            }
+          ],
+          "verifiedBoundary": "实际App入口，四操作×正常/换项目/ABA共12场景；后端替身在延迟回执前已应用写。"
         },
         {
           "id": "TB-09.2",
-          "scenario": "inline或普通附件部分上传失败后再次提交，沿用已创建实体并保留未成功附件，正常全成功清理恰当草稿。",
-          "status": "planned",
-          "tests": [],
-          "testGap": "创建实体后上传失败可能造成重复创建；需保原实体ID与每附件回执的真实部分成功试验。"
+          "scenario": "新建议题普通/内嵌附件部分失败保留原Task与File回执，存储满时不把已创建实体当未创建；创建未知跨刷新要求核对，不自动再create。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a partial new issue upload retains its confirmed entity and retries only failed files (inline=false, storageFull=false)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a partial new issue upload retains its confirmed entity and retries only failed files (inline=true, storageFull=false)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a partial new issue upload retains its confirmed entity and retries only failed files (inline=false, storageFull=true)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a partial new issue upload retains its confirmed entity and retries only failed files (inline=true, storageFull=true)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "a lost new issue acknowledgement is retained across reload without authorizing another creation"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "taskboard/web/src/App.tsx",
+              "sha256": "46be87e6486df891b7a10f7d4972c20688785bd795be96269a3726a49e5b4734"
+            },
+            {
+              "file": "taskboard/web/src/components/TaskEditor.tsx",
+              "sha256": "dfed35959c64abd16643ca6894fd9b5f64e464e8baf6c7bb47052a63bb2ffec9"
+            },
+            {
+              "file": "taskboard/web/src/submissionReceipts.ts",
+              "sha256": "847a0b835729f05e9a08a85ad88a124e23aa20d26ef51df296acd8ca712a6e09"
+            },
+            {
+              "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
+            }
+          ],
+          "verifiedBoundary": "生产App/TaskEditor，4个部分/配额对照及未知刷新；不宣称服务器通用幂等键。"
         },
         {
           "id": "TB-09.3",
@@ -8654,11 +9041,11 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/TaskDetail.tsx",
-              "sha256": "12a83a0b3cb22d1321b34cc87e3a44844386984fc85bb531104d2e9ef1a205b3"
+              "sha256": "7ad80b2b358982691582b0849a5661793493cd36675413057b4e8f101fb503ec"
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ],
           "verifiedBoundary": "真实Chrome同任务提交等待中编辑不被清空；正常原草稿被清理、原评论body只发一次。父App切项目回调、部分上传、未知接收仍未覆盖。"
@@ -8676,11 +9063,11 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/TaskDetail.tsx",
-              "sha256": "12a83a0b3cb22d1321b34cc87e3a44844386984fc85bb531104d2e9ef1a205b3"
+              "sha256": "7ad80b2b358982691582b0849a5661793493cd36675413057b4e8f101fb503ec"
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ],
           "verifiedBoundary": "真实Chrome生产TaskDetail/InlineMediaComposer，fetch为本地替身。旧版实际把later edits清成空串；正常未编辑仍清理。未验证未知create幂等或附件部分成功。"
@@ -8697,8 +9084,8 @@
       "cases": [
         {
           "id": "TB-10.1",
-          "scenario": "实际入口默认隐藏与历史范围核验，保留两项移动失败；需用真实浏览器确认root/condition/plan-child的可移动范围。",
-          "status": "failed",
+          "scenario": "原默认隐藏节点入口保持。真实画布根步骤排序、条件item带两分支整体移动、计划子项原容器排序及触发器固定；最终指针决定canonical落点，拖动预览不保存。",
+          "status": "verified",
           "tests": [
             {
               "file": "taskboard/test/zapier-workflow.test.mjs",
@@ -8707,30 +9094,73 @@
             {
               "file": "taskboard/test/zapier-workflow.test.mjs",
               "name": "deleting a condition removes its subtree, while conditions move as one subtree and cannot duplicate"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "workflow dragging preserves canonical sequence and subtree ownership (root-step)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "workflow dragging preserves canonical sequence and subtree ownership (condition)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "workflow dragging preserves canonical sequence and subtree ownership (plan-child)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "workflow dragging preserves canonical sequence and subtree ownership (trigger)"
             }
           ],
           "implementation": [
             {
-              "file": "taskboard/web/src/App.tsx",
-              "sha256": "cdaa42fc02d45121f90a696ff159dadbb6f273197b7a95043191209b6685a02f"
-            },
-            {
               "file": "taskboard/web/src/components/WorkflowBoard.tsx",
-              "sha256": "c97c7fd6d212c7dbadd26706360c797f768a3995c6d6d3c9f36f395e75250ceb"
+              "sha256": "b3bda0ab2c55d643aaab2ba0c911fc95e68c780eadd875210287f719d6508177"
             },
             {
               "file": "taskboard/shared/workflow-control-flow.mjs",
               "sha256": "7861e8754bccf364d10dd7badc4bf38aa77938e9b20dae94a2506e3d180be3da"
+            },
+            {
+              "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ],
-          "verifiedBoundary": "最新Taskboard全量保留这两项失败；读取显示入口隐藏且root/condition不支持拖动，helper有整棵子树move，但历史未找到明确取消/恢复决定，未改正则或擅自开放入口。真实浏览器root/child/condition移动矩阵仍缺。"
+          "verifiedBoundary": "保留两项原静态断言并通过，另4条实际pointer浏览器场景；不代表每种节点执行能力已验。"
         },
         {
           "id": "TB-10.2",
-          "scenario": "保存version冲突保留未保存编辑，明确显示冲突，不能用最新远端快照静默覆盖本地草稿。",
-          "status": "planned",
-          "tests": [],
-          "testGap": "读取发现VERSION_CONFLICT后应用远端快照，需实际编辑/并发冲突试验确认草稿丢失范围和可恢复行为。"
+          "scenario": "流程CAS冲突保留本地并暂停自动保存，显式选择保留本地再CAS或载入远端；加载前不编辑，旧项目保存不替换新项目画布。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "workflow controls wait for hydration and an old project save cannot replace the new workspace"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "workflow persistence keeps local edits until an explicit conflict resolution (normal)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "workflow persistence keeps local edits until an explicit conflict resolution (keep-local)"
+            },
+            {
+              "file": "taskboard/test/ai-chat-browser.test.mjs",
+              "name": "workflow persistence keeps local edits until an explicit conflict resolution (load-remote)"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "taskboard/web/src/components/WorkflowBoard.tsx",
+              "sha256": "b3bda0ab2c55d643aaab2ba0c911fc95e68c780eadd875210287f719d6508177"
+            },
+            {
+              "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
+            }
+          ],
+          "verifiedBoundary": "真实组件3个保存/冲突对照与1个加载/换项目场景；HTTP替身；跨页面工作流草稿仍无恢复承诺。"
         },
         {
           "id": "TB-10.3",
@@ -8857,7 +9287,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ],
           "verifiedBoundary": "真实Chrome原组件与Input.dispatchKeyEvent；旧版双引号产生window error，修后零error且正常状态回调一次。API写入由父组件负责，不借此宣称完整任务变更链路。"
@@ -8879,7 +9309,7 @@
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
-              "sha256": "4110ec408c26d556e472f2474bc450207bd4ec5e6d36027cfe60105da953b6c9"
+              "sha256": "5372ba08f92a53f3b6728136458966205268a124c2ffd306535de40bdc07bfbe"
             }
           ],
           "verifiedBoundary": "真实Chrome IssueParentLink/IssuePicker，onSelect为可控制本地promise。旧版等待中实际调用2次；修后1次，失败后手动retry可再次调用。不是未知HTTP写回执的自动重试策略。"

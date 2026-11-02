@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 
 import {
   CodexSessionCompletionMonitor,
@@ -10,6 +11,24 @@ import {
   type CodexSessionCompletion,
   type CodexSessionTask
 } from "../src/server/codex-session-monitor.js";
+
+test("a watcher-triggered scan rejection is contained without crashing the host", t => {
+  const root=fs.mkdtempSync(path.join(os.tmpdir(), "monitor-watch-rejection-"));
+  t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  fs.mkdirSync(path.join(root,"sessions"));
+  const child=spawnSync(process.execPath,["--import","tsx","--input-type=module","-e",`
+    import fs from 'node:fs'; import {EventEmitter} from 'node:events';
+    import {CodexSessionCompletionMonitor} from './src/server/codex-session-monitor.ts';
+    let watch;fs.watch=(_root,_options,handler)=>{watch=handler;const handle=new EventEmitter();handle.close=()=>{};return handle;};
+    process.on('unhandledRejection',()=>{process.exitCode=42;});
+    const monitor=new CodexSessionCompletionMonitor({codexHome:${JSON.stringify(root)},pollIntervalMs:60000,onCompletion(){}});
+    monitor.start();await monitor.ready();
+    monitor.scanNow=async()=>{throw Error('synthetic scan failure');};watch('change','fixture.jsonl');
+    await new Promise(resolve=>setTimeout(resolve,250));await monitor.stop();
+  `],{cwd:process.cwd(),encoding:"utf8",timeout:5000});
+  assert.equal(child.error,undefined);assert.equal(child.status,0,child.stderr);
+  assert.match(child.stderr,/unable to scan Codex sessions/);
+});
 
 test("excludes internal reviews at startup, live append and new-file discovery without suppressing the main task", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-monitor-isolation-"));

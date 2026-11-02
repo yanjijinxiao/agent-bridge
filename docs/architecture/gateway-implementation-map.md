@@ -36,7 +36,7 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 
 - Gateway 原生 facade 的整轮 runTails、底层 waitForThreadIdle，以及随后复现的 Bridge 主入口整轮队列已分别移除。只保护接收前交接；已接收的独立轮次不因等待执行结果阻止重启。源码修改和已跑窄场景不替代真实重启验收。
 - 显式消息合并由账号本地 prompt-buffers.json 保存正文/附件引用，按 collecting/preparing/submitting 分离；Gateway 的转发 inbox/原生回执仍分别记录来源和接收。尝试后未知不因重新发送 done 或重启而重放。
-- CapacityRecovery 的 checking/settling 与 SystemErrorRecovery 的 pending 仍按较大操作范围保护重启。只读等待、实际原生修改、落盘和结果投递需要逐路径区分，不能依据函数名直接删除保护。
+- CapacityRecovery checking/settling 与 SystemErrorRecovery pending 已按实际反例拆开只读等待与交接。实际原生RPC由transport保护；渠道文本/卡片/媒体每次写入独立持lease。stop退休journal writer，补偿义务仍持久保存，见恢复模块说明。
 - Taskboard 自身 AI 面板使用独立 CLI exec；Gateway 的任务板渠道命令使用统一 App Server。前者是当前仓库中另一条真实执行链，不能因为它位于子包就宣称“全部代码已经统一接口”。是否应纳入统一迁移，须结合所有独立/嵌入入口继续核对；目前未宣称适配完成。
 - 新建项目别名解析仍按部分 cwd 匹配，完整 rootPaths、迁移身份及同目录多项目的边界仍需验证。
 - Taskboard 渠道等待后来源漏洞已有六个原版反例并本地修复21场景；未知写入结果、仅内存去重和部分上传仍未解决。原生 idle 队列一次偶发观察失败尚未查明。
@@ -44,6 +44,6 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 
 ## 本轮阅读与验证结论
 
-基线663个文本文件已逐行阅读，25个非源码制品另按视觉/结构检查，未读0。245个场景有精确测试映射，147个仅限注明边界通过；97个部分覆盖、1个场景有2项失败、38个缺直接断言。详见本轮review-conclusions.md及gateway-case-coverage.md。
+基线663个文本文件已逐行阅读，25个非源码制品另按视觉/结构检查，未读0。256个场景有精确测试映射，159个仅限注明边界通过；97个部分覆盖、0个已失败场景、34个缺直接断言。详见本轮review-conclusions.md及gateway-case-coverage.md。
 
 后续三个真实Chrome缺陷的反例、修复与首次上线状态见本目录2026-11-02-followup.md（架构目录文件请看docs/audits/2026-11-01-four-layer-recheck/2026-11-02-followup.md）。

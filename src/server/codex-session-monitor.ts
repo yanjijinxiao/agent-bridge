@@ -196,7 +196,11 @@ export class CodexSessionCompletionMonitor {
         const filePath = path.resolve(root, String(fileName));
         if (!isWithin(root, filePath)) return;
         this.pendingFiles.add(filePath);
-        setTimeout(() => void this.scanNow(), 150).unref();
+        setTimeout(() => {
+          void this.scanNow().catch(error => {
+            console.error(`[codex-im-gateway] unable to scan Codex sessions: ${String(error)}`);
+          });
+        }, 150).unref();
       });
       watcher.on("error", (error) => {
         // Recursive watching may exhaust or be denied by the host (EMFILE is

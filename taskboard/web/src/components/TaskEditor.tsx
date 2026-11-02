@@ -61,6 +61,9 @@ interface TaskEditorProps {
   developmentScan: DevelopmentScan;
   developmentScanLoading: boolean;
   onCancel: () => void;
+  resumingCreation?: boolean;
+  submissionNeedsReview?: boolean;
+  onEndSubmission?: () => void;
   onSave: (
     draft: TaskDraft,
     attachments: File[],
@@ -111,6 +114,9 @@ export function TaskEditor({
   developmentScanLoading,
   onCancel,
   onSave,
+  resumingCreation = false,
+  submissionNeedsReview = false,
+  onEndSubmission,
 }: TaskEditorProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -131,6 +137,7 @@ export function TaskEditor({
   const [menu, setMenu] = useState<"labels" | "more" | "due" | "recurrence" | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -160,6 +167,7 @@ export function TaskEditor({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (savingRef.current || submissionNeedsReview) return;
     const cleanTitle = title.trim();
     if (!cleanTitle) {
       setError("请为议题填写一个简短、明确的标题。");
@@ -171,6 +179,7 @@ export function TaskEditor({
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -199,6 +208,7 @@ export function TaskEditor({
         setError(caught instanceof Error ? caught.message : "无法保存这个议题。");
       }
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -390,6 +400,13 @@ export function TaskEditor({
           {attachmentError && <div className="form-error" role="alert">{attachmentError}</div>}
           {error && <div className="form-error" role="alert">{error}</div>}
 
+          {submissionNeedsReview && <div className="comments-error" data-submission-review role="status">
+            <p>上次创建尚未确认或没有完成。请核对看板已有议题；结束本次提交不会再次创建或删除议题。</p>
+            <button type="button" className="button" onClick={() => {
+              try { onEndSubmission?.(); }
+              catch { setError("无法结束浏览器提交记录，原记录和草稿仍保留。"); }
+            }}>结束本次提交</button>
+          </div>}
           <footer className="dialog-footer">
             {!task && (
               <>
@@ -402,7 +419,7 @@ export function TaskEditor({
             {task && <span aria-hidden="true" />}
             <div className="dialog-actions">
               {task && <span className="dialog-updated">编辑 {task.identifier}</span>}
-              <button className="button primary" type="submit" disabled={saving}>{saving ? "正在保存…" : task ? "保存更改" : "创建议题"}</button>
+              <button className="button primary" type="submit" disabled={saving || submissionNeedsReview}>{saving ? "正在保存…" : task ? "保存更改" : resumingCreation ? "继续保存议题" : "创建议题"}</button>
             </div>
           </footer>
         </div>
