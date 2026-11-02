@@ -5,7 +5,7 @@ export type AcceptedPresentationInput = {
   hostId: string;
   threadId: string;
   turnId: string;
-  kind: "answer" | "steer";
+  kind: "answer" | "steer" | "approval";
   acceptedAt: number;
   origin?: import("./turn-audience.js").TurnParticipantOrigin;
 };

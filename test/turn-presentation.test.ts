@@ -34,7 +34,7 @@ function fixture(t: test.TestContext) {
   };
 }
 
-for (const kind of ["answer", "steer"] as const) test(`${kind}: old card gets a factual stage summary, next card owns subsequent progress/final`, async t => {
+for (const kind of ["answer", "steer", "approval"] as const) test(`${kind}: old card gets a factual stage summary, next card owns subsequent progress/final`, async t => {
   const f = fixture(t);
   await f.stream.progress("✅ 已完成本地回归"); const original = f.stream.checkpoint().messageId;
   assert.equal(await f.stream.startSegment({ id: "input-1", kind }), true);

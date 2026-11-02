@@ -514,7 +514,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/server/account-manager.ts",
@@ -567,7 +567,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -849,7 +849,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -935,7 +935,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "实际Bridge四渠道替身：自然语言完整进入原线程，零AI控制分类；非真实IM网络。"
@@ -957,7 +957,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/channels/dingtalk.ts",
@@ -991,7 +991,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "四渠道普通消息及显式help覆盖；所有任务/QA扩展组合未完整核验。"
@@ -1192,7 +1192,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ]
         },
@@ -1281,7 +1281,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/inbound-receipts.ts",
@@ -1414,7 +1414,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/channel-commands.ts",
@@ -1555,7 +1555,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/weixin/media.ts",
@@ -1608,7 +1608,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/channels/client.ts",
@@ -1638,7 +1638,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "附件准备结束后线程/角色/准入复核；远端实际SSH转存中撤权的独立场景仍需补。"
@@ -2010,7 +2010,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -2044,7 +2044,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "detach持久、模式槽位与显式新建不复活旧关系；Gateway真实进程重启另需端到端。"
@@ -2122,7 +2122,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "旧项目漂移保独立绑定，四渠道项目命令不覆盖；普通真实native续聊权限另证。"
@@ -2144,7 +2144,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "真实scope generation，模式session切换ABA不复活；其他任意项目变更由来源测试另核。"
@@ -2166,7 +2166,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -2275,7 +2275,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "实际显式queue/steer准备后来源守卫，全部降权/停账号组合仍待。"
@@ -2362,7 +2362,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ]
         }
@@ -2607,7 +2607,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/codex/desktop-session-catalog.ts",
@@ -2797,7 +2797,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "完整快照稳定R身份，翻页/resize不重排，原生pin与metadata时间分开。"
@@ -2815,7 +2815,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -2845,7 +2845,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "跨host同名/同projectID分组隔离；同host同roots多个native身份创建仍是独立未决项。"
@@ -2879,7 +2879,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/new-session.ts",
@@ -2991,7 +2991,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ]
         }
@@ -3186,7 +3186,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "真实JSONL预期turn比较和Bridge默认steer，ACK中的全部thread/turn反例未在这组穷尽。"
@@ -3216,7 +3216,7 @@
             },
             {
               "file": "src/channels/turn-presentation.ts",
-              "sha256": "8f7cab4aac4a86c7724f2480d79c98bbc64e9da60ad84181638a01c43a27e691"
+              "sha256": "baec1a694e823c91c6f20d7640916b9269c40108e4afcd0908f5109337827229"
             }
           ],
           "verifiedBoundary": "未知写不重复派发/不切卡，具体transport timeout消息文字另需组合。"
@@ -3242,7 +3242,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "普通消息写前来源复核，原生steer连接等待后原角色/个人准入仍需另一末次lease场景。"
@@ -3503,7 +3503,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -3617,7 +3617,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "真实Bridge、绑定/角色状态和来源journal，原生接口/渠道替身，4种操作×6种来源共24项；先完成原生动作再挂起返回，旧结果零发送、原host/thread恰好一次、重开journal handled不重放。viewer只读降权仍允许。真实远端及发送已进入供应商后的撤权窗口另验。"
@@ -3679,7 +3679,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "实际Bridge+RuntimeStateStore，2种设置×6种来源结果；原10反例失败及2正常对照。"
@@ -3720,7 +3720,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -3746,7 +3746,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/channel-commands.ts",
@@ -3780,7 +3780,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "首屏和status不挡的各自故障已覆盖；Taskboard挂起时IMstatus的联合场景未专测。"
@@ -3817,7 +3817,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/access.ts",
@@ -3843,7 +3843,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/access.ts",
@@ -3899,7 +3899,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "真实准入服务和Bridge，actor/group范围、原任务不重放，管理者必须显式登记。"
@@ -3984,7 +3984,7 @@
             },
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "5a974a4d588c5d8d312ad33c4ef684f1aec2b9d33854446ffc7a32f4cc410a9f"
+              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
             }
           ]
         },
@@ -4115,7 +4115,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -4161,13 +4161,48 @@
             },
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "5a974a4d588c5d8d312ad33c4ef684f1aec2b9d33854446ffc7a32f4cc410a9f"
+              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
             },
             {
               "file": "src/web/approvals.js",
               "sha256": "8be46eb12b651970a20c880050b13967bc1ddce43abb34243f62cc608bae36f2"
             }
           ]
+        },
+        {
+          "id": "INT-01.8",
+          "scenario": "审批通知创建独立卡，并使用该原生turn在原binding中的参与者做原生@；不能把其他群同thread的参与者混入。",
+          "status": "verified",
+          "sourceRequest": "当前用户：审批成功以后，也创建一个新的ai card；审批消息也要@人。",
+          "implementation": [
+            {
+              "file": "src/bridge/approval.ts",
+              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
+            }
+          ],
+          "tests": [
+            {
+              "file": "test/approval-card-roundtrip.test.ts",
+              "name": "native approval pings only its turn participants and confirmation starts one new AI card without starting another task"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval accept/confirmed publishes one durable continuation boundary"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval accept/failed publishes no durable continuation boundary"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval accept/withdrawn publishes no durable continuation boundary"
+            }
+          ],
+          "verifiedBoundary": "真实Bridge→原生JSONL夹具→渠道driver，核实际mentions参数、原接收群，名单去重/@all排除；不是手机实机可见验收。"
         }
       ]
     },
@@ -4555,7 +4590,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -4576,7 +4611,7 @@
           "implementation": [
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "5a974a4d588c5d8d312ad33c4ef684f1aec2b9d33854446ffc7a32f4cc410a9f"
+              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
             },
             {
               "file": "src/server/http-server.ts",
@@ -4610,6 +4645,89 @@
             }
           ],
           "verifiedBoundary": "已覆盖问题答案的原卡可重试/文字unknown不重发；完整审批决定通知的相同闭环待映射。"
+        },
+        {
+          "id": "INT-04.4",
+          "scenario": "显式批准获native confirmed才产生一次持久approval边界和新AI进展卡，同原thread/turn继续；提交未确认、拒绝/取消、拒绝网络规则、失败/撤回不切卡。",
+          "status": "verified",
+          "sourceRequest": "当前用户：审批成功以后，也创建一个新的ai card；审批消息也要@人。",
+          "implementation": [
+            {
+              "file": "src/bridge/approval.ts",
+              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
+            },
+            {
+              "file": "src/bridge/approval-journal.ts",
+              "sha256": "58fbe5819835f4115d808d254340501495a9c9cef3be3fe63776ad10f9112119"
+            },
+            {
+              "file": "src/bridge/input-presentation.ts",
+              "sha256": "ad638475fb66759c682a5ba9013f28bc529e12860ffdae0dde965bb6d93c0606"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
+            },
+            {
+              "file": "src/channels/turn-presentation.ts",
+              "sha256": "baec1a694e823c91c6f20d7640916b9269c40108e4afcd0908f5109337827229"
+            }
+          ],
+          "tests": [
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval decisions are conversation-scoped and report submission before backend confirmation"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval IDs continue across service restarts instead of reusing old notice IDs"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval accept/confirmed publishes one durable continuation boundary"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval session/confirmed publishes one durable continuation boundary"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval decline/confirmed publishes no durable continuation boundary"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval cancel/confirmed publishes no durable continuation boundary"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval accept/failed publishes no durable continuation boundary"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "approval accept/withdrawn publishes no durable continuation boundary"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "a confirmed network allow rule is a grant for the continuation card"
+            },
+            {
+              "file": "test/channel-approval.test.ts",
+              "name": "a confirmed network deny rule is not a grant for the continuation card"
+            },
+            {
+              "file": "test/approval-card-roundtrip.test.ts",
+              "name": "native approval pings only its turn participants and confirmation starts one new AI card without starting another task"
+            },
+            {
+              "file": "test/approval-scopes.test.ts",
+              "name": "confirmed approval presentation is atomic and leaves the strict v1 audit rows readable on rollback"
+            },
+            {
+              "file": "test/turn-presentation.test.ts",
+              "name": "approval: old card gets a factual stage summary, next card owns subsequent progress/final"
+            }
+          ],
+          "verifiedBoundary": "同一native任务run计数1、执行卡2；重复回调仅一边界；记录重开保同ID，沿用stream按ID去重；v1严格audit row不变，展示投影同文件原子保存。"
         }
       ]
     },
@@ -4662,7 +4780,7 @@
             },
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "5a974a4d588c5d8d312ad33c4ef684f1aec2b9d33854446ffc7a32f4cc410a9f"
+              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
             }
           ],
           "verifiedBoundary": "沿用原生question期限与已接管approval timeout策略，结果通知等待native确认，未把未发送/失联当人工已拒绝。"
@@ -5078,7 +5196,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "结果投递失败保原终态payload，不发替代答案；native executor终态在更下层fixture。"
@@ -5180,7 +5298,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/channels/client.ts",
@@ -5365,7 +5483,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "永久错单次非答案提示，终态仍只更新原handle，重启不替代答案。"
@@ -5508,7 +5626,7 @@
           "implementation": [
             {
               "file": "src/channels/turn-presentation.ts",
-              "sha256": "8f7cab4aac4a86c7724f2480d79c98bbc64e9da60ad84181638a01c43a27e691"
+              "sha256": "baec1a694e823c91c6f20d7640916b9269c40108e4afcd0908f5109337827229"
             }
           ],
           "verifiedBoundary": "实际presentation持久rotation，重复回执不多建，queue实际start/progress才建；原生输入由fixture触发。"
@@ -5526,7 +5644,7 @@
           "implementation": [
             {
               "file": "src/channels/turn-presentation.ts",
-              "sha256": "8f7cab4aac4a86c7724f2480d79c98bbc64e9da60ad84181638a01c43a27e691"
+              "sha256": "baec1a694e823c91c6f20d7640916b9269c40108e4afcd0908f5109337827229"
             }
           ],
           "verifiedBoundary": "旧小结迟到/失败不挡新段，恢复仅写旧handle。"
@@ -5548,7 +5666,7 @@
           "implementation": [
             {
               "file": "src/channels/turn-presentation.ts",
-              "sha256": "8f7cab4aac4a86c7724f2480d79c98bbc64e9da60ad84181638a01c43a27e691"
+              "sha256": "baec1a694e823c91c6f20d7640916b9269c40108e4afcd0908f5109337827229"
             },
             {
               "file": "src/bridge/turn-audience.ts",
@@ -5614,7 +5732,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/turn-audience.ts",
@@ -5789,7 +5907,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "包含真实多次compaction phase进入同卡，不仅去重单一文本；真实客户端圆环/排版未验。"
@@ -6101,7 +6219,7 @@
           "implementation": [
             {
               "file": "src/channels/turn-presentation.ts",
-              "sha256": "8f7cab4aac4a86c7724f2480d79c98bbc64e9da60ad84181638a01c43a27e691"
+              "sha256": "baec1a694e823c91c6f20d7640916b9269c40108e4afcd0908f5109337827229"
             },
             {
               "file": "src/channels/turn-progress-card.ts",
@@ -6404,7 +6522,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/format.ts",
@@ -6481,7 +6599,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/turn-result-actions.ts",
@@ -7994,7 +8112,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/bridge/taskboard-channel-controller.ts",
@@ -8151,7 +8269,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ],
           "verifiedBoundary": "真实Web/Bridge业务计数分界，native通过fixture接收；accept落盘失败的整个release组合还需联动。"
@@ -8188,7 +8306,7 @@
             },
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "5a974a4d588c5d8d312ad33c4ef684f1aec2b9d33854446ffc7a32f4cc410a9f"
+              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
             }
           ],
           "verifiedBoundary": "已修复问答等待不锁重启；recovery只读checking/pending大范围仍是已记录候选，不宣称全部放行正确。"
@@ -8222,7 +8340,7 @@
             },
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "5a974a4d588c5d8d312ad33c4ef684f1aec2b9d33854446ffc7a32f4cc410a9f"
+              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
             },
             {
               "file": "src/bridge/user-input-controller.ts",
@@ -8230,7 +8348,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ]
         },
@@ -8299,7 +8417,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ]
         },
@@ -8320,7 +8438,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             }
           ]
         },
@@ -8435,7 +8553,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f84a188ad7aef7d723c8203ba6db96aa7fc3362df1fb46cb9e01aab5cc5a6eb9"
+              "sha256": "11ecfc1c37a5b761a3abec566d9449d672abaf6c94c52973ca1c4b950a1d1cf6"
             },
             {
               "file": "src/server/account-manager.ts",

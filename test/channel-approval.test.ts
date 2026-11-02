@@ -87,3 +87,34 @@ test("approval IDs continue across service restarts instead of reusing old notic
   assert.notEqual(one.approvalJournalPath, two.approvalJournalPath);
   assert.equal(one.approvalJournalPath, path.join(paths.runtimeDir, "one", "approvals.json"));
 });
+
+for (const [choice, result, rotates] of [
+  ['accept','confirmed',true],['session','confirmed',true],['decline','confirmed',false],
+  ['cancel','confirmed',false],['accept','failed',false],['accept','withdrawn',false],
+] as const) test(`approval ${choice}/${result} publishes ${rotates?'one':'no'} durable continuation boundary`,async t=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'approval-boundary-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const file=path.join(root,'approval.json'),inputs:any[]=[],notices:any[]=[];
+ const controller=new ChannelApprovalController(async(_sender,notice)=>{notices.push(notice);},60000,undefined,file,{
+  resolveMentions:()=>[{userId:'alice'},{userId:'alice'},{userId:'all'},{userId:'bob'}],
+  onAcceptedInput:async input=>{inputs.push(input);},
+ });
+ const req={...request(),options:[{id:'accept' as const,label:'允许一次',description:'Once',result:{}},{id:'decline' as const,label:'拒绝',description:'Deny',result:{}},...(choice==='session'||choice==='cancel'?[{id:choice,label:choice,description:choice,result:{}}]:[])]};
+ t.after(()=>controller.declineAll('room'));
+ const pending=controller.request('room',req);
+ assert.deepEqual(notices[0].mentions,[{userId:'alice'},{userId:'bob'}]);assert.equal(inputs.length,0);
+ controller.decide('room',`A1 ${choice}`,'accept');assert.equal(await pending,choice);
+ assert.equal(inputs.length,0,'submitting a decision is not native confirmation');
+ await controller.reportResult('room',req,result);await controller.reportResult('room',req,result);
+ assert.equal(inputs.length,rotates?1:0);
+ const restarted=new ChannelApprovalController(async()=>{},60000,undefined,file);
+ assert.equal(restarted.acceptedPresentationInputs().length,rotates?1:0);
+ if(rotates){assert.equal(inputs[0].kind,'approval');assert.deepEqual(restarted.acceptedPresentationInputs(),inputs);}
+});
+
+for(const action of ['allow','deny'] as const)test(`a confirmed network ${action} rule is ${action==='allow'?'a grant':'not a grant'} for the continuation card`,async()=>{
+ const inputs:any[]=[];
+ const controller=new ChannelApprovalController(async()=>{},60000,undefined,undefined,{onAcceptedInput:async input=>{inputs.push(input);}});
+ const req={...request(),options:[{id:'network-0' as const,label:action,description:action,result:{decision:{applyNetworkPolicyAmendment:{network_policy_amendment:{host:'example.com',action}}}}},{id:'decline' as const,label:'拒绝',description:'Deny',result:{decision:'decline'}}]};
+ const pending=controller.request('room',req);controller.decide('room','A1 network-0','accept');await pending;
+ await controller.reportResult('room',req,'confirmed');assert.equal(inputs.length,action==='allow'?1:0);
+});

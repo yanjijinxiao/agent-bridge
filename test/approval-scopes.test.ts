@@ -144,3 +144,15 @@ test("malformed audit is preserved instead of silently resetting permission hist
   assert.throws(() => new ApprovalJournal(file));
   assert.equal(fs.readFileSync(file, "utf8"), "invalid audit");
 });
+
+test('confirmed approval presentation is atomic and leaves the strict v1 audit rows readable on rollback',t=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'approval-v1-projection-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const file=path.join(root,'approvals.json'),journal=new ApprovalJournal(file);
+ journal.add({id:'A1',recipientId:'room',threadId:'thread',hostId:'local',version:'v',createdAt:1});
+ const presentation={id:'approval:one',kind:'approval' as const,hostId:'local',threadId:'thread',turnId:'turn',acceptedAt:2};
+ journal.update('A1',{phase:'confirmed',choice:'accept',presentation});
+ const stored=JSON.parse(fs.readFileSync(file,'utf8'));
+ assert.equal(stored.version,1);assert.equal('presentation' in stored.records[0],false);
+ assert.deepEqual(Object.keys(stored.records[0]).sort(),['id','recipientId','threadId','hostId','version','createdAt','updatedAt','phase','choice'].sort());
+ assert.deepEqual(stored.presentations.A1,presentation);assert.deepEqual(new ApprovalJournal(file).confirmedPresentations(),[presentation]);
+});

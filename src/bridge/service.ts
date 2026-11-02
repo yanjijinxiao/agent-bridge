@@ -268,12 +268,41 @@ export class BridgeService {
       filePath: path.join(path.dirname(options.stateStore.approvalJournalPath), "prompt-buffers.json")
     });
     this.approvals = new ChannelApprovalController(
-      (senderId, notice) => notice.card
-        ? this.replyActionCard(senderId, notice.card)
-        : this.reply(senderId, notice.text),
+      async (senderId, notice) => {
+        const session = this.executionSession(senderId);
+        // The confirmed boundary creates the continuation card. Do not add a
+        // second success-only card when that task's progress is enabled.
+        if (notice.presentation && this.channel.capabilities.progress === "available"
+          && (session?.streamReplies ?? options.config.streamReplies) !== false
+          && session?.threadId === notice.presentation.threadId
+          && (this.sessionHostId(session) ?? "local") === notice.presentation.hostId
+          && (options.onAcceptedInput || this.activePresentations.get(session.id)?.stream instanceof ChannelTurnPresentation)) return;
+        if (notice.card) {
+          // An approval is its own notice, never a patch to the clicked card.
+          const sent = await this.channel.sendActionCard({ toUserId: senderId, card: notice.card,
+            ...(notice.mentions?.length ? { mentions: notice.mentions } : {}),
+            contextToken: options.stateStore.getContextToken(senderId) });
+          this.reportCardDelivery(senderId, sent, notice.card.fallbackText);
+        } else if (notice.mentions?.length) {
+          const sent = await this.channel.sendMentionNotification({ toUserId: senderId, text: notice.text,
+            mentions: notice.mentions, contextToken: options.stateStore.getContextToken(senderId) });
+          this.reportCardDelivery(senderId, sent, notice.text);
+        } else await this.reply(senderId, notice.text);
+      },
       options.approvalTimeoutMs,
       () => options.stateStore.allocateApprovalId(),
-      options.stateStore.approvalJournalPath
+      options.stateStore.approvalJournalPath,
+      {
+        resolveMentions: (senderId, request) => {
+          if (this.channel.capabilities.mentions !== "available") return;
+          const session = this.executionSession(senderId);
+          if (!session || session.threadId !== request.threadId
+            || (this.sessionHostId(session) ?? "local") !== (request.hostId ?? "local")) return;
+          return this.turnAudience.mentions({ bindingKey: JSON.stringify([options.accountId ?? "standalone", session.id]),
+            conversationId: senderId, hostId: request.hostId ?? "local", threadId: request.threadId, turnId: request.turnId });
+        },
+        onAcceptedInput: input => this.presentAcceptedInput(input),
+      }
     );
     this.runner = options.runner ?? new CodexAppServerGateway({
       backend: options.config.codexBackend,
@@ -3302,7 +3331,7 @@ export class BridgeService {
   }
 
   acceptedPresentationInputs(): AcceptedPresentationInput[] {
-    return this.userInputs.acceptedPresentationInputs();
+    return [...this.userInputs.acceptedPresentationInputs(), ...this.approvals.acceptedPresentationInputs()];
   }
   private participantOrigin(session?: ManagedSession): TurnParticipantOrigin | undefined {
     const source = this.participant.getStore();

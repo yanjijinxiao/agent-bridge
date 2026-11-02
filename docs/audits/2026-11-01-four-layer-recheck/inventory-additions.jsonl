@@ -96,3 +96,4 @@
 {"path": "test/web-native-form-submit.test.ts", "module": "test", "sha256": "6b3a82591628ebb632682d856c13205c03a4d926081d4068f041462639050a0c", "lines": 96, "kind": "source", "addedAfterBaseline": true}
 {"path": "test/weixin-inbound-files.test.ts", "module": "test", "sha256": "8897de63b26cedfc209bde1313b312b70e746ebad7918d61514a2ab5b50c5288", "lines": 36, "kind": "source", "addedAfterBaseline": true}
 {"path": "test/workspace-allowlist-paths.test.ts", "module": "test", "sha256": "8c68a23eb054881f029036cbd2a319eaeb8df6a4a90953347d63d2b32567928e", "lines": 20, "kind": "source", "addedAfterBaseline": true}
+{"path": "test/approval-card-roundtrip.test.ts", "module": "test", "sha256": "abea9409a6641855f397f014a8d4661ccb74f1a899016d36ad281ad245a703c4", "lines": 47, "kind": "source", "addedAfterBaseline": true}

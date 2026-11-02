@@ -7,7 +7,7 @@ export type TurnReplyStream = Pick<ChannelTurnTextStream, "supported" | "checkpo
   | "flush" | "synchronize" | "progress" | "answer" | "finalize" | "fail" | "setActivity" | "waitForBackend" | "waitForRecovery" | "reportTerminalFailure">;
 type Persistence = NonNullable<ConstructorParameters<typeof ChannelTurnTextStream>[2]>;
 type Segment = NonNullable<ChannelStreamCheckpoint["segments"]>["previous"][number];
-type Boundary = { id: string; kind: "answer" | "steer" };
+type Boundary = { id: string; kind: "answer" | "steer" | "approval" };
 
 /** One logical turn presentation, possibly several cards. Never controls Codex.
  * The segment intent and both handles are durable BEFORE either HTTP mutation.
@@ -92,7 +92,8 @@ export class ChannelTurnPresentation implements TurnReplyStream {
       } else this.save();
       if (this.suspended) return false;
       await this.current.progress(boundary.kind === "answer"
-        ? "🤔 已接收问题回答，正在继续原任务…" : "🤔 已接收补充输入，正在继续原任务…");
+        ? "🤔 已接收问题回答，正在继续原任务…" : boundary.kind === "approval"
+          ? "🤔 审批已获 Codex 确认，正在继续原任务…" : "🤔 已接收补充输入，正在继续原任务…");
       return true;
     });
   }
@@ -198,6 +199,7 @@ function stageSummary(checkpoint: ChannelStreamCheckpoint, kind: Boundary["kind"
   if (!entries.length && checkpoint.thought.trim()) entries.push(`- ${bounded(checkpoint.thought, 220)}`);
   return ["**阶段小结**", entries.join("\n") || "本阶段暂无可核对的公开进展。",
     kind === "answer" ? "问题回答已获 Codex 接收确认，后续进展见下一张卡。"
+      : kind === "approval" ? "批准决定已获 Codex 确认，后续进展见下一张卡。"
       : kind === "steer" ? "补充输入已获 Codex 接收确认，后续进展见下一张卡。"
       : "Codex 已开始新的任务轮次，后续进展见下一张卡；上一轮完整结果可用 /history 查看。",
     kind === "next-turn" ? "_这是卡片阶段小结，不是对上一轮执行结果的成功判定。_"
