@@ -102,3 +102,17 @@
 {"path": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-session-tree.md", "module": "docs", "sha256": "d49f86921ccf8fab49e3ac937fd753476a515375939a2ac9b4294e85775a54ea", "lines": 11, "kind": "text", "addedAfterBaseline": true}
 {"path": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-verification-gaps.md", "module": "docs", "sha256": "d65b75d3404d41621f1c97039c01351fc40d10a5560006eef701ea0651b7d716", "lines": 721, "kind": "generated-structure", "addedAfterBaseline": true}
 {"path": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-ide-progress-followup.md", "module": "docs", "sha256": "5ccf34277a66491441a7bdb196443114cbbe153144496aaf74960573d462c469", "lines": 11, "kind": "text", "addedAfterBaseline": true}
+{"path":"docs/audits/2026-11-01-four-layer-recheck/README.md","module":"docs","sha256":"4c15e19e4b9c1b51d31267b96a053902adad0cdb862dc57892865992a882e118","lines":124,"kind":"text","addedAfterBaseline":true}
+{"path":"docs/architecture/taskboard-node-contracts.md","module":"docs","sha256":"4e08014871e99f4be77879dae2aea3fe5b577ac2df7cb2a753f93ceeb34530db","lines":45,"kind":"generated-structure","addedAfterBaseline":true}
+{"path":"docs/audits/2026-11-01-four-layer-recheck/2026-11-02-gap-regressions.md","module":"docs","sha256":"68ab2aaf418727ae5b697738ad56bee2e63665af93ad84865a92de3d3868b105","lines":289,"kind":"generated-structure","addedAfterBaseline":true}
+{"path":"src/codex/public-user-message.ts","module":"native","sha256":"e59d3e4c4e78a75c984d83358c9b5b2612374e12bf2a029fcc4b03af37f38e07","lines":13,"kind":"text","addedAfterBaseline":true}
+{"path":"test/fixtures/native-request-gap.mjs","module":"tests","sha256":"c2ad2217bea5efc0ed021b2cfddc355ce8ec859e406a3155a9b33e23638e362c","lines":32,"kind":"text","addedAfterBaseline":true}
+{"path":"test/gap-audit-evidence.test.ts","module":"tests","sha256":"6467032072f31be310ab1c4a392573173f6e820d21d7d0e15627a34c1aef9ea2","lines":81,"kind":"text","addedAfterBaseline":true}
+{"path":"test/gap-catalog-controls.test.ts","module":"tests","sha256":"cdf0caf23d67d7e5f44312d476560a3503d5dcb7c4bae404c1199dc560b44333","lines":103,"kind":"text","addedAfterBaseline":true}
+{"path":"test/gap-delivery-provenance.test.ts","module":"tests","sha256":"fb6e477bb55e9af11bc836c71c8bf52623daff27f340baa3683a0c4ec828ff77","lines":41,"kind":"text","addedAfterBaseline":true}
+{"path":"test/gap-ide-process.test.ts","module":"tests","sha256":"05a1a93e136fad7f61d00b7862d61bf639f1b7d9e4635a8c9072a0f88446c0df","lines":31,"kind":"text","addedAfterBaseline":true}
+{"path":"test/gap-management-browser.test.ts","module":"tests","sha256":"a0f31a2d4b6f5c308e62d22a50b7978e089648bf67d24124d9e65e76d63fd9d1","lines":113,"kind":"text","addedAfterBaseline":true}
+{"path":"test/gap-native-requests.test.ts","module":"tests","sha256":"0365015c162a6c49d14fbc278aa4d39264dd485c55ab19cbad8f643d12fa1338","lines":57,"kind":"text","addedAfterBaseline":true}
+{"path":"test/gap-state-contracts.test.ts","module":"tests","sha256":"bda665bd0140e9c78dcb0e6cab1e60eb2701cc91a9afd6db1d2bbc11a0cf0fef","lines":108,"kind":"text","addedAfterBaseline":true}
+{"path":"test/gap-taskboard-contracts.test.ts","module":"tests","sha256":"2eebd035bd2b5a31ff83d4ae5103f15b3981d2a98308ccc023ada11f6a553bcb","lines":66,"kind":"text","addedAfterBaseline":true}
+{"path":"test/helpers/gap-browser.ts","module":"tests","sha256":"1c1919796048bab14be02deafe7cbcc77a7388640438218e9bd5591b4e32377c","lines":35,"kind":"text","addedAfterBaseline":true}

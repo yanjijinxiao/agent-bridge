@@ -13,3 +13,7 @@ scope 包含 owner/host/project/workspace/完整根；名称或 IM 管理别名�
 ## 部署和验证
 
 本机项目入口按配置的实际稳定网卡/内网路由，远端项目用该 host 的固定入口。TLS、WS 转发、远程安装/补偿、进程身份和启停按独立模块处理。ide-* 测试覆盖 scope、90 天、撤权、HTTP/WS 和回滚；发布前后核对实际授权数量与端点身份。手机连通、实际编辑器主题/字体/键位需要真实设备验证，本机 socket 不能代替。
+
+## 进程身份的隔离反例
+
+IDE-03.2实际启动并关闭测试自有IDE helper；随后用真实测试canary模拟旧ChildProcess数值PID被复用。保留旧对象的exitCode/signalCode事实，再次stop不得发signal，canary保持存活。此证据证明按自有进程对象及退出证据清理，未声称操作系统实际回收了该PID。

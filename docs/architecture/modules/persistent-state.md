@@ -15,3 +15,7 @@ executionGeneration 约束执行拓扑；bindingActivity 的 generation/人工�
 ## 验证边界
 
 runtime-state、binding-expiry、account-manager 和 audit-persistence 覆盖 CRUD、迁移、外部编辑、绑定及私有文件权限。新增直接 ENOSPC 反例通过真实 store 的 setRole、leaveSession、setSessionFollow 入口注入 rename 失败，核对唯一 live owner 和磁盘均保留旧状态；不能外推所有文件系统的断电行为。特殊身份键同时验证保存、刷新和普通键对照。
+
+## 长轮并发变更与独立清理
+
+STATE-01.1经真实AccountManager等待原生长轮期间rename/unbind，完成后核对唯一live owner和磁盘新状态。STATE-02.3逐一注入8个资源stop/close错误；closeRunner不能因为bindingExpiry.stop抛错跳过runner.close，故分别尝试并汇总AggregateError。此处关闭的是Gateway连接，不中断独立原生任务。AUTH-01.3在已运行及停止账号均注入ACL持久化失败，manager和实际Bridge不得提前放行。

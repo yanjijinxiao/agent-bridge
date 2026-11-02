@@ -49,6 +49,44 @@ function transportFixture(handler?: FamilyBoundFetch) {
   return { transport, calls };
 }
 
+for (const route of ["user", "group", "session"] as const) test(`CHAN-03.2: ${route} preserves filename/extension and binary bytes at the exact upload limit`, async t => {
+  const { root } = fixture(t), bytes = Buffer.from([0, 255, 254, 195, 40, 10, 128]);
+  for (const name of ['原始 "名称".TXT', 'certificate.crt', 'picture.png', 'video.mp4', 'archive.bin']) {
+    const file = path.join(root, name); fs.writeFileSync(file, bytes);
+    const { transport, calls } = transportFixture();
+    const target = route === "session" ? sessionTarget() : route === "user" ? { type: "user" as const, staffId: "staff" }
+      : { type: "group" as const, conversationId: "group" };
+    await new DingTalkFileClient(transport, bytes.length, 1000, () => 1).send({ ...sendInput(file), target });
+    const uploadedFile = (await new Request(calls[0].url, calls[0].init).formData()).get("media") as File;
+    assert.equal(uploadedFile.name.replaceAll("%22", '"'), name);
+    assert.deepEqual(Buffer.from(await uploadedFile.arrayBuffer()), bytes);
+    const body = JSON.parse(String(calls[1].init.body));
+    const metadata = route === "session" ? body.file : JSON.parse(body.msgParam);
+    assert.equal(metadata.fileName, name);
+    assert.equal(metadata.fileType, path.extname(name).slice(1).toLowerCase());
+    const denied = transportFixture();
+    await assert.rejects(new DingTalkFileClient(denied.transport, bytes.length - 1).send({ ...sendInput(file), target }), /大小|超过|限制/);
+    assert.equal(denied.calls.length, 0, "oversized bytes are refused before upload/token use");
+  }
+});
+
+for (const route of ["user", "group", "session"] as const) test(`CHAN-03.3: ${route} upload success with rejected, missing or lost delivery acknowledgement is never recipient success or replay`, async t => {
+  const { file } = fixture(t);
+  for (const failure of ["business", "missing", "network", "http"] as const) {
+    const { transport, calls } = transportFixture(async (_family, url) => {
+      if (new URL(url).pathname === "/media/upload") return json(uploaded);
+      if (failure === "network") throw Error("fixture connection timed out");
+      if (failure === "http") return json({ code: "Denied" }, 403);
+      return json(failure === "missing" ? {} : route === "session" ? { errcode: 123 } : { code: "Denied" });
+    });
+    const target = route === "session" ? sessionTarget() : route === "user" ? { type: "user" as const, staffId: "staff" }
+      : { type: "group" as const, conversationId: "group" };
+    await assert.rejects(new DingTalkFileClient(transport, 1024, 1000, () => 1).send({ ...sendInput(file), target }));
+    assert.equal(calls.length, 2, failure);
+    assert.equal(calls.filter(call => call.url.pathname === "/media/upload").length, 1);
+  }
+});
+
 test("session file replies do not call batchSend even when proactive OTO is prohibited", async (t) => {
   const { file } = fixture(t);
   const { transport, calls } = transportFixture(async (_family, url) => {

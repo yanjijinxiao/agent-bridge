@@ -21,3 +21,7 @@ Taskboard 通过观察消费者接入，不在 run 上安装抢占 IM 的 active
 原生表单字段、dropdown 和按钮直接工作，不为内部枚举另造复制块。纯 IM 回复才给完整有效命令，各值独立。secret 字段用 password，提交后清空，不进 SQLite 事件或浏览器 storage。提交表示正在交接；原生确认之后才表示已答。没有请求身份不能拼一个“批准所有”替代原生选项。
 
 native-async-questions、interaction-fanout、taskboard-native-integration、bridge-user-input、approval 及 elicitation 测试覆盖原请求/晚订阅/关闭 UI/秘密字段/提交失败等直接场景。真实钉钉供应商可见性与手机样式另外验收，不由接口测试冒充。
+
+## 漏重放与完整快照
+
+AppServerRequestMonitor只在实际订阅就绪后停止补订阅；原生状态waitingOnApproval但当前observer没有对应实际approval request时，仍需在原host/thread补订阅，不发用户输入、不猜审批答案。异步agent-message通知是增量，NativeAsyncQuestions默认合并；observeThreadInteractions仅把通过nativePage、active turn及items DTO校验的完整snapshot标为complete。可信空snapshot撤销消失且未提交的问题；非法snapshot、别的item增量不清空原待办，已提交的未知答案继续等待精确原生回执。INT-02.1/2有真实JSONL协议子进程反例。

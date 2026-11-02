@@ -14,6 +14,23 @@ import { defaultConfig } from "../src/state/config.js";
 import { resolveStatePaths } from "../src/state/paths.js";
 import { RuntimeStateStore } from "../src/state/runtime-state.js";
 
+for (const kind of ["image"] as const) test(`CHAN-03.3: Feishu ${kind} upload acknowledgement cannot conceal a missing, rejected or lost message receipt`, async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-feishu-gap-")); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const file = path.join(root, "fixture.png"); fs.writeFileSync(file, Buffer.from([0, 255, 1, 128]));
+  for (const failure of ["missing", "business", "lost"] as const) {
+    let uploads = 0, sends = 0;
+    const adapter = new FeishuChannelAdapter({ channel: "feishu", accountId: "fixture", appId: "fake", appSecret: "fake", enabled: true, savedAt: "" }, {
+      apiClient: { im: { v1: {
+        image: { async create() { uploads++; return { image_key: "uploaded" }; } },
+        message: { async create() { sends++; if (failure === "lost") throw Error("fixture disconnected");
+          return failure === "missing" ? { code: 0, data: {} } : { code: 999, msg: "denied" }; } }
+      } } } as never, wsClient: { async start() {}, close() {} }
+    });
+    await assert.rejects(adapter.client.sendMedia({ toUserId: "oc_fixture", path: file, kind }));
+    assert.equal(uploads, 1); assert.equal(sends, 1);
+  }
+});
+
 test("Feishu uploads a local image and sends its image key to the target chat", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-feishu-image-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

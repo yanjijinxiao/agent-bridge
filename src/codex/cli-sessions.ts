@@ -5,6 +5,7 @@ import readline from "node:readline";
 import crypto from "node:crypto";
 import { canonicalCliWorkspace, cliProjectId, listJsonlFilesAsync, readSessionMetaAsync } from "./cli-projects.js";
 import { rolloutIdentity } from "./rollout-identity.js";
+import { isInternalUserMessage } from "./public-user-message.js";
 import { codexFailureCode, type CodexFailureCode } from "./turn-failure.js";
 import type { CodexHistoryPage, CodexHistoryPageInput, CodexThreadListInput, CodexThreadSnapshot, CodexThreadState } from "./backend.js";
 /** Local, read-only rollout adapter. Never loads Desktop or starts app-server. */
@@ -75,6 +76,7 @@ export class CliSessionStore {
     const add = (role: "user" | "assistant", text: unknown, timestamp: string | undefined, progress = false) => {
       if(typeof text !== "string" || !text.trim())
         return;
+      if (role === "user" && isInternalUserMessage(text)) return;
       turn ??= { id: `stored-${turns.length}`, status: "completed", messages: [] };
       if(!turns.includes(turn))
         turns.push(turn);

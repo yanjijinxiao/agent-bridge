@@ -161,7 +161,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ],
           "verifiedBoundary": "facade三阶段失败和JSONL异常不进入exec/Desktop follower；Taskboard统一执行由TB-04.2补充，不把此窄case外推。"
@@ -201,7 +201,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         },
@@ -246,7 +246,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         }
@@ -323,7 +323,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         },
@@ -334,7 +334,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/codex/public-item.ts",
@@ -518,7 +518,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/codex/backend.ts",
@@ -530,7 +530,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         },
@@ -629,9 +629,25 @@
         {
           "id": "NATIVE-04.2",
           "scenario": "只读重建始终附着原核心，不创建另一个核心",
-          "status": "planned",
-          "tests": [],
-          "testGap": "已有reader退休/重建试验，但缺真实服务core身份、pid及输入计数不变的独立断连试验。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/shared-app-server-integration.test.ts",
+              "name": "NATIVE-04.2: retiring a real read-only connection preserves the same native core PID, accepted turn and input count"
+            }
+          ],
+          "previousTestGap": "已有reader退休/重建试验，但缺真实服务core身份、pid及输入计数不变的独立断连试验。",
+          "implementation": [
+            {
+              "file": "src/codex/metadata-reader.ts",
+              "sha256": "69797aaf645748a34bee5d8fcb13c8898e21a0e9f74c1bf97774d53068df1a18"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
+            }
+          ],
+          "verifiedBoundary": "真实隔离原生服务中退休/重建轻读连接，核对同一服务PID、accepted turn、模型调用数及仅一条用户输入。"
         },
         {
           "id": "NATIVE-04.3",
@@ -650,7 +666,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -711,7 +727,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/codex/backend.ts",
@@ -758,7 +774,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         },
@@ -787,7 +803,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         }
@@ -823,7 +839,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ],
           "verifiedBoundary": "真实JSONL假模型以100ms RPC预算和260ms静默终态验证接收后无整轮定时器；不是等待数小时的实机验收。"
@@ -845,7 +861,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/bridge/service.ts",
@@ -1025,7 +1041,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             }
           ]
         }
@@ -1679,9 +1695,25 @@
         {
           "id": "STATE-01.1",
           "scenario": "长任务完成不覆盖期间改名/解绑",
-          "status": "planned",
-          "tests": [],
-          "testGap": "需在实际长轮完成前后并发rename/unbind，断言磁盘和唯一live owner都保留新修改；普通状态CRUD不足以证明。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "STATE-01.1: accepted long-turn completion preserves concurrent rename and explicit unbind in the sole live store and on disk"
+            }
+          ],
+          "previousTestGap": "需在实际长轮完成前后并发rename/unbind，断言磁盘和唯一live owner都保留新修改；普通状态CRUD不足以证明。",
+          "implementation": [
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+            }
+          ],
+          "verifiedBoundary": "真实AccountManager长轮期间改名/解绑，完成后唯一live store与重新读盘均保留新管理状态。"
         },
         {
           "id": "STATE-01.2",
@@ -1809,7 +1841,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             }
           ],
           "verifiedBoundary": "实际账号启动/刷新及独立停止，但monitor/runner替身，不证明所有并发清理异常。"
@@ -1831,7 +1863,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/ide/approval-service.ts",
@@ -1843,9 +1875,49 @@
         {
           "id": "STATE-02.3",
           "scenario": "单个清理失败仍尝试其余清理",
-          "status": "planned",
-          "tests": [],
-          "testGap": "需逐个注入close/stop失败并断言所有独立资源均被尝试清理；正常stopAll不足。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "STATE-02.3: cleanup failure in bindingExpiry does not skip other independent resources or ingress abort"
+            },
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "STATE-02.3: cleanup failure in capacityRecovery does not skip other independent resources or ingress abort"
+            },
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "STATE-02.3: cleanup failure in systemRecovery does not skip other independent resources or ingress abort"
+            },
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "STATE-02.3: cleanup failure in nativeRequestMonitor does not skip other independent resources or ingress abort"
+            },
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "STATE-02.3: cleanup failure in codexSessionMonitor does not skip other independent resources or ingress abort"
+            },
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "STATE-02.3: cleanup failure in threadEvents does not skip other independent resources or ingress abort"
+            },
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "STATE-02.3: cleanup failure in runner does not skip other independent resources or ingress abort"
+            },
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "STATE-02.3: cleanup failure in llmWiki does not skip other independent resources or ingress abort"
+            }
+          ],
+          "previousTestGap": "需逐个注入close/stop失败并断言所有独立资源均被尝试清理；正常stopAll不足。",
+          "implementation": [
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
+            }
+          ],
+          "verifiedBoundary": "逐一注入8种独立资源stop/close失败，均尝试其余资源并终止自有入口，最后汇总错误。"
         },
         {
           "id": "STATE-02.4",
@@ -1967,7 +2039,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             }
           ],
           "verifiedBoundary": "账号API和webhook投影不输出原token/key；全仓错误日志泄密边界尚未穷尽。"
@@ -2066,7 +2138,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -2420,7 +2492,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/bridge/interaction-routing.ts",
@@ -2478,7 +2550,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "504d26cc19416ef1039466d421466fd8b42c0fa2d8d6a458ba0b90eaf34dd1ba"
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
             }
           ],
           "verifiedBoundary": "真实Web脚本VM DOM替身按精确组合筛选，非真实浏览器布局验收。"
@@ -2496,7 +2568,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "504d26cc19416ef1039466d421466fd8b42c0fa2d8d6a458ba0b90eaf34dd1ba"
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
             }
           ],
           "verifiedBoundary": "Web handler只导航，重复原生ID仍按account+managed record；非手机导航验收。"
@@ -2518,7 +2590,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -2757,7 +2829,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         }
@@ -2980,7 +3052,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/codex/desktop-session-membership.ts",
@@ -2988,7 +3060,7 @@
             },
             {
               "file": "src/server/codex-projects.ts",
-              "sha256": "777fde4b58808fa7b01a0b2c2a128411a6688f32a4d8f037e73415bd0b77971b"
+              "sha256": "0994f7a98892aa034e053f5d2835567e119239b4540db1e519b56148b03ce4b9"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -3000,9 +3072,25 @@
         {
           "id": "CAT-03.3",
           "scenario": "立即保存新threadId且标题不受渠道规则污染",
-          "status": "planned",
-          "tests": [],
-          "testGap": "需经实际新建入口验证thread创建早回执持久化和干净标题，不能用旧exec身份测试代替。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/shared-app-server-integration.test.ts",
+              "name": "CAT-03.3: real IM creation persists the native thread before model completion and keeps the native title free of channel instructions"
+            }
+          ],
+          "previousTestGap": "需经实际新建入口验证thread创建早回执持久化和干净标题，不能用旧exec身份测试代替。",
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
+            }
+          ],
+          "verifiedBoundary": "真实Bridge新建经隔离原生核心，在模型结果释放前读到持久thread ID，原生标题保持干净。"
         },
         {
           "id": "CAT-03.4",
@@ -3029,7 +3117,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         },
@@ -3080,16 +3168,64 @@
         {
           "id": "CAT-04.1",
           "scenario": "支持旧event及新response两种格式并去重",
-          "status": "planned",
-          "tests": [],
-          "testGap": "历史读取已有多格式测试，但尚未逐一把两种格式/重复记录/UTF8长行的实际断言映射到此完整场景。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-catalog-controls.test.ts",
+              "name": "CAT-04.1: event rollout history preserves UTF-8 across stream chunks and de-duplicates public messages"
+            },
+            {
+              "file": "test/gap-catalog-controls.test.ts",
+              "name": "CAT-04.1: response rollout history preserves UTF-8 across stream chunks and de-duplicates public messages"
+            },
+            {
+              "file": "test/gap-catalog-controls.test.ts",
+              "name": "CAT-04.1: mixed rollout history preserves UTF-8 across stream chunks and de-duplicates public messages"
+            }
+          ],
+          "previousTestGap": "历史读取已有多格式测试，但尚未逐一把两种格式/重复记录/UTF8长行的实际断言映射到此完整场景。",
+          "implementation": [
+            {
+              "file": "src/codex/cli-sessions.ts",
+              "sha256": "d70fd839f22b19d7c595041c9d20825240597f2555e0e58d796e634f5bbd3ac1"
+            }
+          ],
+          "verifiedBoundary": "旧event、新response及混合重复3格式；跨64KiB UTF8读取块的长中文/emoji行，公共history精确去重。"
         },
         {
           "id": "CAT-04.2",
           "scenario": "guardian/子agent/环境/开发者指令不进入预览",
-          "status": "planned",
-          "tests": [],
-          "testGap": "父子来源和内部消息过滤分散于多个reader，需原生公共history及rollout两条路径的联合矩阵。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-catalog-controls.test.ts",
+              "name": "CAT-04.2: rollout preview and public history exclude internal threads, environment and developer/guardian prompts while retaining quoted user examples"
+            },
+            {
+              "file": "test/gap-catalog-controls.test.ts",
+              "name": "CAT-04.2: standard native history and IM catalog do not expose internal source or synthetic user instructions"
+            }
+          ],
+          "previousTestGap": "父子来源和内部消息过滤分散于多个reader，需原生公共history及rollout两条路径的联合矩阵。",
+          "implementation": [
+            {
+              "file": "src/codex/cli-sessions.ts",
+              "sha256": "d70fd839f22b19d7c595041c9d20825240597f2555e0e58d796e634f5bbd3ac1"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
+            },
+            {
+              "file": "src/server/codex-projects.ts",
+              "sha256": "0994f7a98892aa034e053f5d2835567e119239b4540db1e519b56148b03ce4b9"
+            },
+            {
+              "file": "src/codex/public-user-message.ts",
+              "sha256": "e59d3e4c4e78a75c984d83358c9b5b2612374e12bf2a029fcc4b03af37f38e07"
+            }
+          ],
+          "verifiedBoundary": "rollout/标准原生history/IM目录联合过滤完整内部信封、developer、guardian和子线程；普通用户引用保留。"
         },
         {
           "id": "CAT-04.3",
@@ -3128,7 +3264,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             }
           ],
           "verifiedBoundary": "展示引用/字面附件不发送，全部历史分页API及native格式组合仍待映射。"
@@ -3249,7 +3385,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/bridge/service.ts",
@@ -3342,7 +3478,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -3368,7 +3504,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/bridge/native-queue.ts",
@@ -3533,7 +3669,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ],
           "verifiedBoundary": "host/thread/turn精确参数与source，空闲另一thread的真实并行stop需独立native反例。"
@@ -3541,9 +3677,25 @@
         {
           "id": "CTRL-04.2",
           "scenario": "goal内容pause/clear是文本可设置",
-          "status": "planned",
-          "tests": [],
-          "testGap": "goal form正常例不等于pause/clear作为纯文本的精确场景；需记录实际set payload。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-catalog-controls.test.ts",
+              "name": "CTRL-04.2: IM goal set sends the literal objective pause to the original host instead of executing a control"
+            },
+            {
+              "file": "test/gap-catalog-controls.test.ts",
+              "name": "CTRL-04.2: IM goal set sends the literal objective clear to the original host instead of executing a control"
+            }
+          ],
+          "previousTestGap": "goal form正常例不等于pause/clear作为纯文本的精确场景；需记录实际set payload。",
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+            }
+          ],
+          "verifiedBoundary": "pause/clear纯文本各一次，通过真实IM命令路径核对原host/thread的goal set payload。"
         },
         {
           "id": "CTRL-04.3",
@@ -3843,7 +3995,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "504d26cc19416ef1039466d421466fd8b42c0fa2d8d6a458ba0b90eaf34dd1ba"
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
             },
             {
               "file": "src/bridge/service.ts",
@@ -3922,9 +4074,29 @@
         {
           "id": "AUTH-01.3",
           "scenario": "准入写失败不在内存放行",
-          "status": "planned",
-          "tests": [],
-          "testGap": "准入unknown持久保留已覆盖，但需实际ACL保存失败后manager与Bridge内存读取均不放行的精确反例。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "AUTH-01.3: failed ACL persistence cannot grant in-memory admission through manager or Bridge (running=false)"
+            },
+            {
+              "file": "test/gap-state-contracts.test.ts",
+              "name": "AUTH-01.3: failed ACL persistence cannot grant in-memory admission through manager or Bridge (running=true)"
+            }
+          ],
+          "previousTestGap": "准入unknown持久保留已覆盖，但需实际ACL保存失败后manager与Bridge内存读取均不放行的精确反例。",
+          "implementation": [
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+            }
+          ],
+          "verifiedBoundary": "ACL原子rename失败的停止/运行账号两种状态；磁盘、manager、Bridge均不放行陌生个人。"
         }
       ]
     },
@@ -4093,7 +4265,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ],
           "verifiedBoundary": "真实隔离共享core观察者重启保原native request和人工待审，不合成deny；真实钉钉投递另验。"
@@ -4119,11 +4291,11 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         },
@@ -4144,7 +4316,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         },
@@ -4289,16 +4461,48 @@
         {
           "id": "INT-02.1",
           "scenario": "首次漏快照补订阅且不把无基线增量当完整列表",
-          "status": "planned",
-          "tests": [],
-          "testGap": "旧Desktop monitor快照重订阅测试不能替代当前AppServerRequestMonitor的首次快照丢失场景。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "INT-02.1: native request supervision resubscribes a lost first approval replay on the same host/thread without executing or deciding"
+            }
+          ],
+          "previousTestGap": "旧Desktop monitor快照重订阅测试不能替代当前AppServerRequestMonitor的首次快照丢失场景。",
+          "implementation": [
+            {
+              "file": "src/server/app-server-request-monitor.ts",
+              "sha256": "41bd14b6203bb615acd386c96abc67346d333b8de3bcf9cd1742347f4a367585"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
+            }
+          ],
+          "verifiedBoundary": "JSONL协议子进程首次丢审批重放，真实AppServerRequestMonitor补订阅原host/thread，不发输入或审批答案。"
         },
         {
           "id": "INT-02.2",
           "scenario": "空快照清理待审、非法快照不误清",
-          "status": "planned",
-          "tests": [],
-          "testGap": "需在当前标准原生请求入口验证可信空快照清理与非法快照不清理；旧IPC快照覆盖不算完成。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "INT-02.2: validated complete native widget snapshots withdraw missing questions, while malformed snapshots and unrelated deltas retain pending work"
+            }
+          ],
+          "previousTestGap": "需在当前标准原生请求入口验证可信空快照清理与非法快照不清理；旧IPC快照覆盖不算完成。",
+          "implementation": [
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
+            },
+            {
+              "file": "src/codex/native-async-questions.ts",
+              "sha256": "865f0ecd96d50371889d529c2ecaf145def24db4041899cafa965251fd07f80a"
+            }
+          ],
+          "verifiedBoundary": "原生协议完整可信空items清理已消失问题；非法summary和无关增量不清待办。"
         },
         {
           "id": "INT-02.3",
@@ -4345,7 +4549,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/channels/turn-progress-card.ts",
@@ -4448,7 +4652,7 @@
           "implementation": [
             {
               "file": "src/codex/native-async-questions.ts",
-              "sha256": "47a3b4e660ed843802db66fd32b0b204c20716b243087672fb9ade6c64b06779"
+              "sha256": "865f0ecd96d50371889d529c2ecaf145def24db4041899cafa965251fd07f80a"
             }
           ],
           "auditNote": "原生异步 widget 组件路径精确通过；不把这个单例测试扩大到所有渠道真实交互验收。"
@@ -4554,11 +4758,11 @@
           "implementation": [
             {
               "file": "src/codex/native-async-questions.ts",
-              "sha256": "47a3b4e660ed843802db66fd32b0b204c20716b243087672fb9ade6c64b06779"
+              "sha256": "865f0ecd96d50371889d529c2ecaf145def24db4041899cafa965251fd07f80a"
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         },
@@ -4906,7 +5110,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ],
           "verifiedBoundary": "真实隔离0.166.0 binary的持续WS服务和两个client：实际systemError→idle、完整turns相等且无模型请求；只证明该已复现原因，不代表所有systemError都可复位。"
@@ -4936,7 +5140,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/server/system-error-recovery.ts",
@@ -5006,7 +5210,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/codex/backend.ts",
@@ -5125,7 +5329,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ],
           "verifiedBoundary": "现有JSONL queue优先和coordinator新输入/解绑取消覆盖；最后原生写前执行代次、角色及并发新queue仍需逐分支反例。"
@@ -5271,9 +5475,37 @@
         {
           "id": "DEL-01.3",
           "scenario": "状态报告区分已完成/未送达/未实际显示验收",
-          "status": "planned",
-          "tests": [],
-          "testGap": "API回执已分离，但Web/IM面向用户的状态文案还需联合核验；客户端实际显示未验不能声称已看见。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-management-browser.test.ts",
+              "name": "DEL-01.3: Web and IM show a completed native turn with pending delivery separately from channel acknowledgement, never device acceptance"
+            },
+            {
+              "file": "test/result-delivery-lifecycle.test.ts",
+              "name": "DEL-01.3: completed execution with failed delivery remains pending in the public status until the channel acknowledgement, without claiming device display"
+            }
+          ],
+          "previousTestGap": "API回执已分离，但Web/IM面向用户的状态文案还需联合核验；客户端实际显示未验不能声称已看见。",
+          "implementation": [
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "8b86953cb9e30cc2c55d6aeb44dfc116b2930a75e907703bc523a49d835c96ea"
+            },
+            {
+              "file": "src/bridge/session-follow.ts",
+              "sha256": "8cdd3f92ae90e3dde4a020d1b89ffde612d470442052be33a94b4092ddf3b108"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
+            },
+            {
+              "file": "src/web/app.js",
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+            }
+          ],
+          "verifiedBoundary": "真实hub+管理HTTP+隔离Chrome及IM文案联合：原生完成/idle但投递失败保留pending；渠道回执后显示已接收，不声称手机已显示。"
         },
         {
           "id": "DEL-01.4",
@@ -5308,7 +5540,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             }
           ]
         },
@@ -5906,9 +6138,30 @@
         {
           "id": "DEL-07.3",
           "scenario": "@与IDE页脚计算后仍满足容量",
-          "status": "planned",
-          "tests": [],
-          "testGap": "UTF8分页、@、IDE分别有例；最终合并后边界容量的联合场景尚缺，真实手机展示也未验。"
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/dingtalk-mentions.test.ts",
+              "name": "DEL-07.3: combined UTF8 answer, native mentions and IDE footer respect the exact final normalized capacity"
+            }
+          ],
+          "previousTestGap": "UTF8分页、@、IDE分别有例；最终合并后边界容量的联合场景尚缺，真实手机展示也未验。",
+          "implementation": [
+            {
+              "file": "src/channels/dingtalk.ts",
+              "sha256": "d8c5a2ce901fe13a6d4f66ff6ec9828e58d9509c6b8e9c5981e429ed11924fc7"
+            },
+            {
+              "file": "src/channels/dingtalk-mentions.ts",
+              "sha256": "7fffc50935c35f2631928d918ff7b29b382207518a959eaf828e429c2d0b9376"
+            },
+            {
+              "file": "src/ide/completion.ts",
+              "sha256": "1cb1d58bac3ed3fb3a801516201bb95f2775196567987e0826a281395a3d5f10"
+            }
+          ],
+          "verifiedBoundary": "1/50名中文emoji参与者，合并IDE页脚和原生@后5999/6000/6001最终UTF8字节边界，超限在任何外部写前拒绝。",
+          "testGap": "自动化容量联合边界已补；真实手机钉钉当前版本渲染仍未验。"
         }
       ]
     },
@@ -5982,16 +6235,53 @@
         {
           "id": "DEL-08.3",
           "scenario": "子agent/guardian父元数据不归主线程或假终态",
-          "status": "planned",
-          "tests": [],
-          "testGap": "已有native父子身份过滤，仍需经过实际公开summary/工具进展→卡片的完整来源矩阵。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-delivery-provenance.test.ts",
+              "name": "DEL-08.3: inherited parent metadata from guardian/child logs never projects summaries, tools or false endings into the main card"
+            }
+          ],
+          "previousTestGap": "已有native父子身份过滤，仍需经过实际公开summary/工具进展→卡片的完整来源矩阵。",
+          "implementation": [
+            {
+              "file": "src/server/codex-session-monitor.ts",
+              "sha256": "b6ace439b686f8e92294a06290c7369392944c9020532fc0d0faa4985f0c8f37"
+            },
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "8b86953cb9e30cc2c55d6aeb44dfc116b2930a75e907703bc523a49d835c96ea"
+            }
+          ],
+          "verifiedBoundary": "真实rollout monitor的公开摘要/工具事件经过hub→卡片；子线程继承父metadata、guardian及foreign终态不污染主任务。"
         },
         {
           "id": "DEL-08.4",
           "scenario": "同轮次历史截图出现普通最终答案后新空卡/额外小结，按真实新输入、分段回执和最终提醒所有权区分；原生客户端截图验收独立于API成功，不把旧截图算当前验收。",
-          "status": "planned",
-          "tests": [],
-          "testGap": "旧图确认用户反馈，不能作为现版本验收；需真实钉钉当前版本同turn分段/最终@/页脚联合重现。"
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/completion-mentions.test.ts",
+              "name": "DEL-08.4: accepted input owns one new segment, final mention and IDE footer; duplicate final/history cannot create another empty card"
+            }
+          ],
+          "previousTestGap": "旧图确认用户反馈，不能作为现版本验收；需真实钉钉当前版本同turn分段/最终@/页脚联合重现。",
+          "implementation": [
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "8b86953cb9e30cc2c55d6aeb44dfc116b2930a75e907703bc523a49d835c96ea"
+            },
+            {
+              "file": "src/bridge/turn-audience.ts",
+              "sha256": "33edb76c949a042f39bdc9a7794fbb108f0ac0ea79b39d273de70ebf4a61b813"
+            },
+            {
+              "file": "src/channels/completion-mentions.ts",
+              "sha256": "d7f04b19823a251ad0df8a10fd4c827786114e6ffabe978444e7fe3719e5fa9c"
+            }
+          ],
+          "verifiedBoundary": "真实hub、accepted input journal和audience：仅真实输入切第二段，最终回执后一次@与IDE页脚，重启/重复终态/迟到摘要不再开空卡。",
+          "testGap": "分段/最终@/页脚的自动化所有权已补；当前真实钉钉端同轮分段显示和历史截图故障的现版对照仍未验。"
         },
         {
           "id": "DEL-08.5",
@@ -6196,9 +6486,30 @@
         {
           "id": "DEL-09.3",
           "scenario": "连续更新无重复控制区、摘要不消失、大空白有明确界限",
-          "status": "planned",
-          "tests": [],
-          "testGap": "语义围栏和累计进展已有测试，但正文连续替换、控制区去重和大空白界限尚无完整联合断言。"
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/dingtalk-progress-layout.test.ts",
+              "name": "DEL-09.3: https repeated task projection keeps one control region, retained summary and bounded whitespace through restart/wait/final"
+            },
+            {
+              "file": "test/dingtalk-progress-layout.test.ts",
+              "name": "DEL-09.3: sdk repeated task projection keeps one control region, retained summary and bounded whitespace through restart/wait/final"
+            }
+          ],
+          "previousTestGap": "语义围栏和累计进展已有测试，但正文连续替换、控制区去重和大空白界限尚无完整联合断言。",
+          "implementation": [
+            {
+              "file": "src/channels/dingtalk.ts",
+              "sha256": "d8c5a2ce901fe13a6d4f66ff6ec9828e58d9509c6b8e9c5981e429ed11924fc7"
+            },
+            {
+              "file": "src/channels/turn-presentation.ts",
+              "sha256": "baec1a694e823c91c6f20d7640916b9269c40108e4afcd0908f5109337827229"
+            }
+          ],
+          "verifiedBoundary": "HTTPS/SDK两种真实卡片投影，每种30次答案刷新后再经历等待/恢复/重启/最终；单个停止框和IDE静态区，保留摘要并限制连续空白。",
+          "testGap": "连续协议投影和空白预算已补；真实手机模板最终视觉空白和原生控件显示仍未验。"
         },
         {
           "id": "DEL-09.4",
@@ -6323,7 +6634,7 @@
             },
             {
               "file": "src/web/app.js",
-              "sha256": "504d26cc19416ef1039466d421466fd8b42c0fa2d8d6a458ba0b90eaf34dd1ba"
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
             }
           ],
           "verifiedBoundary": "copy panel只复制、不决定，原生表单直接提交；所有IM复制按钮原生行为不是本机DOM证据。"
@@ -6341,7 +6652,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "504d26cc19416ef1039466d421466fd8b42c0fa2d8d6a458ba0b90eaf34dd1ba"
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
             },
             {
               "file": "src/ide/copy-controls.ts",
@@ -6430,7 +6741,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/channels/feishu.ts",
@@ -6601,16 +6912,84 @@
         {
           "id": "CHAN-03.2",
           "scenario": "文件名/扩展/字节原样保留并有大小预算",
-          "status": "planned",
-          "tests": [],
-          "testGap": "实际DingTalk文件客户端已有正常/限额用例，待将各type及精确byte-budget断言逐一绑定，不能只凭名称认定。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/dingtalk-files.test.ts",
+              "name": "CHAN-03.2: user preserves filename/extension and binary bytes at the exact upload limit"
+            },
+            {
+              "file": "test/dingtalk-files.test.ts",
+              "name": "CHAN-03.2: group preserves filename/extension and binary bytes at the exact upload limit"
+            },
+            {
+              "file": "test/dingtalk-files.test.ts",
+              "name": "CHAN-03.2: session preserves filename/extension and binary bytes at the exact upload limit"
+            }
+          ],
+          "previousTestGap": "实际DingTalk文件客户端已有正常/限额用例，待将各type及精确byte-budget断言逐一绑定，不能只凭名称认定。",
+          "implementation": [
+            {
+              "file": "src/channels/dingtalk-files.ts",
+              "sha256": "0369eb7fc3cfe8c29c8f28d78fd933e9ede746ba3dce32e49307aeb5bca3260f"
+            }
+          ],
+          "verifiedBoundary": "实际DingTalk文件客户端user/group/session三路线，5类文件精确文件名、扩展、二进制bytes及等于/超过预算。"
         },
         {
           "id": "CHAN-03.3",
           "scenario": "上传成功发送失败不报告收件成功",
-          "status": "planned",
-          "tests": [],
-          "testGap": "媒体journal结果已修，上传/发送阶段所有业务失败及未知回执还需跨渠道逐项映射。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/dingtalk-files.test.ts",
+              "name": "CHAN-03.3: user upload success with rejected, missing or lost delivery acknowledgement is never recipient success or replay"
+            },
+            {
+              "file": "test/dingtalk-files.test.ts",
+              "name": "CHAN-03.3: group upload success with rejected, missing or lost delivery acknowledgement is never recipient success or replay"
+            },
+            {
+              "file": "test/dingtalk-files.test.ts",
+              "name": "CHAN-03.3: session upload success with rejected, missing or lost delivery acknowledgement is never recipient success or replay"
+            },
+            {
+              "file": "test/feishu-media.test.ts",
+              "name": "CHAN-03.3: Feishu image upload acknowledgement cannot conceal a missing, rejected or lost message receipt"
+            },
+            {
+              "file": "test/media.test.ts",
+              "name": "CHAN-03.3: WeChat image upload success cannot conceal rejected, missing or lost message acknowledgement"
+            },
+            {
+              "file": "test/media.test.ts",
+              "name": "CHAN-03.3: WeChat video upload success cannot conceal rejected, missing or lost message acknowledgement"
+            },
+            {
+              "file": "test/media.test.ts",
+              "name": "CHAN-03.3: WeChat file upload success cannot conceal rejected, missing or lost message acknowledgement"
+            }
+          ],
+          "previousTestGap": "媒体journal结果已修，上传/发送阶段所有业务失败及未知回执还需跨渠道逐项映射。",
+          "implementation": [
+            {
+              "file": "src/channels/dingtalk-files.ts",
+              "sha256": "0369eb7fc3cfe8c29c8f28d78fd933e9ede746ba3dce32e49307aeb5bca3260f"
+            },
+            {
+              "file": "src/channels/feishu.ts",
+              "sha256": "a1c7d20d87aecbd1502dd45f43c3a87135b84fc70bda640c14ecda7da3f23255"
+            },
+            {
+              "file": "src/weixin/media.ts",
+              "sha256": "a588ff1b507570e693ab01c9b39a50a55de4e2632d7b1e135fe91ec7eaba601b"
+            },
+            {
+              "file": "src/weixin/api.ts",
+              "sha256": "0180ef2365a6df97fce19e73fdd5e572143a4babb7ec07362f043eeac7f48050"
+            }
+          ],
+          "verifiedBoundary": "DingTalk三路线、Feishu已实现的image、WeChat image/video/file：上传成功后业务失败/缺失或丢失发送回执必须失败，不再提交；不将尚不支持的Feishu文件能力伪造为通过。"
         },
         {
           "id": "CHAN-03.4",
@@ -6687,7 +7066,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             }
           ],
           "verifiedBoundary": "真实临时文件stat和历史读取；Windows保留内容/归属但不假测POSIX mode。"
@@ -6798,7 +7177,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -6806,7 +7185,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/ide/project-identity.ts",
@@ -6831,7 +7210,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/ide/manager.ts",
@@ -7033,9 +7412,21 @@
         {
           "id": "IDE-03.2",
           "scenario": "按真实进程身份而非PID清理不误杀",
-          "status": "planned",
-          "tests": [],
-          "testGap": "已有真实guardian/owned socket试验，PID被复用时的进程身份与signal隔离尚无完整场景。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-ide-process.test.ts",
+              "name": "IDE-03.2: an exited owned process with a reused numeric PID cannot signal an unrelated live process on repeated cleanup"
+            }
+          ],
+          "previousTestGap": "已有真实guardian/owned socket试验，PID被复用时的进程身份与signal隔离尚无完整场景。",
+          "implementation": [
+            {
+              "file": "src/ide/transport.ts",
+              "sha256": "55505e47b4c0bd4f4b019e6c0ed6438c95db369ad84c6e669756f1a5037911e6"
+            }
+          ],
+          "verifiedBoundary": "真实自有IDE helper先退出；将旧ChildProcess的数值PID模拟为测试canary PID，多次stop不发signal，真实canary仍存活。未声称OS实际发生PID复用。"
         },
         {
           "id": "IDE-03.3",
@@ -7062,7 +7453,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             }
           ],
           "verifiedBoundary": "可选IDE构造/ingress失败隔离，不借输入；所有运行异常/绑定不变仍需组合。"
@@ -7108,7 +7499,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             }
           ],
           "verifiedBoundary": "个人准入唯一权威；群准入不自动授权，停账号/重启保持，不新建额外名单或密码。"
@@ -7138,7 +7529,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             }
           ],
           "verifiedBoundary": "持久epoch fencing覆盖重新允许旧grant失效；本地HTTP/WS试验，不是手机端。"
@@ -7698,7 +8089,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             }
           ],
           "verifiedBoundary": "原版反例失败，实际Bridge/EndpointManager/ChannelTurnPresentation隔离夹具通过；远程网络恢复及手机实际显示不在本机窄边界验收内。"
@@ -7835,7 +8226,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "504d26cc19416ef1039466d421466fd8b42c0fa2d8d6a458ba0b90eaf34dd1ba"
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
             },
             {
               "file": "src/web/knowledge-bases.js",
@@ -7865,7 +8256,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "504d26cc19416ef1039466d421466fd8b42c0fa2d8d6a458ba0b90eaf34dd1ba"
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
             },
             {
               "file": "src/web/knowledge-bases.js",
@@ -7877,9 +8268,25 @@
         {
           "id": "WEB-01.3",
           "scenario": "重启旧页面点击写操作握手后仅执行一次",
-          "status": "planned",
-          "tests": [],
-          "testGap": "需实际旧页面重启后凭据握手，明确not-submitted重做一次和unknown不重做各一例；VM空submitter不证明此事。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-management-browser.test.ts",
+              "name": "WEB-01.3: a real old page reconnects after server restart and submits a form exactly once; a lost mutation response is not replayed"
+            }
+          ],
+          "previousTestGap": "需实际旧页面重启后凭据握手，明确not-submitted重做一次和unknown不重做各一例；VM空submitter不证明此事。",
+          "implementation": [
+            {
+              "file": "src/server/http-server.ts",
+              "sha256": "c5e2d5007a81121744a11a75e9378cb44a8d6c0164ca05120823d1a31ac463e3"
+            },
+            {
+              "file": "src/web/app.js",
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+            }
+          ],
+          "verifiedBoundary": "生产HTML/JS+真实HTTP服务重启+隔离Chrome旧DOM：失效token明确未提交才握手重做一次；服务已提交后模拟响应丢失，不重做。"
         },
         {
           "id": "WEB-01.4",
@@ -7989,7 +8396,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "504d26cc19416ef1039466d421466fd8b42c0fa2d8d6a458ba0b90eaf34dd1ba"
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
             },
             {
               "file": "src/web/knowledge-bases.js",
@@ -8004,7 +8411,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "504d26cc19416ef1039466d421466fd8b42c0fa2d8d6a458ba0b90eaf34dd1ba"
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
             }
           ],
           "tests": [
@@ -8051,7 +8458,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "504d26cc19416ef1039466d421466fd8b42c0fa2d8d6a458ba0b90eaf34dd1ba"
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
             }
           ],
           "verifiedBoundary": "真实bootstrap/refresh/settings处理器VM场景，Taskboard无限等待不挡核心展示和反馈。"
@@ -8059,16 +8466,57 @@
         {
           "id": "WEB-02.2",
           "scenario": "未启Taskboard不加载无效iframe，网页启用同进程启动",
-          "status": "planned",
-          "tests": [],
-          "testGap": "嵌入服务启停和Web可选首屏分别已测，iframe禁用/网页启用同进程联动仍缺联合例。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-management-browser.test.ts",
+              "name": "WEB-02.2: disabled Taskboard does not load an iframe; the native enable button starts the embedded service inside the same Gateway process"
+            }
+          ],
+          "previousTestGap": "嵌入服务启停和Web可选首屏分别已测，iframe禁用/网页启用同进程联动仍缺联合例。",
+          "implementation": [
+            {
+              "file": "src/server/http-server.ts",
+              "sha256": "c5e2d5007a81121744a11a75e9378cb44a8d6c0164ca05120823d1a31ac463e3"
+            },
+            {
+              "file": "src/taskboard/lifecycle.ts",
+              "sha256": "ac0f51a9e5afa1fb35ec0e15ff7c0f67f37cafa50c4845ce1e9da7b91e33d432"
+            },
+            {
+              "file": "src/web/app.js",
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+            }
+          ],
+          "verifiedBoundary": "生产管理页原生启用按钮→HTTP→同一TaskboardLifecycle→真实嵌入服务；禁用无iframe src，启用一次且Gateway PID不变。"
         },
         {
           "id": "WEB-02.3",
           "scenario": "标题、长ID、IDE按钮窄屏可换行无溢出",
-          "status": "planned",
-          "tests": [],
-          "testGap": "Taskboard 390px组件测试不是Gateway管理375px全表单/长ID/IDE按钮验收；不可借用。"
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/gap-management-browser.test.ts",
+              "name": "WEB-02.3: actual Gateway management views, long identifiers, forms and IDE buttons fit a 375px Chrome viewport"
+            }
+          ],
+          "previousTestGap": "Taskboard 390px组件测试不是Gateway管理375px全表单/长ID/IDE按钮验收；不可借用。",
+          "implementation": [
+            {
+              "file": "src/web/app.js",
+              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+            },
+            {
+              "file": "src/web/styles.css",
+              "sha256": "0465796d7036b2df0d7387f270b9e935ffadad173d59bda4a8bcf3d3e4ae781e"
+            },
+            {
+              "file": "src/web/index.html",
+              "sha256": "c119db633fc9c481e1125faaea5f005fba6c1e48fa025565292df02df5957ead"
+            }
+          ],
+          "verifiedBoundary": "生产管理页在375px Chrome中逐视图检查、长标题/ID、IDE按钮、所有含form的dialog边界；不是手机设备验收。",
+          "testGap": "实际生产管理页375px Chrome及全部表单已补；真实手机浏览器/键盘/字体环境仍未验。"
         }
       ]
     },
@@ -8088,9 +8536,25 @@
         {
           "id": "TB-01.1",
           "scenario": "同路径不同host不关联错误项目",
-          "status": "planned",
-          "tests": [],
-          "testGap": "Taskboard映射仍有按workspace查找的路径；真实同路径不同host语义需单独实例反例。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-taskboard-contracts.test.ts",
+              "name": "TB-01.1: the real Taskboard workbench never maps a same-path remote project or writes through its issue"
+            }
+          ],
+          "previousTestGap": "Taskboard映射仍有按workspace查找的路径；真实同路径不同host语义需单独实例反例。",
+          "implementation": [
+            {
+              "file": "src/taskboard/workbench.ts",
+              "sha256": "1f297243e12ead476f5aa84b817951023669d80fe7ee1649de3bcad07560bcd4"
+            },
+            {
+              "file": "src/state/project-identity.ts",
+              "sha256": "8c2f54d17a6f29ef47ada84de3a842fd93c57a0e1e52c1776ea4e8cc557e2276"
+            }
+          ],
+          "verifiedBoundary": "真实TaskboardWorkbench联合HTTP客户端映射：只有远端同路径不显示/不评论；加入本机项目后仅映射本机并按原thread评论。"
         },
         {
           "id": "TB-01.2",
@@ -8282,7 +8746,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             }
           ],
           "verifiedBoundary": "远程项目不能作为本地目录QA默认值；已绑定QA所有动态tool读取同host仍需执行路径证明。"
@@ -8382,7 +8846,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/server/restart.ts",
@@ -8457,7 +8921,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/bridge/approval.ts",
@@ -8518,7 +8982,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "f8a712675cd5d1cd09452e3de3f18918235de42a5fc5252e3dd27707e0b01c5c"
+              "sha256": "a3853abaafdb527fd66f5c4474dad0378e895a65f111ebfb26f83194b1e07c10"
             },
             {
               "file": "src/codex/backend.ts",
@@ -8571,19 +9035,19 @@
           "tests": [
             {
               "file": "test/release-rollback-recovery.test.ts",
-              "name": "actual release switch preserves admission ownership through success"
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through success"
             },
             {
               "file": "test/release-rollback-recovery.test.ts",
-              "name": "actual release switch preserves admission ownership through rollback"
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through rollback"
             },
             {
               "file": "test/release-rollback-recovery.test.ts",
-              "name": "actual release switch preserves admission ownership through changed-owner"
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through changed-owner"
             },
             {
               "file": "test/release-rollback-recovery.test.ts",
-              "name": "actual release switch preserves admission ownership through restored-offline"
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through restored-offline"
             }
           ],
           "implementation": [
@@ -8678,7 +9142,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/bridge/channel-write-leases.ts",
@@ -8750,9 +9214,58 @@
         {
           "id": "REL-02.3",
           "scenario": "上线后构建号/绑定/准入/浏览器grant/IDE全核对，不称push即上线",
-          "status": "planned",
-          "tests": [],
-          "testGap": "已实际验证763cddd构建号、绑定、14份grant、90天期限与3个IDE端点；手机实际入口/渲染未验，后续UI代码仍须按独立release验收。"
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/release-rollback-recovery.test.ts",
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through success"
+            },
+            {
+              "file": "test/release-rollback-recovery.test.ts",
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through rollback"
+            },
+            {
+              "file": "test/release-rollback-recovery.test.ts",
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through changed-owner"
+            },
+            {
+              "file": "test/release-rollback-recovery.test.ts",
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through restored-offline"
+            },
+            {
+              "file": "test/release-rollback-recovery.test.ts",
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through binding-changed"
+            },
+            {
+              "file": "test/release-rollback-recovery.test.ts",
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through acl-changed"
+            },
+            {
+              "file": "test/release-rollback-recovery.test.ts",
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through grant-changed"
+            },
+            {
+              "file": "test/release-rollback-recovery.test.ts",
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through endpoint-changed"
+            },
+            {
+              "file": "test/release-rollback-recovery.test.ts",
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through ttl-changed"
+            },
+            {
+              "file": "test/release-rollback-recovery.test.ts",
+              "name": "REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through connection-lost"
+            }
+          ],
+          "previousTestGap": "已实际验证763cddd构建号、绑定、14份grant、90天期限与3个IDE端点；手机实际入口/渲染未验，后续UI代码仍须按独立release验收。",
+          "implementation": [
+            {
+              "file": "scripts/release-local.mjs",
+              "sha256": "ea5114f9fbeb3616b5de04cf09cce9d774e8f09ba1352b213bed74fda81b46fc"
+            }
+          ],
+          "verifiedBoundary": "实际release命令在隔离Git/launchd/HTTP边界执行10种结果，检查build、绑定、ACL、grant、IDE、90天期限和渠道连接；失败回滚代码不复活旧授权。",
+          "testGap": "隔离发布全链路反例已补，每次上线仍必须独立核对真实构建/状态；手机入口可达性及渲染不由此认证。"
         },
         {
           "id": "REL-02.4",
@@ -8818,30 +9331,88 @@
         {
           "id": "AUDIT-01.1",
           "scenario": "每需求有具体可执行case和结果而非只列测试文件",
-          "status": "planned",
-          "tests": [],
-          "testGap": "本轮所有需求有场景，但不是每个场景都有可执行断言；未映射清单公开保留，不能宣称此要求完全达成。"
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/gap-audit-evidence.test.ts",
+              "name": "AUDIT-01.1: a verified requirement needs exact named assertions and their passing result, not a test file list"
+            }
+          ],
+          "previousTestGap": "本轮所有需求有场景，但不是每个场景都有可执行断言；未映射清单公开保留，不能宣称此要求完全达成。",
+          "implementation": [
+            {
+              "file": "scripts/check-audit-evidence.mjs",
+              "sha256": "e82aa6fc12a7e5d598fd891cda31cc5a8b93cce07daf239c29f30b64bccf7f03"
+            }
+          ],
+          "verifiedBoundary": "实际只读checker反例：仅文件、错名、未运行或失败记录不能支持verified；精确同版本命名通过才支持。该测试不证明所有产品case完整。",
+          "testGap": "304case均已有具体测试映射；部分场景的人工或未实现边界仍保留partial，不把映射齐全算全部功能验收。"
         },
         {
           "id": "AUDIT-01.2",
           "scenario": "阅读记录含内容hash/范围/职责推演，改动后失效",
-          "status": "planned",
-          "tests": [],
-          "testGap": "只读证据工具已核对688个基线文件hash/范围并使修改过记录失效；这是审计产物核查，不伪装为产品测试。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-audit-evidence.test.ts",
+              "name": "AUDIT-01.2: changed content invalidates old line coverage and test evidence; invalid ranges or missing intent are rejected"
+            }
+          ],
+          "previousTestGap": "只读证据工具已核对688个基线文件hash/范围并使修改过记录失效；这是审计产物核查，不伪装为产品测试。",
+          "implementation": [
+            {
+              "file": "scripts/check-audit-evidence.mjs",
+              "sha256": "e82aa6fc12a7e5d598fd891cda31cc5a8b93cce07daf239c29f30b64bccf7f03"
+            }
+          ],
+          "verifiedBoundary": "实际checker临时仓库反例：实现改动使旧hash阅读和测试失效，越EOF范围与空职责笔记被拒绝。仅审计产物合同。"
         },
         {
           "id": "AUDIT-01.3",
           "scenario": "原版失败/修后回归/真实协议/客户端验收分别报告",
-          "status": "planned",
-          "tests": [],
-          "testGap": "本轮报告保留原版失败、夹具错误、修后测试和客户端未验区别；原始故障日志留私有临时目录，不含在公共包。"
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/gap-audit-evidence.test.ts",
+              "name": "AUDIT-01.3: prior failure, fixed pass and stale tests stay distinguishable; clean metadata cannot certify real protocol or phone acceptance"
+            }
+          ],
+          "previousTestGap": "本轮报告保留原版失败、夹具错误、修后测试和客户端未验区别；原始故障日志留私有临时目录，不含在公共包。",
+          "implementation": [
+            {
+              "file": "scripts/check-audit-evidence.mjs",
+              "sha256": "e82aa6fc12a7e5d598fd891cda31cc5a8b93cce07daf239c29f30b64bccf7f03"
+            },
+            {
+              "file": "scripts/audit-test-reporter.mjs",
+              "sha256": "15665ebb47a5923a8dede472e37bd2d7f036c856b4e629b908f5e07d5b3cb8e9"
+            }
+          ],
+          "verifiedBoundary": "实际checker保留原失败/最新修后通过，测试改动失效；全绿仍报in-progress，不声称真实协议或手机验收。真实原生、协议夹具、API替身、Chrome另分类。"
         },
         {
           "id": "AUDIT-01.4",
           "scenario": "历史图片逐张本机查看并记录可恢复/缺失范围；图片中引用的其他仓库任务、旧命令和秘密不转成新执行指令或功能要求；仅公开历史进入需求来源。",
-          "status": "planned",
-          "tests": [],
-          "testGap": "39个公开历史片段和92张可恢复图均已回读；5张丢失明确记载。审计记录本身不是产品自动化用例。"
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/gap-audit-evidence.test.ts",
+              "name": "AUDIT-01.4: historical missing-image boundaries are explicit and quoted attachment commands remain task data, never control actions"
+            }
+          ],
+          "previousTestGap": "39个公开历史片段和92张可恢复图均已回读；5张丢失明确记载。审计记录本身不是产品自动化用例。",
+          "implementation": [
+            {
+              "file": "src/bridge/format.ts",
+              "sha256": "d08fb90d3c4dfe9d7bc31820ea15eed48940dc3e9882b8798e1aad0c5d95af19"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+            }
+          ],
+          "verifiedBoundary": "历史manifest明确92可读/5丢失且不是当前客户端验收；实际Bridge把引用/围栏中的stop/allow/queue与附件示例当本轮分析数据，无控制写入。",
+          "testGap": "引用命令惰性及manifest边界有自动化；原先92张逐张观看属手工记录，5张缺失仍不能重读，自动化不冒充视觉阅读。"
         }
       ]
     },
@@ -9402,7 +9973,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "8c576d62b42386a97ed97572ee85c7de3c6ce1023adc6afd920b5a3e63c6ee45"
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -9910,9 +10481,26 @@
         {
           "id": "TB-10.3",
           "scenario": "各palette kind逐一对照实际执行支持/必填字段/授权来源，动态Skill与MCP失败不能伪造可用选项。",
-          "status": "planned",
-          "tests": [],
-          "testGap": "配置catalog不等于执行支持；每个palette的必填、授权、执行入口仍缺逐kind合同测试。"
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/gap-taskboard-contracts.test.ts",
+              "name": "TB-10.3: every palette kind has an explicit configuration boundary, and failed Skill/MCP discovery cannot invent ready options"
+            }
+          ],
+          "previousTestGap": "配置catalog不等于执行支持；每个palette的必填、授权、执行入口仍缺逐kind合同测试。",
+          "implementation": [
+            {
+              "file": "taskboard/web/src/components/workflowCatalog.ts",
+              "sha256": "dcfe850be9b47c39d629a3990e9d61d19c0934c7af68a6246a2ba1b8674022cb"
+            },
+            {
+              "file": "taskboard/server/app.mjs",
+              "sha256": "eb5a30ea485b9a8edc14ba94f6a51a2bc5dd5be48fc2be95a03354b2508bd927"
+            }
+          ],
+          "verifiedBoundary": "逐一执行33种palette配置校验，必填分支和动态Skill/MCP失败、旧选项不可用；真实能力HTTP目录失败返回500无伪造列表。流程文档保存与节点执行分开，详见taskboard-node-contracts.md。",
+          "testGap": "33kind的编辑配置合同已补；当前工作流服务只版本化保存文档，没有按各kind执行、凭据授权和运行回执的统一执行器。不能宣称33种节点可执行；不为此开放隐藏入口或禁用已有功能。"
         }
       ]
     },
@@ -10062,5 +10650,13 @@
       ]
     }
   ],
-  "reviewPass": "2026-11-02 completion: four-layer read/diff review, native Taskboard convergence, concrete failures repaired; external client/device limits remain explicit"
+  "reviewPass": "2026-11-02 completion: four-layer read/diff review, native Taskboard convergence, concrete failures repaired; external client/device limits remain explicit",
+  "verificationUpdate": {
+    "date": "2026-11-02",
+    "previousUnmappedCases": 28,
+    "nowUnmappedCases": 0,
+    "mappedDirectTests": 59,
+    "deviceAcceptance": "not-performed",
+    "workflowNodeExecution": "not-implemented; editor/configuration tests only"
+  }
 }

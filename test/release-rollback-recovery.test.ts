@@ -10,12 +10,18 @@ import { pathToFileURL } from "node:url";
 
 // Run the actual release command against disposable artifacts. Every process,
 // Git, launchd and HTTP boundary is synthetic; none can reach the live service.
-for (const scenario of ["success", "rollback", "changed-owner", "restored-offline"]) {
-  test(`actual release switch preserves admission ownership through ${scenario}`, async t => {
+for (const scenario of ["success", "rollback", "changed-owner", "restored-offline", "binding-changed", "acl-changed", "grant-changed", "endpoint-changed", "ttl-changed", "connection-lost"]) {
+  test(`REL-02.3: actual release switch checks build, bindings, ACL, browser grants and IDE through ${scenario}`, async t => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-rollback-audit-"));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     const repo = path.join(root, "repo"), state = path.join(root, "state"), stage = path.join(root, "stage");
     for (const dir of [path.join(repo, "scripts"), path.join(repo, "dist"), path.join(state, "runtime"), path.join(stage, "dist")]) fs.mkdirSync(dir, { recursive: true });
+    const permissionFile = path.join(state, "runtime", "account", "state.json"), grantFile = path.join(state, "ide", "authorization.json");
+    fs.mkdirSync(path.dirname(permissionFile), { recursive: true }); fs.mkdirSync(path.dirname(grantFile));
+    const permissions = { activeSessionIds: { room: "session" }, pairedSenderIds: ["actor"], conversationRoles: { room: { actor: "controller" } } };
+    fs.writeFileSync(permissionFile, JSON.stringify(permissions));
+    const grant = { sessions: [{ id: "test-owned-browser", session: { expiresAt: Number.MAX_SAFE_INTEGER, credentialHash: "synthetic-fixture" } }] };
+    fs.writeFileSync(grantFile, JSON.stringify(grant));
     fs.copyFileSync("scripts/release-local.mjs", path.join(repo, "scripts/release-local.mjs"));
     fs.writeFileSync(path.join(repo, "fixture.txt"), "fixture source");
     fs.writeFileSync(path.join(repo, "dist", "artifact.txt"), "old artifact");
@@ -38,7 +44,10 @@ for (const scenario of ["success", "rollback", "changed-owner", "restored-offlin
       if (bin === "/bin/launchctl") {
         if (args[0] === "print") return `pid = ${currentPid()}\n`;
         if (args[0] === "bootout") { operations.push(`stop:${currentPid()}`); return ""; }
-        if (args[0] === "bootstrap") { generation++; operations.push(`start:${currentPid()}`); return ""; }
+        if (args[0] === "bootstrap") { generation++; operations.push(`start:${currentPid()}`);
+          if (generation === 1 && scenario === "acl-changed") fs.writeFileSync(permissionFile, JSON.stringify({ ...permissions, pairedSenderIds: [] }));
+          if (generation === 1 && scenario === "grant-changed") fs.writeFileSync(grantFile, JSON.stringify({ sessions: [] }));
+          return ""; }
       }
       throw Error(`Unexpected isolated command: ${bin} ${args.join(" ")}`);
     });
@@ -68,10 +77,11 @@ for (const scenario of ["success", "rollback", "changed-owner", "restored-offlin
           assert.equal((init!.headers as Record<string, string>)["X-Codex-Im-Gateway-Token"], `process-${currentPid()}`);
           operations.push(`reopen:${currentPid()}`); cancels++; owner = undefined; fs.unlinkSync(gate);
           return Response.json({ released: true });
-        case "/api/accounts": return Response.json({ accounts: [] });
-        case "/api/ide": return Response.json({ running: false, authorization: { sessionTtlDays: 90 }, endpoints: [] });
-        case "/api/sessions": return Response.json({ sessions: [] });
-        case "/api/build": return Response.json({ build: generation === 1 && scenario === "success" ? { commit, sourceHash: source } : { commit: "b".repeat(40), sourceHash: "c".repeat(64) } });
+        case "/api/accounts": return Response.json({ accounts: [{ accountId: "account", status: "running", connection: { state: generation === 1 && scenario === "connection-lost" ? "disconnected" : "connected" } }] });
+        case "/api/ide": return Response.json({ running: true, authorization: { sessionTtlDays: generation === 1 && scenario === "ttl-changed" ? 15 : 90 },
+          endpoints: [{ hostId: "local", publicOrigin: generation === 1 && scenario === "endpoint-changed" ? "https://other.invalid" : "https://ide.fixture", state: "ready", localDirect: true }] });
+        case "/api/sessions": return Response.json({ sessions: [{ accountId: "account", id: "session", senderId: "room", threadId: generation === 1 && scenario === "binding-changed" ? "other-thread" : "thread", binding: { bound: true, hostId: "local" } }] });
+        case "/api/build": return Response.json({ build: generation === 1 && !["rollback", "changed-owner", "restored-offline"].includes(scenario) ? { commit, sourceHash: source } : { commit: "b".repeat(40), sourceHash: "c".repeat(64) } });
         default: throw Error(`Unexpected isolated route: ${url.pathname}`);
       }
     });
@@ -80,17 +90,21 @@ for (const scenario of ["success", "rollback", "changed-owner", "restored-offlin
       await run;
       assert.deepEqual(operations, ["stop:111", "start:222", "reopen:222"]);
       assert.equal(fs.readFileSync(path.join(repo, "dist", "artifact.txt"), "utf8"), "new artifact");
+      const verified = JSON.parse(fs.readFileSync(path.join(stage, "verified.json"), "utf8"));
+      assert.equal(verified.retainedGrants, 1); assert.equal(verified.ttlDays, 90); assert.equal(verified.endpoints, 1);
     } else {
-      await assert.rejects(run, /readiness|rollback|restor/i);
+      await assert.rejects(run, /readiness|rollback|restor|grant|permissions|binding/i);
       assert.equal(fs.readFileSync(path.join(repo, "dist", "artifact.txt"), "utf8"), "old artifact");
       assert.deepEqual(operations.slice(0, 4), ["stop:111", "start:222", "stop:222", "start:333"]);
     }
-    if (scenario === "success" || scenario === "rollback") {
+    if (!["changed-owner", "restored-offline"].includes(scenario)) {
       assert.equal(fs.existsSync(gate), false, "restored service must not retain a dead release owner's admission freeze");
       assert.equal(cancels, 1);
     } else {
       assert.equal(fs.existsSync(gate), true, "changed owner or offline recovery cannot be reopened blindly");
       assert.equal(cancels, 0);
     }
+    if (scenario === "grant-changed") assert.deepEqual(JSON.parse(fs.readFileSync(grantFile, "utf8")).sessions, [], "code rollback cannot resurrect browser credentials");
+    if (scenario === "acl-changed") assert.deepEqual(JSON.parse(fs.readFileSync(permissionFile, "utf8")).pairedSenderIds, [], "code rollback cannot overwrite current authority");
   });
 }

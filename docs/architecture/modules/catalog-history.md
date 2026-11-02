@@ -23,3 +23,7 @@ prepareTurnSubmission 携带所选项目的完整 projectRoots。resolveProjectI
 metadata-reader 与 history-reader 隔离轻读/重读。rollout-identity 过滤内部审核和子线程继承，历史终态不能推翻权威 active 状态。CodexSessionCompletionMonitor 只是低延迟 hint，启动 baseline 和 emitAfter 防止旧完成当成新消息。观察器逐块读文件；单条记录最多 8 MiB，超长未完成记录只保存 discard cursor，直到真实换行再恢复后续公开事件。普通 UTF-8 片段完整组装后才解析。
 
 codex-projects、native-project-membership、codex-app-server、codex-session-monitor 与 history 相关测试提供具体证据。项目同目录不同 ID、全根创建和未知明确 ID 有原版失败反例；长记录预算有实际 Buffer.concat 监测及后续正常进展/完成对照。旁路不是第二个执行器，丢弃过大 hint 不构成任务失败。
+
+## 公开用户消息的共同边界
+
+public-user-message.isInternalUserMessage由原生history、rollout history与Desktop预览共用，只匹配已知完整环境/中断信封及特定审批transcript前缀。普通用户正文引用这些标签不被隐藏。内部thread来源仍由rolloutIdentity单独判断，不能仅靠删正文证明子线程隔离。CAT-04.1/2补齐三种日志格式、UTF8长行、正常引用和两条reader路径。新建提前thread ID与干净标题经真实隔离原生核心验证。

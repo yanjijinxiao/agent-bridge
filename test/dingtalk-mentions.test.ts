@@ -2,6 +2,32 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { dingTalkMentionCard, dingTalkCardAtParameters } from "../src/channels/dingtalk-mentions.js";
 import { DingTalkChannelAdapter, normalizeDingTalkCardContent } from "../src/channels/dingtalk.js";
+import { withIDEEntry } from "../src/ide/completion.js";
+
+test("DEL-07.3: combined UTF8 answer, native mentions and IDE footer respect the exact final normalized capacity", async () => {
+  let writes = 0;
+  const adapter = new DingTalkChannelAdapter({ channel: "dingtalk", accountId: "test", clientId: "fake", clientSecret: "fake",
+    cardTemplateId: "template", savedAt: "", enabled: true }, {
+    cardClient: { async create() { writes++; }, async update() { writes++; } },
+    streamClient: { async getAccessToken() { writes++; return "fake"; } } as never
+  });
+  for (const count of [1, 50]) {
+    const mentions = Array.from({ length: count }, (_, i) => ({ userId: `user${i}`, name: `成员🙂${i}` }));
+    const anchor = mentions.map(m => `<a atId=${m.userId}>${m.name}</a>`).join(" ") + "\n\n";
+    const suffix = withIDEEntry("中文🙂", "https://ide.example.test/workspace/project");
+    const overhead = Buffer.byteLength(normalizeDingTalkCardContent(anchor + suffix));
+    for (const limit of [5999, 6000, 6001]) {
+      const text = "x".repeat(limit - overhead) + suffix;
+      const actual = normalizeDingTalkCardContent(anchor + text);
+      assert.equal(Buffer.byteLength(actual), limit); assert.ok(actual.includes("中文🙂"));
+      assert.equal(actual.split("[打开项目 Web IDE]").length - 1, 1);
+      const completedCard = { messageId: "source", text, summary: "已检查" };
+      assert.equal(adapter.client.canCombineCompletionMentionCard({ completedCard, mentions }), limit <= 6000);
+      if (limit > 6000) await assert.rejects(adapter.client.sendMentionNotification({ toUserId: "group", text, completedCard, mentions }));
+    }
+  }
+  assert.equal(writes, 0, "an oversized combination never starts a provider mutation");
+});
 
 test("native card @ preserves first participation order, escapes labels, and never trusts answer anchors", () => {
   const body = '正文 [链接](https://example.test)\n\n<a atId=outsider>other</a> <A ATID="123">fake</A>';

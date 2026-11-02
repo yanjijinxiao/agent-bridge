@@ -9,8 +9,67 @@ import { resolveStatePaths, accountStatePaths } from "../src/state/paths.js";
 import { saveAccount } from "../src/weixin/accounts.js";
 import { withIDEEntry } from "../src/ide/completion.js";
 import { sharedNativeCore, message, tool, until } from "./fixtures/shared-native-core.mjs";
+import { CodexMetadataReader } from "../src/codex/metadata-reader.js";
+import { CodexCommunicationError } from "../src/codex/communication-error.js";
+import { BridgeService } from "../src/bridge/service.js";
+import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.js";
+import { defaultConfig } from "../src/state/config.js";
 
 const native = { skip: !process.env.CODEX_NATIVE_QUEUE_TEST_BIN, timeout: 30000 };
+
+test("CAT-03.3: real IM creation persists the native thread before model completion and keeps the native title free of channel instructions", native, async t => {
+  const release = Promise.withResolvers<void>(); t.after(() => release.resolve());
+  const f = await sharedNativeCore(t, async () => { await release.promise; return message("done"); });
+  const gateway = new CodexAppServerGateway({ appServerBackend: f.runner() }); t.after(() => gateway.close());
+  const paths = resolveStatePaths(path.join(f.root, "bridge-state")), state = new RuntimeStateStore(paths);
+  const session = state.createSession("room", f.root, "Clean user title", undefined, "session", undefined, { standalone: true });
+  const service = new BridgeService({ stateStore: state, runner: gateway, config: { ...defaultConfig(f.root), allowedSenderIds: ["actor"], streamReplies: false },
+    channel: createChannelClient("dingtalk", TEXT_CAPABILITIES, { async sendText() { return { messageId: "fixture" }; } }) });
+  t.after(() => service.suspendUserInputs());
+  const pending = service.handleMessage({ id: "create-once", senderId: "actor", replyTargetId: "room", text: "Inspect this project", raw: {} });
+  await until(() => f.calls.length === 1);
+  const persisted = new RuntimeStateStore(paths).getSession(session.id)!;
+  assert.ok(persisted.threadId, "early creation receipt is durable while the model is still blocked");
+  const peer = await f.rpc("created_title");
+  const { thread } = await peer.request("thread/read", { threadId: persisted.threadId, includeTurns: false });
+  assert.equal(thread.name, "Clean user title");
+  assert.doesNotMatch(thread.name, /DingTalk|Bridge|gateway-actions|Inspect the saved/);
+  release.resolve(); await pending;
+  assert.equal(state.getSession(session.id)?.threadId, persisted.threadId);
+  assert.equal(f.calls.length, 1);
+});
+
+test("NATIVE-04.2: retiring a real read-only connection preserves the same native core PID, accepted turn and input count", native, async t => {
+  const release = Promise.withResolvers<void>(); t.after(() => release.resolve());
+  const f = await sharedNativeCore(t, async (_body, n) => { if (n === 2) await release.promise; return message(`DONE_${n}`, n); });
+  const peer = await f.rpc("metadata_rebuild");
+  const { thread } = await peer.request("thread/start", { cwd: f.root });
+  await peer.request("turn/start", { threadId: thread.id, input: [{ type: "text", text: "initialize", text_elements: [] }] });
+  await until(() => peer.events.some(m => m.method === "turn/completed"));
+  const accepted = await peer.request("turn/start", { threadId: thread.id, input: [{ type: "text", text: "hold once", text_elements: [] }] });
+  await until(() => f.calls.length === 2);
+  const corePid = (await peer.request("server/diagnostics")).process.id;
+  let connections = 0;
+  const reader = new CodexMetadataReader(() => {
+    const runner = f.runner({ metadataOnly: true }), first = ++connections === 1;
+    return { close: () => runner.close(), listProjects: () => runner.listProjects(), async inspectThread(id, observation) {
+      const state = await runner.inspectThread(id, observation);
+      if (first) { runner.close(); throw new CodexCommunicationError("preflight", "thread/read", id, undefined, Error("observer connection closed")); }
+      return state;
+    } };
+  }); t.after(() => reader.close());
+  const observed = await reader.inspect(thread.id, "local", { includeTurns: false, timeoutMs: 3000 });
+  assert.equal(connections, 2); assert.equal(observed.runtimeStatus, "active");
+  const current = await peer.request("thread/read", { threadId: thread.id, includeTurns: true });
+  assert.equal(current.thread.turns.find(turn => turn.status === "inProgress")?.id, accepted.turn.id);
+  assert.equal((await peer.request("server/diagnostics")).process.id, corePid);
+  assert.equal(f.calls.length, 2);
+  release.resolve();
+  await until(() => peer.events.filter(m => m.method === "turn/completed").length === 2);
+  const history = await f.runner().getHistory(thread.id);
+  assert.equal(history.filter(item => item.role === "user" && item.text === "hold once").length, 1);
+  assert.equal(f.calls.length, 2);
+});
 
 test("real native project membership reaches IDE enrichment with the existing stable project identity", native, async t => {
   const f = await sharedNativeCore(t), desktop = await f.rpc("desktop_ide");

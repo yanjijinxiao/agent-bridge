@@ -14,6 +14,7 @@ import { RuntimeStateStore } from "../src/state/runtime-state.js";
 import { resolveStatePaths } from "../src/state/paths.js";
 import { defaultConfig } from "../src/state/config.js";
 import type { CodexRunnerInput } from "../src/codex/backend.js";
+import { withIDEEntry } from "../src/ide/completion.js";
 
 const checkpoint = (): ChannelStreamCheckpoint => ({ streamId: "current-segment", messageId: "current-card", startedAt: 1,
   progressEntries: ["earlier", "checked", "tested", "finished"], thought: "", answerPreview: "", finished: true,
@@ -153,17 +154,18 @@ test("in-flight accepted input joins the merge, but detaching before receipt rel
   live = false; done(); await tick(); assert.equal(writes.length, 1);
 });
 
-test("follow hub supplies the active segment result only after all final acknowledgements and stays deduplicated", async t => {
+test("DEL-08.4: accepted input owns one new segment, final mention and IDE footer; duplicate final/history cannot create another empty card", async t => {
   const { dir, file, audience } = journal(t), writes: ChannelMentionInput[] = [], base = channel(writes);
   let nextCard = 0, allowFinal = false;
   const driver = { ...base, async startTextStream() { return { messageId: `card-${++nextCard}` }; },
     async updateTextStream(input: { finalize?: boolean; text: string }) {
-      if (input.finalize && input.text === "complete answer" && !allowFinal) throw new Error("unconfirmed final");
+      if (input.finalize && input.text.includes("complete answer") && !allowFinal) throw new Error("unconfirmed final");
     } };
   const sub: ThreadSubscription = { key: scope.bindingKey, hostId: scope.hostId, threadId: scope.threadId,
     recipientId: scope.conversationId, client: driver, managed: false };
   record(audience);
   const options = { filePath: path.join(dir, "follow.json"), turnAudience: audience, subscriptions: () => [sub],
+    decorateFinal: (_sub: ThreadSubscription, text: string) => withIDEEntry(text, "https://ide.example.test/project"),
     backend: () => ({ async readThreadSnapshot(): Promise<never> { throw new Error("not needed"); } }) };
   let hub = new ThreadEventHub(options); t.after(() => hub.stop());
   await hub.started("local", "thread", "turn", new Date().toISOString());
@@ -175,8 +177,13 @@ test("follow hub supplies the active segment result only after all final acknowl
   allowFinal = true; await hub.completion("local", "thread", "turn", "complete answer"); await tick();
   assert.equal(writes.length, 1); assert.equal(writes[0].completedCard?.messageId, "card-2");
   assert.deepEqual(writes[0].mentions.map(item => item.userId), ["alice", "bob"]);
+  assert.equal(writes[0].text, withIDEEntry("complete answer", "https://ide.example.test/project"));
+  assert.equal(nextCard, 2, "only the accepted input may produce the second segment");
   await hub.stop(); hub = new ThreadEventHub({ ...options, turnAudience: new TurnAudienceJournal(file) });
-  await hub.completion("local", "thread", "turn", "complete answer"); await tick(); assert.equal(writes.length, 1);
+  await hub.completion("local", "thread", "turn", "complete answer");
+  await hub.activity("local", "thread", "turn", "late duplicate summary");
+  await hub.acceptedInput({ id: "steer", kind: "steer", hostId: "local", threadId: "thread", turnId: "turn", acceptedAt: Date.now() + 1 });
+  await tick(); assert.equal(writes.length, 1); assert.equal(nextCard, 2);
 });
 
 test("standalone Bridge passes the confirmed result card to the same shared completion contract", async t => {

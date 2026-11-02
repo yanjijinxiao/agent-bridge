@@ -6,6 +6,23 @@ import test from "node:test";
 import { ChannelTurnTextStream } from "../src/channels/progress.js";
 import { ThreadEventHub, type ThreadSubscription } from "../src/server/thread-event-hub.js";
 import type { CodexThreadSnapshot } from "../src/codex/backend.js";
+import { formatFollowStatus } from "../src/bridge/session-follow.js";
+
+test("DEL-01.3: completed execution with failed delivery remains pending in the public status until the channel acknowledgement, without claiming device display", async t => {
+  const f = fixture(t); await f.hub.started("local", "thread", "turn", new Date().toISOString());
+  const snapshot: CodexThreadSnapshot = { state: { threadId: "thread", persistence: "active", runtimeStatus: "idle", activeFlags: [] },
+    turns: [{ id: "turn", status: "completed", messages: [{ id: "final", role: "assistant", text: "actual result" }] }] };
+  f.setSnapshot(snapshot); f.setFailOpen(true);
+  await f.hub.completion("local", "thread", "turn", "actual result");
+  let status = await f.hub.synchronize(f.sub.key);
+  assert.equal(status.runtime?.runtimeStatus, "idle"); assert.equal(status.resultDelivery?.pending, 1);
+  assert.match(formatFollowStatus(status).join("\n"), /任务完成不等于回答已送达/);
+  f.setFailOpen(false); status = await f.hub.synchronize(f.sub.key);
+  assert.equal(status.resultDelivery?.pending, 0); assert.equal(status.resultDelivery?.lastDeliveredTurnId, "turn");
+  assert.match(formatFollowStatus(status).join("\n"), /已确认送达/);
+  assert.doesNotMatch(JSON.stringify(status) + formatFollowStatus(status).join("\n"), /用户已读|实机验收通过|手机已显示/);
+  assert.equal(f.finals.length, 1);
+});
 
 function fixture(t: test.TestContext, cards = true) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-result-delivery-"));

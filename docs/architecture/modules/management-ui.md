@@ -11,3 +11,7 @@ http-server 提供账号、会话、绑定、准入、知识、IDE 与 Taskboard
 knowledge-bases.js 自动刷新在 focused/saving 控件上保留当前输入。Web 上传使用每操作私有目录 0700、文件 0600，服务响应和历史引用保留原操作归属。发布网页与根进程构建分别核验，旧静态缓存不能冒充新版。
 
 architecture-web-state、full-review-web-races、web-native-form-submit、web-bindings、ide-web 与 account-manager 用例给出精确范围。VM 场景证明数据与事件规则，不冒充完整 375px 手机验收；实际设备缺口在审查结论保留。
+
+## 旧页面与同进程启用的浏览器路径
+
+WEB-01.3用生产HTML/JS、真实本机HTTP服务关闭并在原端口重开，旧DOM通过request-context握手后仅实际改名一次；服务已提交后模拟浏览器丢响应，不重发。WEB-02.2点击原生启用按钮经/api/taskboard/start、TaskboardLifecycle启动真实嵌入服务，Gateway PID不变；禁用时iframe无src。WEB-02.3在375px真实隔离Chrome逐管理视图、长ID/标题、IDE按钮及全部含form的dialog量测边界，不能写成手机实机通过。

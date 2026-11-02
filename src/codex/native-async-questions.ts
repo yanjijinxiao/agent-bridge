@@ -17,8 +17,10 @@ export class NativeAsyncQuestions {
     private readonly steer: (input: CodexSteerInput) => Promise<CodexSteerResult>,
     private readonly refresh: (threadId: string) => void) {}
 
-  observe(threadId: string, turnId: string, values: unknown[], observer: NativeInteractionObserver): void {
-    const scope = JSON.stringify([threadId, turnId]), items = this.items.get(scope) ?? new Map();
+  observe(threadId: string, turnId: string, values: unknown[], observer: NativeInteractionObserver, complete = false): void {
+    // Item notifications are deltas. Only a validated full native turn snapshot
+    // may replace the item set and withdraw questions that disappeared.
+    const scope = JSON.stringify([threadId, turnId]), items = complete ? new Map() : this.items.get(scope) ?? new Map();
     for (const value of values) {
       if (!value || typeof value !== "object") continue;
       const item = value as Record<string, unknown>;

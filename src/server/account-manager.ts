@@ -161,6 +161,7 @@ export type AccountSummary = PublicWeixinAccount & {
 };
 
 export type AccountSession = ManagedSession & {
+  followStatus?: ReturnType<ThreadEventHub["status"]>;
   runtimeRecovery?: ReturnType<ThreadEventHub["status"]>["runtimeRecovery"];
   accountId: string;
   active: boolean;
@@ -1851,12 +1852,14 @@ export class AccountManager {
   private sessionSummary(accountId: string, session: ManagedSession, active: boolean): AccountSession {
     const expiry = this.storeFor(accountId).getBindingExpiry(session.senderId, this.configProvider().bindingIdleDays);
     const conversation = this.entries.get(accountId)?.client?.conversationIdentity?.(session.senderId);
-    const runtimeRecovery = this.threadEvents.status(JSON.stringify([accountId, session.id])).runtimeRecovery;
+    const followStatus = this.threadEvents.status(JSON.stringify([accountId, session.id]));
+    const runtimeRecovery = followStatus.runtimeRecovery;
     return {
       ...session,
       accountId,
       active,
       responding: this.isSessionResponding(accountId, session.id),
+      ...(active && session.threadId ? { followStatus } : {}),
       ...(runtimeRecovery ? { runtimeRecovery } : {}),
       binding: { ...this.storeFor(accountId).sessionBindingTarget(session), bound: active,
         ...(conversation ? { conversation } : {}),
@@ -1943,12 +1946,14 @@ export class AccountManager {
   }
 
   private async closeRunner(): Promise<void> {
-    this.bindingExpiry.stop();
+    const errors: unknown[] = [];
+    try { this.bindingExpiry.stop(); } catch (error) { errors.push(error); }
     if (this.nativeQueueTimer) clearInterval(this.nativeQueueTimer);
     this.nativeQueueTimer = undefined;
     const runner = this.runner;
     this.runner = undefined;
-    await runner?.close();
+    try { await runner?.close(); } catch (error) { errors.push(error); }
+    if (errors.length) throw new AggregateError(errors, "后端清理部分失败；独立资源均已尝试关闭。");
   }
 
   private ensureNativeQueueRecovery(): void {

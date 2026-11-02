@@ -7,6 +7,7 @@ import { DiagnosticTail } from "./diagnostic-tail.js";
 import path from "node:path";
 import readline from "node:readline";
 import { rolloutIdentity } from "./rollout-identity.js";
+import { isInternalUserMessage } from "./public-user-message.js";
 import { readNativeTurnLifecycle, observeOwnerTurn, readNativeThreadProvenance } from "./native-turn-lifecycle.js";
 import { communicationError, isCodexCommunicationFailure, CodexCommunicationError } from "./communication-error.js";
 import { parseUserInputRequest } from "./user-input.js";
@@ -1549,11 +1550,17 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const state = await this.inspectThread(threadId);
       if (state.runtimeStatus === "active" && state.activeTurnId) {
         this.activeTurns.set(threadId, state.activeTurnId);
-        const page = await this.request("thread/turns/list", { threadId, limit: 1, itemsView: "summary", sortDirection: "desc" }, 5_000) as { data?: Array<Record<string, unknown>> };
-        const turn = page.data?.find(t => t.id === state.activeTurnId && t.status === "inProgress");
-        if (turn && Array.isArray(turn.items) && this.interactionObservers.get(threadId) === observer)
-          this.asyncQuestions.observe(threadId, state.activeTurnId, turn.items, observer);
+        const page = nativePage(await this.request("thread/turns/list", { threadId, limit: 1, itemsView: "summary", sortDirection: "desc" }, 5_000), "thread/turns/list");
+        const turn = page.data.filter(isRecord).find(t => t.id === state.activeTurnId && t.status === "inProgress");
+        if (!turn || !Array.isArray(turn.items) || turn.items.some(item => !isRecord(item) || typeof item.id !== "string" || typeof item.type !== "string"))
+          throw new Error("Native interaction snapshot must contain the active turn and an items array");
+        if (this.interactionObservers.get(threadId) === observer)
+          this.asyncQuestions.observe(threadId, state.activeTurnId, turn.items, observer, true);
       }
+      // Resume replays requests, but a lost initial replay can otherwise mark a
+      // waiting-approval thread subscribed forever without its human prompt.
+      if (state.activeFlags.includes("waitingOnApproval") && ![...this.approvalRequests.values()].some(pending =>
+        pending.request.threadId === threadId && pending.observer === observer)) this.interactionRefreshThreads.add(threadId);
     } catch (error) { this.interactionRefreshThreads.add(threadId); throw error; }
   }
 
@@ -2759,7 +2766,7 @@ function parseThreadState(
   const updatedAt = unixTimestampToIso(
     thread.updatedAt ?? latestTurn?.completedAt ?? latestTurn?.startedAt ?? thread.createdAt
   );
-  const preview = typeof thread.preview === "string" && thread.preview.trim()
+  const preview = typeof thread.preview === "string" && thread.preview.trim() && !isInternalUserMessage(thread.preview)
     ? boundedText(thread.preview.replace(/\s+/g, " "), 240)
     : extractLastUserMessageFromTurn(latestTurn);
   const projectId = typeof thread.projectId === "string" && thread.projectId.trim() ? thread.projectId : undefined;
@@ -2912,7 +2919,7 @@ function extractUserMessageText(value: unknown): string {
   if (!Array.isArray(value)) {
     return "";
   }
-  return value.map((raw) => {
+  const text = value.map((raw) => {
     if (!isRecord(raw)) return "";
     const item = raw;
     if (item.type === "text" && typeof item.text === "string") {
@@ -2926,6 +2933,7 @@ function extractUserMessageText(value: unknown): string {
     }
     return "";
   }).filter(Boolean).join("\n").trim();
+  return isInternalUserMessage(text) ? "" : text;
 }
 
 function unixSecondsToIso(value: unknown): string | undefined {

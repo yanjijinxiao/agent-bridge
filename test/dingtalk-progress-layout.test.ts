@@ -9,7 +9,7 @@ import type { ChannelStreamCheckpoint } from "../src/channels/progress.js";
 
 const first = "https://203.0.113.1/workspace/project", second = "https://203.0.113.2/workspace/project";
 
-for (const mode of ["https", "sdk"] as const) test(`${mode}: real task projection gives stream, copy control and IDE footer separate ownership through restart/wait/final`, async t => {
+for (const mode of ["https", "sdk"] as const) test(`DEL-09.3: ${mode} repeated task projection keeps one control region, retained summary and bounded whitespace through restart/wait/final`, async t => {
   const calls: Array<{ kind: string; body: any }> = [];
   // A component-state model verifies region selection/ownership, not native
   // rendering. Only a real DingTalk client can verify its cursor and widgets.
@@ -59,6 +59,11 @@ for (const mode of ["https", "sdk"] as const) test(`${mode}: real task projectio
     if (expected) assert.ok(values.staticMsgContent.endsWith(`(${expected})`));
   };
   await stream.progress("正在检查选项定义"); running(first);
+  for (let i = 0; i < 30; i++) {
+    await stream.answer(`分段答案 ${i}\n\n\n\n\n\n\n\n\n\n末行`); await stream.flush(); running(first);
+    assert.ok(!/\n{3,}|(?:<br>\s*){3,}/.test(view()), "wire projection has a bounded blank-line run");
+    assert.equal((view().match(/```text/g) ?? []).length, 1);
+  }
   // Reproduce the reported public-summary layout through the real projection
   // and both transports, not just a manually assembled Markdown string.
   await stream.progress("🤔 **Locating work item ID**\n\n**Setting up isolated worktree**");

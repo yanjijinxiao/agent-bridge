@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { rolloutIdentity, type RolloutMetadata } from "../codex/rollout-identity.js";
+import { isInternalUserMessage } from "../codex/public-user-message.js";
 import os from "node:os";
 import path from "node:path";
 
@@ -508,7 +509,7 @@ function readSessionActivityBackwards(
       if (!lastUsedAt) lastUsedAt = timestamp;
     }
     const userMessage = sessionUserMessage(event);
-    return userMessage && !isInternalDesktopUserMessage(userMessage)
+    return userMessage && !isInternalUserMessage(userMessage)
       ? userMessage
       : undefined;
   };
@@ -615,30 +616,6 @@ function hasDesktopWriterLock(codexHome: string, threadId: string): boolean {
   }
 }
 
-function isInternalDesktopUserMessage(value: string): boolean {
-  const text = value.trimStart();
-  if (text.startsWith("<environment_context>") && text.trimEnd().endsWith("</environment_context>")) {
-    return true;
-  }
-  if (text.startsWith("<recommended_plugins>")
-    && (text.trimEnd().endsWith("</recommended_plugins>")
-      || text.trimEnd().endsWith("</environment_context>"))) {
-    return true;
-  }
-  if (text.startsWith("<turn_aborted>") && text.trimEnd().endsWith("</turn_aborted>")) {
-    return true;
-  }
-  if (!text.startsWith("The following is the Codex agent history")) return false;
-  return text.includes("whose request action you are assessing")
-    || text.includes("added since your last approval assessment")
-    || (
-      text.includes(">>> APPROVAL REQUEST START")
-      && (
-        text.includes(">>> TRANSCRIPT START")
-        || text.includes(">>> TRANSCRIPT DELTA START")
-      )
-    );
-}
 
 function cleanSessionTitle(value?: string): string | undefined {
   const clean = value?.trim().replace(/\s+/g, " ").slice(0, 120);

@@ -15,3 +15,7 @@ Taskboard 借用同一个根原生端口并参与同一 release participant；fr
 核对编译 commit/sourceHash、实际新 PID、平台连接、原生 daemon PID、原 grant/ACL/endpoint、任务板服务监听 PID 与静态 index/assets 字节。只更新 Gateway dist 不代表独立 Taskboard 后端已更新；只重启也不代表前端已发布。普通 Taskboard build 会触发 Desktop 注入，不用于本次隔离发布，web 产物显式指定 outDir 后单独原子发布。
 
 release-local、release-rollback-recovery、intent-review-release、taskboard-restart-participant、restart-handoff-boundaries 与 channel-write-leases 覆盖直接规则。安装器/Windows/真实断电和手机连通限制继续记录，不用这套脚本的通过冒充全部平台已验证。
+
+## 本轮发布检查反例
+
+REL-02.3直接运行release-local命令，对成功、回滚、变更owner、旧服务离线、绑定、ACL、浏览器grant、IDE入口、有效期和渠道断连共10场景核验。build标识正确仍不能掩盖授权或绑定变化；回滚只恢复代码，不恢复旧授权。隔离测试不是本轮实际上线，真实切换仍另留构建/进程/回执记录；手机可达性不由本机检查认证。

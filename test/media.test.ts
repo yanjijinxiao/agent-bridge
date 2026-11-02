@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { WeixinApiClient } from "../src/weixin/api.js";
 
 import {
   aesEcbPaddedSize,
@@ -15,6 +16,24 @@ import {
   downloadInboundAttachments,
   sendLocalMediaFile
 } from "../src/weixin/media.js";
+
+for (const kind of ["image", "video", "file"] as const) test(`CHAN-03.3: WeChat ${kind} upload success cannot conceal rejected, missing or lost message acknowledgement`, async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-media-gap-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const filePath = path.join(root, "原文件.bin"); fs.writeFileSync(filePath, Buffer.from([0, 255, 128, 1]));
+  for (const failure of ["rejected", "missing", "lost"] as const) {
+    let uploads = 0, messages = 0;
+    const client = new WeixinApiClient({ baseUrl: "https://fixture.invalid", token: "fixture", fetch: async url => {
+      if (String(url).endsWith("getuploadurl")) return Response.json({ ret: 0, upload_param: "fixture" });
+      messages++; if (failure === "lost") throw Error("fixture disconnected");
+      return Response.json(failure === "rejected" ? { ret: -1 } : {});
+    } });
+    await assert.rejects(sendLocalMediaFile({ client, filePath, toUserId: "fixture", kind, fetch: async () => {
+      uploads++; return new Response("", { headers: { "x-encrypted-query-param": "uploaded" } });
+    } }));
+    assert.equal(uploads, 1); assert.equal(messages, 1);
+  }
+});
 
 test("encrypts and decrypts WeChat CDN AES-128-ECB payloads", () => {
   const key = crypto.randomBytes(16);

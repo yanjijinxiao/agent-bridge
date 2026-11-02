@@ -765,15 +765,15 @@ export function capabilityNodeMeta(
     return `测试范围 · ${optionLabel(TEST_SCOPES, data.testScope ?? "related")}`;
   }
   if (data.kind === "skill") {
-    if (!capabilities) return "正在读取可用 Skill";
     if (failed) return "无法读取可用 Skill";
+    if (!capabilities) return "正在读取可用 Skill";
     const skill = capabilities.skills.find((option) => option.id === data.selectedSkill);
     if (skill) return `${skill.label} · Skill`;
     return data.selectedSkill ? "所选 Skill 当前不可用" : "尚未选择 Skill";
   }
   if (data.kind === "mcp") {
-    if (!capabilities) return "正在读取可用 MCP Server";
     if (failed) return "无法读取可用 MCP Server";
+    if (!capabilities) return "正在读取可用 MCP Server";
     const server = capabilities.mcpServers.find((option) => option.id === data.selectedMcpServer);
     if (server) return `${server.label} · ${server.transport}`;
     return data.selectedMcpServer ? "所选 MCP Server 当前不可用" : "尚未选择 MCP Server";

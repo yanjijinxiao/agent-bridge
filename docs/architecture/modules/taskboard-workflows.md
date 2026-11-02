@@ -19,3 +19,7 @@ VERSION_CONFLICT 保留本地画布并暂停自动保存，读取远端只用于
 ## 直接验证
 
 实际 Chrome 渲染生产 WorkflowBoard、React Flow、CSS及API，HTTP替身控制延迟、CAS冲突。覆盖正常保存、两种冲突选择、加载期间禁止编辑、旧项目保存后切新项目、根步骤/条件树/计划子项排序及触发器固定。保留原失败日志。工作流静态旧断言未修改，完整 Taskboard 回归409项通过；浏览器专项后续48项通过。没有据此宣称真实云端任意丢回执、所有 palette 执行与手机端已验证。
+
+## 33种节点的配置与执行边界
+
+TB-10.3逐kind调用生产workflowNodeConfigured，对动态Skill/MCP、必填分支和真实能力HTTP失败补充直接测试。capabilityNodeMeta必须先显示读取失败，再判断是否尚未载入目录；失败不再持续显示正在读取。节点编辑/保存的当前职责没有变成执行器；33种kind的执行入口与授权限制逐项列在../taskboard-node-contracts.md。测试不发送真实Twitter/飞书、不执行部署，也不开放原隐藏入口。
