@@ -206,6 +206,9 @@ test("a copied Web IDE URL/code, wrong chat, CSRF and revoked cookies cannot aut
   const url=await f.registry.sharing.ide(visitor,f.target,()=>{}), page=await fetch(url), html=await page.text(), proof=page.headers.get("set-cookie")!.split(";")[0];
   const code=/code="(\d{6})"/.exec(html)![1], csrf=JSON.parse(/let csrf=("[^"]+")/.exec(html)![1]);
   assert.equal(html.includes(f.workspace),false);assert.match(html,/frame|共享工作区/);
+  assert.match(html, /data-copy-field data-copy-purpose="reply"/);
+  assert.ok(html.includes(`/share browser ${code}</textarea>`));
+  assert.match(html, /data-copy-button/);
   const api=async(body:object,cookie=proof,token=csrf,origin=options.publicOrigin)=>fetch(url+"/api",{method:"POST",headers:{Origin:origin,"Content-Type":"application/json","X-Workspace-CSRF":token,Cookie:cookie},body:JSON.stringify(body)});
   assert.equal((await api({operation:"exchange"})).status,403);
   await assert.rejects(portal.approve({...visitor,conversationId:"wrong"},code));

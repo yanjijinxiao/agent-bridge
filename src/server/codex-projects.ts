@@ -228,33 +228,27 @@ export function mergeCodexProjectCandidates(
 }
 
 /** Converts the selected backend's catalog without silently mixing sources. */
-export function projectCandidatesFromPeerCatalog(catalog: CodexProjectCatalog, hostId: string): readonly CodexProjectCandidate[] {
-  // These roots belong to another machine. Never resolve/stat them on Gateway
-  // or combine them with Gateway's Desktop project registry.
-  return catalog.projects.flatMap(project => {
-    const roots = [...new Set(project.roots.filter(root => path.posix.isAbsolute(root) && !root.includes("\0")))];
-    return roots.length ? [{ projectId: project.id, projectKind: "remote" as const, hostId,
-      name: project.name, workspace: roots[0], rootPaths: roots, available: true,
-      lastUsedAt: project.lastUsedAt ?? new Date(0).toISOString(), sessionCount: project.sessionCount ?? 0 }] : [];
-  });
-}
-
 export function projectCandidatesFromBackendCatalog(
   catalog: CodexProjectCatalog,
-  codexHome = path.join(os.homedir(), ".codex")
+  codexHome = path.join(os.homedir(), ".codex"),
+  hostId?: string
 ): readonly CodexProjectCandidate[] {
-  if (catalog.backend === "app-server") {
+  const remote = Boolean(hostId && hostId !== "local");
+  if (catalog.backend === "app-server" && !remote) {
     return mergeCodexProjectCandidates(catalog.projects, codexHome);
   }
   return catalog.projects.flatMap((project) => {
-    const workspace = project.roots.map((root) => resolveDirectory(root)).find(Boolean);
+    // Remote roots are validated on their owning device, never statted locally.
+    const roots = remote ? [...new Set(project.roots.filter(root => path.posix.isAbsolute(root) && !/[\r\n\0]/.test(root)))] : project.roots;
+    const workspace = remote ? roots[0] : roots.map((root) => resolveDirectory(root)).find(Boolean);
     if (!workspace) return [];
     return [{
       projectId: project.id,
-      projectKind: "local" as const,
+      projectKind: remote ? "remote" as const : "local" as const,
+      ...(remote ? { hostId } : {}),
       name: project.name || path.basename(workspace) || workspace,
       workspace,
-      ...(project.roots.length > 1 ? { rootPaths: [...new Set(project.roots)] } : {}),
+      ...(roots.length > 1 ? { rootPaths: [...new Set(roots)] } : {}),
       lastUsedAt: project.lastUsedAt ?? new Date(0).toISOString(),
       sessionCount: project.sessionCount ?? 0,
       available: true

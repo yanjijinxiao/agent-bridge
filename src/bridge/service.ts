@@ -104,7 +104,6 @@ import {
 } from "../state/runtime-state.js";
 import {
   projectCandidatesFromBackendCatalog,
-  projectCandidatesFromPeerCatalog,
   type CodexProjectCandidate,
   type CodexSessionCandidate
 } from "../server/codex-projects.js";
@@ -925,11 +924,7 @@ export class BridgeService {
     if (!state.cwd || state.persistence !== "active" || state.internal
       || project?.sourceProjectId && state.projectId !== project.sourceProjectId)
       throw new Error(`新会话归属未确认，未改变当前绑定。请核对会话 ${state.threadId}，不要重复创建。`);
-    const session = this.options.stateStore.createSession(senderId, state.cwd, state.title ?? "新会话", project?.id,
-      "session", undefined, project ? { hostId } : { standalone: true, hostId });
-    this.options.stateStore.setSessionThread(session.id, state.threadId);
-    this.options.stateStore.setInteractionMode(senderId, "session");
-    await this.reply(senderId, `已在设备“${this.options.peer?.label(hostId) ?? hostId}”新建并绑定会话：${state.title ?? "新会话"}\n\n${project ? `项目：${project.name}` : "项目：无"}\n工作目录：${state.cwd}\n\n下一条消息才会启动任务。`);
+    await this.bindCatalogSession(senderId, state.threadId, hostId);
     return true;
   }
 
@@ -1675,7 +1670,7 @@ export class BridgeService {
       if (firstCatalog) await firstCatalog.catch(() => undefined); // Report once in the host loop below.
       let projectCatalog: readonly CodexProjectCandidate[] = [];
       try {
-        if (hostFilter?.startsWith("peer:")) projectCatalog = projectCandidatesFromPeerCatalog(await this.runner.listProjects(hostFilter), hostFilter);
+        if (hostFilter?.startsWith("peer:")) projectCatalog = projectCandidatesFromBackendCatalog(await this.runner.listProjects(hostFilter), undefined, hostFilter);
         else if (!hostFilter) projectCatalog = await this.codexProjectCandidates();
       }
       catch { warnings.push("项目目录暂不可用，项目名称及远程主机列表可能不完整；仍保留可读取的会话。"); }
@@ -1760,7 +1755,7 @@ export class BridgeService {
         ...(pageRows.length ? [{ label: archivedListing ? "恢复并绑定模板（将“编号”替换为列表数字）" : "选择会话模板（将“编号”替换为列表数字）", value: archivedListing ? "/session restore R编号" : "/session R编号" }] : []),
         ...(listing.page > 0 ? [{ label: "上一页", value: "/sessions prev" }] : []),
         ...(start + listing.pageSize < listing.items.length ? [{ label: "下一页", value: "/sessions more" }] : [])],
-      choices: [...pageRows.map(({row: {state,hostId}, number}): ChannelChoice => ({ label: `R${number}${hostId.startsWith("peer:") ? ` ${compactTableCell(state.title ?? "未命名", 20)}` : ""}`, command: "session", arg: `${state.persistence === "archived" ? "restore " : ""}${state.threadId} --host ${hostId}`, copyValue: `/session ${state.persistence === "archived" ? "restore " : ""}R${number}` })),
+      choices: [...pageRows.map(({row: {state,hostId}, number}): ChannelChoice => ({ label: `R${number}`, command: "session", arg: `${state.persistence === "archived" ? "restore " : ""}${state.threadId} --host ${hostId}`, copyValue: `/session ${state.persistence === "archived" ? "restore " : ""}R${number}` })),
         ...(listing.page > 0 ? [{ label: "上一页", command: "sessions" as const, arg: "prev" }] : []),
         ...(start + listing.pageSize < listing.items.length ? [{ label: "下一页", command: "sessions" as const, arg: "more" }] : [])] }));
   }
@@ -3104,7 +3099,7 @@ export class BridgeService {
     const session = principal ? this.executionSession(principal.conversationId) : undefined;
     const current = session ? this.sessionHostId(session) : undefined;
     const hosts = current?.startsWith("peer:") ? [current] : !current ? paired : [];
-    if (hosts.length) return (await Promise.all(hosts.map(async host => projectCandidatesFromPeerCatalog(await this.runner.listProjects(host), host)))).flat();
+    if (hosts.length) return (await Promise.all(hosts.map(async host => projectCandidatesFromBackendCatalog(await this.runner.listProjects(host), undefined, host)))).flat();
     return await this.options.listCodexProjects?.() ?? projectCandidatesFromBackendCatalog(await this.runner.listProjects());
   }
 

@@ -1,3 +1,4 @@
+import { copyableChoices } from "../channels/copyable.js";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
@@ -49,7 +50,10 @@ export class PeerSharingGateway implements PeerSharingPort {
       const result = await call("invite");
       const next = { version: 1 as const, invites: [...this.state.invites.filter(i => i.expiresAt > Date.now()).slice(-99), { hash: hash(result.code), hostId: target.hostId, expiresAt: result.expiresAt }] };
       writeJsonFile(this.file, next, { durable: true }); this.state = next;
-      return { text: `访问者在需要使用的私聊或群聊发送：\n\n/join ${result.code}\n\n邀请 24 小时有效。申请后仍需你通过 /share requests 批准。群聊中的机器人回复对群成员可见。` };
+      return { text: copyableChoices("邀请 24 小时有效。申请后仍需所有者批准。群聊中的机器人回复对群成员可见。", [
+        { label: "访问者在需要使用的聊天中申请", value: `/join ${result.code}` },
+        { label: "所有者查看申请", value: "/share requests" }
+      ]) };
     }
     if (!arg.trim() || /^(?:requests|list)$/i.test(arg.trim())) {
       const result = await call("status");
