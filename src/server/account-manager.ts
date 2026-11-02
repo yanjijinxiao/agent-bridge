@@ -1811,8 +1811,12 @@ export class AccountManager {
     });
     if (!candidates.length) return;
     const task = (async () => {
-      const proofs = await findNativeInputReceipts(this.runnerFor(this.configProvider()), { hostId, threadId },
-        new Set(candidates.map(receipt => receipt.clientUserMessageId)));
+      const runner = this.runnerFor(this.configProvider());
+      const proofs = runner.findNativeInputReceipts
+        ? await runner.findNativeInputReceipts({ hostId, threadId }, candidates.map(receipt => ({
+          clientUserMessageId: receipt.clientUserMessageId, accountId, conversationId: receipt.conversationId, actorId: receipt.actorId
+        })))
+        : await findNativeInputReceipts(runner, { hostId, threadId }, new Set(candidates.map(receipt => receipt.clientUserMessageId)));
       // A stopped/replaced owner or release may retire this read while in
       // flight. It holds no restart lease and may not write through retirement.
       if (!live() || this.inputReceipts.get(accountId) !== journal) return;

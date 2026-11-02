@@ -607,7 +607,15 @@ export interface CodexAppServerBackend extends CodexBackendAdapter, Partial<Code
 }
 
 /** Stable facade consumed by channels, Web, intent routing, and account management. */
+/** Original Gateway source identity for read-only native acceptance recovery. */
+export type CodexInputRecoverySource = {
+  clientUserMessageId: string; accountId: string; conversationId?: string; actorId?: string;
+};
+
 export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
+  /** Resolve transport-specific source IDs without submitting or replaying input. */
+  findNativeInputReceipts?(scope: { hostId: string; threadId: string },
+    sources: readonly CodexInputRecoverySource[]): Promise<Map<string, string>>;
   readTurnActivities?(threadId: string, turnId: string, hostId?: string): Promise<import("./public-item.js").CodexPublicActivity[]>;
   interruptTurn?(threadId: string, turnId: string, hostId?: string, assertCurrent?: () => void): Promise<void>;
   listSkills?(cwd: string, hostId?: string): Promise<CodexSkillOption[]>;

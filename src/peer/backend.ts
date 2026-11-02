@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { findNativeInputReceipts } from "../bridge/native-input-recovery.js";
+import type { PeerPrincipal } from "./context.js";
 import { CodexBackendCapabilityError, CodexRunAdmissionError, CodexTurnExecutionError, EXEC_BACKEND_CAPABILITIES,
   type CodexBridgeBackend, type CodexThreadState, type CodexTurnStatus, type CodexTurnObservation,
   type CodexInputReceipt, type CodexStopResult } from "../codex/backend.js";
@@ -7,6 +9,11 @@ import { PeerRegistry } from "./registry.js";
 import { PeerConnectionError, PeerError } from "./rpc.js";
 import { peerPrincipal } from "./context.js";
 import { downloadPeerFile, uploadPeerFiles } from "./files.js";
+
+function peerOperationId(hostId: string, method: string, principal: PeerPrincipal | undefined, sourceId: string): string {
+  return crypto.createHash("sha256").update(JSON.stringify([hostId, method,
+    principal?.accountId, principal?.conversationId, principal?.actorId, sourceId])).digest("hex");
+}
 
 /** Remote host routing decorates the existing facade; channel code continues
  * to use the same execution contract, including source/approval callbacks. */
@@ -28,9 +35,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     if (input?.nativeSettings || input?.imagePaths?.length)
       throw new PeerError("unsupported", "Connector 尚未开放远程权限设置或原生图片路径；请使用设备权限和附件传输。");
     const principal = peerPrincipal.getStore();
-    const operationId = write ? crypto.createHash("sha256").update(JSON.stringify([hostId, method,
-      principal?.accountId, principal?.conversationId, principal?.actorId,
-      input?.clientUserMessageId ?? crypto.randomUUID()])).digest("hex") : undefined;
+    const operationId = write ? peerOperationId(hostId, method, principal, input?.clientUserMessageId ?? crypto.randomUUID()) : undefined;
     let acceptedTurnId: string | undefined;
     // Channel controllers associate native receipts with the exact request
     // object. Restore that identity after JSON transport, within this operation.
@@ -115,6 +120,34 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     return invoke<T>(method, [input], hostId, true, input);
   };
   const overrides: Partial<CodexBridgeBackend> = {
+    async findNativeInputReceipts(scope, sources) {
+      if (!registry.isPeer(scope.hostId)) return local.findNativeInputReceipts
+        ? local.findNativeInputReceipts(scope, sources)
+        : findNativeInputReceipts(local, scope, new Set(sources.map(source => source.clientUserMessageId)));
+      const groups = new Map<string, { principal: PeerPrincipal; ids: Map<string, string> }>();
+      for (const source of sources) {
+        // Legacy records without exact identity cannot borrow another user's
+        // device grant, even when background recovery has no ambient principal.
+        if (!source.accountId || !source.conversationId || !source.actorId) continue;
+        const principal = { accountId: source.accountId, conversationId: source.conversationId, actorId: source.actorId };
+        const key = JSON.stringify(principal);
+        const group = groups.get(key) ?? { principal, ids: new Map<string, string>() };
+        for (const method of ["run", "steer", "submitThreadMessage"])
+          group.ids.set(`peer-${peerOperationId(scope.hostId, method, principal, source.clientUserMessageId)}`, source.clientUserMessageId);
+        groups.set(key, group);
+      }
+      const matches = new Map<string, Set<string>>();
+      for (const { principal, ids } of groups.values()) {
+        const proofs = await peerPrincipal.run(principal, () => findNativeInputReceipts({
+          getHistoryPage: (id, page, host) => invoke("getHistoryPage", [id, page, host], host!)
+        }, scope, new Set(ids.keys())));
+        for (const [nativeId, turnId] of proofs) {
+          const originalId = ids.get(nativeId)!;
+          const turns = matches.get(originalId) ?? new Set<string>(); turns.add(turnId); matches.set(originalId, turns);
+        }
+      }
+      return new Map([...matches].filter(([, turns]) => turns.size === 1).map(([id, turns]) => [id, [...turns][0]]));
+    },
     backendInfo(hostId) { return registry.isPeer(hostId) ? describe(hostId!).info : local.backendInfo(hostId); },
     run: input => route("run", [input], input.hostId, true, input),
     steer: async (input, hostId) => {
