@@ -1,0 +1,78 @@
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=4 chars
+[codex-im-gateway] sending reply to room-one; text=4 chars
+[codex-im-gateway] sent reply to room-one
+✔ BIND final native guard allows a live actor (103.67275ms)
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=4 chars
+[codex-im-gateway] sending reply to room-one; text=4 chars
+[codex-im-gateway] sent reply to room-one
+✖ BIND final native guard rejects a downgraded actor (66.174875ms)
+✖ INT-01 callback transport failure must not manufacture a decline (41.305166ms)
+✔ INT-01 explicit rejection still reaches the native requester (41.1425ms)
+✖ INT-01 disconnect while waiting for the human keeps approval undecided (40.774584ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 2
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 717.844917
+
+✖ failing tests:
+
+test at docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts:1:662
+✖ BIND final native guard rejects a downgraded actor (66.174875ms)
+  AssertionError [ERR_ASSERTION]: final native write must obey the current Gateway role
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/Users/xking/.codex/worktrees/gateway-main-review/codex-channel-bridge/docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts:38:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts:1:2198
+✖ INT-01 callback transport failure must not manufacture a decline (41.305166ms)
+  AssertionError [ERR_ASSERTION]: no user selected reject
+      at TestContext.<anonymous> (/Users/xking/.codex/worktrees/gateway-main-review/codex-channel-bridge/docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts:48:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'decline',
+    expected: 'decline',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts:1:3237
+✖ INT-01 disconnect while waiting for the human keeps approval undecided (40.774584ms)
+  AssertionError [ERR_ASSERTION]: disconnect is not a user decision
+      at TestContext.<anonymous> (/Users/xking/.codex/worktrees/gateway-main-review/codex-channel-bridge/docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts:72:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'decline',
+    expected: 'decline',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
