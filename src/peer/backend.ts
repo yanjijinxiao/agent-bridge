@@ -32,6 +32,9 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       principal?.accountId, principal?.conversationId, principal?.actorId,
       input?.clientUserMessageId ?? crypto.randomUUID()])).digest("hex") : undefined;
     let acceptedTurnId: string | undefined;
+    // Channel controllers associate native receipts with the exact request
+    // object. Restore that identity after JSON transport, within this operation.
+    const interactionRequests = new Map<string, unknown>();
     const scope: { hostId: string; threadId: string; turnId?: string; independent: boolean; controller: AbortController } | undefined = write
       ? { hostId, threadId: method === "createThread" ? "new" : input?.threadId ?? String(args[0]), independent: describe(hostId).independent, controller: new AbortController() } : undefined;
     if (scope) operations.add(scope);
@@ -55,6 +58,17 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         if (!request || request.threadId !== scope?.threadId) throw new PeerError("scope", "Invalid native interaction scope");
         if (acceptedTurnId && request.turnId !== acceptedTurnId) throw new PeerError("scope", "Invalid native interaction turn");
         values[0] = { ...request, hostId };
+        const requestKind = name === "onApproval" || name === "onApprovalResult" ? "approval" : "question";
+        const key = JSON.stringify([requestKind, values[0]]);
+        if (name === "onApproval" || name === "onUserInput") {
+          const existing = interactionRequests.get(key);
+          if (existing) values[0] = existing;
+          else interactionRequests.set(key, values[0]);
+        } else {
+          const original = interactionRequests.get(key);
+          if (!original) throw new PeerError("scope", "Native interaction receipt has no matching request");
+          values[0] = original;
+        }
       }
       if (name === "onApproval" && !input?.onApproval) return "decline";
       return await input?.[name]?.(...values) ?? null;

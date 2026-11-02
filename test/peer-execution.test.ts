@@ -4,6 +4,9 @@ import path from "node:path";
 import test from "node:test";
 import { CodexBackendCapabilityError } from "../src/codex/backend.js";
 import { CodexCommunicationError } from "../src/codex/communication-error.js";
+import { ChannelApprovalController } from "../src/bridge/approval.js";
+import type { CodexApprovalRequest } from "../src/codex/approval.js";
+import type { CodexUserInputRequest } from "../src/codex/backend.js";
 import { PeerError } from "../src/peer/rpc.js";
 import { PeerRegistry } from "../src/peer/registry.js";
 import { withPeerBackend } from "../src/peer/backend.js";
@@ -56,6 +59,52 @@ test("native execution and progress, approval and question callbacks round-trip 
   assert.equal((await f.as(() => f.facade.listModels(f.ticket.hostId)))[0].model, "deepseek-v4.1-flash-1017");
   assert.equal((await f.as(() => f.facade.getAccountRateLimits(f.ticket.hostId))).planType, "device-plan");
   assert.equal((await f.as(() => f.facade.readTurnLifecycle!(f.thread.threadId, "old", f.ticket.hostId))).source, "unknown");
+});
+
+test("delayed native interactions preserve the channel deadline and confirm the original request", async t => {
+  const f = await peerFixture(t); await f.bind();
+  const notices: string[] = [];
+  const controller = new ChannelApprovalController(async (_recipient, notice) => { notices.push(notice.text); });
+  const approvalEntered = Promise.withResolvers<void>(), questionEntered = Promise.withResolvers<void>();
+  const answer = Promise.withResolvers<{ answer: { answers: string[] } }>();
+  let question: CodexUserInputRequest | undefined, questionConfirmed = false, settled = false;
+  f.run = async input => {
+    await input.onTurnStarted?.({ threadId: f.thread.threadId, turnId: "delayed-turn" });
+    const request: CodexApprovalRequest = { kind: "command", threadId: f.thread.threadId, turnId: "delayed-turn", itemId: "approval", command: "pwd" };
+    assert.equal(await input.onApproval?.(request), "accept");
+    await input.onApprovalResult?.(request, "confirmed");
+    const prompt: CodexUserInputRequest = { threadId: f.thread.threadId, turnId: "delayed-turn", itemId: "question", questions: [] };
+    assert.deepEqual(await input.onUserInput?.(prompt), { answer: { answers: ["yes"] } });
+    await input.onUserInputResult?.(prompt, "confirmed");
+    return { text: "confirmed", threadId: f.thread.threadId, turnId: "delayed-turn", raw: "" };
+  };
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: Date.now() });
+  try {
+    const result = f.as(() => f.facade.run(f.input({
+      onApproval: request => {
+        const decision = controller.request(principal.actorId, request); approvalEntered.resolve(); return decision;
+      },
+      onApprovalResult: (request, result) => controller.reportResult(principal.actorId, request, result),
+      onUserInput: request => { question = request; questionEntered.resolve(); return answer.promise; },
+      onUserInputResult: (request, result) => { assert.equal(request, question); assert.equal(result, "confirmed"); questionConfirmed = true; }
+    }))).finally(() => { settled = true; });
+    void result.catch(() => {});
+    await approvalEntered.promise;
+    t.mock.timers.tick(180_000);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(settled, false);
+    assert.equal(controller.list().length, 1);
+    controller.decide(principal.actorId, "A1", "accept");
+    await questionEntered.promise;
+    t.mock.timers.tick(180_000);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(settled, false);
+    answer.resolve({ answer: { answers: ["yes"] } });
+    assert.equal((await result).text, "confirmed");
+    assert.equal(questionConfirmed, true);
+    assert.equal(controller.acceptedPresentationInputs().length, 1);
+    assert.ok(notices.some(text => text.includes("Codex 已确认审批 A1")));
+  } finally { controller.declineAll(principal.actorId); t.mock.timers.reset(); }
 });
 
 test("the exported thread/cwd and unsupported native features cannot be substituted remotely", async t => {

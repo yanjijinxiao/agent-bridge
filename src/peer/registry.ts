@@ -4,7 +4,7 @@ import type { CodexBackendCapabilities, CodexThreadState, CodexBackendId } from 
 import { EXEC_BACKEND_CAPABILITIES } from "../codex/backend.js";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import { peerPrincipal, type PeerBridgePort, type PeerPrincipal } from "./context.js";
-import { PeerConnection, PeerConnectionError, PeerError } from "./rpc.js";
+import { PeerConnection, PeerConnectionError, PeerError, PEER_EXECUTION_TIMEOUT_MS } from "./rpc.js";
 import { peerGrantSchema } from "./sharing-types.js";
 import { PeerSharingGateway } from "./sharing-gateway.js";
 
@@ -149,7 +149,7 @@ export class PeerRegistry implements PeerBridgePort {
       });
     }
     try {
-      const result = await connection.request<T>("execution.call", { grant, method, args, operationId }, write ? 24 * 60 * 60_000 : 30_000, signal);
+      const result = await connection.request<T>("execution.call", { grant, method, args, operationId }, write ? PEER_EXECUTION_TIMEOUT_MS : 30_000, signal);
       if (grant.delegation && !this.grantsFor(grant.principal).some(g => g.id === grant.id)) throw new PeerError("access", "共享已撤销或过期，未继续投递。");
       return result;
     }

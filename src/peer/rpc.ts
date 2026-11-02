@@ -16,6 +16,9 @@ export class PeerConnectionError extends Error {
   constructor(readonly sent: boolean, readonly timeout = false) { super(timeout ? "Gateway peer request timed out" : "Gateway peer disconnected"); }
 }
 export type PeerHandler = (params: unknown, requestId: string) => unknown | Promise<unknown>;
+/** Interactive callbacks share the execution lease. Their owner controls the
+ * approval/question deadline; transport must not expire an earlier decision. */
+export const PEER_EXECUTION_TIMEOUT_MS = 24 * 60 * 60_000;
 type Pending = { resolve: (value: unknown) => void; reject: (error: unknown) => void; dispose: () => void };
 
 /** Identical application protocol on dialled and accepted connections. All

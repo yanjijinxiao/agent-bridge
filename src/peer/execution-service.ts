@@ -9,7 +9,7 @@ import { approvalOptions, type CodexApprovalDecision } from "../codex/approval.j
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import { grantSchema, type PeerGrant, type PeerDescription } from "./registry.js";
 import { PeerReceipts } from "./receipts.js";
-import { PeerConnection, PeerError } from "./rpc.js";
+import { PeerConnection, PeerError, PEER_EXECUTION_TIMEOUT_MS } from "./rpc.js";
 import { FILE_METHODS, PeerFiles } from "./files.js";
 import { MANAGEMENT_METHODS, PeerManagement } from "./management.js";
 import { PeerSharingAuthority, type OwnerConfirmation } from "./sharing-authority.js";
@@ -191,7 +191,7 @@ export class PeerExecutionService {
     }
     if (!operationId) throw new PeerError("identity", "Writes require a durable source identity");
     const callback = (name: string, values: unknown[]) => connection.request("execution.callback", { operationId, name, args: values },
-      name === "onApproval" || name === "onUserInput" ? 120_000 : 30_000);
+      name === "onApproval" || name === "onUserInput" ? PEER_EXECUTION_TIMEOUT_MS : 30_000);
     const nativeInput = method === "stop" ? undefined : runSchema.parse(args[0]);
     const state = await this.readState(nativeInput?.threadId ?? args[0], true), threadId = state.threadId;
     if (nativeInput && path.resolve(nativeInput.cwd) !== path.resolve(state.cwd)) throw new PeerError("scope", "The exported working directory cannot be changed remotely");
