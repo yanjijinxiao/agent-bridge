@@ -191,5 +191,7 @@ for (const failure of ["channel-send", "binding-changed"] as const) test(`Gatewa
   await assert.rejects(service.applyRecoveredAction(session.id, { hostId: f.ticket.hostId, threadId: f.thread.threadId },
     { kind: "send", value: { type: "file", path: output } }), /Result media delivery was not confirmed/);
   assert.ok(copyPath); assert.equal(fs.existsSync(copyPath), false); assert.equal(sent, failure === "binding-changed" ? 0 : 1);
-  assert.ok(replies.some(text => text.includes("Failed to send file")));
+  // Detached conversations must not receive a late failure notice either.
+  if (failure === "binding-changed") assert.deepEqual(replies, []);
+  else assert.ok(replies.some(text => text.includes("Failed to send file")));
 });
