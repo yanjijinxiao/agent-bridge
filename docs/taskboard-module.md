@@ -30,7 +30,7 @@ npm run install:check
 
 Taskboard Issue 不会复制到 Bridge 的 JSON 状态中。数据库仍是唯一事实源，只是生命周期和目录由 Gateway 统一管理。已有安装会复用其实际状态根目录，不能仅根据新安装默认值判断迁移目标。
 
-独立 AI 面板和事件认领当前仍创建自己的 CLI `exec` 子进程，服务关闭时会停止这些进程；它们尚未复用 Gateway 消息入口的原生 App Server 执行与交互链路。不能把原生独立任务跨 Gateway 重启的保证套用到这些自有进程。
+AI 面板和事件自动处理经 `server/native-backend.mjs` 使用同一套原生 App Server 适配器。嵌入服务借用 Gateway 的实例，独立包加载相邻根构建；两者均无 CLI `exec` 回退。关闭服务只退休观察和本地资源，不中断独立核心已接收的原任务；明确停止必须使用原 thread/turn。显式私有 stdio 仍受宿主生命周期限制。完整职责和验证边界见 [原生执行与交互](architecture/modules/taskboard-native-execution.md)。
 
 ## 从独立仓库迁移
 

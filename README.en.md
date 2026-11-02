@@ -146,7 +146,7 @@ The configured host and transport select one native core. Shared daemon readers 
 
 A Desktop client still using private stdio must reconnect to the shared service while its work is idle. Restarting Gateway cannot merge existing cores. Explicit private stdio uses the same protocol but remains Gateway-owned, so active task survival cannot be promised across Gateway shutdown. See [Codex backend architecture](./docs/codex-backends.md).
 
-This unified interface covers Gateway messaging and management. The embedded Taskboard's separate AI panel and issue automation still spawn CLI `exec` processes and stop them when their service closes. That remains an architectural gap; messaging conformance does not establish repository-wide conformance.
+The Taskboard AI panel and issue automation also use this native adapter. Embedded services borrow Gateway's instance; standalone services load the root build and use the configured native connection, without a CLI `exec` fallback. Closing observation does not interrupt work accepted by an independent core; explicitly selected private stdio still has a host-owned lifecycle. See [Taskboard native execution](./docs/architecture/modules/taskboard-native-execution.md) and the [remaining verification boundaries](./docs/architecture/remaining-work.md).
 
 Lists preserve native pin order, then native project order, then other sessions. Groups use native manual or activity order. Page numbers remain stable until refresh/search or a 15-minute expiry. App includes sessions from known remote hosts, with explicit partial-results warnings for unavailable hosts. Archived, internal child and unavailable sessions are excluded.
 

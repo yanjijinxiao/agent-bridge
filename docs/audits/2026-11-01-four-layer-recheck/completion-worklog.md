@@ -1,5 +1,7 @@
 # 持续完成记录（未验收，不是完成报告）
 
+本页为阶段历史记录；当前状态见[剩余清单](../../architecture/remaining-work.md)及[文档校准](2026-11-02-documentation-reconciliation.md)。
+
 用户最新要求：全部完成后再给最终回复。继续修复、补模块/功能文档、case与四层核对；中间仅必要进展。之前的阶段结果不能当最终验收。
 
 线上已验证版本仍为6af92328acd1729eeb6603c4844df0817d237be5。其后以下改动尚未提交、push或部署；用户.DS_Store保留。使用隔离Chrome、模拟HTTP和临时状态，未触碰生产任务板数据、真实Codex任务或自动化开关。
@@ -145,3 +147,7 @@ Taskboard最新完整taskboard-native-current-full.jsonl：413通过1默认Chrom
 最终清理：rg 核对旧 buildCodexArgs/normalizeCodexEvent/spawnCodexTurn 全仓没有调用者，ai-chat-process 仅保 buildCodexPrompt，删除旧私有 CLI 执行/kill代码，避免留下第二条可调用执行路径。提示函数逐字保留，前述原生执行用例仍适用，清理后的回归另记。一次错误cwd未能执行清理，沙箱内HTTP测试无socket权限，均不作为产品失败或完成证据，已改正确绝对路径并以外部隔离运行结果为准。
 
 清理后的 Taskboard 全量再次416通过、1默认浏览器父测试跳过；前端独立 outDir 构建完成，未触发 Desktop 注入。证据工具再次0失配。
+
+## 文档校准后的当前入口（2026-11-02）
+
+本文件上文保留各阶段的实现、失败与当时状态，不用其中“当前”覆盖后续实现。现状统一见[剩余清单](../../architecture/remaining-work.md)与[文档校准记录](2026-11-02-documentation-reconciliation.md)。TB-09.5持久事务回执、原生执行统一、后台观察接续与出站媒体的后续实现不能继续列为未实现；真实原生queue idle历史失败及设备/组合限制仍保留。

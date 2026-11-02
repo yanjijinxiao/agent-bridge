@@ -2,6 +2,8 @@
 
 verified仅表示记录的窄边界通过；partial不是完整验收；failed表示已确认反例尚未修复。
 
+当前统计按需求JSON逐case计算。原13项缺少具体边界的记录已经[逐条核对断言](../audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md)，状态仍保留partial；文档校准没有增加运行通过数。未实现功能、缺测与实机验收分列于[当前剩余清单](remaining-work.md)。
+
 | 要求 | 模块 | 场景数 | 窄场景通过 | 部分覆盖 | 已失败场景 | 未映射 case |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | NATIVE-01 · 一套完整原生接口 | native | 5 | 3 | 2 | 0 | 无 |

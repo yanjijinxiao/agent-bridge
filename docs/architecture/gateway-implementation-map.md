@@ -39,11 +39,11 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 - CapacityRecovery checking/settling 与 SystemErrorRecovery pending 已按实际反例拆开只读等待与交接。实际原生RPC由transport保护；渠道文本/卡片/媒体每次写入独立持lease。stop退休journal writer，补偿义务仍持久保存，见恢复模块说明。
 - Taskboard AI、自动处理器及额度现已复用同一原生适配器；嵌入服务借用根实例，独立包默认 daemon。旧 Cron 管理和窗口嵌入属于 Desktop UI 集成，不是另一执行器；标准原生 schema 没有 scheduler 管理方法，未编造该 API。详见 taskboard-native-execution 模块。
 - 原生不同项目 ID 不再按 cwd 合并；已知旧别名按当前 host/home 映射或完整根集合解析，未知明确 ID 拒绝替换，新建携带全部根。新绑定 unknown 不伪造 none；原 IDE grant/管理身份未改写。
-- Taskboard 渠道等待后来源漏洞已有六个原版反例并本地修复21场景；未知写入结果、仅内存去重和部分上传仍未解决。原生 idle 队列一次偶发观察失败尚未查明。
+- Taskboard IM表单经taskboard-submissions.json与SQLite/D1事务回执处理跨重启未知写（TB-09.5）；浏览器部分附件由独立提交记录处理（TB-03.4、TB-09.1/.2/.4）。Codex workflow交接未知与真实骤停另列TB-09.6，不能继续写成“仅内存去重未解决”。原生idle队列历史一次观察失败仍未查明。
 - 历史引用97个不同图片路径中，92张仍存在且已逐张打开，5张早期临时图丢失；本轮实际 Chrome 组件测试不替代钉钉/微信/手机真实客户端验收。
 
-## 本轮阅读与验证结论
+## 当前验证边界与历史记录
 
-基线663个文本文件已逐行阅读，25个非源码制品另按视觉/结构检查，未读0。256个场景有精确测试映射，159个仅限注明边界通过；97个部分覆盖、0个已失败场景、34个缺直接断言。详见本轮review-conclusions.md及gateway-case-coverage.md。
+当前310case全部有精确测试映射，204项仅在列明边界通过、106项部分覆盖；状态与人读功能清单以gateway-requirements.json对应的具体case为准。13项原先缺少边界说明的记录已逐条核对现有断言，未因此新增运行证据或升级状态。
 
-后续三个真实Chrome缺陷的反例、修复与首次上线状态见本目录2026-11-02-followup.md（架构目录文件请看docs/audits/2026-11-01-four-layer-recheck/2026-11-02-followup.md）。
+[当前剩余清单](remaining-work.md)给出未实现、缺测与实机验收；[文档校准记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md)记录具体差异；首次阅读计数和旧失败保留于历史审计报告，不再当作当前结果。按行记录与140份精选函数合同不能证明全部模块行为或真实设备已验收。

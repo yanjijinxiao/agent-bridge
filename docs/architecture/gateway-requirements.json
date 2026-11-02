@@ -123,7 +123,40 @@
               "name": "the same native adapter retains dynamic tools and structured ephemeral output"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "该映射没有完整验证无Desktop部署的交互、持续跟随、网络重连和全部方法组合；本机假模型不等于真实服务商或远程CLI部署验收。",
+          "verifiedBoundary": "实际安装的原生二进制、临时Home和本机假模型；共享核心上创建/续聊、归档/解档、暂停goal的读写清理、目录、queue消费与历史唯一client ID，以及动态工具/结构化ephemeral输出有直接断言。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "real-native-local-model",
+            "references": [
+              {
+                "file": "test/shared-app-server-integration.test.ts",
+                "sha256": "1d8a476e3d3572f9e15823ded09967e50b0e29112cc3a2848abef821c75f8de4",
+                "lines": [
+                  [
+                    142,
+                    165
+                  ],
+                  [
+                    221,
+                    236
+                  ]
+                ]
+              },
+              {
+                "file": "test/fixtures/shared-native-core.mjs",
+                "sha256": "c9c7cc8f76f12fa94476eceec0b7436bdf91599a4f868c3ad7c18e7775ee8f9d",
+                "lines": [
+                  [
+                    19,
+                    91
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "NATIVE-01.2",
@@ -276,7 +309,26 @@
               "name": "one native core provides creation, unloaded continuation, goals, lifecycle, catalog and queue for both peers"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "所映射主测试是顺序续聊，不包含两个写客户端同时继续同一活动轮次的竞争；不能仅凭both peers标题宣称并发写和双观察者时序均已验证。",
+          "verifiedBoundary": "真实原生核心的diagnostics PID与Gateway serverIdentity相同；peer创建线程后Gateway顺序续聊、归档/解档再续聊，queue与历史断言输入只出现一次。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "real-native-local-model",
+            "references": [
+              {
+                "file": "test/shared-app-server-integration.test.ts",
+                "sha256": "1d8a476e3d3572f9e15823ded09967e50b0e29112cc3a2848abef821c75f8de4",
+                "lines": [
+                  [
+                    142,
+                    165
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "NATIVE-02.2",
@@ -288,7 +340,26 @@
               "name": "Gateway continuation inherits the peer's permissions and reviewer instead of deriving them from callback presence"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "此映射只直接断言带审批回调的续聊；无回调、显式UI覆盖、旧配置迁移与重启的组合不由这一测试证明。",
+          "verifiedBoundary": "真实peer以never/auto_review/workspace-write创建线程；Gateway默认配置read-only但续聊未传nativeSettings且带onApproval回调，peer再次resume仍返回原审批策略、审核者和可写sandbox。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "real-native-local-model",
+            "references": [
+              {
+                "file": "test/shared-app-server-integration.test.ts",
+                "sha256": "1d8a476e3d3572f9e15823ded09967e50b0e29112cc3a2848abef821c75f8de4",
+                "lines": [
+                  [
+                    238,
+                    250
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "NATIVE-02.3",
@@ -300,7 +371,26 @@
               "name": "Gateway disconnect after acceptance does not interrupt a peer-visible native turn or repeat its input"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "这是连接/适配器重建，不是真实Gateway进程在接收与fsync任意间隙被杀；未断言Desktop写锁、私有stdio或所有远程断线时序。",
+          "verifiedBoundary": "真实原生第二轮已接收且模型受控阻塞时退休Gateway独立观察并close，重建适配器仍有同一core身份和activeTurnId；释放后原turn完成、clientUserMessageId仅一次、模型共两次调用。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "real-native-local-model",
+            "references": [
+              {
+                "file": "test/shared-app-server-integration.test.ts",
+                "sha256": "1d8a476e3d3572f9e15823ded09967e50b0e29112cc3a2848abef821c75f8de4",
+                "lines": [
+                  [
+                    198,
+                    219
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "NATIVE-02.4",
@@ -466,7 +556,46 @@
               "name": "model callbacks keep the remote host, workspace and thread through AccountManager"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "未在真实SSH核心上制造相同threadId，未以同组场景证明运行态、模型和额度全部隔离；getRuntimeInfo在此为替身。",
+          "verifiedBoundary": "真实JSONL子进程替身按remote-a/remote-b/local返回不同模型和额度；Bridge两种callback模式和AccountManager断言host/cwd/thread参数不丢失，远端故障返回错误。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "jsonl-fixture-and-real-coordinators",
+            "references": [
+              {
+                "file": "test/host-metadata-routing.test.ts",
+                "sha256": "3edfd94ac8d3a968219cf3b1b1b3d234f291c3df91eff60fcfe2a9f0c246f89a",
+                "lines": [
+                  [
+                    14,
+                    57
+                  ]
+                ]
+              },
+              {
+                "file": "test/fixtures/host-metadata-app-server.mjs",
+                "sha256": "4ef5f4cc2f3f5fc4887c574032a5414c7773726d4d139d76295627a98320058e",
+                "lines": [
+                  [
+                    1,
+                    21
+                  ]
+                ]
+              },
+              {
+                "file": "test/account-manager.test.ts",
+                "sha256": "1453ef2d49fe0f121d86e65fe88d4a10bb9755aee5263ba7c4c362350ed67ea2",
+                "lines": [
+                  [
+                    1602,
+                    1617
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "NATIVE-03.2",
@@ -478,7 +607,36 @@
               "name": "model and account queries use the selected native host and never substitute the local account"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "测试替身未提供远端项目/session目录失败分支，也没有真实SSH掉线；模型/额度失败不能外推所有目录API不回退。",
+          "verifiedBoundary": "公共Gateway facade经JSONL子进程请求unavailable host的model/list和account/rateLimits/read均拒绝；已连接host集合精确，不以本机模型或额度替代。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "jsonl-fixture",
+            "references": [
+              {
+                "file": "test/host-metadata-routing.test.ts",
+                "sha256": "3edfd94ac8d3a968219cf3b1b1b3d234f291c3df91eff60fcfe2a9f0c246f89a",
+                "lines": [
+                  [
+                    14,
+                    29
+                  ]
+                ]
+              },
+              {
+                "file": "test/fixtures/host-metadata-app-server.mjs",
+                "sha256": "4ef5f4cc2f3f5fc4887c574032a5414c7773726d4d139d76295627a98320058e",
+                "lines": [
+                  [
+                    1,
+                    21
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "NATIVE-03.3",
@@ -494,7 +652,26 @@
               "name": "late model lookup cannot change settings after revoke"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "该映射未包含effort/全部元数据命令、A→B→A和真实远程连接等待组合；其他case有相关对照，尚未逐一归并。",
+          "verifiedBoundary": "真实Bridge/RuntimeStateStore在/model new-model等待受控目录promise时切换会话或撤销个人准入；迟到响应后两个会话model都未改变，操作返回失效错误。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "real-bridge-controlled-promise",
+            "references": [
+              {
+                "file": "test/intent-review-control-races.test.ts",
+                "sha256": "c10fc063cb47c42d21bbbdabd627e48de6779e575032610a11b1a15fed6cede5",
+                "lines": [
+                  [
+                    35,
+                    60
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "NATIVE-03.4",
@@ -3615,7 +3792,34 @@
               "name": "a consumed item is reconciled against older history by id, not similar text"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "没有真实原生accept/consume与Gateway落盘之间的进程骤停、多客户端并发队列及其全部恢复交错；文件对象重建不能替代这组验证。",
+          "verifiedBoundary": "真实文件journal重建配合后端替身：add丢ACK按client ID找回queued，已消费项跨历史分页按ID转running/completed，只有相似正文但无ID匹配则uncertain；add总数不增加，未知项不dispatch。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "real-journal-fake-native",
+            "references": [
+              {
+                "file": "test/native-queue.test.ts",
+                "sha256": "c9ab47298cc89228e1d7acebb885e3736431623073a72c6528046751e7473690",
+                "lines": [
+                  [
+                    12,
+                    47
+                  ],
+                  [
+                    77,
+                    83
+                  ],
+                  [
+                    122,
+                    143
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "CTRL-03.2",
@@ -3652,7 +3856,26 @@
               "name": "queue recovery preserves interrupted in its acceptance event instead of announcing a live start"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "断言止于runner恢复事件，没有在同一场景里断言实际Hub/渠道对已送达完成项的迟到onAccepted零新卡；各终态全部投递时序仍待联合用例。",
+          "verifiedBoundary": "原生快照端口替身分别返回completed/failed/interrupted；observeOnly队列恢复发出的onTurnStarted事件保留原精确终态，completed返回原结果，failed/interrupted返回对应错误。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "adapter-snapshot-fixture",
+            "references": [
+              {
+                "file": "test/native-turn-lifecycle.test.ts",
+                "sha256": "3c7fc45a1c7e8ff5f9baf4f57399b137cc21e8d652b5cc131d58e2730278c758",
+                "lines": [
+                  [
+                    57,
+                    69
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "CTRL-03.4",
@@ -4559,7 +4782,26 @@
               "name": "a shared-core approval survives observer restart with the exact native request id and no synthetic refusal"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "没有审批决定已写但确认丢失后的再重连，也没有所有typed审批种类/多个决策者竞争或IM实际投递；不能从pending请求重放外推决定未知恢复。",
+          "verifiedBoundary": "真实原生执行产生待审批工具，observer关闭并重建后看到与peer相同typed request ID和thread；等待时没有resolved事件或模型重启，选择原请求拒绝项后恰有一次resolved且结果confirmed。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "real-native-local-model",
+            "references": [
+              {
+                "file": "test/shared-app-server-integration.test.ts",
+                "sha256": "1d8a476e3d3572f9e15823ded09967e50b0e29112cc3a2848abef821c75f8de4",
+                "lines": [
+                  [
+                    167,
+                    196
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "INT-02.4",
@@ -4762,7 +5004,36 @@
             }
           ],
           "auditNote": "已核对schema parser/typed response与secret拒绝；不支持类型的原渠道通知尚未完整验收，保留partial。",
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "当前主要是parser/typed response单元边界，未知schema的通知、四渠道表单呈现和原生完整往返没有同组覆盖；不声称所有JSON Schema均已支持。",
+          "verifiedBoundary": "form/openai-form解析与回包保留整数/布尔/枚举和字段名，校验范围并拒绝非法值；秘密字段、复杂schema和未知约束不扁平化；空确认仅once，登录URL和审批选项另有拒绝断言。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "parser-and-response-unit",
+            "references": [
+              {
+                "file": "test/elicitation.test.ts",
+                "sha256": "366a85e74396a822cd914ff99f19fade26dad890200d16f056f8f29055dd4419",
+                "lines": [
+                  [
+                    1,
+                    46
+                  ]
+                ]
+              },
+              {
+                "file": "test/mcp-confirmation.test.ts",
+                "sha256": "d702d207efd275135f58db8bb2449f4e14e0aa835e737c509f67223ca0d61d2a",
+                "lines": [
+                  [
+                    1,
+                    31
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "INT-03.4",
@@ -6586,7 +6857,26 @@
               "sha256": "b423de463cebd697fc1a013844844a991888fa541abcce5f1aebbe173c1c38a6"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "这三条映射不直接断言批注正文/位置完整、无重复，也未逐一串起进度/最终/原生@/历史入口和真实客户端；原历史截图故障不能以换行测试替代。",
+          "verifiedBoundary": "共享Markdown投影对CRLF/CR围栏、引用、行内代码保持原字节，正文code-comment属性串被移除；钉钉纯文本将CRLF精确回复围栏展开为原命令。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "presentation-unit",
+            "references": [
+              {
+                "file": "test/full-review-presentation.test.ts",
+                "sha256": "28e8c976b90ccde232c007ae6d64bb38703b6e70f39198e3d40d4a4626fbcf08",
+                "lines": [
+                  [
+                    1,
+                    21
+                  ]
+                ]
+              }
+            ]
+          }
         }
       ]
     },
@@ -8539,7 +8829,8 @@
               "sha256": "0d50f4cd1eb0d077d9206aaee6f3b47bb45634326501e6b8793646b2ae0fc661"
             }
           ],
-          "verifiedBoundary": "实际Web脚本VM+DOM替身逐handler归属，Taskboard iframe内部App异步写仍另列TB-09未解决。"
+          "verifiedBoundary": "实际Web脚本VM与DOM替身逐handler核对归属；Taskboard iframe内部App的来源与提交另由TB-09记录，不由本组VM场景证明。",
+          "testGap": "实际Web脚本VM与DOM替身逐handler核对归属；Taskboard iframe内部App的来源与提交另由TB-09记录，不由本组VM场景证明。"
         },
         {
           "id": "WEB-01.2",
@@ -9175,7 +9466,26 @@
               "name": "Gateway disconnect after acceptance does not interrupt a peer-visible native turn or repeat its input"
             }
           ],
-          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
+          "testGap": "没有在此用例执行launchd实际重启或接收/fsync窗口骤停，私有stdio不具有这一独立保证；线上重启保留core的记录是部署验收，不替代所有崩溃组合。",
+          "verifiedBoundary": "与NATIVE-02.3共用真实原生断连测试：accepted后hasRestartBlockingWork为false，Gateway适配器关闭重建后core/activeTurn未变，原turn完成且输入一次。",
+          "boundaryReview": {
+            "date": "2026-11-02",
+            "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+            "method": "read-existing-assertions; no new runtime verification or status promotion",
+            "evidenceKind": "real-native-local-model",
+            "references": [
+              {
+                "file": "test/shared-app-server-integration.test.ts",
+                "sha256": "1d8a476e3d3572f9e15823ded09967e50b0e29112cc3a2848abef821c75f8de4",
+                "lines": [
+                  [
+                    198,
+                    219
+                  ]
+                ]
+              }
+            ]
+          }
         },
         {
           "id": "REL-01.3",
@@ -9653,7 +9963,7 @@
             }
           ],
           "verifiedBoundary": "实际只读checker反例：仅文件、错名、未运行或失败记录不能支持verified；精确同版本命名通过才支持。该测试不证明所有产品case完整。",
-          "testGap": "304case均已有具体测试映射；部分场景的人工或未实现边界仍保留partial，不把映射齐全算全部功能验收。"
+          "testGap": "当前310case均已有精确测试映射；106项仍部分覆盖，映射齐全不能替代全部行为、设备及真实供应商验收。"
         },
         {
           "id": "AUDIT-01.2",
@@ -9728,8 +10038,8 @@
       "module": "taskboard",
       "title": "独立 AI 面板的实现职责",
       "sourceRecords": [],
-      "basis": "implementation-intent; review of existing product paths, not a new user feature request; standalone exec integration boundary remains unresolved",
-      "contract": "既有本地 AI 面板按稳定 thread/run 保存事实；模型取目标项目目录；编辑器保留草稿、Skill 标签及原生参数次序；启动前权限必须来自最新持久设置。独立面板当前使用 exec，不得据此宣称 Gateway 全仓统一接口已完成。",
+      "basis": "implementation-intent; review of existing product paths, not a new user feature request; native execution convergence is implemented, remaining combinations stay explicit",
+      "contract": "既有AI面板按稳定thread/run保存事实；模型取目标项目目录，编辑器保留草稿、Skill标签及原生参数次序，启动前核最新持久设置。AI和事件自动处理共用标准原生适配器，嵌入时借用Gateway实例，独立包加载根构建；没有exec回退。未知接收与实际设备的验证边界分别保留，不能由接口统一推断所有行为已验收。",
       "implementationReview": "partial; exact scenarios verified; remaining module responsibilities and files still under review",
       "cases": [
         {
@@ -10211,7 +10521,7 @@
       "title": "事件处理器的执行授权与生命周期",
       "sourceRecords": [],
       "contract": "事件自动处理只允许用户已启用的原策略启动；等待额度等外部检查后重新核对同一有效策略。AI、自动处理、模型/Skill/MCP目录与额度共用选定原生端口；嵌入Taskboard借用Gateway原适配器，独立Taskboard使用同一协议适配器。关闭观察不interrupt已由独立核心接收的任务；显式私有stdio的生命周期限制单独说明。此契约不授权开启自动化。",
-      "implementationReview": "partial; quota wait policy scenarios verified; executor architecture remains under review",
+      "implementationReview": "native adapter convergence implemented; listed execution and policy scenarios verified; remaining consumer/recovery/device combinations remain explicit",
       "cases": [
         {
           "id": "TB-04.1",
@@ -11097,27 +11407,26 @@
       ]
     }
   ],
-  "reviewPass": "2026-11-02 completion: four-layer read/diff review, native Taskboard convergence, concrete failures repaired; external client/device limits remain explicit",
+  "reviewPass": "2026-11-02 documentation reconciliation: current indexes and 13 assertion boundaries synchronized; case acceptance remains partial where recorded; code baseline afbd2d2",
   "verificationUpdate": {
     "date": "2026-11-02",
     "previousUnmappedCases": 28,
-    "nowUnmappedCases": 1,
+    "nowUnmappedCases": 0,
     "mappedDirectTests": 59,
     "deviceAcceptance": "not-performed",
     "workflowNodeExecution": "not-implemented; editor/configuration tests only",
-    "note": "原28项已全部映射；本次另外发现TB-09.5已复现未修复，尚缺正式失败回归。"
+    "note": "原28项已全部映射；TB-09.5后续已修复并补正式HTTP/SQLite及事务回归，旧失败保留于历史检查点；本轮只补文档边界，不增加运行验收。"
   },
   "remainingReview": {
     "date": "2026-11-02",
-    "caseCount": 305,
-    "mappedCases": 304,
-    "verifiedNarrowCases": 199,
-    "partialCases": 105,
-    "newConfirmedUnfixedCases": [
-      "TB-09.5"
-    ],
+    "caseCount": 310,
+    "mappedCases": 310,
+    "verifiedNarrowCases": 204,
+    "partialCases": 106,
+    "newConfirmedUnfixedCases": [],
     "prior28UnmappedCasesAllMapped": true,
-    "needsBoundaryReconciliation": [
+    "needsBoundaryReconciliation": [],
+    "boundaryReconciledCases": [
       "NATIVE-01.1",
       "NATIVE-02.1",
       "NATIVE-02.2",
@@ -11132,5 +11441,51 @@
       "DEL-09.4",
       "REL-01.2"
     ]
+  },
+  "historicalDocumentationCheckpoints": [
+    {
+      "kind": "superseded-summary-before-documentation-reconciliation",
+      "verificationUpdate": {
+        "date": "2026-11-02",
+        "previousUnmappedCases": 28,
+        "nowUnmappedCases": 1,
+        "mappedDirectTests": 59,
+        "deviceAcceptance": "not-performed",
+        "workflowNodeExecution": "not-implemented; editor/configuration tests only",
+        "note": "原28项已全部映射；本次另外发现TB-09.5已复现未修复，尚缺正式失败回归。"
+      },
+      "remainingReview": {
+        "date": "2026-11-02",
+        "caseCount": 305,
+        "mappedCases": 304,
+        "verifiedNarrowCases": 199,
+        "partialCases": 105,
+        "newConfirmedUnfixedCases": [
+          "TB-09.5"
+        ],
+        "prior28UnmappedCasesAllMapped": true,
+        "needsBoundaryReconciliation": [
+          "NATIVE-01.1",
+          "NATIVE-02.1",
+          "NATIVE-02.2",
+          "NATIVE-02.3",
+          "NATIVE-03.1",
+          "NATIVE-03.2",
+          "NATIVE-03.3",
+          "CTRL-03.1",
+          "CTRL-03.3",
+          "INT-02.3",
+          "INT-03.3",
+          "DEL-09.4",
+          "REL-01.2"
+        ]
+      }
+    }
+  ],
+  "documentationUpdate": {
+    "date": "2026-11-02",
+    "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
+    "report": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md",
+    "scope": "current indexes, native/Taskboard contracts, 13 partial boundaries and exact source references; no code change or acceptance promotion"
   }
 }

@@ -12,7 +12,7 @@ Desktop must itself attach to the selected native service. The installed Desktop
 
 Old execution classes and private IPC DTO readers remain only as compatibility/test and migration material; production factories instantiate `CodexAppServerGateway` directly. They cannot be selected by runtime configuration. Historical audit documents describe their former behavior, not current deployment guarantees.
 
-This facade does not yet own the embedded Taskboard AI panel or issue-automation executor: `taskboard/server/ai-chat.mjs` and `issue-automation.mjs` still start CLI `exec` processes. They lack this shared connection's interaction/restart contract and stop their own workers on service close. Unifying the messaging facade does not complete those separate execution paths; disabling them would not constitute interface adaptation.
+Taskboard AI and issue automation use `taskboard/server/native-backend.mjs` and the same `CodexAppServerGateway` contract. Embedded services borrow AccountManager's adapter without owning its core; standalone services load the adjacent root build and use the configured native endpoint. Neither path falls back to CLI `exec`. Observation close, exact turn interruption, durable native receipts and answer flushing are separate operations. The remaining unknown-handoff, concurrent-consumer and real-device boundaries are listed in [Taskboard native execution](architecture/modules/taskboard-native-execution.md) and [remaining work](architecture/remaining-work.md).
 
 ## Interface conformance
 
