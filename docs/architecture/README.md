@@ -75,4 +75,6 @@
 
 此前检查点中原28项已补直接命名测试，304case均有映射；本次另发现1个失败项尚缺正式回归，当前总数305。199窄边界通过、105部分覆盖。功能及模块文档和JSON同步更新。具体证据见../audits/2026-11-01-four-layer-recheck/2026-11-02-gap-regressions.md；[工作流节点配置/执行对照](taskboard-node-contracts.md)明确33kind仍缺的执行与授权边界。手机实机验收继续记为未完成，不是新的发布门禁。
 
-本轮补齐IM表单事务回执和远程结果回传；当前307case，201窄边界通过、106部分覆盖。原生workflow未知交接恢复、真实SSH/手机联调等仍见remaining-work.md；前述304/305统计为历史检查点。
+本轮补齐IM表单事务回执和远程结果回传；当前310case，204窄边界通过、106部分覆盖。原生workflow未知交接恢复、真实SSH/手机联调等仍见remaining-work.md；前述304/305统计为历史检查点。
+
+媒体适配本轮补齐飞书文件/MP4视频及企微出站图片/文件/视频；协议与真实平台边界见modules/delivery-channels.md及审计报告2026-11-02-feishu-wecom-media.md。

@@ -1178,7 +1178,7 @@
           "implementation": [
             {
               "file": "src/channels/feishu.ts",
-              "sha256": "a1c7d20d87aecbd1502dd45f43c3a87135b84fc70bda640c14ecda7da3f23255"
+              "sha256": "76957bf1e021a5b92e62f4783b6c4ea8462ddd56d775317cc98cee4f4378c77d"
             }
           ]
         },
@@ -5629,7 +5629,7 @@
           "implementation": [
             {
               "file": "src/channels/feishu.ts",
-              "sha256": "a1c7d20d87aecbd1502dd45f43c3a87135b84fc70bda640c14ecda7da3f23255"
+              "sha256": "76957bf1e021a5b92e62f4783b6c4ea8462ddd56d775317cc98cee4f4378c77d"
             },
             {
               "file": "src/channels/feishu-card-updater.ts",
@@ -6741,11 +6741,11 @@
           "implementation": [
             {
               "file": "src/channels/feishu.ts",
-              "sha256": "a1c7d20d87aecbd1502dd45f43c3a87135b84fc70bda640c14ecda7da3f23255"
+              "sha256": "76957bf1e021a5b92e62f4783b6c4ea8462ddd56d775317cc98cee4f4378c77d"
             },
             {
               "file": "src/channels/wecom.ts",
-              "sha256": "4cb2925d9879cb95f7f52d5c65194a2dda7342cc7d53e6db2fc754e7c02a7417"
+              "sha256": "2f689e9c592f71b9290c3562508276b5e886fb6a5d3d2644f8fb00e6df52b997"
             }
           ],
           "verifiedBoundary": "生产adapter输入的业务失败/缺回执被拒绝，不造成功messageId，SDK/fetch替身。"
@@ -6763,7 +6763,7 @@
           "implementation": [
             {
               "file": "src/channels/wecom.ts",
-              "sha256": "4cb2925d9879cb95f7f52d5c65194a2dda7342cc7d53e6db2fc754e7c02a7417"
+              "sha256": "2f689e9c592f71b9290c3562508276b5e886fb6a5d3d2644f8fb00e6df52b997"
             }
           ],
           "verifiedBoundary": "actor与群target分离、清listener；完整role升级组合未在adapter内证明。"
@@ -6793,7 +6793,7 @@
             },
             {
               "file": "src/channels/feishu.ts",
-              "sha256": "a1c7d20d87aecbd1502dd45f43c3a87135b84fc70bda640c14ecda7da3f23255"
+              "sha256": "76957bf1e021a5b92e62f4783b6c4ea8462ddd56d775317cc98cee4f4378c77d"
             },
             {
               "file": "src/channels/dingtalk.ts",
@@ -6801,6 +6801,48 @@
             }
           ],
           "verifiedBoundary": "真实readiness/cleanup边界，所有provider重连状态全排列仍须实际平台验收。"
+        },
+        {
+          "id": "CHAN-01.4",
+          "scenario": "企微的群/单聊及结构化参与者身份只来源于平台chattype/from.userid，不由chatid猜群，不把all/显示名/标签当@授权。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom conversation kind and participant identity come from provider fields (single)"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom conversation kind and participant identity come from provider fields (group)"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom conversation kind and participant identity come from provider fields (unknown)"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom conversation kind and participant identity come from provider fields (undefined)"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom malformed participant fields do not escape durable admission or become mention authority"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom known group messages without a group target are rejected before durable admission"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/wecom.ts",
+              "sha256": "2f689e9c592f71b9290c3562508276b5e886fb6a5d3d2644f8fb00e6df52b997"
+            },
+            {
+              "file": "src/channels/mentions.ts",
+              "sha256": "89d22769bf1b823903cf3209aacd449633df4d3619aa6acf3756f6bd7fea9051"
+            }
+          ],
+          "verifiedBoundary": "实际adapter monitor接收受控single/group/unknown/缺失字段，以及all、@all、空格/标签、number/null；single回复actor不被多余chatid改目标，group缺少chatid在持久认领前拒绝，未知种类不猜群。仅来源身份，不声称已实现企微原生出站@。"
         }
       ]
     },
@@ -6973,6 +7015,14 @@
             {
               "file": "test/dingtalk-files.test.ts",
               "name": "CHAN-03.2: session preserves filename/extension and binary bytes at the exact upload limit"
+            },
+            {
+              "file": "test/outbound-media-file.test.ts",
+              "name": "outbound media rejects grow after stat and closes its original descriptor"
+            },
+            {
+              "file": "test/outbound-media-file.test.ts",
+              "name": "outbound media rejects shrink after stat and closes its original descriptor"
             }
           ],
           "previousTestGap": "实际DingTalk文件客户端已有正常/限额用例，待将各type及精确byte-budget断言逐一绑定，不能只凭名称认定。",
@@ -6980,9 +7030,13 @@
             {
               "file": "src/channels/dingtalk-files.ts",
               "sha256": "0369eb7fc3cfe8c29c8f28d78fd933e9ede746ba3dce32e49307aeb5bca3260f"
+            },
+            {
+              "file": "src/channels/outbound-media-file.ts",
+              "sha256": "7e98b1f41702f2e9c5baf340d0e20ae27df46e6afe95c03b85b76685dd2f384a"
             }
           ],
-          "verifiedBoundary": "实际DingTalk文件客户端user/group/session三路线，5类文件精确文件名、扩展、二进制bytes及等于/超过预算。"
+          "verifiedBoundary": "实际DingTalk文件客户端user/group/session三路线，5类文件精确文件名、扩展、二进制bytes及等于/超过预算。 新共享读取端口另以实际stat后增长/缩短检查不回传变化内容且关闭原fd。"
         },
         {
           "id": "CHAN-03.3",
@@ -7026,7 +7080,7 @@
             },
             {
               "file": "src/channels/feishu.ts",
-              "sha256": "a1c7d20d87aecbd1502dd45f43c3a87135b84fc70bda640c14ecda7da3f23255"
+              "sha256": "76957bf1e021a5b92e62f4783b6c4ea8462ddd56d775317cc98cee4f4378c77d"
             },
             {
               "file": "src/weixin/media.ts",
@@ -7037,7 +7091,7 @@
               "sha256": "0180ef2365a6df97fce19e73fdd5e572143a4babb7ec07362f043eeac7f48050"
             }
           ],
-          "verifiedBoundary": "DingTalk三路线、Feishu已实现的image、WeChat image/video/file：上传成功后业务失败/缺失或丢失发送回执必须失败，不再提交；不将尚不支持的Feishu文件能力伪造为通过。"
+          "verifiedBoundary": "DingTalk三路线、Feishu已实现的image、WeChat image/video/file：上传成功后业务失败/缺失或丢失发送回执必须失败，不再提交；不将尚不支持的Feishu文件能力伪造为通过。 飞书文件/视频与企微出站媒体现已补齐并单列CHAN-03.7/8；旧image-only表述仅代表旧检查点。"
         },
         {
           "id": "CHAN-03.4",
@@ -7118,6 +7172,210 @@
             }
           ],
           "verifiedBoundary": "真实临时文件stat和历史读取；Windows保留内容/归属但不假测POSIX mode。"
+        },
+        {
+          "id": "CHAN-03.7",
+          "scenario": "飞书图片/文件/MP4视频使用原生上传及消息类型；SDK剥离data前先核raw业务码，最终消息回执独立，未知发送跨重启不重复。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu file uses the native upload type and message receipt for group and direct recipients"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu video uses the native upload type and message receipt for group and direct recipients"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu image rejects a malformed or negative upload receipt before creating a message"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu file rejects a malformed or negative upload receipt before creating a message"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu video rejects a malformed or negative upload receipt before creating a message"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu file upload success cannot conceal missing, rejected or lost message acknowledgement"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu video upload success cannot conceal missing, rejected or lost message acknowledgement"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu media validates exact byte limits, empty/non-file input and MP4 video before upload"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu missing file API remains an explicit capability instead of a fake text or image send"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu actual Bridge file/video effects preserve restart receipts (lost=false)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu actual Bridge file/video effects preserve restart receipts (lost=true)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, confirmed)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, upload-rejected)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, missing-upload-code)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, send-rejected)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, confirmed)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, upload-rejected)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, missing-upload-code)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, send-rejected)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, confirmed)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, upload-rejected)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, missing-upload-code)"
+            },
+            {
+              "file": "test/feishu-outbound-media.test.ts",
+              "name": "Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, send-rejected)"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/feishu.ts",
+              "sha256": "76957bf1e021a5b92e62f4783b6c4ea8462ddd56d775317cc98cee4f4378c77d"
+            },
+            {
+              "file": "src/channels/feishu-media.ts",
+              "sha256": "0ae02a05b6543ec358384edf94132b990abd997535a96935b642a34d465c1db3"
+            },
+            {
+              "file": "src/channels/feishu-result.ts",
+              "sha256": "64e00ce1e3cd40bc3fa9954a19481adbda4f26f0073eaf0e0e1ad561bba628c9"
+            },
+            {
+              "file": "src/channels/feishu-sdk.ts",
+              "sha256": "7a65f8fafbff859f5dadc05c05a4ed96ea5a550daa17c171c389e539a80474cf"
+            },
+            {
+              "file": "src/channels/outbound-media-file.ts",
+              "sha256": "7e98b1f41702f2e9c5baf340d0e20ae27df46e6afe95c03b85b76685dd2f384a"
+            }
+          ],
+          "verifiedBoundary": "实际安装的Lark SDK对隔离HTTP检查三类媒体的multipart原字节、文件名、上传类型和消息类型；成功/非零上传码/缺上传码/发送拒绝共12组合。SDK端口另核chat_id/open_id/user_id、大小精确边界及缺key/缺消息ID/丢发送回执；真实Bridge+持久结果动作日志在确认/未知下重建不重传。没有真实飞书账号或手机验收。"
+        },
+        {
+          "id": "CHAN-03.8",
+          "scenario": "企微出站图片/文件/视频按原type上传，media_id与消息ACK分开；真实SDK分片文件内容及一次发送可核对，未知结果重启不重发。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom image uploads original bytes and requires the native send acknowledgement"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom file uploads original bytes and requires the native send acknowledgement"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom video uploads original bytes and requires the native send acknowledgement"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom image rejects missing, negative or wrong-type upload results before send"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom file rejects missing, negative or wrong-type upload results before send"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom video rejects missing, negative or wrong-type upload results before send"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom image upload cannot conceal a missing, negative or lost send acknowledgement"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom file upload cannot conceal a missing, negative or lost send acknowledgement"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom video upload cannot conceal a missing, negative or lost send acknowledgement"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom media enforces the SDK chunk limit and rejects empty and non-file input before upload"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom incomplete media SDK does not advertise a supported send route"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom Bridge media receipts survive restart without re-upload or re-send (lost=false)"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom Bridge media receipts survive restart without re-upload or re-send (lost=true)"
+            },
+            {
+              "file": "test/wecom-media.test.ts",
+              "name": "WeCom installed SDK uploads correlated chunks and sends one media message through an isolated websocket"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/wecom.ts",
+              "sha256": "2f689e9c592f71b9290c3562508276b5e886fb6a5d3d2644f8fb00e6df52b997"
+            },
+            {
+              "file": "src/channels/wecom-media.ts",
+              "sha256": "0d99038aed5162ba0ece6d813107d5a41bac59cceed537219e77c23302e01f1e"
+            },
+            {
+              "file": "src/channels/wecom-result.ts",
+              "sha256": "d682ccc1eb8f39cc605c2c4f3c4a5f018cbc03f10c9b084178e02bfc3dc81159"
+            },
+            {
+              "file": "src/channels/outbound-media-file.ts",
+              "sha256": "7e98b1f41702f2e9c5baf340d0e20ae27df46e6afe95c03b85b76685dd2f384a"
+            }
+          ],
+          "verifiedBoundary": "实际官方WeCom SDK对隔离WebSocket核file两分片原bytes、filename、type、MD5、关联req_id与一次消息；三种媒体的调用参数/拒绝与缺key/缺ACK/未知发送使用受控SDK端口，真实Bridge与动作日志重建确认/未知均不重传。SDK100×512KiB预算精确边界、空/目录拒绝；未连接真实平台，未证明所有类型/格式/企业策略已通过。"
         }
       ]
     },

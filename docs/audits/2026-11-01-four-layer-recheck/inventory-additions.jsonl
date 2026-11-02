@@ -125,3 +125,12 @@
 {"path": "taskboard/test/task-submissions.test.mjs", "module": "taskboard", "sha256": "0ef7dc8b226d2e4d07010fa2db9c41094fbeb2aedae6ab091330569306a3d01d", "lines": 105, "kind": "text", "addedAfterBaseline": true}
 {"path": "test/output-files.test.ts", "module": "tests", "sha256": "ef08fcf97cf2c88a4107d7e916f03f32bcb9c254ea5d7cbacd41450cbf1cdb15", "lines": 54, "kind": "text", "addedAfterBaseline": true}
 {"path": "test/taskboard-im-receipts.test.ts", "module": "tests", "sha256": "6a718ad1430455d25add8c6469f8bbf44ec070d2e641c649ff7abd0f0cb92a37", "lines": 79, "kind": "text", "addedAfterBaseline": true}
+{"path": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-feishu-wecom-media.md", "module": "docs", "sha256": "2c34502cf72597a3b2214ad2b67c4ca153659b3ed0b019e9475adb50f398e7e7", "lines": 29, "kind": "text", "addedAfterBaseline": true}
+{"path": "src/channels/feishu-media.ts", "module": "channel", "sha256": "0ae02a05b6543ec358384edf94132b990abd997535a96935b642a34d465c1db3", "lines": 52, "kind": "text", "addedAfterBaseline": true}
+{"path": "src/channels/feishu-sdk.ts", "module": "channel", "sha256": "7a65f8fafbff859f5dadc05c05a4ed96ea5a550daa17c171c389e539a80474cf", "lines": 22, "kind": "text", "addedAfterBaseline": true}
+{"path": "src/channels/outbound-media-file.ts", "module": "channel", "sha256": "7e98b1f41702f2e9c5baf340d0e20ae27df46e6afe95c03b85b76685dd2f384a", "lines": 26, "kind": "text", "addedAfterBaseline": true}
+{"path": "src/channels/wecom-media.ts", "module": "channel", "sha256": "0d99038aed5162ba0ece6d813107d5a41bac59cceed537219e77c23302e01f1e", "lines": 33, "kind": "text", "addedAfterBaseline": true}
+{"path": "src/channels/wecom-result.ts", "module": "channel", "sha256": "d682ccc1eb8f39cc605c2c4f3c4a5f018cbc03f10c9b084178e02bfc3dc81159", "lines": 12, "kind": "text", "addedAfterBaseline": true}
+{"path": "test/feishu-outbound-media.test.ts", "module": "tests", "sha256": "a03c0a6a070779292dd5dae4b18f185fec4226fbf00a2b1da68cf0bf2d38c4d0", "lines": 148, "kind": "text", "addedAfterBaseline": true}
+{"path": "test/outbound-media-file.test.ts", "module": "tests", "sha256": "515ba773aac4cfff5df390eb32ec6c4c919f948ca8dcdc995e305cc3e055116d", "lines": 24, "kind": "text", "addedAfterBaseline": true}
+{"path": "test/wecom-media.test.ts", "module": "tests", "sha256": "a6e8864ab67251508b49044802d3fc3e4fb4b20af89d487dbe9295311441036e", "lines": 149, "kind": "text", "addedAfterBaseline": true}

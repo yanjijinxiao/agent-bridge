@@ -3,16 +3,22 @@ import AiBot, { type TextMessage, type WsFrame } from "@wecom/aibot-node-sdk";
 import type { WeComAccount } from "../weixin/accounts.js";
 import type { ChannelMessage } from "./message.js";
 import type { ChannelAdapter, ChannelClient, ChannelMonitorOptions, ChannelTextClient } from "./types.js";
-import { createChannelClient, TEXT_CAPABILITIES } from "./client.js";
-import { ChannelDeliveryError } from "./errors.js";
+import { createChannelClient, TEXT_CAPABILITIES, NO_MEDIA } from "./client.js";
+import { WeComMediaSender } from "./wecom-media.js";
+import { wecomMessageReceipt } from "./wecom-result.js";
+import { isDirectedMentionId } from "./mentions.js";
 
 export class WeComChannelAdapter implements ChannelAdapter, ChannelTextClient {
   readonly client: ChannelClient;
   private readonly wsClient: InstanceType<typeof AiBot.WSClient>;
+  private readonly mediaSender: WeComMediaSender;
 
   constructor(account: WeComAccount, options: { wsClient?: InstanceType<typeof AiBot.WSClient> } = {}) {
     this.wsClient = options.wsClient ?? new AiBot.WSClient({ botId: account.botId, secret: account.secret });
-    this.client = createChannelClient("wecom", { ...TEXT_CAPABILITIES, mentions: "not-implemented" }, this);
+    this.mediaSender = new WeComMediaSender(this.wsClient);
+    const media = this.mediaSender.available ? "available" : "not-implemented";
+    this.client = createChannelClient("wecom", { ...TEXT_CAPABILITIES, mentions: "not-implemented",
+      outbound: { ...NO_MEDIA, image: media, file: media, video: media } }, this);
   }
 
   async sendText(input: { toUserId: string; text: string }): Promise<{ messageId: string }> {
@@ -20,11 +26,11 @@ export class WeComChannelAdapter implements ChannelAdapter, ChannelTextClient {
       msgtype: "markdown",
       markdown: { content: input.text }
     });
-    const id = response?.headers?.req_id;
-    if (response?.errcode !== 0 || typeof id !== "string" || !id.trim()) {
-      throw new ChannelDeliveryError("wecom", "sendText", response?.errcode);
-    }
-    return { messageId: id };
+    return wecomMessageReceipt(response, "sendText");
+  }
+
+  async sendMedia(input: import("./types.js").ChannelMediaInput): Promise<{ messageId: string }> {
+    return this.mediaSender.send(input);
   }
 
   async monitor(options: ChannelMonitorOptions): Promise<void> {
@@ -35,13 +41,19 @@ export class WeComChannelAdapter implements ChannelAdapter, ChannelTextClient {
       if (!body) return;
       const message: ChannelMessage = { id: typeof body.msgid === "string" ? body.msgid : "",
         senderId: typeof body.from?.userid === "string" ? body.from.userid : "",
-        replyTargetId: typeof body.chatid === "string" ? body.chatid : body.from?.userid,
+        replyTargetId: body.chattype === "single" ? body.from?.userid
+          : typeof body.chatid === "string" ? body.chatid : body.from?.userid,
+        ...(body.chattype === "group" ? { conversationKind: "group" as const,
+          ...(typeof body.from?.userid === "string" && isDirectedMentionId(body.from.userid) ? { mention: { userId: body.from.userid } } : {}) }
+          : body.chattype === "single" ? { conversationKind: "direct" as const } : {}),
         text: "", attachments: [], raw: { channel: "wecom", event: body } };
       // The SDK catches synchronous listener exceptions. Put decoding and
       // durable admission inside our own promise so failure reaches Gateway.
       void Promise.resolve().then(async () => {
         if (options.signal?.aborted) return;
-        if (!message.id || !message.senderId || typeof body.text?.content !== "string") throw new Error("企业微信消息格式无效，未提交。");
+        if (!message.id || !message.senderId || typeof body.text?.content !== "string"
+          || body.chattype === "group" && (typeof body.chatid !== "string" || !body.chatid.trim()))
+          throw new Error("企业微信消息格式无效，未提交。");
         message.text = body.text.content.trim();
         if (options.claimMessage && !options.claimMessage(message)) return;
         await options.onMessage(message);

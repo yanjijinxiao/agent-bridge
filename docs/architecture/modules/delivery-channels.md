@@ -17,3 +17,15 @@ control-card-delivery 新增四个原版失败场景，覆盖 action/goal form �
 ## 此次补测的联合边界
 
 DEL-01.3由hub持有执行和结果投递两个事实；AccountSession.followStatus把同一结果投递状态投影到Web，IM沿formatFollowStatus展示。原生idle/完成但最终帧失败仍显示待投递；渠道确认接收不等于用户看见。DEL-07.3联合原生@、中文emoji及IDE页脚计算最终5999/6000/6001字节边界。DEL-08.3从rollout monitor经hub检查子agent/guardian的摘要、工具和假终态隔离；DEL-08.4检查真实accepted input才切段、最终@/IDE所有权、迟到重复终态不新开空卡。DEL-09.3对HTTPS和SDK各连续30次更新，再经过等待/恢复/重启/终态；这些仍是协议/投影验证，手机原生显示另验。CHAN-03.2/3核对DingTalk三路线文件原始字节与精确限额，及DingTalk、Feishu已支持image、WeChat三类媒体的上传成功但消息失败；不将不支持能力写成成功。
+
+## 飞书与企微媒体端口
+
+FeishuChannelAdapter与WeComChannelAdapter只组合渠道端口；FeishuMediaSender/WeComMediaSender处理各自原生上传与发送，readOutboundMedia共用单文件描述符的有界读取，拒绝空文件/非普通文件/超限及读取期间变化。Feishu图片10MiB、文件与视频30MiB；企微按已安装官方SDK的100×512KiB协议预算限制。现有文本、卡片、更新、提问、历史和结果动作入口保持共用ChannelClient。
+
+飞书普通文件使用stream上传及file消息，MP4视频使用mp4上传及media消息；不填虚构时长/封面。chat_id、open_id、user_id由同一feishuRecipientType决定，避免媒体与文本/卡片各自猜测收件人。默认SDK工厂为每账号包一层HTTP响应校验：先确认上传原始code为0，再允许SDK解码data为image_key/file_key；不修改全局Axios拦截器。这样非零code即使含有效形状key也不能被解码掩盖。注入的已解码SDK测试端口与raw响应分别校验，最终仍要求消息的code:0和非空message_id。
+
+企微调用官方SDK的uploadMedia与sendMediaMessage；前者保留原type/filename/bytes，结果type和media_id都必须匹配，后者独立要求errcode:0与关联headers.req_id。SDK按upload_id/chunk_index重试分片，不重试整个消息发送。原始WebSocket断连会拒绝pending消息，不在Gateway中据此重发。消息/群类型只按chattype解释：single回复from.userid；group缺失chatid在持久认领前拒绝；未知种类不从chatid猜群。群成员userid可记录为结构化来源身份，目前不因此宣称已支持原生@。
+
+Bridge仍以显式send动作触发；TurnResultActions在外部I/O前持久认领，确认后才done，未知结果跨重启保留started，不重复上传/发送。缺SDK媒体方法时不宣称available，也不把本地路径作为已送达文字。远程文件仍先通过原执行主机回传端口成为Gateway私有副本。
+
+验证使用实际飞书SDK对隔离HTTP的multipart/业务码与实际企微SDK对隔离WebSocket的init/chunk/finish/send，外加真实Bridge/动作日志；未连接真实账号。平台权限、企业安全策略、视频播放及手机呈现仍待实机验收。协议依据：[飞书消息内容](https://open.feishu.cn/document/server-docs/im-v1/message-content-description/create_json?lang=zh-CN)、[文件上传](https://open.feishu.cn/document/server-docs/im-v1/file/create)、[企微官方SDK](https://github.com/WecomTeam/aibot-node-sdk)。

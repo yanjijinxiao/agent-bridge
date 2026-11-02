@@ -25,6 +25,8 @@
 - [打开企业微信管理后台](https://work.weixin.qq.com/wework_admin/frame#apps)
 - [企业微信智能机器人长连接文档](https://developer.work.weixin.qq.com/document/path/101463)
 
+企业微信智能机器人长连接现支持生成结果的图片、文件和视频回传，复用已配置账号的SDK上传、发送接口。Gateway按SDK的100个512KiB分片预算限制单文件，原文件名/字节保持不变，具体类型/尺寸还需平台接受；上传media_id不等于消息已发送。平台拒绝、缺少发送回执或连接中断会报告未确认，重启不会自动重复发送。当前原生定向@及入站媒体仍是独立待完成项，不能从出站媒体支持推导。
+
 ### 飞书
 
 1. 在飞书开放平台创建企业自建应用并启用机器人能力。
@@ -37,6 +39,8 @@
 
 - [打开飞书开发者后台](https://open.feishu.cn/app)
 - [飞书长连接事件订阅文档](https://open.feishu.cn/document/server-docs/event-subscription-guide/event-subscription-configure-/request-url-configuration-case?lang=zh-CN)
+
+飞书已支持生成结果的图片、文件和MP4视频发送。图片上限10MiB，文件/视频上限30MiB，均不能是空文件；普通文件保留原文件名与字节，视频使用原生media消息。应用需开通 `im:resource`（图片/文件资源）与 `im:message:send_as_bot`（以应用身份发消息）等所需权限并发布生效；具体范围见[官方权限说明](https://open.feishu.cn/document/develop-robots/add-bot-to-external-group?lang=zh-CN)及[上传文件](https://open.feishu.cn/document/server-docs/im-v1/file/create)。上传成功后仍需最终消息ID才算平台接收，发送回执不明时不会自动重发。
 
 ### 钉钉
 

@@ -10,7 +10,9 @@ import type { ChannelAdapter, ChannelClient, ChannelMonitorOptions, ChannelTextC
 import { createChannelClient, TEXT_CAPABILITIES, NO_MEDIA } from "./client.js";
 import { inboundBytes } from "./inbound-bytes.js";
 import { sanitizeFileName } from "../weixin/media.js";
-import { feishuMessageReceipt, assertFeishuSuccess } from "./feishu-result.js";
+import { feishuMessageReceipt, assertFeishuSuccess, feishuRecipientType as recipientType } from "./feishu-result.js";
+import { FeishuMediaSender, type FeishuMediaApi } from "./feishu-media.js";
+import { createFeishuApiClient } from "./feishu-sdk.js";
 import { feishuActionCard } from "./feishu-action-card.js";
 import { cardActionIdentity, formValueFromRawCardAction } from "./feishu-card-action.js";
 import { FeishuCardUpdater } from "./feishu-card-updater.js";
@@ -24,6 +26,7 @@ type FeishuAdapterOptions = {
     readonly im: {
       readonly v1: {
         readonly image: Pick<Lark.Client["im"]["v1"]["image"], "create">;
+        readonly file?: FeishuMediaApi["file"];
         readonly message: Pick<Lark.Client["im"]["v1"]["message"], "create">
           & Partial<Pick<Lark.Client["im"]["v1"]["message"], "patch" | "get">>;
         readonly messageResource: Pick<Lark.Client["im"]["v1"]["messageResource"], "get">;
@@ -44,10 +47,12 @@ export class FeishuChannelAdapter implements ChannelAdapter, ChannelTextClient {
   private readonly cardUpdater: FeishuCardUpdater;
   private readonly inboundDir?: string;
   private readonly maxInboundBytes: number;
+  private readonly mediaSender: FeishuMediaSender;
 
   constructor(account: FeishuAccount, options: FeishuAdapterOptions = {}) {
     const config = { appId: account.appId, appSecret: account.appSecret };
-    this.apiClient = options.apiClient ?? new Lark.Client(config);
+    this.apiClient = options.apiClient ?? createFeishuApiClient(config);
+    this.mediaSender = new FeishuMediaSender(this.apiClient.im.v1);
     this.injectedSocket = Boolean(options.wsClient);
     this.wsClient = options.wsClient ?? new Lark.WSClient({ ...config,
       onReady: () => this.status?.({ state: "connected" }),
@@ -62,7 +67,9 @@ export class FeishuChannelAdapter implements ChannelAdapter, ChannelTextClient {
       ...TEXT_CAPABILITIES, mentions: "available", mentionBatchSize: 50, actionCardMentions: "available",
       tableLayout: "native",
       inbound: { ...NO_MEDIA, image: options.inboundDir ? "available" : "not-configured", file: options.inboundDir ? "available" : "not-configured" },
-      outbound: { ...NO_MEDIA, image: "available" },
+      outbound: { ...NO_MEDIA, image: "available",
+        file: this.mediaSender.filesAvailable ? "available" : "not-implemented",
+        video: this.mediaSender.filesAvailable ? "available" : "not-implemented" },
       actions: "available", tasks: "available",
       cardUpdates: this.apiClient.im.v1.message.patch ? "available" : "not-implemented"
     }, this);
@@ -94,22 +101,11 @@ export class FeishuChannelAdapter implements ChannelAdapter, ChannelTextClient {
   }
 
   async sendImage(input: { toUserId: string; path: string }): Promise<{ messageId: string }> {
-    const upload = await this.apiClient.im.v1.image.create({
-      data: { image_type: "message", image: await fs.promises.readFile(input.path) }
-    });
-    assertFeishuSuccess(upload, "uploadImage");
-    if (!upload?.image_key) {
-      throw new Error("Feishu image upload did not return an image_key");
-    }
-    const result = await this.apiClient.im.v1.message.create({
-      params: { receive_id_type: recipientType(input.toUserId) },
-      data: {
-        receive_id: input.toUserId,
-        msg_type: "image",
-        content: JSON.stringify({ image_key: upload.image_key })
-      }
-    });
-    return feishuMessageReceipt(result, "sendImage");
+    return this.mediaSender.send({ ...input, kind: "image" });
+  }
+
+  async sendMedia(input: import("./types.js").ChannelMediaInput): Promise<{ messageId: string }> {
+    return this.mediaSender.send(input);
   }
 
   async sendActionCard(input: import("./types.js").ChannelActionCardInput): Promise<{ messageId: string }> {
@@ -338,12 +334,6 @@ async function reportMessageError(
     if (!(reportError instanceof Error)) throw reportError;
     console.error(`[codex-im-gateway] failed to report Feishu message error: ${errorDetail(reportError)}`);
   }
-}
-
-function recipientType(recipientId: string): "chat_id" | "open_id" | "user_id" {
-  if (recipientId.startsWith("oc_")) return "chat_id";
-  if (recipientId.startsWith("ou_")) return "open_id";
-  return "user_id";
 }
 
 function parseText(content: string): string {
