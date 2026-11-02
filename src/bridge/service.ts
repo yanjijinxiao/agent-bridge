@@ -53,6 +53,7 @@ import { PromptBuffer } from "./prompt-buffer.js";
 import { NEW_SESSION_USAGE, parseNewSessionTarget } from "./new-session.js";
 import { selectChannelProject } from "./project-selection.js";
 import { orderSessionCatalog, sessionHostLabel, type SessionCatalogRow } from "./session-catalog-order.js";
+import { sessionCatalogItems, type SessionCatalogItem } from "./session-catalog-view.js";
 import { compactTableCell, renderTextTable, escapeTableMarkdown, type ChannelTable } from "../channels/table.js";
 import { isSessionPageSize, MIN_SESSION_PAGE_SIZE, MAX_SESSION_PAGE_SIZE } from "../state/session-list-settings.js";
 import { readSessionPurposes, SessionPurposeIndex } from "../state/session-purposes.js";
@@ -209,6 +210,7 @@ export class BridgeService {
   private readonly channel: ChannelClient;
   private readonly sessionLists = new Map<string, {
     rows: SessionCatalogRow[];
+    items: SessionCatalogItem[];
     page: number; pageSize: number; createdAt: number; label: string; warnings: string[];
   }>();
   private readonly projectLists = new Map<string, { id: string; createdAt: number; codes: Map<string, { projectId?: string; candidate?: CodexProjectCandidate }> }>();
@@ -1473,7 +1475,7 @@ export class BridgeService {
       }
       const requested = /(?:^|\s)page\s+(\d+)$/i.exec(input);
       if (!resized) listing.page = requested ? Number(requested[1]) - 1 : listing.page + (/^prev$/i.test(input) ? -1 : 1);
-      listing.page = Math.min(Math.max(0, Math.ceil(listing.rows.length / listing.pageSize) - 1), Math.max(0, listing.page));
+      listing.page = Math.min(Math.max(0, Math.ceil(listing.items.length / listing.pageSize) - 1), Math.max(0, listing.page));
     } else if (input && !/^(all|unbound|unassigned|project|search\s+.+)$/i.test(input)) {
       const direct = /^(\S+)(?:\s+--host\s+(\S+))?$/.exec(input);
       if (!direct) { await this.reply(senderId, "用法：/sessions [all|unbound|project|search 关键词|more|prev]；/session <会话ID> [--host 主机ID]"); return; }
@@ -1486,6 +1488,7 @@ export class BridgeService {
       const unassigned = /^(unbound|unassigned)$/i.test(input);
       const hosts = new Set(["local"]);
       const warnings: string[] = [];
+      const incompleteHosts = new Map<string, string>();
       let purposes = new SessionPurposeIndex();
       try { purposes = readSessionPurposes(this.options.stateStore.sessionPurposeRegistryPath); }
       catch { warnings.push("会话用途配置无法读取，本次未隐藏探活记录；请检查 session-purposes.json 后刷新。"); }
@@ -1517,6 +1520,7 @@ export class BridgeService {
           const states = catalog?.threads ?? await this.runner.listThreads(catalogInput, hostId);
           if (catalog) {
             warnings.push(...catalog.warnings);
+            if (!catalog.complete) incompleteHosts.set(hostId, "会话目录尚未同步完整");
             if (!catalog.complete && !catalog.warnings.length) warnings.push(`${hostId} 的会话目录尚未同步完整，请稍后刷新。`);
             if (!projectOnly && catalog.backend === "app-server") for (const host of catalog.hostIds) hosts.add(host);
           }
@@ -1530,6 +1534,7 @@ export class BridgeService {
             rows.push({ state, hostId });
           }
         } catch (error) {
+          incompleteHosts.set(hostId, "会话列表暂不可用");
           console.warn(`[codex-im-gateway] session catalog unavailable for ${hostId}: ${String(error)}`);
           warnings.push(`${hostId} 的会话列表暂不可用，请稍后刷新；未切换到其他后端。`);
         }
@@ -1538,33 +1543,48 @@ export class BridgeService {
       if (hiddenProbes.size) warnings.push(`已隐藏 ${hiddenProbes.size} 个已确认的探活会话（未删除、未归档）。`);
       const unique = [...new Map(rows.map(row => [JSON.stringify([row.hostId, row.state.threadId]), row])).values()];
       const ordered = orderSessionCatalog(unique, projectCatalog, this.options.stateStore.listProjects(), activeProject);
-      listing = { rows: ordered, page: 0, pageSize: this.options.stateStore.getSessionPageSize(senderId, actorId), createdAt: Date.now(), label: projectOnly ? `项目 ${activeProject!.name}` : unassigned ? "无项目" : query ? `搜索：${query}` : "全部", warnings: [...new Set(warnings)] };
+      const activeGroupId = activeProject?.sourceProjectId ? JSON.stringify([activeProject.hostId ?? "local", activeProject.sourceProjectId]) : undefined;
+      const displayProjects = projectOnly ? projectCatalog.filter(p => JSON.stringify([p.hostId ?? "local", p.projectId]) === activeGroupId) : projectCatalog;
+      const items = sessionCatalogItems(ordered, displayProjects, { includeEmpty: !query && !unassigned, incompleteHosts, activeGroupId });
+      listing = { rows: ordered, items, page: 0, pageSize: this.options.stateStore.getSessionPageSize(senderId, actorId), createdAt: Date.now(), label: projectOnly ? `项目 ${activeProject!.name}` : unassigned ? "无项目" : query ? `搜索：${query}` : "全部", warnings: [...new Set(warnings)] };
       for (const [k,v] of this.sessionLists) if (Date.now() - v.createdAt > 15 * 60_000) this.sessionLists.delete(k);
       this.sessionLists.set(key, listing);
     }
     const start = listing.page * listing.pageSize;
-    const pageRows = listing.rows.slice(start, start + listing.pageSize);
+    const pageItems = listing.items.slice(start, start + listing.pageSize);
+    const pageRows = pageItems.filter((item): item is Extract<SessionCatalogItem, { kind: "session" }> => item.kind === "session");
     const active = this.options.stateStore.getActiveSession(senderId);
-    const title = `可绑定会话 · ${compactTableCell(listing.label, 32)} · ${listing.rows.length} 个 · 第 ${listing.page + 1}/${Math.max(1, Math.ceil(listing.rows.length / listing.pageSize))} 页`;
-    const table: ChannelTable = { columns: ["编号", "会话", "归属", "状态"].map(label => ({ label })), rows: pageRows.map(({state,hostId,group}, index) => {
+    const title = `可绑定会话 · ${compactTableCell(listing.label, 32)} · ${listing.rows.length} 个 · 第 ${listing.page + 1}/${Math.max(1, Math.ceil(listing.items.length / listing.pageSize))} 页`;
+    const lines: string[] = [];
+    let section = "", project = "";
+    for (const item of pageItems) {
+      const nextSection = item.kind === "project" ? "project" : item.section;
+      if (section !== nextSection) { lines.push(`\n**${nextSection === "pinned" ? "📌 置顶" : nextSection === "project" ? "项目" : "其他会话"}**\n`); section = nextSection; }
+      if (nextSection === "project" && item.group && project !== item.group.id) {
+        lines.push(`\n📁 **${escapeTableMarkdown(item.group.label)}**${item.group.current ? " · 当前项目" : ""}`);
+        project = item.group.id;
+      }
+      if (item.kind === "project") { lines.push(`　${item.notice}`); continue; }
+      const { state, hostId } = item.row;
       const current = active?.threadId === state.threadId && this.sessionHostId(active) === hostId;
       const name = state.title || codexSessionCandidatePreview(codexThreadStateCandidate(state, state.cwd ?? "")) || "未命名";
       const status = projectSessionChoiceStateLabel({ title: name, updatedAt: state.updatedAt ?? "", candidate: codexThreadStateCandidate(state, state.cwd ?? "") });
-      return [`R${start + index + 1}`, compactTableCell(`${state.catalogOrder?.pinnedIndex !== undefined ? "📌 " : ""}${current ? "【当前】 " : ""}${name}`, 28),
-        group?.label ?? `无项目${hostId !== "local" ? ` · ${compactTableCell(sessionHostLabel(hostId), 15)}` : ""}`,
-        status.replace("Desktop 已打开", "已打开").replace("上次执行失败", "上次失败").replace("上次已停止", "已停止").replace("状态未知", "未知")];
-    }) };
-    const body = [...(!pageRows.length ? ["没有符合条件的未归档会话。"] : []), ...listing.warnings].join("\n\n");
-    const note = `置顶 → 项目目录顺序 → 其他会话；组内遵循 App 排序 · 每页 ${listing.pageSize} 条。\n查看详情：/sessions detail R编号。`;
-    const text = [title, body, renderTextTable(table), note].filter(Boolean).join("\n\n");
-    await this.replyActionCard(senderId, createChoiceCard({ title, body: escapeTableMarkdown(body), ...(pageRows.length ? { table } : {}), note, fallbackText: text,
+      const attribution = nextSection === "pinned" ? item.group?.label ?? (hostId === "local" ? "无项目" : sessionHostLabel(hostId))
+        : nextSection === "other" && hostId !== "local" ? sessionHostLabel(hostId) : "";
+      const shortStatus = status.replace("Desktop 已打开", "已打开").replace("上次执行失败", "上次失败").replace("上次已停止", "已停止").replace("状态未知", "未知");
+      lines.push(`　[R${item.number}] ${current ? "【当前】 " : ""}${escapeTableMarkdown(compactTableCell(name, 48))} · ${shortStatus}${attribution ? ` · ${escapeTableMarkdown(compactTableCell(attribution, 64))}` : ""}`);
+    }
+    const body = [pageItems.length ? lines.join("\n").trim() : "没有符合条件的未归档会话或项目。", ...listing.warnings.map(escapeTableMarkdown)].join("\n\n");
+    const note = `置顶 → 项目目录顺序 → 其他会话；组内遵循 App 排序。每页 ${listing.pageSize} 项（会话或空项目）。\n查看详情：/sessions detail R编号。`;
+    const text = [title, body, note].filter(Boolean).join("\n\n");
+    await this.replyActionCard(senderId, createChoiceCard({ title, body, note, fallbackText: text,
       copyChoices: [
-        ...(pageRows.length ? [{ label: "选择会话模板（将“编号”替换为上表数字）", value: "/session R编号" }] : []),
+        ...(pageRows.length ? [{ label: "选择会话模板（将“编号”替换为列表数字）", value: "/session R编号" }] : []),
         ...(listing.page > 0 ? [{ label: "上一页", value: "/sessions prev" }] : []),
-        ...(start + listing.pageSize < listing.rows.length ? [{ label: "下一页", value: "/sessions more" }] : [])],
-      choices: [...pageRows.map(({state,hostId}, i): ChannelChoice => ({ label: `R${start+i+1}`, command: "session", arg: `${state.threadId} --host ${hostId}`, copyValue: `/session R${start+i+1}` })),
+        ...(start + listing.pageSize < listing.items.length ? [{ label: "下一页", value: "/sessions more" }] : [])],
+      choices: [...pageRows.map(({row: {state,hostId}, number}): ChannelChoice => ({ label: `R${number}`, command: "session", arg: `${state.threadId} --host ${hostId}`, copyValue: `/session R${number}` })),
         ...(listing.page > 0 ? [{ label: "上一页", command: "sessions" as const, arg: "prev" }] : []),
-        ...(start + listing.pageSize < listing.rows.length ? [{ label: "下一页", command: "sessions" as const, arg: "more" }] : [])] }));
+        ...(start + listing.pageSize < listing.items.length ? [{ label: "下一页", command: "sessions" as const, arg: "more" }] : [])] }));
   }
 
   private async bindCatalogSession(senderId: string, threadId: string, hostId?: string): Promise<void> {

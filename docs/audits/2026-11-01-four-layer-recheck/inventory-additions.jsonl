@@ -97,3 +97,7 @@
 {"path": "test/weixin-inbound-files.test.ts", "module": "test", "sha256": "8897de63b26cedfc209bde1313b312b70e746ebad7918d61514a2ab5b50c5288", "lines": 36, "kind": "source", "addedAfterBaseline": true}
 {"path": "test/workspace-allowlist-paths.test.ts", "module": "test", "sha256": "8c68a23eb054881f029036cbd2a319eaeb8df6a4a90953347d63d2b32567928e", "lines": 20, "kind": "source", "addedAfterBaseline": true}
 {"path": "test/approval-card-roundtrip.test.ts", "module": "test", "sha256": "abea9409a6641855f397f014a8d4661ccb74f1a899016d36ad281ad245a703c4", "lines": 47, "kind": "source", "addedAfterBaseline": true}
+{"path": "src/bridge/session-catalog-view.ts", "module": "catalog", "sha256": "ec11f3c51a9430293c5eef077fed628c3b19fdd6956492954d9b59a8b5cf290c", "lines": 59, "kind": "text", "addedAfterBaseline": true}
+{"path": "test/session-catalog-tree.test.ts", "module": "tests", "sha256": "fb10d09527f19714f8fa0dd502a4afbf1c0cc9d9458ffaa151534bc9ac33346a", "lines": 159, "kind": "text", "addedAfterBaseline": true}
+{"path": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-session-tree.md", "module": "docs", "sha256": "d49f86921ccf8fab49e3ac937fd753476a515375939a2ac9b4294e85775a54ea", "lines": 11, "kind": "text", "addedAfterBaseline": true}
+{"path": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-verification-gaps.md", "module": "docs", "sha256": "d65b75d3404d41621f1c97039c01351fc40d10a5560006eef701ea0651b7d716", "lines": 721, "kind": "generated-structure", "addedAfterBaseline": true}

@@ -98,9 +98,9 @@ test("session overview hides technical details; viewer detail is read-only, acto
   let n = 0;
   const send = (text: string, actor = "viewer") => service.handleMessage({ senderId: actor, replyTargetId: "chat", id: String(n++), text, raw: {} });
   await send("/sessions size 8");
-  assert.equal(cards[0].table.rows.length, 8);
-  assert.equal(cards[0].table.columns.length, 4);
-  assert.equal(cards[0].table.rows[0][1].length, 28);
+  assert.equal(cards[0].table, undefined);
+  assert.equal(cards[0].body.match(/\[R\d+\]/g).length, 8);
+  assert.match(cards[0].body, new RegExp("\\[R1\\] " + compactTableCell(states[0].title, 48) + " · 空闲"));
   assert.doesNotMatch(cards[0].fallbackText, /full-thread-|\/secret\/path/);
   assert.ok(cards[0].fallbackText.length < 1200);
   assert.equal(cards[0].actionGroups.flat()[0].value.arg, "full-thread-0 --host local");
@@ -114,7 +114,7 @@ test("session overview hides technical details; viewer detail is read-only, acto
   await send("/sessions detail R1", "someone-else");
   assert.match(texts.at(-1)!, /已过期/);
   await send("/sessions more");
-  assert.equal(cards.at(-1).table.rows[0][0], "R9");
+  assert.match(cards.at(-1).body, /\[R9\] Title 8/);
   await send("/sessions detail R1");
   assert.match(texts.at(-1)!, /full-thread-0/);
   await send("/sessions search nonexistent");

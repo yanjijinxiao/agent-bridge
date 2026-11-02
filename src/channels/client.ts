@@ -132,8 +132,8 @@ export function createChannelClient(channel: ChannelClient["channel"], capabilit
           return { messageId: questionId, parts };
         })();
       }
-      // Rendering a table does not imply support for interactive buttons.
-      return caps.actions === "available" || (input.card.table && caps.tableLayout === "markdown")
+      // Static card rendering and native button support are independent.
+      return caps.actions === "available" || caps.structuredCards === "available" || (input.card.table && caps.tableLayout === "markdown")
         ? acknowledged("sendActionCard", required(driver.sendActionCard, "actions").call(driver, ordinary))
         : fallback(input.toUserId, input.card.fallbackText, input.contextToken);
     },

@@ -200,6 +200,7 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
       inbound: { ...NO_MEDIA, image: "available", file: "available" },
       outbound: { ...NO_MEDIA, file: "available" },
       tableLayout: account.cardTemplateId ? "markdown" : "list",
+      structuredCards: account.cardTemplateId ? "available" : "not-configured",
       progress: account.cardTemplateId ? "available" : "not-configured",
       turnStatusHeader: account.cardTemplateId ? "available" : "not-configured",
       progressFooter: account.cardTemplateId ? "available" : "not-configured",
@@ -300,7 +301,8 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
     return this.createTextCard(target, card.text, true, undefined, card.atUserIds);
   }
 
-  /** Read-only table in the existing AI template; selection remains a slash command. */
+  /** Structured commands use the existing AI template, including folder trees
+   * without a table. This template still requires complete slash replies. */
   async sendActionCard(input: import("./types.js").ChannelActionCardInput): Promise<ChannelReceipt> {
     const { card } = input;
     if (input.mentions?.length) {
@@ -316,13 +318,24 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
       } catch (error) { throw new ChannelPartialDeliveryError(parts, error); }
       return { messageId: parts.at(-1)!.messageId, parts };
     }
-    if (card.table && this.account.cardTemplateId) {
-      const text = [escapeTableMarkdown(card.title), card.body, renderMarkdownTable(card.table), card.note, card.replyInstructions].filter(Boolean).join("\n\n");
+    if (this.account.cardTemplateId) {
+      // Non-table cards retain their complete document, including reply values
+      // supplied outside the body. Rebuilding only title/body can lose them.
+      const text = card.table ? [escapeTableMarkdown(card.title), card.body, renderMarkdownTable(card.table), card.note, card.replyInstructions].filter(Boolean).join("\n\n") : card.fallbackText;
       try {
-        return await this.createTextCard(this.cardTarget(input.toUserId), text, true);
+        const pages = resultPages(text, DEFAULT_RESULT_PAGE_BYTES - 1_024), target = this.cardTarget(input.toUserId);
+        if (pages.length === 1) return await this.createTextCard(target, pages[0].text, true);
+        const parts: ChannelDeliveryPart[] = [];
+        try {
+          for (const page of pages) {
+            const sent = await this.createTextCard(target, page.text, true);
+            parts.push({ messageId: sent.messageId, text: page.text });
+          }
+        } catch (error) { throw new ChannelPartialDeliveryError(parts, error); }
+        return { messageId: parts.at(-1)!.messageId, parts };
       } catch (error) {
-        if (error instanceof ChannelProgressError) throw error;
-        console.warn(`[codex-im-gateway] DingTalk table card unavailable, falling back to a compact list: ${errorDetail(error)}`);
+        if (error instanceof ChannelProgressError || error instanceof ChannelPartialDeliveryError) throw error;
+        console.warn(`[codex-im-gateway] DingTalk command card unavailable, falling back to a compact list: ${errorDetail(error)}`);
       }
     }
     const parts: ChannelDeliveryPart[] = [];

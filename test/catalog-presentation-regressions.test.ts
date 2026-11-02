@@ -44,18 +44,18 @@ test("native action body has no duplicate copy instructions; text fallback keeps
 test("persisted 50-row preference does not generate 50 copy boxes; default is a short page", async t => {
   const f = fixture(t);
   await f.send("/sessions");
-  assert.equal(f.cards[0].table!.rows.length, 10);
+  assert.equal(f.cards[0].body.match(/\[R\d+\]/g)?.length, 10);
   assert.deepEqual(codeValues(f.cards[0].fallbackText), ["/session R编号", "/sessions more"]);
   assert.match(f.cards[0].fallbackText, /模板/);
   assert.deepEqual(codeValues(f.cards[0].body), []);
   await f.send("/sessions size 50");
   const card = f.cards.at(-1)!;
-  assert.equal(card.table!.rows.length, 50);
+  assert.equal(card.body.match(/\[R\d+\]/g)?.length, 50);
   assert.equal(card.actionGroups.flat().length, 51, "native buttons retain all exact choices");
   assert.deepEqual(codeValues(card.fallbackText), ["/session R编号", "/sessions more"]);
   assert.ok(card.fallbackText.length < 4000);
   await f.send("/sessions more");
-  assert.equal(f.cards.at(-1)!.table!.rows[0][0], "R51");
+  assert.match(f.cards.at(-1)!.body, /\[R51\] Task 50/);
 });
 
 test("historical native registration cannot make the current App project name ambiguous", async t => {

@@ -79,6 +79,8 @@ export type ChannelCapabilities = {
   readonly resultPageBytes?: number;
   /** Presentation supported by this adapter, independent of actionable buttons. */
   readonly tableLayout: ChannelTableLayout;
+  /** Can render structured command cards without advertising native buttons. */
+  readonly structuredCards?: Capability;
   readonly inbound: Readonly<Record<AttachmentKind, Capability>>;
   readonly outbound: Readonly<Record<AttachmentKind, Capability>>;
   readonly progress: Capability;

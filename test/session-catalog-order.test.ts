@@ -82,14 +82,14 @@ test("Bridge groups the full snapshot before slicing; resize and detail keep ori
     weixin: { async sendActionCard(x) { cards.push(x.card); return { messageId: "m" }; }, async sendText(x) { texts.push(x.text); return { messageId: "t" }; } } });
   const send = (text: string) => service.handleMessage({ senderId: "alice", id: String(seq++), text, raw: {} });
   await send("/sessions size 5");
-  assert.deepEqual(cards[0].table?.rows.map(r => r[1]), ["t0", "t2", "t4", "t6", "t1"]);
-  assert.deepEqual(cards[0].table?.rows.map(r => r[2]), ["Alpha", "Alpha", "Alpha", "Alpha", "Beta"]);
+  assert.equal(cards[0].table, undefined, "project tree replaces the wide session table");
+  assert.match(cards[0].body, /📁 \*\*Alpha\*\*[\s\S]*\[R1\] t0[\s\S]*\[R4\] t6[\s\S]*📁 \*\*Beta\*\*[\s\S]*\[R5\] t1/);
   assert.equal(store.listProjects().length, 0, "resolving unbound project names must be read-only");
   states.reverse(); catalog.reverse(); catalog[0] = { ...catalog[0], name: "Changed later" };
   await send("/sessions more");
-  assert.deepEqual(cards.at(-1)!.table?.rows.map(r => r[0]), ["R6", "R7", "R8", "R9"]);
-  assert.deepEqual(cards.at(-1)!.table?.rows.map(r => r[1]), ["t3", "t5", "t7", "free"]);
-  assert.equal(cards.at(-1)!.table?.rows[0][2], "Beta");
+  assert.deepEqual(cards.at(-1)!.body.match(/\[R\d+\]/g), ["[R6]", "[R7]", "[R8]", "[R9]"]);
+  assert.match(cards.at(-1)!.body, /📁 \*\*Beta\*\*[\s\S]*\[R6\] t3[\s\S]*\[R7\] t5[\s\S]*\[R8\] t7[\s\S]*其他会话[\s\S]*\[R9\] free/);
+  assert.doesNotMatch(cards.at(-1)!.body, /Changed later/);
   await send("/sessions size 30");
   assert.equal(cards.at(-1)!.actionGroups.flat()[4].value.arg, "t1 --host local");
   await send("/sessions detail R5");
@@ -98,7 +98,7 @@ test("Bridge groups the full snapshot before slicing; resize and detail keep ori
   assert.equal(catalogCalls, 1); assert.equal(lists, 1);
   assert.equal(store.listSessions().length, 0);
   await send("/sessions search t");
-  assert.equal(cards.at(-1)!.table?.rows.length, 8);
+  assert.equal(cards.at(-1)!.body.match(/\[R\d+\]/g)?.length, 8);
   assert.equal(catalogCalls, 2);
 });
 
@@ -113,9 +113,9 @@ test("missing project catalog preserves readable local and known remote sessions
     weixin: { async sendActionCard(x) { cards.push(x.card); return { messageId: "m" }; }, async sendText() { return { messageId: "t" }; } } });
   await service.handleMessage({ id: "list", senderId: "alice", text: "/sessions", raw: {} });
   assert.deepEqual(hosts.sort(), ["local", "remote"]);
-  assert.equal(cards[0].table?.rows.length, 2);
+  assert.equal(cards[0].body.match(/\[R\d+\]/g)?.length, 2);
   assert.match(cards[0].body, /目录暂不可用/);
-  assert.match(cards[0].table!.rows[0][2], /Known remote/);
+  assert.match(cards[0].body, /📁 \*\*Known remote · remote\*\*/);
   assert.equal(store.listProjects().length, 1);
 });
 
