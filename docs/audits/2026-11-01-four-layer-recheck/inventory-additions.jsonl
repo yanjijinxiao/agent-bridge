@@ -136,3 +136,5 @@
 {"path": "test/wecom-media.test.ts", "module": "tests", "sha256": "a6e8864ab67251508b49044802d3fc3e4fb4b20af89d487dbe9295311441036e", "lines": 149, "kind": "text", "addedAfterBaseline": true}
 {"path": "docs/audits/2026-11-01-four-layer-recheck/completion-worklog.md", "module": "docs", "sha256": "eb0ee7e28ecdc054f82efbaf5a68793ddfe5109d47c1c198358dca011e925069", "lines": 153, "kind": "text", "addedAfterBaseline": true}
 {"path": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md", "module": "docs", "sha256": "7ac043cc212ea067008c2681c2ce4814d8cc55ffff073f76c2bc90cc4948b48a", "lines": 171, "kind": "text", "addedAfterBaseline": true}
+{"path": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md", "module": "docs", "sha256": "764f8bb52a9f2b004ea8cd1a8a63eec7bdb0631b2aa5fdd59f51faba55a7ca89", "lines": 37, "kind": "text", "addedAfterBaseline": true}
+{"path": "test/queue-delivery-integration.test.ts", "module": "tests", "sha256": "ea233897951d53b3656f50ef37655f6f663aa29831ec5ab869e839eb8f34aa40", "lines": 192, "kind": "source", "addedAfterBaseline": true}

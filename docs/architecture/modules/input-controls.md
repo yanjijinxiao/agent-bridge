@@ -11,3 +11,5 @@ prepareTurnSubmission 形成单一应用输入，远端附件先转存，TurnSub
 ## case 和失败归属
 
 full-review-controls、runtime-default-response-source、prompt-buffer、native-queue、turn-submission 以及 inbound receipt 相关测试分别检查最终 guard、正文、排队和持久恢复。命令拒绝、原生执行失败、投递失败有不同错误类型；不能用同一个 catch 清空去重或把已生效操作标为未提交。
+
+CTRL-03.3的queue-delivery-integration沿真实NativeQueueCoordinator、Bridge、原生facade、AccountManager、Hub与磁盘日志联合核对。已送达的旧结果但队列回执尚未结算时，三种终态×有无新轮次都不能标active、建新卡或替换新卡；两次管理器重建后仍只读结算原输入。原生仍运行的矛盾快照不结算，正常pending项仍有进展及一次最终结果。原生API和渠道传输为替身，不证明真实accept/fsync间骤停；具体[记录](../../audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md)保留partial。

@@ -73,8 +73,9 @@
 
 ## 当前检查点与历史来源
 
-业务源码基准为已上线的afbd2d2。最近的业务发布检查为2691项通过、1项Windows专用跳过；本次是文档与证据说明校准，不新增运行验收。原生workflow未知交接、真实SSH/手机联调、33种工作流节点执行等仍在剩余清单中。
+业务源码基准为已上线的afbd2d2。最近的业务发布检查为2691项通过、1项Windows专用跳过；文档校准本身不新增运行验收；后续CTRL-03.3的8项联合场景及相关136项检查另见下列记录。原生workflow未知交接、真实SSH/手机联调、33种工作流节点执行等仍在剩余清单中。
 
+- [队列终态与原卡投递联合检查](../audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md)：三终态×有无新轮次、两次管理器重建、原生仍运行冲突与正常执行。
 - [文档与13项验证边界校准](../audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md)：当前索引、状态汇总、原生/Taskboard职责及每项已测/未测。
 - [渠道媒体适配记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-feishu-wecom-media.md)：飞书文件/MP4视频、企微出站图片/文件/视频及实际SDK与真实平台的区别。
 - [原28项补测记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-gap-regressions.md)：304case阶段的历史快照，不作为当前计数或部署版本。

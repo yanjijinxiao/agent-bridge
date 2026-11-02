@@ -3854,10 +3854,42 @@
             {
               "file": "test/native-turn-lifecycle.test.ts",
               "name": "queue recovery preserves interrupted in its acceptance event instead of announcing a live start"
+            },
+            {
+              "file": "test/queue-delivery-integration.test.ts",
+              "name": "CTRL-03.3: completed queue recovery preserves acknowledged cards across AccountManager reconstruction (newer=false)"
+            },
+            {
+              "file": "test/queue-delivery-integration.test.ts",
+              "name": "CTRL-03.3: completed queue recovery preserves acknowledged cards across AccountManager reconstruction (newer=true)"
+            },
+            {
+              "file": "test/queue-delivery-integration.test.ts",
+              "name": "CTRL-03.3: failed queue recovery preserves acknowledged cards across AccountManager reconstruction (newer=false)"
+            },
+            {
+              "file": "test/queue-delivery-integration.test.ts",
+              "name": "CTRL-03.3: failed queue recovery preserves acknowledged cards across AccountManager reconstruction (newer=true)"
+            },
+            {
+              "file": "test/queue-delivery-integration.test.ts",
+              "name": "CTRL-03.3: interrupted queue recovery preserves acknowledged cards across AccountManager reconstruction (newer=false)"
+            },
+            {
+              "file": "test/queue-delivery-integration.test.ts",
+              "name": "CTRL-03.3: interrupted queue recovery preserves acknowledged cards across AccountManager reconstruction (newer=true)"
+            },
+            {
+              "file": "test/queue-delivery-integration.test.ts",
+              "name": "CTRL-03.3: a conflicting live native owner is not settled or reopened from a historical delivery receipt"
+            },
+            {
+              "file": "test/queue-delivery-integration.test.ts",
+              "name": "CTRL-03.3: a genuinely pending queue item still creates one live card and delivers its own final through AccountManager"
             }
           ],
-          "testGap": "断言止于runner恢复事件，没有在同一场景里断言实际Hub/渠道对已送达完成项的迟到onAccepted零新卡；各终态全部投递时序仍待联合用例。",
-          "verifiedBoundary": "原生快照端口替身分别返回completed/failed/interrupted；observeOnly队列恢复发出的onTurnStarted事件保留原精确终态，completed返回原结果，failed/interrupted返回对应错误。",
+          "testGap": "已补管理器/投递日志的联合边界，但没有真实Gateway进程在accept/fsync间被杀、真实原生服务与供应商发送的全部交错、真实手机呈现；对象重建不冒充进程骤停。",
+          "verifiedBoundary": "既有runner三终态事件断言，加真实NativeQueueCoordinator/Bridge/原生facade/AccountManager/Hub/渠道能力层与磁盘日志联合验证：completed/failed/interrupted×有无新轮次共6组合，管理器重建两次不新建/覆盖卡、不重发原生add/start、不短暂标active；原生仍运行的矛盾状态不结算，正常pending输入仍开一张卡并最终投递一次。显式触发recover入口，原生API、渠道传输及无关后台monitor为替身，不验证5秒自动调度。",
           "boundaryReview": {
             "date": "2026-11-02",
             "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
@@ -3875,6 +3907,37 @@
                 ]
               }
             ]
+          },
+          "implementation": [
+            {
+              "file": "src/bridge/native-queue.ts",
+              "sha256": "ecdec65cbd9d753e7982a7a1ee45b9b4e35add9c2a7e74cb806a74d47ab66f17"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
+            },
+            {
+              "file": "src/codex/app-server-gateway.ts",
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "7b71ded07969d6af2b37bbb50e721a33a2021240a7d7061e75c5299a2725f50e"
+            },
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "8b86953cb9e30cc2c55d6aeb44dfc116b2930a75e907703bc523a49d835c96ea"
+            }
+          ],
+          "integrationReview": {
+            "date": "2026-11-02",
+            "report": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md",
+            "evidenceKind": "production-coordinators-and-journals; fake-native-api-and-channel-transport",
+            "testFile": "test/queue-delivery-integration.test.ts",
+            "testSha256": "ea233897951d53b3656f50ef37655f6f663aa29831ec5ab869e839eb8f34aa40",
+            "cases": 8,
+            "statusPromotion": false
           }
         },
         {
@@ -11415,7 +11478,7 @@
     "mappedDirectTests": 59,
     "deviceAcceptance": "not-performed",
     "workflowNodeExecution": "not-implemented; editor/configuration tests only",
-    "note": "原28项已全部映射；TB-09.5后续已修复并补正式HTTP/SQLite及事务回归，旧失败保留于历史检查点；本轮只补文档边界，不增加运行验收。"
+    "note": "原28项全部映射；TB-09.5已修复并有事务/HTTP回归。13项边界说明补清后，CTRL-03.3又补8个真实编排与持久记录的联合场景；仍不把对象重建当真实进程骤停，不升级partial。"
   },
   "remainingReview": {
     "date": "2026-11-02",
@@ -11487,5 +11550,14 @@
     "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
     "report": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md",
     "scope": "current indexes, native/Taskboard contracts, 13 partial boundaries and exact source references; no code change or acceptance promotion"
+  },
+  "additionalVerification": {
+    "date": "2026-11-02",
+    "report": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md",
+    "newScenarios": 8,
+    "targetedTests": 136,
+    "passed": 136,
+    "skipped": 0,
+    "scope": "explicit production recovery entry; production coordinators and journals with fake native/channel and no-op background monitors; not a real process crash or a new full-release run"
   }
 }

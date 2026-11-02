@@ -6,6 +6,8 @@
 
 - CHAN-03.7/8：飞书文件/视频和企微出站媒体端口、独立上传/消息回执及动作日志重启去重；飞书原始业务状态在SDK解码前核对。真实账号/手机仍待验收。
 
+- CTRL-03.3：新增8项终态/原卡/新轮次与正常执行联合检查，相关136项通过；对象重建和真实进程骤停的区别仍保留。见[联合检查记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md)。
+
 - TB-02.8：补上已接收原生任务的后台只读观察重连，暂停/关闭停止重试。保留一次真实原生接续超时的历史记录，其最细触发时序仍未完整捕获。
 
 - TB-09.5：IM表单的持久交接、服务端精确操作身份与业务数据同事务提交；丢响应/双重启后只读核对原回执，任务、评论及状态变更不会靠内存Map去重。迁移到D1也保留回执。
@@ -166,7 +168,7 @@
 ### CTRL-03 · 队列恢复和取消
 
 - CTRL-03.1：已测：真实文件journal重建配合后端替身：add丢ACK按client ID找回queued，已消费项跨历史分页按ID转running/completed，只有相似正文但无ID匹配则uncertain；add总数不增加，未知项不dispatch。 仍缺：没有真实原生accept/consume与Gateway落盘之间的进程骤停、多客户端并发队列及其全部恢复交错；文件对象重建不能替代这组验证。
-- CTRL-03.3：已测：原生快照端口替身分别返回completed/failed/interrupted；observeOnly队列恢复发出的onTurnStarted事件保留原精确终态，completed返回原结果，failed/interrupted返回对应错误。 仍缺：断言止于runner恢复事件，没有在同一场景里断言实际Hub/渠道对已送达完成项的迟到onAccepted零新卡；各终态全部投递时序仍待联合用例。
+- CTRL-03.3：已测：既有runner三终态事件断言，加真实NativeQueueCoordinator/Bridge/原生facade/AccountManager/Hub/渠道能力层与磁盘日志联合验证：completed/failed/interrupted×有无新轮次共6组合，管理器重建两次不新建/覆盖卡、不重发原生add/start、不短暂标active；原生仍运行的矛盾状态不结算，正常pending输入仍开一张卡并最终投递一次。显式触发recover入口，原生API、渠道传输及无关后台monitor为替身，不验证5秒自动调度。 仍缺：已补管理器/投递日志的联合边界，但没有真实Gateway进程在accept/fsync间被杀、真实原生服务与供应商发送的全部交错、真实手机呈现；对象重建不冒充进程骤停。
 
 ### CTRL-04 · 停止及目标身份
 

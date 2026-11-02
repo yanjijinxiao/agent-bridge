@@ -18,6 +18,10 @@ control-card-delivery 新增四个原版失败场景，覆盖 action/goal form �
 
 DEL-01.3由hub持有执行和结果投递两个事实；AccountSession.followStatus把同一结果投递状态投影到Web，IM沿formatFollowStatus展示。原生idle/完成但最终帧失败仍显示待投递；渠道确认接收不等于用户看见。DEL-07.3联合原生@、中文emoji及IDE页脚计算最终5999/6000/6001字节边界。DEL-08.3从rollout monitor经hub检查子agent/guardian的摘要、工具和假终态隔离；DEL-08.4检查真实accepted input才切段、最终@/IDE所有权、迟到重复终态不新开空卡。DEL-09.3对HTTPS和SDK各连续30次更新，再经过等待/恢复/重启/终态；这些仍是协议/投影验证，手机原生显示另验。CHAN-03.2/3核对DingTalk三路线文件原始字节与精确限额，及DingTalk、Feishu已支持image、WeChat三类媒体的上传成功但消息失败；不将不支持能力写成成功。
 
+## 队列终态与原卡的联合验证
+
+CTRL-03.3新增8项真实编排场景：三终态×有无新轮次，两次管理器重建后保留原卡和精确投递回执，不再次原生add/start，也不短暂标记为执行中。正常队列输入仍创建一张进展卡并最终投递一次；矛盾的原生运行态不能被旧送达回执当成结束。渠道传输和原生API是替身，实际AccountManager回调、Bridge、原生facade和Hub不替换。相关136项通过，没有复现业务回归；对象重建不等于真实Gateway进程骤停或手机显示验收，详见[联合记录](../../audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md)。
+
 ## 飞书与企微媒体端口
 
 FeishuChannelAdapter与WeComChannelAdapter只组合渠道端口；FeishuMediaSender/WeComMediaSender处理各自原生上传与发送，readOutboundMedia共用单文件描述符的有界读取，拒绝空文件/非普通文件/超限及读取期间变化。Feishu图片10MiB、文件与视频30MiB；企微按已安装官方SDK的100×512KiB协议预算限制。现有文本、卡片、更新、提问、历史和结果动作入口保持共用ChannelClient。
