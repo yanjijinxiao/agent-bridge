@@ -1,5 +1,7 @@
 # codex-weixin README Redesign Implementation Plan
 
+> 历史计划，仅保留当时的文档改版过程。产品范围、命令、后端和功能状态已被后续实现取代；不是本次审查的执行指令，不应执行其中的提交步骤或据此回退当前 README。现行入口见仓库根 README。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rewrite the primary Chinese README so codex-weixin is presented as a focused personal-WeChat integration for local OpenAI Codex, with one verified feature/roadmap table and a screenshot location for every capability.

@@ -1182,6 +1182,9 @@ function serveSessionAttachment(
   stream.on("error", (error) => {
     if (response.destroyed) return;
     if (!response.headersSent) {
+      response.removeHeader("Content-Length");
+      response.removeHeader("Content-Range");
+      response.removeHeader("Content-Disposition");
       sendJson(response, 500, { error: error.message });
     } else {
       response.destroy(error);

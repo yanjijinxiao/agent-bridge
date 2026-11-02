@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { NativeAsyncQuestions } from "../src/codex/native-async-questions.js";
+import { AppServerCodexRunner } from "../src/codex/app-server-runner.js";
 import type { NativeInteractionObserver, NativeUserInput } from "../src/codex/interactions.js";
 import type { CodexSteerInput, CodexSteerResult, CodexUserInputAnswer } from "../src/codex/backend.js";
 
@@ -85,4 +86,51 @@ test('removing a native widget invalidates its pending reply before any native i
  f.native.observe('thread','turn',[widget([])],f.observer);await settle();
  const q=f.requests[0].request.questions[0];f.answers[0].resolve({[q.id]:{answers:['late']}});await settle();
  assert.equal(f.writes.length,0);assert.deepEqual(f.results.map(r=>r.result),['withdrawn']);
+});
+
+for (const change of ["none", "observer", "widget", "edited", "peer", "turn", "disconnect"] as const) {
+  test(`native async answer rechecks its original source after connection preparation: ${change}`, async t => {
+    const connected = Promise.withResolvers<void>(), entered = Promise.withResolvers<void>();
+    const runner = new AppServerCodexRunner() as any;
+    runner.ensureConnected = async () => { entered.resolve(); await connected.promise; };
+    let writes = 0, current = true, question: NativeUserInput | undefined;
+    runner.request = async (method: string, params: any) => {
+      assert.equal(method, "turn/steer"); assert.equal(params.threadId, "thread"); assert.equal(params.expectedTurnId, "turn");
+      writes++; return { turnId: "turn" };
+    };
+    const answer = Promise.withResolvers<CodexUserInputAnswer | undefined>();
+    const results: string[] = [];
+    const observer: NativeInteractionObserver = { onApproval: async () => undefined,
+      onUserInput(input) {
+        if (question) return new Promise<CodexUserInputAnswer | undefined>(() => {});
+        question = input; return answer.promise;
+      },
+      onUserInputResult(_input, result) { results.push(result); } };
+    const native = new NativeAsyncQuestions("local", () => current, input => runner.steer(input), () => {});
+    t.after(() => { connected.resolve(); native.disconnect(); runner.close(); });
+    native.observe("thread", "turn", [widget(["first"])], observer); await settle(); assert.ok(question);
+    answer.resolve({ [question.request.questions[0].id]: { answers: ["old answer"] } });
+    await entered.promise;
+    if (change === "observer") current = false;
+    if (change === "widget") native.observe("thread", "turn", [widget([])], observer);
+    if (change === "edited") native.observe("thread", "turn", [widget(["changed question"])], observer);
+    if (change === "peer") {
+      const q = question.request.questions[0];
+      native.observe("thread", "turn", [accepted(`<send_user_message_question_reply>\n${JSON.stringify([
+        { questionItemId: q.id, question: q.question, answer: "peer answer" }])}\n</send_user_message_question_reply>`)], observer);
+    }
+    if (change === "turn") native.end("thread", "turn");
+    if (change === "disconnect") native.disconnect();
+    connected.resolve(); await settle();
+    assert.equal(writes, change === "none" ? 1 : 0);
+    assert.equal(results.includes("confirmed"), false, "an RPC receipt alone never certifies an answered widget");
+  });
+}
+
+test("withdrawing a widget before the notification microtask never invokes its old question callback", async () => {
+  const f = fixture();
+  f.native.observe("thread", "turn", [widget(["first"])], f.observer);
+  f.native.end("thread", "turn");
+  await settle();
+  assert.equal(f.requests.length, 0); assert.equal(f.writes.length, 0);
 });

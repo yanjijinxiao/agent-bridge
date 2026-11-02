@@ -53,3 +53,17 @@ for(const status of ['inProgress','completed'] as const)test(`queue recovery use
  const pending=router.runQueuedSubmission({threadId:'thread',acceptedTurnId:'turn',observeOnly:true,cwd:'/tmp'});
  if(status==='inProgress')await assert.rejects(pending,CodexCommunicationError);else assert.equal((await pending).text,'NATIVE_RESULT');assert.equal(writes,0);
 });
+
+for (const status of ["completed", "failed", "interrupted"] as const) test(`queue recovery preserves ${status} in its acceptance event instead of announcing a live start`, async t => {
+ const starts: unknown[] = [];
+ const router = new CodexBackendRouter({ appServerBackend: {
+  async readThreadSnapshot() { return { state: { threadId: "thread", persistence: "active", runtimeStatus: "idle", activeFlags: [] },
+   turns: [{ id: "turn", status, messages: [{ role: "assistant", text: "NATIVE_RESULT" }] }] }; },
+  close() {}
+ } as never }); t.after(() => router.close());
+ const pending = router.runQueuedSubmission({ threadId: "thread", acceptedTurnId: "turn", observeOnly: true, cwd: "/tmp",
+  onTurnStarted: event => { starts.push(event); } });
+ if (status === "completed") assert.equal((await pending).text, "NATIVE_RESULT");
+ else await assert.rejects(pending, error => (error as { status: string }).status === status);
+ assert.deepEqual(starts, [{ threadId: "thread", turnId: "turn", status }]);
+});

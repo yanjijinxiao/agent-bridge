@@ -125,13 +125,12 @@ async function downloadInboundAttachment(input: {
     throw new InboundMediaTooLargeError(input.maxBytes, plaintext.length);
   }
   const label = labelWithExtension(input.attachment.label, input.attachment.kind, plaintext);
-  const targetPath = uniqueInboundPath({
+  const targetPath = saveInboundAttachment({
     rootDir: input.rootDir,
     senderId: input.senderId,
     messageId: input.messageId,
     label
-  });
-  fs.writeFileSync(targetPath, plaintext);
+  }, plaintext);
   return { kind: input.attachment.kind, path: targetPath, label };
 }
 
@@ -225,22 +224,28 @@ function inferImageExtension(buffer: Buffer): string {
   return ".bin";
 }
 
-function uniqueInboundPath(input: {
+function saveInboundAttachment(input: {
   rootDir: string;
   senderId: string;
   messageId: string;
   label: string;
-}): string {
-  const dir = path.join(input.rootDir, sanitizePathSegment(input.senderId));
-  fs.mkdirSync(dir, { recursive: true });
+}, plaintext: Buffer): string {
+  fs.mkdirSync(input.rootDir, { recursive: true, mode: 0o700 });
+  const root = fs.realpathSync(input.rootDir);
+  const directory = path.join(input.rootDir, sanitizePathSegment(input.senderId));
+  fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+  const dir = fs.realpathSync(directory), relative = path.relative(root, dir);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))
+    throw new Error("Inbound attachment directory is outside its account root");
   const parsed = path.parse(input.label);
   const stem = sanitizeFileName(`${sanitizePathSegment(input.messageId)}-${parsed.name}`);
   const ext = parsed.ext || "";
-  let candidate = path.join(dir, `${stem}${ext}`);
-  for (let index = 1; fs.existsSync(candidate); index += 1) {
-    candidate = path.join(dir, `${stem}-${index}${ext}`);
+  for (let index = 0; index < 10_000; index++) {
+    const candidate = path.join(directory, `${stem}${index ? `-${index}` : ""}${ext}`);
+    try { fs.writeFileSync(candidate, plaintext, { flag: "wx", mode: 0o600 }); return candidate; }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
   }
-  return candidate;
+  throw new Error("Unable to allocate an inbound attachment filename");
 }
 
 function sanitizePathSegment(value: string): string {

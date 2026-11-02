@@ -1,5 +1,7 @@
 # codex-weixin README Redesign
 
+> 历史设计，仅描述当时的个人微信版本。当前多渠道、原生 App Server、进度与多账号能力以仓库根 README 及后端契约为准，不能按旧路线图删除功能。
+
 ## Context
 
 `codex-weixin` is a focused bridge between personal WeChat and a local OpenAI Codex installation. Its README should present that narrow purpose directly instead of positioning the project as a smaller general-purpose agent gateway.

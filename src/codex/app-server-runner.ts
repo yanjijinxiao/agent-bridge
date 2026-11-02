@@ -1,4 +1,4 @@
-import { assertQueueAdmissionCurrent, CodexQueueAdmissionError, CodexInterventionError } from "./backend.js";
+import { assertQueueAdmissionCurrent, CodexQueueAdmissionError, CodexRunAdmissionError, CodexInterventionError } from "./backend.js";
 import { canRecoverSystemError, type CodexSystemRecoveryInput, type CodexSystemRecoveryResult } from "./backend.js";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import crypto from "node:crypto";
@@ -204,6 +204,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private readonly nativeTurnClients = new Map<string, string>();
   private readonly subscribedThreads = new Set<string>();
   private readonly unconfirmedStarts = new Set<string>();
+  private readonly responseWrites = new Set<object>();
 
   constructor(private readonly options: AppServerRunnerOptions = {}) {
     this.asyncQuestions = new NativeAsyncQuestions(options.hostId ?? "local",
@@ -250,18 +251,30 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     if (input.threadId) {
       try {
         if (resume) assertCapacityResume(await this.readThreadSnapshot(input.threadId), resume.failedTurnId);
-        else assertCodexThreadRunnable(await this.inspectThread(input.threadId));
+        else {
+          const state = await this.inspectThread(input.threadId);
+          assertCodexThreadRunnable(state);
+          if (state.runtimeStatus === "active" || state.latestTurnStatus === "inProgress") {
+            // Native queue/add can drain before this client's dispatch read.
+            // Reconcile only the already stored exact item, never start later.
+            const consumed = input.queuedSubmissionId
+              ? await this.findRecentlyConsumedTurn(input.threadId, input.clientUserMessageId) : undefined;
+            if (consumed) return this.adoptQueuedTurn(input as CodexQueuedRunInput, consumed);
+            throw new CodexRunAdmissionError("active", input.threadId);
+          }
+        }
         // inspectThread intentionally recycles a private stdio app-server so a
         // read-only probe cannot retain Desktop's writer lock. Reconnect for
         // the actual queued turn lifecycle.
         await this.ensureConnected();
-        if (!resume) await this.waitForThreadIdle(input.threadId, input.onProgress);
       } catch (error) {
         throw normalizeThreadOperationError(error, input.threadId);
       }
     }
 
-    const nativeProjectId = input.projectId || input.projectName
+    // Project hints describe creation context. A continuation inherits native
+    // membership, including an explicit removal or a move made by another peer.
+    const nativeProjectId = !input.threadId && (input.projectId || input.projectName)
       ? await this.resolveProjectId(input.cwd, input.projectId, input.projectName, input.assertCurrent)
       : undefined;
     let threadResponse: Record<string, unknown>;
@@ -289,11 +302,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       if (input.threadId) throw normalizeThreadOperationError(error, input.threadId);
       throw error;
     }
-    const thread = threadResponse.thread as Record<string, unknown> | undefined;
-    const threadId = typeof thread?.id === "string" ? thread.id : input.threadId;
-    if (!threadId) {
-      throw new Error("Codex app-server did not return a thread id");
-    }
+    const thread = nativeThread(threadResponse, input.threadId);
+    const threadId = thread.id as string;
     this.subscribedThreads.add(threadId);
     this.expectedTurnThreads.set(threadId, (this.expectedTurnThreads.get(threadId) ?? 0) + 1);
     try {
@@ -304,18 +314,6 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       input.assertCurrent?.();
       await this.request("thread/metadata/update", { threadId, projectId: "" });
       if (thread) thread.projectId = null;
-    }
-    if (input.threadId && nativeProjectId && currentProjectId !== nativeProjectId) {
-      try {
-        input.assertCurrent?.();
-        await this.request("thread/metadata/update", { threadId, projectId: nativeProjectId });
-      } catch (error) {
-        if (!isMissingProjectError(error)) throw error;
-        const refreshedProjectId = await this.resolveProjectId(input.cwd, undefined, input.projectName, input.assertCurrent);
-        if (!refreshedProjectId || refreshedProjectId === currentProjectId) throw error;
-        input.assertCurrent?.();
-        await this.request("thread/metadata/update", { threadId, projectId: refreshedProjectId });
-      }
     }
     const currentName = typeof thread?.name === "string" ? thread.name : undefined;
     const threadTitle = cleanThreadTitle(input.threadTitle);
@@ -364,9 +362,15 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       } : {})
     });
     let turnResponse: Record<string, unknown>;
-    if (input.onApproval) this.approvalHandlersByThread.set(threadId, input.onApproval);
-    if (input.onDynamicToolCall) this.dynamicToolHandlersByThread.set(threadId, input.onDynamicToolCall);
-    this.bindUserInputHandlers(threadId, input);
+    // A start can race another accepted turn. Keep the prior turn's handlers
+    // until this input is accepted; an explicit rejection must restore them.
+    const restoreHandlers = [
+      bindThreadHandler(this.approvalHandlersByThread, threadId, input.onApproval),
+      bindThreadHandler(this.approvalResults, threadId, input.onApprovalResult),
+      bindThreadHandler(this.dynamicToolHandlersByThread, threadId, input.onDynamicToolCall),
+      bindThreadHandler(this.userInputHandlersByThread, threadId, input.onUserInput),
+      bindThreadHandler(this.userInputResultHandlersByThread, threadId, input.onUserInputResult)
+    ];
     try {
       if (input.queuedSubmissionId) {
         // Resume itself can cause Codex to drain its native queue. Observe
@@ -401,33 +405,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         turnResponse = await this.request("turn/start", turnParams) as Record<string, unknown>;
       }
     } catch (error) {
-      if (resume || input.queuedSubmissionId || !input.threadId || !isThreadBusyError(error)) {
-        if (isCodexCommunicationFailure(error)) this.unconfirmedStarts.add(threadId);
-        else {
-          this.approvalHandlersByThread.delete(threadId);
-          this.approvalResults.delete(threadId);
-          this.dynamicToolHandlersByThread.delete(threadId);
-          this.userInputHandlersByThread.delete(threadId);
-          this.userInputResultHandlersByThread.delete(threadId);
-        }
-        throw error;
-      }
-      await input.onProgress?.("当前会话刚刚开始了另一条任务，已排队等待完成。");
-      await this.waitForThreadIdle(input.threadId);
-      try {
-        input.assertCurrent?.();
-        turnResponse = await this.request("turn/start", turnParams) as Record<string, unknown>;
-      } catch (retryError) {
-        if (isCodexCommunicationFailure(retryError)) this.unconfirmedStarts.add(threadId);
-        else {
-          this.approvalHandlersByThread.delete(threadId);
-          this.approvalResults.delete(threadId);
-          this.dynamicToolHandlersByThread.delete(threadId);
-          this.userInputHandlersByThread.delete(threadId);
-          this.userInputResultHandlersByThread.delete(threadId);
-        }
-        throw retryError;
-      }
+      if (isCodexCommunicationFailure(error)) this.unconfirmedStarts.add(threadId);
+      else for (const restore of restoreHandlers) restore();
+      // An explicit native busy rejection has not accepted this input. Let the
+      // source re-evaluate steer/native queue; never wait and submit it later.
+      if (!isCodexCommunicationFailure(error) && isThreadBusyError(error)) throw new CodexRunAdmissionError("active", threadId);
+      throw error;
     }
     const turn = turnResponse.turn as Record<string, unknown> | undefined;
     const turnId = typeof turn?.id === "string" ? turn.id : undefined;
@@ -545,15 +528,14 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         if (!/ephemeral threads do not support includeTurns/i.test(String(error))) throw error;
         response = await this.request("thread/read", { threadId, includeTurns: false }) as Record<string, unknown>;
       }
-      const thread = response.thread as Record<string, unknown> | undefined;
-      if (!thread) throw new Error(`Codex app-server returned no thread for ${threadId}`);
+      const thread = nativeThread(response, threadId);
       // Execution preflight needs the latest turn's identity/failure, never its
       // item bodies or the entire growing conversation. Metadata-only readers
       // do not issue this additional RPC at all.
       let latest: Record<string, unknown> | undefined;
       if (!observation && thread.ephemeral !== true) {
-        const page = await this.request("thread/turns/list", { threadId, limit: 1, sortDirection: "desc", itemsView: "notLoaded" }) as { data?: unknown[] };
-        latest = Array.isArray(page.data) && isRecord(page.data[0]) ? page.data[0] : undefined;
+        const page = nativePage(await this.request("thread/turns/list", { threadId, limit: 1, sortDirection: "desc", itemsView: "notLoaded" }), "thread/turns/list");
+        latest = isRecord(page.data[0]) ? page.data[0] : undefined;
       }
       const state = membership(parseThreadState({ ...thread, turns: latest ? [latest] : [] }, persistenceFromThread(thread)));
       const activeTurnId = this.activeTurns.get(threadId);
@@ -666,10 +648,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     await this.ensureConnected();
     try {
       const response = await this.request("thread/unarchive", { threadId }) as Record<string, unknown>;
-      const thread = response.thread as Record<string, unknown> | undefined;
-      const state = thread
-        ? this.sessionMembership()(parseThreadState(thread, "active"))
-        : await this.inspectThread(threadId);
+      const thread = response.thread === undefined ? undefined : nativeThread(response, threadId);
+      const state = thread ? this.sessionMembership()(parseThreadState(thread, "active")) : await this.inspectThread(threadId);
       this.threadStates.set(threadId, state);
       return state;
     } finally {
@@ -703,7 +683,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     let cursor: string | undefined;
     const seenCursors = new Set<string>();
     do {
-      const response = await this.request("thread/list", compactObject({
+      const response = nativePage(await this.request("thread/list", compactObject({
         cursor,
         limit: Math.min(100, limit - states.length),
         sortKey: "updated_at",
@@ -713,8 +693,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         archived,
         // Explicit project membership can span worktrees with different cwd.
         cwd: input.projectId ? undefined : input.cwd
-      }), Math.min(this.options.requestTimeoutMs ?? 15_000, 15_000)) as Record<string, unknown>;
-      for (const value of Array.isArray(response.data) ? response.data : []) {
+      }), Math.min(this.options.requestTimeoutMs ?? 15_000, 15_000)), "thread/list", cursor);
+      for (const value of response.data) {
         if (!isRecord(value)) continue;
         if (desktopCatalogOnly && !isDesktopCatalogThread(value)) continue;
         const state = membership(parseThreadState(value, archived ? "archived" : persistenceFromThread(value)));
@@ -726,7 +706,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const nextCursor = typeof response.nextCursor === "string" && response.nextCursor
         ? response.nextCursor
         : undefined;
-      if (states.length >= limit || !nextCursor || seenCursors.has(nextCursor)) break;
+      if (states.length >= limit || !nextCursor) break;
+      if (seenCursors.has(nextCursor)) throw new Error("Native thread catalog repeated cursor");
       seenCursors.add(nextCursor);
       cursor = nextCursor;
     } while (cursor);
@@ -744,20 +725,20 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     let cursor: string | undefined;
     const seenCursors = new Set<string>();
       do {
-        const response = await this.request("thread/list", compactObject({
+        const response = nativePage(await this.request("thread/list", compactObject({
           cursor,
           limit: 100,
           sourceKinds: ["cli", "vscode", "exec", "appServer", "unknown"],
           archived
-        })) as Record<string, unknown>;
-        if (!isRecord(response) || !Array.isArray(response.data)) throw new Error("Invalid Codex thread catalog response");
+        })), "thread/list", cursor);
         for (const value of response.data) {
           if (isRecord(value) && value.id === threadId) return value;
         }
         const nextCursor = typeof response.nextCursor === "string" && response.nextCursor
           ? response.nextCursor
           : undefined;
-        if (!nextCursor || seenCursors.has(nextCursor)) break;
+        if (!nextCursor) break;
+        if (seenCursors.has(nextCursor)) throw new Error("Native thread catalog repeated cursor");
         seenCursors.add(nextCursor);
         cursor = nextCursor;
       } while (cursor);
@@ -845,15 +826,16 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const seenCursors = new Set<string>();
     let cursor: string | undefined;
     do {
-      const response = await this.request("project/list", compactObject({ cursor, limit: 100 }), Math.min(this.options.requestTimeoutMs ?? 15_000, 15_000)) as Record<string, unknown>;
-      for (const value of Array.isArray(response.data) ? response.data : []) {
+      const response = nativePage(await this.request("project/list", compactObject({ cursor, limit: 100 }), Math.min(this.options.requestTimeoutMs ?? 15_000, 15_000)), "project/list", cursor);
+      for (const value of response.data) {
         const project = parseAppServerProject(value);
         if (project) projects.push(project);
       }
       const nextCursor = typeof response.nextCursor === "string" && response.nextCursor
         ? response.nextCursor
         : undefined;
-      if (!nextCursor || seenCursors.has(nextCursor)) break;
+      if (!nextCursor) break;
+      if (seenCursors.has(nextCursor)) throw new Error("Native project catalog repeated cursor");
       seenCursors.add(nextCursor);
       cursor = nextCursor;
     } while (cursor);
@@ -893,10 +875,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const state = await this.inspectThread(threadId, { includeTurns: false, timeoutMs });
       if (state.persistence === "missing" || state.persistence === "archived") return { state, turns: [] };
       await this.ensureConnected();
-      const response = await this.request("thread/turns/list", {
+      const response = nativePage(await this.request("thread/turns/list", {
         threadId, limit: 20, sortDirection: "desc", itemsView: "summary"
-      }, timeoutMs) as { data?: Array<{ id: string; status: import("./backend.js").CodexTurnStatus; startedAt?: number }> };
-      const turns = (response.data ?? []).slice().reverse();
+      }, timeoutMs), "thread/turns/list");
+      const turns = (response.data as Array<{ id: string; status: import("./backend.js").CodexTurnStatus; startedAt?: number }>).slice().reverse();
       const failure = lastCodexTurnFailure(turns.at(-1));
       const activeId = state.activeTurnId ?? turns.filter(turn => turn.status === "inProgress").at(-1)?.id;
       const active = turns.find(turn => turn.id === activeId && turn.status === "inProgress");
@@ -1040,7 +1022,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   ): Promise<CodexHistoryPage> {
     await this.ensureConnected();
     try {
-      const response = await this.request("thread/turns/list", compactObject({
+      const response = nativePage(await this.request("thread/turns/list", compactObject({
         threadId,
         cursor: input.cursor,
         limit: Math.max(1, Math.min(input.limit ?? 20, 100)),
@@ -1048,8 +1030,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         // Explicit history preserves commentary as well as final replies.
         // The router confines this bulk read to the history-only connection.
         itemsView: "full"
-      })) as Record<string, unknown>;
-      const turns = Array.isArray(response.data) ? response.data.slice() : [];
+      })), "thread/turns/list", input.cursor);
+      const turns = response.data.slice();
       if ((input.sortDirection ?? "desc") === "desc") turns.reverse();
       return {
         messages: parseThreadHistory({ turns }),
@@ -1194,19 +1176,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         return { threadId: input.threadId, turnId, text: observed.text || "任务已完成。", raw: "" };
       }
       const existing = await this.findQueuedTurn(input.threadId, input.clientUserMessageId, input.acceptedTurnId);
-      if (existing) {
-        if (existing.status !== "inProgress") return await this.runQueuedSubmission({ ...input, observeOnly: true, acceptedTurnId: String(existing.id) });
-        if (existing.status === "inProgress" && !this.subscribedThreads.has(input.threadId)) {
-          if (input.onApproval) this.approvalHandlersByThread.set(input.threadId, input.onApproval);
-          this.bindUserInputHandlers(input.threadId, input);
-          await this.request("thread/resume", { threadId: input.threadId, excludeTurns: true });
-          this.subscribedThreads.add(input.threadId);
-          const refreshed = await this.findQueuedTurn(input.threadId, undefined, String(existing.id));
-          if (!refreshed) throw new Error("已接收的轮次无法核对，未重复启动。");
-          return await this.observeQueuedTurn(input, refreshed);
-        }
-        return await this.observeQueuedTurn(input, existing);
-      }
+      if (existing) return await this.adoptQueuedTurn(input, existing);
       if (input.acceptedTurnId) throw new Error("已接收的原生队列轮次暂时无法核对，未重复启动。");
       if (!input.queuedSubmissionId) throw new Error("缺少待执行项 ID，未启动任务。");
       return await this.runWithLease({ ...input, prompt: "" });
@@ -1219,6 +1189,20 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       }
       this.operationLeases--; await this.recyclePrivateTransportIfIdle();
     }
+  }
+
+  private async adoptQueuedTurn(input: CodexQueuedRunInput, turn: Record<string, unknown>): Promise<CodexRunResult> {
+    if (turn.status !== "inProgress") return this.runQueuedSubmission({ ...input, observeOnly: true, acceptedTurnId: String(turn.id) });
+    if (!this.subscribedThreads.has(input.threadId)) {
+      if (input.onApproval) this.approvalHandlersByThread.set(input.threadId, input.onApproval);
+      this.bindUserInputHandlers(input.threadId, input);
+      await this.request("thread/resume", { threadId: input.threadId, excludeTurns: true });
+      this.subscribedThreads.add(input.threadId);
+      const refreshed = await this.findQueuedTurn(input.threadId, undefined, String(turn.id));
+      if (!refreshed) throw new Error("已接收的轮次无法核对，未重复启动。");
+      return this.observeQueuedTurn(input, refreshed);
+    }
+    return this.observeQueuedTurn(input, turn);
   }
 
   private async findQueuedTurn(threadId: string, clientId?: string, turnId?: string): Promise<Record<string, unknown> | undefined> {
@@ -1314,12 +1298,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const seenCursors = new Set<string>();
     let cursor: string | undefined;
     do {
-      const response = await this.request("model/list", compactObject({
+      const response = nativePage(await this.request("model/list", compactObject({
         cursor,
         includeHidden: false,
         limit: 100
-      })) as Record<string, unknown>;
-      const data = Array.isArray(response.data) ? response.data : [];
+      })), "model/list", cursor);
+      const data = response.data;
       for (const item of data) {
         const option = parseModelOption(item);
         if (option && !models.some((candidate) => candidate.model === option.model)) {
@@ -1329,7 +1313,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const nextCursor = typeof response.nextCursor === "string" && response.nextCursor
         ? response.nextCursor
         : undefined;
-      if (!nextCursor || seenCursors.has(nextCursor)) break;
+      if (!nextCursor) break;
+      if (seenCursors.has(nextCursor)) throw new Error("Native model catalog repeated cursor");
       seenCursors.add(nextCursor);
       cursor = nextCursor;
     } while (cursor);
@@ -1412,11 +1397,11 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
 
   hasRestartBlockingWork(): boolean {
     if (this.executionLifetime === "gateway") return this.hasInFlightWork();
-    // A daemon owns accepted turns. Protect RPC handoff and live synchronous
-    // interactions, not the lifetime of its independently executing turns.
+    // A daemon owns execution and pending human requests. Durable uncertain
+    // receipts are reconciled after reconnect, never an indefinite restart latch.
+    // Protect live RPC handoffs and response flushes, not native resolution waits.
     const reads = new Set(["initialize", "server/diagnostics", "thread/read", "thread/list", "thread/turns/list", "thread/queue/list", "project/list", "config/read", "model/list", "account/read", "account/rateLimits/read", "thread/goal/get"]);
-    return this.unconfirmedStarts.size > 0 || [...this.approvalRequests.values()].some(p => p.submitted)
-      || [...this.userInputRequests.values()].some(p => p.submitted)
+    return this.responseWrites.size > 0
       || [...this.pending.values()].some(request => !request.readOnly && !reads.has(request.method));
   }
 
@@ -1524,6 +1509,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       this.stderr = `${this.stderr}${chunk.toString("utf8")}`.slice(-20_000);
     });
     child.once("error", (error) => this.handleChildFailure(child, error));
+    child.stdin.on("error", error => {
+      // A relay can close its read pipe before the process exits. Stream errors
+      // are asynchronous, so send()'s try/catch cannot handle EPIPE. Retire only
+      // this client process; an independent native core keeps its own lifetime.
+      if (this.child === child) this.failTransport(error, true);
+    });
     child.once("exit", (code, signal) => {
       const detail = this.stderr.trim();
       const suffix = detail ? `: ${detail}` : "";
@@ -1607,7 +1598,17 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     if (!this.child || this.child.exitCode !== null || this.child.stdin.destroyed) {
       throw new Error("Codex app-server stdio transport is not connected");
     }
-    this.child.stdin.write(`${JSON.stringify(message)}\n`);
+    const child = this.child, response = message.method === undefined ? {} : undefined;
+    if (response) this.responseWrites.add(response);
+    try {
+      child.stdin.write(`${JSON.stringify(message)}\n`, error => {
+        if (response) this.responseWrites.delete(response);
+        if (error && this.child === child) this.failTransport(error, true);
+      });
+    } catch (error) {
+      if (response) this.responseWrites.delete(response);
+      throw error;
+    }
   }
 
   private handleMessage(raw: string): void {
@@ -1759,7 +1760,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           this.activeTurns.set(threadId, turnId);
           if (origin.onApproval) this.approvalHandlersByThread.set(threadId, origin.onApproval);
           this.bindUserInputHandlers(threadId, origin);
-          void Promise.resolve(origin.onAccepted?.(turnId)).catch(() => {
+          void Promise.resolve().then(() => origin.onAccepted?.(turnId)).catch(() => {
             console.warn("[codex-im-gateway] native turn acknowledgement callback failed; no input replayed");
           });
         }
@@ -1926,31 +1927,6 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     });
   }
 
-  private async waitForThreadIdle(
-    threadId: string,
-    onProgress?: (message: string) => Promise<void> | void
-  ): Promise<void> {
-    let notified = false;
-    while (true) {
-      // Waiting for the writer needs status and a latest-turn guard, not every
-      // tool result ever persisted in this conversation (potentially GBs).
-      const state = await this.inspectThread(threadId);
-      assertCodexThreadRunnable(state);
-      const busy = state.runtimeStatus === "active" || state.latestTurnStatus === "inProgress";
-      if (!busy) return;
-      if (!notified) {
-        notified = true;
-        const detail = state.activeFlags.includes("waitingOnApproval")
-          ? "当前会话正在等待审批，已排队等待处理。"
-          : state.activeFlags.includes("waitingOnUserInput")
-            ? "当前会话正在等待用户输入，已排队等待处理。"
-            : "当前会话的上一条任务仍在执行，已排队等待完成。";
-        await onProgress?.(detail);
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  }
-
   private async finishTurn(
     threadId: string,
     key: string,
@@ -1998,8 +1974,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     if (!interested) {
       const observer = this.interactionObservers.get(threadId);
       const text = event.type === "progress" ? event.text : event.type === "recovery" ? codexRecoverySummary(event.recovery) : undefined;
-      if (observer?.onProgress && text && this.activeTurns.get(threadId) === turnId) void Promise.resolve(
-        observer.onProgress({ hostId: this.options.hostId ?? "local", threadId, turnId }, text)).catch(() => {});
+      if (observer?.onProgress && text && this.activeTurns.get(threadId) === turnId) void Promise.resolve().then(() =>
+        observer.onProgress?.({ hostId: this.options.hostId ?? "local", threadId, turnId }, text)).catch(() => {});
       return;
     }
     const queued = this.queuedTurnEvents.get(key) ?? [];
@@ -2063,7 +2039,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           if (threadId && turnId) this.emitProgress(turnKey(threadId, turnId), url
             ? `当前工具需要在浏览器完成验证：${url}。打开页面不等于已批准或完成验证。`
             : "当前工具有尚未适配或需要安全认证的交互，未自动批准、未收集密码或验证码。请求保持待处理，请从原工具提供的安全页面处理。");
-          if (observer && turnId) void Promise.resolve(observer.onUnsupportedInteraction?.({
+          if (observer && turnId) void Promise.resolve().then(() => observer.onUnsupportedInteraction?.({
             hostId: this.options.hostId ?? "local", threadId, turnId, requestId: id, method,
             reason: url ? "authentication" : "schema-unsupported", ...(url ? { safeUrl: url } : {})
           })).catch(() => {});
@@ -2072,9 +2048,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         }
         // A shared core broadcasts to multiple clients. Missing local context
         // never authorizes declining another client's native interaction.
-        if (observer && typeof params.turnId === "string") void observer.onUnsupportedInteraction?.({
-          hostId: this.options.hostId ?? "local", threadId, turnId: params.turnId, requestId: id, method, reason: "schema-unsupported"
-        });
+        if (observer && typeof params.turnId === "string") {
+          const turnId = params.turnId;
+          void Promise.resolve().then(() => observer.onUnsupportedInteraction?.({
+            hostId: this.options.hostId ?? "local", threadId, turnId, requestId: id, method, reason: "schema-unsupported"
+          })).catch(() => {});
+        }
         return;
       }
       const key = JSON.stringify([request.threadId, typeof id, id]);
@@ -2168,10 +2147,13 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const activeHandler = request ? this.userInputHandlersByThread.get(request.threadId) : undefined;
     const handler = activeHandler ?? (envelope && observer?.onUserInput ? () => observer.onUserInput!(envelope) : undefined);
     if (!request || !handler) {
-      if (observer && typeof params.turnId === "string") void Promise.resolve(observer.onUnsupportedInteraction?.({
-        hostId: this.options.hostId ?? "local", threadId: String(params.threadId), turnId: params.turnId,
-        requestId: id, method: "item/tool/requestUserInput", reason: "schema-unsupported"
-      })).catch(() => {});
+      if (observer && typeof params.turnId === "string") {
+        const turnId = params.turnId;
+        void Promise.resolve().then(() => observer.onUnsupportedInteraction?.({
+          hostId: this.options.hostId ?? "local", threadId: String(params.threadId), turnId,
+          requestId: id, method: "item/tool/requestUserInput", reason: "schema-unsupported"
+        })).catch(() => {});
+      }
       console.warn("[codex-im-gateway] user-input request has no valid channel handler; left unanswered");
       return;
     }
@@ -2249,6 +2231,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     }
     this.activeTurns.clear();
     this.unconfirmedStarts.clear();
+    this.responseWrites.clear();
     this.nativeQueueOrigins.clear();
     this.nativeTurnClients.clear();
     this.subscribedThreads.clear();
@@ -2345,11 +2328,12 @@ function safeCommandPreview(value: unknown): string {
     ? value.filter((part): part is string => typeof part === "string").join(" ")
     : typeof value === "string" ? value : "";
   if (!command) return "";
-  const redacted = command
-    .replace(/\b(Bearer)\s+[A-Za-z0-9._~+\/-]+/gi, "$1 ***")
-    .replace(/\b(token|secret|password|passwd|api[_-]?key)(\s*[:=]\s*)([^\s'\"]+)/gi, "$1$2***")
-    .replace(/([?&](?:access_token|token|api_key)=)[^&\s]+/gi, "$1***");
-  return `\`${boundedText(redacted.replace(/\s+/g, " ").trim(), 220).replaceAll("`", "'")}\``;
+  // A progress label does not need shell argument fidelity. Redacting a value
+  // token-by-token leaks quoted assignments, JSON fields and argv credentials;
+  // omit the whole preview when credential syntax is present instead.
+  if (/(?:token|secret|password|passwd|api[_-]?key|authorization|credential)['"]?\s*(?:[:=]|\s)/i.test(command)
+    || /\bBearer\s+/i.test(command) || /[a-z][a-z\d+.-]*:\/\/[^/\s]*@/i.test(command)) return "参数已隐藏（含敏感字段）";
+  return `\`${boundedText(command.replace(/\s+/g, " ").trim(), 220).replaceAll("`", "'")}\``;
 }
 
 function shortPath(value: string): string {
@@ -2436,14 +2420,19 @@ function isGoalStatus(value: unknown): value is CodexThreadGoalStatus {
     || value === "complete";
 }
 
+function bindThreadHandler<T>(handlers: Map<string, T>, threadId: string, current: T | undefined): () => void {
+  if (current === undefined) return () => {};
+  const previous = handlers.get(threadId);
+  handlers.set(threadId, current);
+  return () => {
+    if (handlers.get(threadId) !== current) return;
+    if (previous === undefined) handlers.delete(threadId); else handlers.set(threadId, previous);
+  };
+}
+
 function isThreadBusyError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /already.*(active|running)|turn.*(active|in progress|running)|thread.*busy/i.test(message);
-}
-
-function isMissingProjectError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return /project.*(?:not found|does not exist|missing)|(?:not found|does not exist|missing).*project/i.test(message);
 }
 
 function isUnsupportedProjectCatalogError(error: unknown): boolean {
@@ -2548,6 +2537,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
+function nativeThread(value: unknown, expectedId?: string): Record<string, unknown> {
+  const thread = isRecord(value) && isRecord(value.thread) ? value.thread : undefined;
+  if (!thread || typeof thread.id !== "string" || !thread.id.trim()) throw new Error("Codex app-server did not return a thread id");
+  if (expectedId !== undefined && thread.id !== expectedId) throw new Error("Native thread identity mismatch");
+  return thread;
+}
+
+/** An invalid page is not an empty catalog or proof that discovery completed. */
+function nativePage(value: unknown, operation: string, cursor?: string): {
+  data: unknown[]; nextCursor?: string; backwardsCursor?: string;
+} {
+  if (!isRecord(value) || !Array.isArray(value.data)
+    || [value.nextCursor, value.backwardsCursor].some(item => item !== undefined && item !== null && typeof item !== "string"))
+    throw new Error(`Invalid native ${operation} page`);
+  const nextCursor = typeof value.nextCursor === "string" && value.nextCursor ? value.nextCursor : undefined;
+  if (nextCursor && nextCursor === cursor) throw new Error(`Native ${operation} repeated cursor`);
+  return { data: value.data, ...(nextCursor ? { nextCursor } : {}),
+    ...(typeof value.backwardsCursor === "string" && value.backwardsCursor ? { backwardsCursor: value.backwardsCursor } : {}) };
+}
+
 function persistenceFromThread(thread: Record<string, unknown>): CodexThreadPersistence {
   if (thread.ephemeral === true) return "ephemeral";
   const rolloutPath = typeof thread.path === "string"
@@ -2612,11 +2621,9 @@ function parseThreadState(
   const latestTurn = turns.at(-1);
   const latestTurnStatus = normalizeTurnStatus(latestTurn?.status);
   const parsedRuntime = parseRuntimeStatus(thread.status);
-  const runtimeStatus = parsedRuntime.runtimeStatus === "unknown"
-    ? latestTurnStatus === "inProgress"
-      ? "active"
-      : latestTurnStatus === "completed" || latestTurnStatus === "failed" || latestTurnStatus === "interrupted" ? "idle" : "unknown"
-    : parsedRuntime.runtimeStatus;
+  // A historical tail is independent of the runtime owner's current state.
+  // Unknown/new native status must not become idle/active merely from history.
+  const runtimeStatus = parsedRuntime.runtimeStatus;
   const updatedAt = unixTimestampToIso(
     thread.updatedAt ?? latestTurn?.completedAt ?? latestTurn?.startedAt ?? thread.createdAt
   );

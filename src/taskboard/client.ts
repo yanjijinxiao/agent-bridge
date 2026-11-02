@@ -74,6 +74,15 @@ export class TaskboardClient {
     this.timeoutMs = options.timeoutMs ?? 5_000;
   }
 
+  /** Guard at the HTTP dispatch boundary, including after file reads and project discovery.
+   * The derived client shares transport settings, never installs a global request guard. */
+  withWriteGuard(assertCurrent: () => void): TaskboardClient {
+    return new TaskboardClient({ baseUrl: this.baseUrl, timeoutMs: this.timeoutMs, fetch: (input, init) => {
+      if (!["GET", "HEAD"].includes((init?.method ?? "GET").toUpperCase())) assertCurrent();
+      return this.fetch(input, init);
+    } });
+  }
+
   async health(): Promise<{ available: true }> {
     await this.listProjects();
     return { available: true };

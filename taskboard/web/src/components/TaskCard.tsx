@@ -2,6 +2,7 @@ import type { MouseEvent } from "react";
 import { TASK_STATUSES, type Task, type TaskPriority, type TaskStatus } from "../types";
 import { ActorAvatar } from "./ActorAvatar";
 import { LinearIcon, LinearPriorityIcon } from "./LinearIcon";
+import { isCalendarDate } from "../../../shared/domain.mjs";
 
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
   none: "无优先级",
@@ -43,7 +44,9 @@ export function TaskCard({
   onOpenThread,
 }: TaskCardProps) {
   const dueDate = task.dueDate
-    ? new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric" }).format(new Date(`${task.dueDate}T12:00:00`))
+    ? isCalendarDate(task.dueDate)
+      ? new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric" }).format(new Date(`${task.dueDate}T12:00:00`))
+      : task.dueDate
     : null;
   const subIssueTotal = task.relations.subIssues.length;
   const completedSubIssues = task.relations.subIssues.filter((issue) => issue.status === "done").length;

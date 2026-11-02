@@ -9,6 +9,8 @@ type HandleLegacyTaskboardCommandInput = {
   readonly input: string;
   readonly context: TaskboardChannelContext;
   readonly options: TaskboardChannelControllerOptions;
+  readonly assertCurrent: () => void;
+  readonly changeBinding: (change: () => void) => void;
   readonly showIssue: (issue: TaskboardIssue, note?: string) => Promise<void>;
   readonly showOverview: () => Promise<void>;
   readonly resolveTarget: (identifier: string) => Promise<TaskboardIssue | undefined>;
@@ -33,7 +35,7 @@ export async function handleLegacyTaskboardCommand(input: HandleLegacyTaskboardC
       return;
     }
     if (issue.threadId) {
-      input.options.stateStore.bindProjectThread(input.message.senderId, input.context.managedProject.id, issue.threadId, issue.title);
+      input.changeBinding(() => input.options.stateStore.bindProjectThread(input.message.senderId, input.context.managedProject.id, issue.threadId!, issue.title));
     }
     if (action === "comment" || action === "attach") {
       await updateLegacyEvidence(input, action, issue, rest.join(" ").trim());
@@ -50,13 +52,14 @@ export async function handleLegacyTaskboardCommand(input: HandleLegacyTaskboardC
       return;
     }
     if (!issue.threadId && action === "start") {
-      input.options.stateStore.createSession(
+      input.changeBinding(() => input.options.stateStore.createSession(
         input.message.senderId,
         input.context.managedProject.workspace,
         issue.title,
         input.context.managedProject.id
-      );
+      ));
     }
+    input.assertCurrent();
     await input.options.runWorkflow(input.message, instruction);
     const refreshed = await input.options.client?.getIssue(issue.identifier);
     if (refreshed) await input.showIssue(refreshed, "已按最新任务状态刷新。");
@@ -65,7 +68,7 @@ export async function handleLegacyTaskboardCommand(input: HandleLegacyTaskboardC
   const issue = await input.resolveTarget(rawAction);
   if (!issue) return;
   if (issue.threadId) {
-    input.options.stateStore.bindProjectThread(input.message.senderId, input.context.managedProject.id, issue.threadId, issue.title);
+    input.changeBinding(() => input.options.stateStore.bindProjectThread(input.message.senderId, input.context.managedProject.id, issue.threadId!, issue.title));
     await input.options.replyText(
       input.message.senderId,
       `已绑定 ${issue.identifier} · ${issue.title}\n下一条消息会在对应 Codex 任务中继续。`
@@ -97,12 +100,13 @@ async function createLegacyIssue(
     await input.showIssue(issue, "已记入待办，尚未开始处理。");
     return;
   }
-  input.options.stateStore.createSession(
+  input.changeBinding(() => input.options.stateStore.createSession(
     input.message.senderId,
     input.context.managedProject.workspace,
     title,
     input.context.managedProject.id
-  );
+  ));
+  input.assertCurrent();
   await input.options.runWorkflow(
     input.message,
     `领取并开始处理刚创建的 ${issue.identifier}；将当前 Codex thread 绑定到该 Issue。`

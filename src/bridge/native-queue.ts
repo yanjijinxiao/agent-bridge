@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { CodexCommunicationError } from "../codex/communication-error.js";
 import { readJsonFile, isJsonObject as record, writeJsonFile } from "../state/json-store.js";
 import { SessionControlQueue } from "./session-control.js";
-import { CodexBackendCapabilityError, CodexQueueAdmissionError, type CodexBridgeBackend, type CodexQueuedSubmission, type CodexQueueAddInput } from "../codex/backend.js";
+import { CodexBackendCapabilityError, CodexQueueAdmissionError, CodexRunAdmissionError, type CodexBridgeBackend, type CodexQueuedSubmission, type CodexQueueAddInput } from "../codex/backend.js";
 
 export type QueueOrigin = {
   mention?: import("../channels/types.js").ChannelMention;
@@ -226,6 +226,11 @@ export class NativeQueueCoordinator {
         this.update(r, { status: "completed", delivered: true, reason: undefined });
         }
       } catch (error) {
+        // A definite busy rejection leaves the same native queue item pending.
+        // It is not an ambiguous start and never permits another queue/add.
+        if (error instanceof CodexRunAdmissionError) {
+          for (const r of receipts) if (r.status === "starting" && !r.turnId) this.update(r, { status: "queued", reason: undefined });
+        }
         // A failure before queue/start leaves the native item pending. After
         // submission it is ambiguous; only reconciliation can decide its fate.
         for (const r of receipts) if (["starting", "running"].includes(r.status) && !r.delivered) this.update(r, {

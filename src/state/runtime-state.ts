@@ -876,10 +876,12 @@ export class RuntimeStateStore {
     const resolvedWorkspace = path.resolve(workspace);
     const project = context?.standalone ? undefined : projectId
       ? this.mutableProject(projectId)
-      : this.projectForWorkspace(resolvedWorkspace);
+      : this.projectForWorkspace(resolvedWorkspace, context?.hostId);
     if (project && project.workspace !== resolvedWorkspace) {
       throw new Error("Session workspace must match its project");
     }
+    if (project && context?.hostId && context.hostId !== (project.hostId ?? "local"))
+      throw new Error("Session host must match its project host");
     if (mode === "qa" && knowledgeBaseId) this.mutableKnowledgeBase(knowledgeBaseId);
     const number = this.state.sessions.filter((session) => session.senderId === senderId).length + 1;
     const session: ManagedSession = {
@@ -1069,14 +1071,17 @@ export class RuntimeStateStore {
     return knowledgeBase;
   }
 
-  private projectForWorkspace(workspace: string): ManagedProject {
-    const existing = this.state.projects.find((project) => project.workspace === workspace);
+  private projectForWorkspace(workspace: string, hostId = "local"): ManagedProject {
+    const matches = this.state.projects.filter(project => project.workspace === workspace && (project.hostId ?? "local") === hostId);
+    if (matches.length > 1) throw new Error("同一主机目录对应多个项目，请明确选择项目。");
+    const existing = matches[0];
     if (existing) return existing;
     const now = new Date().toISOString();
     const project: ManagedProject = {
       id: crypto.randomUUID(),
       name: path.basename(workspace) || workspace,
       workspace,
+      ...(hostId !== "local" ? { hostId, projectKind: "remote" as const } : {}),
       notifications: [],
       createdAt: now,
       updatedAt: now

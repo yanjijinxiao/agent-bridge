@@ -1,4 +1,5 @@
 import { normalizeWorkflowSnapshot } from "../../shared/workflow-control-flow.mjs";
+import { isCalendarDate } from "../../shared/domain.mjs";
 
 const JSON_BODY_LIMIT = 1024 * 1024;
 const ATTACHMENT_BODY_LIMIT = 25 * 1024 * 1024;
@@ -174,8 +175,8 @@ function parseSortOrder(value) {
 
 function parseDueDate(value) {
   const date = stringField(value, "dueDate", { nullable: true, maxLength: 10 });
-  if (date !== null && date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    throw new ApiError(400, "INVALID_FIELD", "'dueDate' must use YYYY-MM-DD");
+  if (date !== null && date !== undefined && !isCalendarDate(date)) {
+    throw new ApiError(400, "INVALID_FIELD", "'dueDate' must be a valid calendar date in YYYY-MM-DD");
   }
   return date;
 }
@@ -830,7 +831,7 @@ function parseCommentPatch(body) {
 }
 
 function parseTaskFilters(searchParams) {
-  const allowed = new Set(["projectId", "status", "archived"]);
+  const allowed = new Set(["projectId", "status", "threadId", "archived"]);
   for (const key of searchParams.keys()) {
     if (!allowed.has(key)) {
       throw new ApiError(400, "UNKNOWN_QUERY_PARAMETER", `Unknown query parameter: ${key}`);
@@ -841,6 +842,8 @@ function parseTaskFilters(searchParams) {
   }
   const projectId = searchParams.get("projectId");
   const status = searchParams.get("status");
+  const threadIdValue = searchParams.get("threadId");
+  const threadId = threadIdValue === null ? undefined : parseThreadId(threadIdValue);
   const archived = searchParams.get("archived") ?? "false";
   if (projectId !== null) validateProjectId(projectId);
   if (status !== null) parseStatus(status);
@@ -851,7 +854,7 @@ function parseTaskFilters(searchParams) {
       "'archived' must be false, true, or all",
     );
   }
-  return { projectId, status, archived };
+  return { projectId, status, threadId, archived };
 }
 
 function sanitizeWorkflowNodeData(value) {
@@ -1049,6 +1052,10 @@ async function listTasks(env, filters) {
     where.push("status = ?");
     values.push(filters.status);
   }
+  if (filters.threadId) {
+    where.push("thread_id = ?");
+    values.push(filters.threadId);
+  }
   if (filters.archived === "false") {
     where.push("archived_at IS NULL");
   } else if (filters.archived === "true") {
@@ -1090,6 +1097,9 @@ async function createTask(env, input, actor) {
   const id = uuid();
   const timestamp = now();
   const assignee = resolveAssignee(input.assigneeTarget, actor);
+  const prefix = projectPrefix(input.projectId);
+  // D1 batches serialize allocation and counter update. Abbreviated legacy
+  // prefixes may be shared by projects; never rename their existing issues.
   const results = await env.DB.batch([
     env.DB.prepare(`
       INSERT INTO tasks (
@@ -1102,7 +1112,10 @@ async function createTask(env, input, actor) {
       )
       SELECT
         ?,
-        ? || '-' || CAST(next_task_number AS TEXT),
+        ? || '-' || CAST(MAX(next_task_number, COALESCE((
+          SELECT MAX(CAST(SUBSTR(identifier, ?) AS INTEGER))
+          FROM tasks WHERE identifier LIKE ?
+        ), 0) + 1) AS TEXT),
         projects.id,
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
@@ -1111,7 +1124,9 @@ async function createTask(env, input, actor) {
       WHERE projects.id = ?
     `).bind(
       id,
-      projectPrefix(input.projectId),
+      prefix,
+      prefix.length + 2,
+      `${prefix}-%`,
       input.title,
       input.description,
       input.status,
@@ -1139,9 +1154,10 @@ async function createTask(env, input, actor) {
     ),
     env.DB.prepare(`
       UPDATE projects
-      SET next_task_number = next_task_number + 1, updated_at = ?
+      SET next_task_number = CAST(SUBSTR((SELECT identifier FROM tasks WHERE id = ?), ?) AS INTEGER) + 1,
+          updated_at = ?
       WHERE id = ?
-    `).bind(timestamp, input.projectId),
+    `).bind(id, prefix.length + 2, timestamp, input.projectId),
   ]);
   if (!changed(results[0]) || !changed(results[1])) {
     throw new ApiError(
@@ -1226,7 +1242,7 @@ async function updateTask(env, id, input, actor) {
   };
 }
 
-async function moveTask(env, id, input) {
+async function moveTask(env, id, input, commentActor) {
   const current = await requireTaskRow(env, id);
   assertTaskVersion(current, input.version);
   if (current.archived_at !== null) {
@@ -1241,7 +1257,8 @@ async function moveTask(env, id, input) {
     `).bind(current.project_id, input.status, current.id).first();
     sortOrder = row.maximum + 1000;
   }
-  const result = await env.DB.prepare(`
+  const timestamp = now();
+  const update = env.DB.prepare(`
     UPDATE tasks
     SET
       status = ?,
@@ -1254,10 +1271,30 @@ async function moveTask(env, id, input) {
     input.status,
     sortOrder,
     input.threadId ?? null,
-    now(),
+    timestamp,
     current.id,
     input.version,
-  ).run();
+  );
+  let result, commentId;
+  if (commentActor) {
+    commentId = uuid();
+    const results = await env.DB.batch([
+      env.DB.prepare(`
+        INSERT INTO comments (
+          id, task_id, body, thread_id, author_type, author_id, author_name,
+          author_avatar_url, version, created_at, updated_at
+        )
+        SELECT ?, id, ?, ?, ?, ?, ?, ?, 1, ?, ?
+        FROM tasks WHERE id = ? AND version = ?
+      `).bind(commentId, input.body, input.threadId ?? null, commentActor.type,
+        commentActor.id, commentActor.name, commentActor.avatarUrl,
+        timestamp, timestamp, current.id, input.version),
+      update,
+    ]);
+    result = results[1];
+  } else {
+    result = await update.run();
+  }
   if (!changed(result)) {
     const latest = await requireTaskRow(env, current.id);
     throw new ApiError(
@@ -1270,6 +1307,7 @@ async function moveTask(env, id, input) {
   return {
     task: await getTask(env, current.id),
     previousStatus: current.status,
+    ...(commentId ? { comment: await hydrateComment(env, await requireCommentRow(env, commentId)) } : {}),
   };
 }
 
@@ -2105,7 +2143,7 @@ async function routeApi(request, env, actor, url) {
   }
 
   const taskMatch = pathname.match(
-    /^\/api\/tasks\/([^/]+)(?:\/(archive|restore|move))?$/,
+    /^\/api\/tasks\/([^/]+)(?:\/(archive|restore|move|transition))?$/,
   );
   if (taskMatch) {
     const taskId = decodePathPart(taskMatch[1], "Task id");
@@ -2128,6 +2166,14 @@ async function routeApi(request, env, actor, url) {
     }
     if (action === "move" && request.method === "POST") {
       return json(200, await moveTask(env, taskId, parseMove(await readJson(request))));
+    }
+    if (action === "transition" && request.method === "POST") {
+      const payload = await readJson(request);
+      assertPlainObject(payload);
+      assertAllowedKeys(payload, new Set(["version", "status", "sortOrder", "threadId", "body"]));
+      const { body, ...move } = payload;
+      const input = { ...parseMove(move), body: stringField(body, "body", { required: true, maxLength: 100_000 }) };
+      return json(200, await moveTask(env, taskId, input, actor));
     }
     if (action === "archive" && request.method === "POST") {
       return json(200, {

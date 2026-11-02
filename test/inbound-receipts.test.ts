@@ -5,8 +5,22 @@ import path from "node:path";
 import test from "node:test";
 import { InboundReceiptJournal } from "../src/bridge/inbound-receipts.js";
 import { CodexCommunicationError } from "../src/codex/communication-error.js";
+import { CodexRunAdmissionError } from "../src/codex/backend.js";
 
 const message = { id: "provider-id", senderId: "actor", replyTargetId: "chat" };
+
+test("definite busy admission can be re-evaluated after restart; accepted input never reopens", async t => {
+  const f = fixture(t);
+  await assert.rejects(f.journal.handle(message, async () => {
+    f.journal.submitting(); throw new CodexRunAdmissionError("active", "thread");
+  }), CodexRunAdmissionError);
+  const restarted = f.restart(); assert.equal(restarted.receipt(message.id)?.phase, "received");
+  await assert.rejects(restarted.handle(message, async () => {
+    restarted.submitting(); restarted.accepted("thread", "turn"); throw new CodexRunAdmissionError("active", "thread");
+  }), CodexRunAdmissionError);
+  assert.equal(f.restart().receipt(message.id)?.phase, "accepted");
+  assert.equal(f.restart().claim(message), false);
+});
 
 test("a proven preflight failure can release a write-ahead claim, while accepted evidence remains stronger", async t => {
   const f = fixture(t);

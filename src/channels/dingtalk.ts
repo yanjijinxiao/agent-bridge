@@ -395,15 +395,18 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
     const providerTarget: DingTalkAICardTarget = target.conversationType === "2"
       ? { type: "group", conversationId: target.conversationId } : { type: "user", staffId: target.actorId };
     let operation: ChannelStreamFailure["operation"] = saved ? "deliver" : "create";
+    let mutationAttempted = false;
     try {
       const accessToken = await this.accessToken();
       if (saved) {
         if (!this.cardClient.deliver) throw new ChannelCapabilityError("dingtalk", "streamRecovery", "not-implemented");
         publish("delivery-pending");
+        mutationAttempted = true;
         await this.cardClient.deliver({ accessToken, outTrackId: instanceId, robotCode: target.robotCode, target: providerTarget });
         publish("delivered");
       } else {
         publish("create-pending");
+        mutationAttempted = true;
         await this.cardClient.create({ accessToken, cardTemplateId: this.account.cardTemplateId!, contentKey: this.account.cardContentKey?.trim() || "content",
           outTrackId: instanceId, robotCode: target.robotCode, target: providerTarget, text: input.text,
           ...(input.activity ? { activity: input.activity } : {}),
@@ -417,13 +420,16 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
         ...(input.progressLayout ? { progressLayout: input.progressLayout } : {}) });
       return { messageId: instanceId };
     } catch (error) {
-      const failure = cardStreamFailure(error, operation);
-      const stage = state.stage === "delivered" ? "delivered" : operation === "create"
+      const failure: ChannelStreamFailure = mutationAttempted ? cardStreamFailure(error, operation)
+        : { operation, code: "PreparationUnavailable", uncertain: false, requestNotSent: true };
+      // A failed preparation cannot weaken an earlier unknown delivery. Only
+      // this attempt is proved unsent; prior provider facts remain unchanged.
+      const stage = !mutationAttempted && saved ? state.stage : state.stage === "delivered" ? "delivered" : operation === "create"
         ? failure.uncertain ? "create-unconfirmed" : "create-rejected"
         : state.stage === "created" ? "created" : failure.uncertain ? "delivery-unconfirmed" : "delivery-rejected";
       publish(stage, failure);
       if (stage === "delivered") throw dingTalkProgressError(error, instanceId);
-      throw new ChannelProgressError(false, undefined, undefined, error, false, failure);
+      throw new ChannelProgressError(!mutationAttempted && !saved, undefined, undefined, error, false, failure);
     }
   }
 
@@ -458,28 +464,29 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
     options.onStatus?.({ state: "connecting" });
     let callbackIdentityReported = false;
     const handle = (frame: DWClientDownStream) => {
-      acknowledge(this.streamClient, frame);
       let body: DingTalkRobotMessage;
       try {
         body = JSON.parse(frame.data) as DingTalkRobotMessage;
       } catch (error) {
         console.warn(`[codex-im-gateway] ignored malformed DingTalk message: ${errorDetail(error)}`);
+        acknowledge(this.streamClient, frame);
         return;
       }
       if (!body || typeof body !== "object" || Array.isArray(body)
         || ["senderStaffId", "senderId", "conversationId", "sessionWebhook", "robotCode", "msgId", "senderNick", "conversationTitle", "msgtype"]
           .some(key => { const value = (body as unknown as Record<string, unknown>)[key]; return value !== undefined && typeof value !== "string"; })) {
         console.warn("[codex-im-gateway] ignored malformed DingTalk message shape");
+        acknowledge(this.streamClient, frame);
         return;
       }
       const actorId = body.senderStaffId?.trim() || body.senderId?.trim();
       const conversationId = body.conversationId?.trim();
       const webhookUrl = body.sessionWebhook?.trim();
-      if (!actorId || !conversationId || !webhookUrl) return;
+      if (!actorId || !conversationId || !webhookUrl) { acknowledge(this.streamClient, frame); return; }
 
       let decoded: ReturnType<typeof decodeDingTalkInbound>;
       try { decoded = decodeDingTalkInbound(body as unknown as Record<string, unknown>); }
-      catch { console.warn("[codex-im-gateway] rejected malformed or excessive DingTalk attachments"); return; }
+      catch { console.warn("[codex-im-gateway] rejected malformed or excessive DingTalk attachments"); acknowledge(this.streamClient, frame); return; }
 
       const expiresAt = normalizeExpiry(body.sessionWebhookExpiredTime);
       const replyTarget: ReplyTarget = {
@@ -511,13 +518,17 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
       try {
         this.cardRouting.remember(conversationId, body.conversationType, body.senderStaffId?.trim(), replyTarget.robotCode,
           { conversationName: body.conversationTitle, actorName: body.senderNick });
-        if (options.claimMessage && !options.claimMessage(message)) return;
+        if (options.claimMessage && !options.claimMessage(message)) { acknowledge(this.streamClient, frame); return; }
       } catch (error) {
         // SDK callbacks are synchronous. Journal failures must reach the one
         // application error boundary, never escape or submit without a claim.
         void this.replyContext.run(replyTarget, () => this.reportMessageError(error, message, options));
         return;
       }
+      // Admission synchronously saves the exact body and source receipt before
+      // acknowledging delivery. A failed save remains unacknowledged so the
+      // provider can redeliver; a known duplicate is already durable above.
+      acknowledge(this.streamClient, frame);
       if (!callbackIdentityReported) {
         callbackIdentityReported = true;
         // Diagnose the wire value, not ReplyTarget's Client ID fallback. Never log

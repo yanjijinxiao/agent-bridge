@@ -10,9 +10,9 @@ import { DingTalkChannelAdapter } from "../src/channels/dingtalk.js";
 import type { DWClientDownStream } from "dingtalk-stream";
 import { CodexCommunicationError } from "../src/codex/communication-error.js";
 
-test("a busy retry with an unconfirmed receipt keeps its subscription and approval owner", async () => {
+test("an unconfirmed start keeps its subscription and approval owner without a busy retry", async () => {
   const wire = new AppServerCodexRunner() as any;
-  wire.ensureConnected = async () => {}; wire.waitForThreadIdle = async () => {};
+  wire.ensureConnected = async () => {};
   wire.inspectThread = async () => ({ threadId: "thread", persistence: "active", runtimeStatus: "idle", activeFlags: [] });
   wire.recyclePrivateTransportIfIdle = async () => {};
   const failure = new CodexCommunicationError("submission", "turn/start", "thread", undefined, Error("timeout"));
@@ -20,12 +20,11 @@ test("a busy retry with an unconfirmed receipt keeps its subscription and approv
   wire.request = async (method: string) => {
     if (method === "thread/resume") return { thread: { id: "thread" } };
     if (method === "thread/unsubscribe") { unsubscribes++; return {}; }
-    if (++starts === 1) throw Error("thread busy");
-    throw failure;
+    starts++; throw failure;
   };
   const handler = async () => "decline" as const;
   await assert.rejects(wire.run({ threadId: "thread", cwd: "/tmp/project", prompt: "test", onApproval: handler }), failure);
-  assert.equal(starts, 2); assert.equal(unsubscribes, 0);
+  assert.equal(starts, 1); assert.equal(unsubscribes, 0);
   assert.equal(wire.unconfirmedStarts.has("thread"), true);
   assert.equal(wire.approvalHandlersByThread.get("thread"), handler);
 });
@@ -140,7 +139,9 @@ for (const receipt of [{}, undefined, { code: "0" }]) test(`Feishu menu mutation
 
 test("missing native runtime evidence remains unknown rather than an invented idle state", async () => {
   const runner = new AppServerCodexRunner() as any;
-  runner.ensureConnected = async () => {}; runner.request = async () => ({ thread: { id: "thread", turns: [] } });
+  runner.ensureConnected = async () => {};
+  runner.request = async (method: string) => method === "thread/read" ? { thread: { id: "thread" } }
+    : method === "thread/turns/list" ? { data: [], nextCursor: null } : assert.fail(`Unexpected native method: ${method}`);
   runner.sessionMembership = () => (state: unknown) => state;
   assert.equal((await runner.inspectThread("thread")).runtimeStatus, "unknown");
 });

@@ -95,14 +95,15 @@ test("restart reconciles orphan questions without replaying an unknown native su
   assert.equal(restored.hasRestartBlockingWork(), false, "a preserved unknown receipt is not an active answer handoff");
 });
 
-for (const kind of ["sync", "async"] as const) test(`restart protects live ${kind} answers until their native receipt, without blocking on historical uncertainty`, async t => {
+for (const kind of ["sync", "async"] as const) test(`restart preserves durable ${kind} answers without waiting for a native receipt or replaying uncertainty`, async t => {
   const f = fixture(t), native = { ...request, kind };
   const pending = f.controller.request("room", native);
-  assert.equal(f.controller.hasRestartBlockingWork(), kind === "sync");
+  await tick();
+  assert.equal(f.controller.hasRestartBlockingWork(), false);
   f.controller.answer("room", "Q1 answer");
-  assert.equal(f.controller.hasRestartBlockingWork(), true, "a saved answer has not been handed off yet");
+  assert.equal(f.controller.hasRestartBlockingWork(), false, "the saved answer is durable before native submission");
   await pending;
-  assert.equal(f.controller.hasRestartBlockingWork(), true, "native answer acknowledgement is still in flight");
+  assert.equal(f.controller.hasRestartBlockingWork(), false, "waiting for native acknowledgement is not an active transport flush");
   await f.controller.reportResult("room", native, "failed");
   assert.equal(f.controller.hasRestartBlockingWork(), false);
   const raw = fs.readFileSync(f.filePath, "utf8");

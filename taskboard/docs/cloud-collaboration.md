@@ -173,6 +173,8 @@ The output directory contains issue content and attachment bytes. It is mode-res
 
 Before importing, authenticate Wrangler, provision the named D1 and R2 resources, and run `npm run cloud:migrate` so the remote D1 schema exists. The target D1 must contain no projects, and none of the bundle's attachment keys may already exist in R2. Import refuses a non-empty target instead of merging or overwriting it.
 
+Before a D1 import is attempted, a failed attachment verification cleans only this attempt's staged objects. Once the D1 write has been attempted, a lost response or failed command leaves its outcome unconfirmed and preserves the R2 objects: committed rows may already reference them. Keep the original export bundle and run `verify` to reconcile the database counts and attachment hashes. Do not repeat `import` or delete staged objects based only on the command's failure; cleanup after a confirmed rollback is an explicit maintenance operation.
+
 Run the one-time Wrangler adapter with an explicit remote-operation acknowledgement:
 
 ```bash

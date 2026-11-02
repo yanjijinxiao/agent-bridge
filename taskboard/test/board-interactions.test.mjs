@@ -171,7 +171,11 @@ test("comments stage, upload, render and delete their own attachments", () => {
   assert.match(apiSource, /\/api\/comments\/\$\{encodeURIComponent\(commentId\)\}\/attachments/);
   assert.match(detailSource, /pendingCommentFiles/);
   assert.match(detailSource, /uploadCommentAttachment\(comment\.id, file\)/);
-  assert.match(detailSource, /comment\.attachments\.map/);
+  // Inline images are rendered in the document; only the remaining files
+  // appear in this list. The real component upload/delete path is exercised
+  // by ai-chat-browser.test.mjs with CODEX_CHROME_TEST_BIN configured.
+  assert.match(detailSource, /className="comment-attachment-list"/);
+  assert.match(detailSource, /comment\.attachments\s*\.filter\(\(attachment\) => !comment\.body\.includes\(attachmentContentUrl\(attachment\)\)\)/);
   assert.match(detailSource, /setPendingAttachmentDelete\(attachment\)/);
 });
 

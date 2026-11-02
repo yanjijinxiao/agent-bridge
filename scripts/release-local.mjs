@@ -251,8 +251,28 @@ export async function main(argv) {
       if (failedPid) await dead(failedPid);
       fs.renameSync(live, path.join(dir, 'dist-failed')); fs.renameSync(backup, live);
     }
-    if (stopped && oldDead) execFileSync('/bin/launchctl', ['bootstrap', options.service.split('/').slice(0, 2).join('/'), options.plist]);
-    m.status = installed ? 'rolled-back' : 'switch-failed'; save(manifest, m); throw error;
+    m.status = installed ? 'rolled-back' : 'switch-failed'; save(manifest, m);
+    if (stopped && oldDead) {
+      execFileSync('/bin/launchctl', ['bootstrap', options.service.split('/').slice(0, 2).join('/'), options.plist]);
+      // Restoring artifacts does not clear the persistent input gate. Reconnect
+      // to the restored process and release only this exact owner's admission;
+      // the old process's request token cannot authenticate the new process.
+      const deadline = Date.now() + 45000;
+      let recoveryError = Error('Restored runtime has not reopened release admission');
+      while (Date.now() < deadline) {
+        try {
+          const restoredPid = pid();
+          if (!Number.isSafeInteger(restoredPid) || restoredPid <= 1 || restoredPid === m.previousPid
+            || treeHash(live) !== m.previous) throw Error('Restored process/artifact not confirmed');
+          await releaseGate.finish(restoredPid);
+          recoveryError = undefined;
+          break;
+        } catch (failure) { recoveryError = failure; }
+        await delay(500);
+      }
+      if (recoveryError) throw new AggregateError([error, recoveryError], 'Gateway rollback could not reopen the restored runtime; release admission remains closed');
+    }
+    throw error;
   } finally {
     if (!oldDead) await releaseGate.cancel();
   }

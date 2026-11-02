@@ -23,6 +23,7 @@ function openBindingExpiryDialog(session) {
   const inherit = document.querySelector("#bindingExpiryInherit"), days = document.querySelector("#bindingExpiryDays");
   inherit.checked = expiry.inherited; days.value = expiry.effectiveDays; days.disabled = inherit.checked;
   document.querySelector("#bindingExpiryError").hidden = true;
+  document.querySelector('#bindingExpiryForm button[type="submit"]').disabled = false;
   document.querySelector("#bindingExpiryDialog").showModal();
 }
 
@@ -35,16 +36,17 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelector("#bindingExpiryForm").addEventListener("submit", async event => {
     event.preventDefault();
     if (!bindingExpiryTarget) return;
-    const target = bindingExpiryTarget, submit = event.submitter, error = document.querySelector("#bindingExpiryError");
+    const target = bindingExpiryTarget, submit = event.submitter ?? document.querySelector('#bindingExpiryForm button[type="submit"]'), error = document.querySelector("#bindingExpiryError");
     try {
       const days = document.querySelector("#bindingExpiryInherit").checked ? null : Number(document.querySelector("#bindingExpiryDays").value);
       if (days !== null && (!Number.isInteger(days) || days < 0 || days > 3650)) throw new Error("请输入 0–3650 的整数天数，0 为关闭。");
       submit.disabled = true; error.hidden = true;
       await api(`/api/sessions/${encodeURIComponent(target.accountId)}/${encodeURIComponent(target.sessionId)}/binding-expiry`,
         { method: "POST", body: { ...target.expected, idleDays: days } });
+      if (bindingExpiryTarget !== target) return;
       document.querySelector("#bindingExpiryDialog").close(); bindingExpiryTarget = undefined;
       await refreshData(false); toast("自动解绑期限已保存，宽限期重新开始。");
-    } catch (failure) { error.textContent = failure.message; error.hidden = false; }
-    finally { submit.disabled = false; }
+    } catch (failure) { if (bindingExpiryTarget === target) { error.textContent = failure.message; error.hidden = false; } }
+    finally { if (!bindingExpiryTarget || bindingExpiryTarget === target) submit.disabled = false; }
   });
 });

@@ -9,7 +9,7 @@ import { stageRemoteFiles, type StageInboundFiles } from "./inbound-files.js";
 import { observeOwnerTurn } from "./native-turn-lifecycle.js";
 import { CodexCommunicationError, isCodexCommunicationFailure } from "./communication-error.js";
 import { assertCapacityResume, assertCodexThreadRunnable, assertQueueAdmissionCurrent, CodexBackendCapabilityError,
-  CodexInterventionError, CodexQueueAdmissionError, CodexTurnExecutionError } from "./backend.js";
+  CodexInterventionError, CodexQueueAdmissionError, CodexRunAdmissionError, CodexTurnExecutionError } from "./backend.js";
 import type { CodexAppServerBackend, CodexBridgeBackend, CodexCapacityResumeInput, CodexExecutionScope,
   CodexHistoryPageInput, CodexMetadataObservation, CodexNativeQueue, CodexQueuedRunInput, CodexQueueAddInput,
   CodexRunnerInput, CodexRunResult, CodexSteerInput, CodexSystemRecoveryInput, CodexThreadGoalStatus,
@@ -41,7 +41,7 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
   private readonly statusReader: CodexMetadataReader;
   private readonly historyReader?: CodexHistoryReader;
   private readonly observations = new Map<string, Promise<unknown>>();
-  private readonly runTails = new Map<string, Promise<void>>();
+  private readonly admittingRuns = new Set<string>();
   private readonly restartRuns = new Set<{ scope?: CodexExecutionScope }>();
   private closed = false;
 
@@ -82,19 +82,24 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
 
   async run(input: CodexRunnerInput): Promise<CodexRunResult> {
     this.mutating(input.threadId, input.hostId);
+    const key = (value: string) => JSON.stringify([input.hostId ?? "local", value]);
+    const keys = new Set([input.queueKey, input.threadId].filter((value): value is string => Boolean(value)).map(key));
+    if ([...keys].some(scope => this.admittingRuns.has(scope))) throw new CodexRunAdmissionError("handoff", input.threadId);
+    for (const scope of keys) this.admittingRuns.add(scope);
+    const release = () => { for (const scope of keys) this.admittingRuns.delete(scope); keys.clear(); };
     return this.execution(async lease => {
-      const key = input.queueKey ?? input.threadId;
-      const execute = () => this.appServerFor(input.hostId).run(this.observeAcceptance(input, lease));
-      if (!key) return execute();
-      const scope = JSON.stringify([input.hostId ?? "local", key]), previous = this.runTails.get(scope);
-      let release!: () => void;
-      const gate = new Promise<void>(resolve => { release = resolve; });
-      const tail = (previous ?? Promise.resolve()).catch(() => undefined).then(() => gate);
-      this.runTails.set(scope, tail);
       try {
-        if (previous) { await input.onProgress?.("当前会话的上一条输入仍在交接，等待处理。"); await previous.catch(() => undefined); }
-        input.assertCurrent?.(); return await execute();
-      } finally { release(); if (this.runTails.get(scope) === tail) this.runTails.delete(scope); }
+        input.assertCurrent?.();
+        return await this.appServerFor(input.hostId).run(this.observeAcceptance({ ...input,
+          onThreadCreated: async threadId => {
+            const scope = key(threadId);
+            if (this.admittingRuns.has(scope) && !keys.has(scope)) throw new CodexRunAdmissionError("handoff", threadId);
+            keys.add(scope); this.admittingRuns.add(scope);
+            await input.onThreadCreated?.(threadId);
+          },
+          onTurnStarted: async event => { try { await input.onTurnStarted?.(event); } finally { release(); } }
+        }, lease));
+      } finally { release(); }
     });
   }
 
@@ -159,7 +164,7 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
         const observed = await this.readTurnLifecycle(input.threadId, input.acceptedTurnId, input.hostId);
         if (observed.status === "unknown" || observed.status === "inProgress" || observed.source === "unknown")
           throw new CodexCommunicationError("observation", "queue/observe", input.threadId, input.acceptedTurnId);
-        await input.onTurnStarted?.({ threadId: input.threadId, turnId: input.acceptedTurnId });
+        await input.onTurnStarted?.({ threadId: input.threadId, turnId: input.acceptedTurnId, status: observed.status });
         if (observed.status !== "completed") throw new CodexTurnExecutionError(observed.status, "原生轮次已确认结束", observed.failureCode);
         return { threadId: input.threadId, turnId: input.acceptedTurnId, text: observed.text || "任务已完成。", raw: "" };
       }
@@ -200,8 +205,8 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
   }
   listThreads(input?: CodexThreadListInput, hostId?: string) { return this.appServerFor(hostId).listThreads(input); }
   listSessionCatalog(input?: CodexThreadListInput, hostId?: string) { return this.appServerFor(hostId).listSessionCatalog(input); }
-  listModels() { return this.appServer.listModels(); }
-  getAccountRateLimits() { return this.appServer.getAccountRateLimits(); }
+  listModels(hostId?: string) { return this.appServerFor(hostId).listModels(); }
+  getAccountRateLimits(hostId?: string) { return this.appServerFor(hostId).getAccountRateLimits(); }
   getGoal(threadId: string, hostId?: string) { return this.appServerFor(hostId).getGoal(threadId); }
   async setGoal(threadId: string, input: { objective?: string; status?: CodexThreadGoalStatus; tokenBudget?: number }, hostId?: string, assertCurrent?: () => void) { assertCurrent?.(); this.mutating(threadId, hostId); return this.appServerFor(hostId).setGoal(threadId, input, assertCurrent); }
   async clearGoal(threadId: string, hostId?: string, assertCurrent?: () => void) { assertCurrent?.(); this.mutating(threadId, hostId); return this.appServerFor(hostId).clearGoal(threadId, assertCurrent); }
@@ -217,7 +222,7 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
   unobserveThreadInteractions(threadId: string, hostId: string) { return this.appServerFor(hostId).unobserveThreadInteractions?.(threadId) ?? Promise.resolve(); }
   interactionSubscriptionReady(threadId: string, hostId: string) { return this.appServerFor(hostId).interactionSubscriptionReady?.(threadId) ?? false; }
   serverIdentity(hostId?: string) { const backend = this.appServerFor(hostId); if (!backend.serverIdentity) throw new Error("Native server diagnostics unavailable"); return backend.serverIdentity(); }
-  hasInFlightWork() { return Boolean(this.restartRuns.size || this.runTails.size || this.appServer.hasInFlightWork?.() || [...this.remoteAppServers.values()].some(b => b.hasInFlightWork?.())); }
+  hasInFlightWork() { return Boolean(this.restartRuns.size || this.admittingRuns.size || this.appServer.hasInFlightWork?.() || [...this.remoteAppServers.values()].some(b => b.hasInFlightWork?.())); }
   isIndependentObservation(scope: CodexExecutionScope) { return [...this.restartRuns].some(r => r.scope?.hostId === scope.hostId && r.scope.threadId === scope.threadId && r.scope.turnId === scope.turnId); }
   hasRestartBlockingWork() { return [...this.restartRuns].some(r => !r.scope) || [this.appServer, ...this.remoteAppServers.values()].some(b => b.hasRestartBlockingWork?.() ?? b.hasInFlightWork?.() ?? false); }
   detachIndependentObservations() { for (const backend of [this.appServer, ...this.remoteAppServers.values()]) backend.detachIndependentObservations?.(); }

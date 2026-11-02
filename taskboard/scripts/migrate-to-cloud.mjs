@@ -329,7 +329,8 @@ export async function createCloudMigrationBundle({
     workspace_path: null,
   }));
   tables.tasks = tables.tasks.map((task) => ({
-    ...task,
+    // Preserve the semantic context before removing machine-local paths.
+    ...cloudTaskRow(task),
     worktree_path: null,
   }));
   tables.workflow_workspaces = tables.workflow_workspaces.map(sanitizeWorkflowRow);
@@ -365,7 +366,8 @@ const CLOUD_COLUMNS = {
 };
 
 function cloudTaskRow(task) {
-  const isWorktree = task.worktree_branch != null;
+  const isWorktree = task.development_context_type === "worktree"
+    || task.worktree_path != null || task.worktree_branch != null;
   return {
     ...task,
     development_context_type: isWorktree
@@ -528,6 +530,7 @@ export async function importCloudMigrationBundle(bundle, { d1, r2 }) {
 
   const attachmentRows = new Map(bundle.tables.attachments.map((row) => [row.id, row]));
   const uploadedKeys = [];
+  let d1Attempted = false;
   let d1Committed = false;
   try {
     for (const attachment of bundle.attachments) {
@@ -540,6 +543,7 @@ export async function importCloudMigrationBundle(bundle, { d1, r2 }) {
     }
     const verified = await verifyR2Attachments(bundle, r2);
 
+    d1Attempted = true;
     await d1.importTables(bundle.tables);
     d1Committed = true;
     const counts = await d1.countByProject();
@@ -549,7 +553,9 @@ export async function importCloudMigrationBundle(bundle, { d1, r2 }) {
       attachments: { verified },
     };
   } catch (error) {
-    if (!d1Committed && typeof r2.delete === "function") {
+    // A rejected transport promise does not prove the D1 transaction rolled
+    // back. Deleting these objects could break already committed references.
+    if (!d1Attempted && typeof r2.delete === "function") {
       const cleanup = await Promise.allSettled(uploadedKeys.map((key) => r2.delete(key)));
       const failures = cleanup.filter((result) => result.status === "rejected");
       if (failures.length > 0) {
@@ -558,6 +564,9 @@ export async function importCloudMigrationBundle(bundle, { d1, r2 }) {
           `${error.message}; cleanup failed for ${failures.length} R2 object(s)`,
         );
       }
+    }
+    if (d1Attempted && !d1Committed) {
+      throw new Error(`${error instanceof Error ? error.message : "D1 import failed"}; D1 import outcome is unconfirmed. R2 objects were preserved; verify the original bundle before cleanup or retry.`, { cause: error });
     }
     throw error;
   }

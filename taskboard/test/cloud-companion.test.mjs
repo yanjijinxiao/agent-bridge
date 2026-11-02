@@ -6,6 +6,7 @@ import test from "node:test";
 
 import { main } from "../cli/taskctl.mjs";
 import { createTaskboardServer } from "../server/index.mjs";
+import { firstNonLoopbackAddress as firstLanAddress, fetchFromNonLoopback } from "./helpers/non-loopback-client.mjs";
 
 const temporaryDirectories = [];
 
@@ -78,11 +79,7 @@ function memoryConfigStore(overrides = {}) {
   };
 }
 
-function firstLanAddress() {
-  return Object.values(os.networkInterfaces())
-    .flat()
-    .find((entry) => entry?.family === "IPv4" && !entry.internal)?.address ?? null;
-}
+
 
 test("cloud config persists Basic Auth credentials and device mappings in a mode-0600 file", async () => {
   const { createCloudConfigStore } = await importCloudConfig();
@@ -519,6 +516,7 @@ test("configured server proxies business APIs without touching local rows and ad
       mode: "cloud",
       realtime: { transport: "poll", intervalMs: 2000 },
       localCapabilities: { available: true },
+      capabilities: { localAiChat: true },
       manageTaskboardSkillPath: app.options.skillPath,
     });
     const session = await fetch(`${baseUrl}/api/local/cloud-session`)
@@ -561,7 +559,8 @@ test("cloud mode exposes machine capabilities only to loopback while local mode 
     },
   });
   const address = await app.listen({ host: "0.0.0.0", port: 0 });
-  const lanBaseUrl = `http://${lanAddress}:${address.port}`;
+  const lanBaseUrl = `http://127.0.0.1:${address.port}`;
+  const peerFetch = (url, options) => fetchFromNonLoopback(url, lanAddress, options);
 
   try {
     for (const pathname of [
@@ -570,14 +569,14 @@ test("cloud mode exposes machine capabilities only to loopback while local mode 
       "/api/workflow-capabilities",
       "/api/projects/portfolio/development-contexts",
     ]) {
-      const response = await fetch(`${lanBaseUrl}${pathname}`);
+      const response = await peerFetch(`${lanBaseUrl}${pathname}`);
       assert.equal(response.status, 403, pathname);
       assert.equal((await response.json()).error.code, "LOCAL_ONLY", pathname);
     }
-    const projectResponse = await fetch(`${lanBaseUrl}/api/projects`);
+    const projectResponse = await peerFetch(`${lanBaseUrl}/api/projects`);
     assert.equal(projectResponse.status, 403);
     assert.equal((await projectResponse.json()).error.code, "LOCAL_ONLY");
-    const taskResponse = await fetch(`${lanBaseUrl}/api/tasks`, {
+    const taskResponse = await peerFetch(`${lanBaseUrl}/api/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ projectId: "portfolio", title: "Must not proxy" }),
@@ -587,9 +586,9 @@ test("cloud mode exposes machine capabilities only to loopback while local mode 
     assert.equal(upstreamCalls, 0);
 
     await store.clearCloud();
-    const localResponse = await fetch(`${lanBaseUrl}/api/device-workspaces`);
+    const localResponse = await peerFetch(`${lanBaseUrl}/api/device-workspaces`);
     assert.equal(localResponse.status, 200);
-    const localProjects = await fetch(`${lanBaseUrl}/api/projects`);
+    const localProjects = await peerFetch(`${lanBaseUrl}/api/projects`);
     assert.equal(localProjects.status, 200);
   } finally {
     await app.close();

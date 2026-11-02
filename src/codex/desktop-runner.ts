@@ -85,7 +85,8 @@ type CompletionWaiter = {
 };
 
 /**
- * Relays turns to the Codex Desktop process that already owns a thread.
+ * Legacy relay for explicit embedders/tests; not used by the production Gateway.
+ * Relays turns to an older Codex Desktop process that already owns a thread.
  *
  * Codex app-server deliberately permits only one writer for a thread. When a
  * Desktop task is selected in a chat channel, a second app-server therefore

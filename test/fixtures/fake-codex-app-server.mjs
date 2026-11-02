@@ -17,6 +17,7 @@ const pendingUserInputs = new Map();
 const goals = new Map();
 const threadNames = new Map();
 const threadProjects = new Map();
+if (process.argv.includes("--existing-other-project")) threadProjects.set("thread-existing", "other-native-project");
 const threadDeveloperInstructions = new Map();
 const subscribedThreads = new Set();
 const archivedThreads = new Set(["thread-archived"]);
@@ -321,6 +322,9 @@ rl.on("line", (line) => {
   }
 
   if (message.method === "thread/metadata/update") {
+    if (process.argv.includes("--forbid-existing-project-write") && message.params.threadId === "thread-existing") {
+      fail(message.id, "ordinary continuation cannot rewrite native project membership"); return;
+    }
     threadProjects.set(message.params.threadId, message.params.projectId);
     respond(message.id, {});
     return;
@@ -567,8 +571,8 @@ rl.on("line", (line) => {
         return;
       }
     }
-    if (prompt === "verify-thread-metadata") {
-      if (threadProjects.get(message.params.threadId) !== "project-native") {
+    if (prompt === "verify-thread-metadata" || prompt === "verify-existing-thread-policy") {
+      if (prompt === "verify-thread-metadata" && threadProjects.get(message.params.threadId) !== "project-native") {
         fail(message.id, "thread must use the native app-server project id resolved by cwd");
         return;
       }

@@ -4,18 +4,20 @@ import vm from "node:vm";
 import test from "node:test";
 
 const script = fs.readFileSync(new URL("../src/web/binding-expiry.js", import.meta.url), "utf8");
-function web() {
+function web(overrides: { api?: (...args: any[]) => Promise<unknown> } = {}) {
   let ready: () => void = () => {};
   const elements = new Map<string, any>(), calls: any[] = [];
   for (const id of ["bindingExpiryTarget", "bindingExpiryInherit", "bindingExpiryDays", "bindingExpiryError", "bindingExpiryDialog", "bindingExpiryForm"]) {
     elements.set(`#${id}`, { value: "", checked: false, hidden: false, disabled: false, handlers: {} as Record<string, (...args: any[]) => unknown>,
-      addEventListener(event: string, handler: (...args: any[]) => unknown) { this.handlers[event] = handler; }, showModal() {}, close() {} });
+      addEventListener(event: string, handler: (...args: any[]) => unknown) { this.handlers[event] = handler; },
+      showModal() { this.open = true; }, close() { this.open = false; } });
   }
+  elements.set('#bindingExpiryForm button[type="submit"]', { disabled: false });
   const context = vm.createContext({ document: { querySelector: (id: string) => elements.get(id),
     addEventListener(_event: string, handler: () => void) { ready = handler; } },
     escapeHtml: (s: string) => s.replaceAll("<", "&lt;").replaceAll(">", "&gt;"),
     accountDisplayName: () => "DingTalk", state: { config: { bindingIdleDays: 15 } },
-    api: async (url: string, options: unknown) => { calls.push({ url, options }); }, refreshData: async () => {}, toast() {} });
+    api: async (url: string, options: unknown) => { calls.push({ url, options }); return overrides.api?.(url, options); }, refreshData: async () => {}, toast() {} });
   vm.runInContext(script, context); ready();
   return { context, elements, calls };
 }
@@ -29,6 +31,33 @@ test("expiry UI distinguishes due-but-protected, disabled, grace and actually de
   }
   assert.match(render({ binding: { bound: false, expiry: { endedReason: "idle" } } }), /session 保留/);
   assert.equal(render({ binding: { bound: false, expiry: { endedReason: "manual" } } }), "");
+});
+
+for (const rejected of [false, true]) test(`a late ${rejected ? "failed" : "successful"} expiry save cannot close or replace a newer dialog target`, async () => {
+  const result = Promise.withResolvers<unknown>(), f = web({ api: () => result.promise });
+  const session = (id: string) => ({ accountId: "account", id, senderId: id, threadId: id,
+    binding: { bound: true, conversationId: id, hostId: "local", threadId: id,
+      expiry: { generation: id, inherited: false, effectiveDays: 15 } } });
+  f.context.openBindingExpiryDialog(session("first"));
+  const pending = f.elements.get("#bindingExpiryForm").handlers.submit({ preventDefault() {}, submitter: { disabled: false } });
+  f.elements.get("#bindingExpiryDialog").close();
+  f.context.openBindingExpiryDialog(session("second"));
+  if (rejected) result.reject(Error("old request failed")); else result.resolve({});
+  await pending;
+  assert.equal(f.elements.get("#bindingExpiryDialog").open, true);
+  assert.equal(vm.runInContext("bindingExpiryTarget.sessionId", f.context), "second");
+  assert.equal(f.elements.get("#bindingExpiryError").hidden, true);
+});
+
+test("expiry form submission without a submitter still saves the exact target", async () => {
+  const f = web();
+  f.context.openBindingExpiryDialog({ accountId: "account", id: "session", senderId: "actor", threadId: "thread",
+    binding: { bound: true, conversationId: "actor", hostId: "local", threadId: "thread",
+      expiry: { generation: "generation", inherited: false, effectiveDays: 15 } } });
+  await f.elements.get("#bindingExpiryForm").handlers.submit({ preventDefault() {}, submitter: null });
+  assert.equal(f.calls.length, 1);
+  assert.equal(f.calls[0].options.body.idleDays, 15);
+  assert.equal(f.elements.get("#bindingExpiryDialog").open, false);
 });
 
 test("expiry dialog preserves the exact binding generation, supports 0/inherit and keeps errors visible", async () => {

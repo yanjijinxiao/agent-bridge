@@ -30,7 +30,7 @@ export class NativeAsyncQuestions {
     this.items.set(scope, items);
     const state = { threadRuntimeStatus: { type: "active" }, turns: [{ turnId, status: "inProgress", items: [...items.values()] }] };
     const receipts = desktopAsyncAnswerReceipts(threadId, state, this.hostId);
-    if (receipts.length) void Promise.resolve(observer.onObservedUserInputAnswers?.(receipts)).catch(() => {});
+    if (receipts.length) void Promise.resolve().then(() => observer.onObservedUserInputAnswers?.(receipts)).catch(() => {});
     for (const [key, pending] of this.pending) if (pending.submitted && pending.expected?.every(expected => receipts.some(r =>
       r.threadId === expected.threadId && r.turnId === expected.turnId && r.questionId === expected.questionId && r.digest === expected.digest))) {
       this.pending.delete(key); this.report(pending, "confirmed");
@@ -54,7 +54,9 @@ export class NativeAsyncQuestions {
       const input: NativeUserInput = { hostId: this.hostId, requestId, method: "item/tool/requestUserInput", request: { ...request, requestId } };
       const pending: Pending = { input, observer, submitted: false, accepted: false };
       this.pending.set(key, pending);
-      void Promise.resolve().then(() => observer.onUserInput!(input)).then(async answers => {
+      const current = () => this.pending.get(key) === pending && this.current(threadId, observer);
+      let sourceInvalidated = false;
+      void Promise.resolve().then(() => current() ? observer.onUserInput!(input) : undefined).then(async answers => {
         if (this.pending.get(key) !== pending) return;
         if (!this.current(threadId, observer)) { this.pending.delete(key); this.report(pending, "withdrawn"); return; }
         if (answers === undefined) { this.pending.delete(key); this.refresh(threadId); return; }
@@ -62,12 +64,20 @@ export class NativeAsyncQuestions {
           digest: asyncAnswerDigest(q.id, q.question, answers[q.id]?.answers[0] ?? "") }));
         const clientUserMessageId = crypto.createHash("sha256").update(JSON.stringify([this.hostId, threadId, requestId, pending.expected])).digest("hex");
         pending.submitted = true;
-        const receipt = await this.steer({ threadId, expectedTurnId: turnId, prompt: asyncUserInputReply(request, answers), clientUserMessageId });
+        const receipt = await this.steer({ threadId, expectedTurnId: turnId, prompt: asyncUserInputReply(request, answers), clientUserMessageId,
+          assertCurrent: () => {
+            const live = current() && desktopAsyncUserInputs(threadId, { threadRuntimeStatus: { type: "active" },
+              turns: [{ turnId, status: "inProgress", items: [...(this.items.get(scope)?.values() ?? [])] }] }, this.hostId)
+              .some(value => (value.requestId ?? JSON.stringify(["async", turnId, value.itemId])) === requestId
+                && JSON.stringify(value.questions) === JSON.stringify(request.questions));
+            if (!live) { sourceInvalidated = true; throw new Error("Native async question source changed before submission"); }
+          } });
         if (receipt.turnId !== turnId) throw new Error("Native async answer identity mismatch");
         if (this.pending.get(key) !== pending) return;
         pending.accepted = true; this.observe(threadId, turnId, [], observer);
       }).catch(() => {
         if (this.pending.get(key) !== pending) return;
+        if (sourceInvalidated) { this.pending.delete(key); this.report(pending, "withdrawn"); return; }
         if (!pending.submitted) this.pending.delete(key);
         pending.failureReported = true; this.report(pending, pending.submitted ? "failed" : "suspended");
       });

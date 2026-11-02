@@ -7,6 +7,7 @@ import { test } from "node:test";
 import { createCloudConfigStore } from "../server/cloud-config.mjs";
 import { createIssueAutomation } from "../server/issue-automation.mjs";
 import { createTaskboardServer } from "../server/index.mjs";
+import { firstNonLoopbackAddress as firstLanAddress, fetchFromNonLoopback } from "./helpers/non-loopback-client.mjs";
 
 function policy(directory, overrides = {}) {
   return {
@@ -73,11 +74,7 @@ async function waitFor(predicate, timeoutMs = 1_000) {
   return false;
 }
 
-function firstLanAddress() {
-  return Object.values(os.networkInterfaces())
-    .flat()
-    .find((entry) => entry?.family === "IPv4" && !entry.internal)?.address ?? null;
-}
+
 
 test("new issues coalesce around one drain worker and a later issue starts again", async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "taskboard-event-automation-"));
@@ -386,7 +383,7 @@ test("LAN task creation persists the issue but cannot launch the local Codex wor
   const address = await app.listen({ host: "0.0.0.0", port: 0 });
 
   try {
-    const response = await fetch(`http://${lanAddress}:${address.port}/api/tasks`, {
+    const response = await fetchFromNonLoopback(`http://127.0.0.1:${address.port}/api/tasks`, lanAddress, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ title: "LAN event", status: "todo" }),

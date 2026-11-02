@@ -51,7 +51,8 @@ import type {
   CodexHistoryMessage,
   CodexModelOption,
   CodexProjectCatalog,
-  CodexRuntimeInfo
+  CodexRuntimeInfo,
+  CodexRuntimeQuery
 } from "../codex/backend.js";
 import type { CodexThreadState } from "../codex/backend.js";
 import { localProjectsAtWorkspace, nativeProjectForManaged } from "../state/project-identity.js";
@@ -440,7 +441,8 @@ export class AccountManager {
         onApproval: request => {
           const route = this.interactionRouting.resolve(scope.hostId, scope.threadId, this.interactionDestinations(), request.turnId).destination;
           const session = route && this.entries.get(route.accountId)?.store?.getSession(route.sessionId);
-          return route && session ? this.requestSessionApproval(route.accountId, session, request) : Promise.resolve("decline" as const);
+          return route && session ? this.requestSessionApproval(route.accountId, session, request)
+            : Promise.reject(new CodexCommunicationError("observation", "interaction/unavailable", request.threadId, request.turnId));
         },
         onApprovalResult: (request, result) => this.reportSessionApprovalResult(request, result),
         onUserInput: request => {
@@ -756,8 +758,8 @@ export class AccountManager {
       inboundReferences: new InboundReferenceStore(path.join(statePaths.inboundDir, "references.json")),
       userInputFilePath: path.join(this.options.paths.runtimeDir, account.accountId, "user-input.json"),
       runner,
-      listCodexModels: () => this.getCodexModels(),
-      getCodexBalance: () => this.getCodexBalance(),
+      listCodexModels: scope => this.getCodexModels(scope),
+      getCodexBalance: hostId => this.getCodexBalance(hostId),
       listCodexProjects: () => this.listCodexProjects(runner),
       llmWiki: this.llmWiki,
       modeSettings: normalizeChannelModeSettings(account.modeSettings),
@@ -810,7 +812,10 @@ export class AccountManager {
         entry.error = connection.state === "error" ? connection.detail : undefined;
       },
       claimMessage: (message) => {
-        if (controller.signal.aborted || this.entries.get(account.accountId) !== entry) return false;
+        // false means already durably claimed, so adapters may acknowledge a
+        // duplicate. A retired owner has made no such guarantee.
+        if (controller.signal.aborted || this.entries.get(account.accountId) !== entry)
+          throw new ForwardingDeferredError("原渠道连接已停止，尚未保存这条新消息，未确认接收。");
         if (!inbox.claim(normalizedMessage(message))) return false;
         // Compatibility tombstone for code rollback. The new journal, rather
         // than this legacy bounded list, decides preparation recovery.
@@ -1255,14 +1260,14 @@ export class AccountManager {
     this.storeFor(accountId).deleteProject(projectId);
   }
 
-  async getCodexRuntimeInfo(): Promise<CodexRuntimeInfo> {
+  async getCodexRuntimeInfo(scope?: CodexRuntimeQuery): Promise<CodexRuntimeInfo> {
     const config = this.configProvider();
     const configured: CodexRuntimeInfo = {
       ...(config.model ? { model: config.model } : {}),
       ...(config.effort ? { effort: config.effort } : {})
     };
     try {
-      const runtime = await this.runnerFor(config).getRuntimeInfo(config.defaultCwd);
+      const runtime = await this.runnerFor(config).getRuntimeInfo(scope?.cwd ?? config.defaultCwd, scope?.threadId, scope?.hostId);
       return {
         model: configured.model ?? runtime.model,
         effort: configured.effort ?? runtime.effort,
@@ -1274,19 +1279,19 @@ export class AccountManager {
     }
   }
 
-  async getCodexModels(): Promise<CodexModelOption[]> {
+  async getCodexModels(scope?: CodexRuntimeQuery): Promise<CodexModelOption[]> {
     let models: CodexModelOption[] = [];
     try {
-      models = await this.runnerFor().listModels();
+      models = await this.runnerFor().listModels(scope?.hostId);
     } catch (error) {
       console.warn(`Codex model list unavailable: ${error instanceof Error ? error.message : String(error)}`);
     }
-    const runtime = await this.getCodexRuntimeInfo();
+    const runtime = await this.getCodexRuntimeInfo(scope);
     return addProviderModelFamily(models, runtime.provider);
   }
 
-  async getCodexBalance(): Promise<CodexAccountBalance> {
-    return this.runnerFor().getAccountRateLimits();
+  async getCodexBalance(hostId?: string): Promise<CodexAccountBalance> {
+    return this.runnerFor().getAccountRateLimits(hostId);
   }
 
   createSession(
@@ -1578,7 +1583,12 @@ export class AccountManager {
           this.refreshNativeRequestSubscriptions();
           acceptedWork({ hostId: session.hostId ?? project?.hostId ?? "local", threadId, turnId });
         },
-        onApproval: (request: CodexApprovalRequest) => this.requestSessionApproval(accountId, session, request),
+        onApproval: async (request: CodexApprovalRequest) => {
+          if (!stillCurrent()) throw new CodexCommunicationError("observation", "interaction/unavailable", request.threadId, request.turnId);
+          const decision = await this.requestSessionApproval(accountId, session, request);
+          if (!stillCurrent()) throw new CodexCommunicationError("observation", "interaction/unavailable", request.threadId, request.turnId);
+          return decision;
+        },
         onApprovalResult: (request, result) => this.reportSessionApprovalResult(request, result),
         onUserInput: request => {
           if (!stillCurrent()) {
@@ -2241,7 +2251,8 @@ export class AccountManager {
     request: CodexApprovalRequest
   ): Promise<CodexApprovalDecision> {
     const entry = this.entries.get(accountId);
-    if (!entry?.service || (entry.status !== "running" && entry.status !== "starting")) return Promise.resolve("decline");
+    if (!entry?.service || (entry.status !== "running" && entry.status !== "starting"))
+      return Promise.reject(new CodexCommunicationError("observation", "interaction/unavailable", request.threadId, request.turnId));
     this.sessionApprovalRoutes.set(request, { service: entry.service, recipientId: session.senderId });
     return entry.service.requestApproval(session.senderId, request);
   }

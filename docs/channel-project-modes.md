@@ -20,7 +20,7 @@
 - `/new --standalone`：在**本机**创建独立会话，每个会话有自己的持久工作目录，不继承当前项目或远程主机。
 - `/session new ...`（以及 `/s new ...`）与 `/new ...` 完全等价，执行相同的权限和模式检查。
 
-这些命令先创建 Gateway 会话记录，下一条普通消息才会调用所选 Codex 后端创建 thread。指定远程项目保留其 hostId，仅 App 后端支持远程执行。独立会话也需要 cwd；它位于账号状态目录的 `workspaces/standalone/session-*` 下，且显式标记 `projectBinding: "none"`，重启和首次消息都不能把它自动归入其他项目。目录不会在切换或结束会话时删除。
+这些命令先创建 Gateway 会话记录，下一条普通消息才会调用选定主机的原生 App Server 创建 thread。指定远程项目保留其 hostId；桌面与纯 CLI 部署使用同一接口。独立会话也需要 cwd；它位于账号状态目录的 `workspaces/standalone/session-*` 下，且显式标记 `projectBinding: "none"`，重启和首次消息都不能把它自动归入其他项目。目录不会在切换或结束会话时删除。
 
 渠道端不要求用户记命令。能承载交互的渠道直接显示可点击控件；飞书收到卡片回调后原位刷新同一张消息，只有卡片过期或平台不支持更新时才新发卡片。文本渠道才显示等价的命令提示。
 
@@ -36,7 +36,7 @@
 | 查看或设置目标 | `/goal` | `codex.goal` |
 | 选择会话 | `/sessions` | `codex.session` |
 
-机器人菜单事件需要订阅 `application.bot.menu_v6`，并在修改机器人能力后按飞书的应用发布流程生效。Bridge 提供受本地管理接口保护的同步入口：`POST /api/accounts/:accountId/sync-feishu-menu`。同步会保留既有的非 Codex 菜单、增量订阅菜单事件，并提交一个机器人默认能力的发布版本。首次同步前，飞书自建应用还需开通应用身份权限 `application:application:patch`；Bridge 会在缺少权限时返回明确提示，不会写入部分菜单配置。
+机器人菜单事件需要订阅 `application.bot.menu_v6`，并在修改机器人能力后按飞书的应用发布流程生效。Bridge 提供受本地管理接口保护的同步入口：`POST /api/accounts/:accountId/sync-feishu-menu`。同步会保留既有的非 Codex 菜单、增量订阅菜单事件，并提交一个机器人默认能力的发布版本。首次同步前，飞书自建应用还需开通应用身份权限 `application:application:patch`。这些平台调用不是跨接口事务，失败会明确报告，不能据此承诺先前配置均未改变。
 
 ## 2. 状态模型
 
@@ -51,11 +51,11 @@
 | collaboration mode | Codex 会话 | `default` 或 Codex 原生 `plan` |
 | goal | Codex thread | 通过 app-server 原生目标接口读取和修改 |
 
-项目级模式切换不能改变项目目录，计划和目标只作用于当前绑定 thread。无项目会话仍可续聊、回看历史；App 后端支持跟随和介入，CLI 不支持的控制明确报错。
+项目级模式切换不能改变项目目录，计划和目标只作用于当前绑定 thread。无项目会话仍可续聊、回看历史；桌面与纯 CLI 部署都使用原生跟随和介入接口，不支持的原生版本会明确报错。
 
 ## 3. 项目与任务同步
 
-项目和 Taskboard 不复制数据，而是按规范化后的绝对工作目录建立一对一映射：
+项目和 Taskboard 不复制数据。现有 Taskboard 项目只含本机工作目录；Gateway 仅在本机原生项目身份明确、目录匹配唯一时关联，远端或同目录多项目的歧义不能按首项猜测：
 
 | 用户动作 | Bridge 行为 | Taskboard 行为 |
 | --- | --- | --- |
@@ -112,7 +112,7 @@ Taskboard 始终负责 Issue 状态、版本和证据。Bridge 只保存当前�
 | 切换项目 | 不读取旧项目会话的 collaboration mode |
 | 切换回原项目会话 | 恢复该会话自己的 collaboration mode |
 
-渠道卡片始终提供相反状态的切换按钮，并保留“查看目标”入口。自然语言语义识别只会把高置信度意图映射到同一个受控动作，不能自由生成参数或命令。
+渠道卡片始终提供相反状态的切换按钮，并保留“查看目标”入口。普通自然语言仍交给当前会话，不调用历史 AI 分类器切换状态。
 
 ## 6. Codex 目标
 

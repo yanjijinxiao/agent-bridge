@@ -16,6 +16,19 @@ import { RuntimeStateStore } from "../src/state/runtime-state.js";
 import { encryptAesEcb } from "../src/weixin/media.js";
 import { normalizeWeixinMessage } from "../src/weixin/messages.js";
 
+// These three legacy Bridge tests inject immediate in-memory methods. Preserve
+// their new per-request client contract; transport/file-read races are exercised
+// with the real TaskboardClient in taskboard-source-ownership.test.ts.
+function taskboardStub<T extends Record<string, (...args: any[]) => unknown>>(methods: T) {
+  return { ...methods, withWriteGuard(assertCurrent: () => void) {
+    const mutations = new Set(["createIssue", "addComment", "moveIssue", "moveIssueWithComment", "uploadAttachment"]);
+    return Object.fromEntries(Object.entries(methods).map(([name, method]) => [name, (...args: unknown[]) => {
+      if (mutations.has(name)) assertCurrent();
+      return method(...args);
+    }]));
+  } };
+}
+
 test("reports WeChat Codex turn status and resolves runtime details for status", async (t) => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-weixin-status-"));
   t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
@@ -177,7 +190,8 @@ test("keeps disabled channel modes out of native choices and command routing", a
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-weixin-disabled-mode-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const stateStore = new RuntimeStateStore(resolveStatePaths(path.join(root, "state")));
-  stateStore.createProject("只允许会话", root);
+  const project = stateStore.createProject("只允许会话", root);
+  stateStore.activateProject("alice@im.wechat", project.id);
   const cards: Array<{ actionGroups: readonly (readonly { value: { command: string; arg: string } }[])[] }> = [];
   let runnerCalls = 0;
   const service = new BridgeService({
@@ -514,11 +528,11 @@ test("lists and binds Taskboard issues to the active Codex session", async (t) =
   const service = new BridgeService({
     config: { ...defaultConfig(tmpDir), allowedSenderIds: ["alice@im.wechat"] },
     stateStore,
-    taskboard: {
+    taskboard: taskboardStub({
       async ensureProjectForWorkspace() { return { id: "project-one", name: "Project One", workspacePath: tmpDir, issueCount: 1 }; },
       async listIssues() { return [issue]; },
       async getIssue() { return issue; }
-    } as never,
+    }) as never,
     weixin: {
       async sendTyping() {},
       async sendText(input: { text: string }) { replies.push(input.text); return { messageId: "sent" }; }
@@ -546,10 +560,10 @@ test("routes Taskboard workflow mutations through Codex and the manage-taskboard
   const service = new BridgeService({
     config: { ...defaultConfig(tmpDir), allowedSenderIds: ["alice@im.wechat"] },
     stateStore,
-    taskboard: {
+    taskboard: taskboardStub({
       async ensureProjectForWorkspace() { return { id: "project-one", name: "Project One", workspacePath: tmpDir, issueCount: 1 }; },
       async getIssue() { return { id: "task-one", identifier: "PROJECT-1", projectId: "project-one", title: "Ship integration", description: "", status: "todo", priority: "high", labels: [], threadId: null, version: 1, createdAt: "", updatedAt: "" }; }
-    } as never,
+    }) as never,
     weixin: { async sendTyping() {}, async sendText() { return { messageId: "sent" }; } } as never,
     runner: {
       async listProjects() { return { backend: "app-server", projects: [] }; },
@@ -605,7 +619,7 @@ test("explicit commands retain Taskboard creation, current-issue context, and ca
   const service = new BridgeService({
     config: { ...defaultConfig(tmpDir), allowedSenderIds: ["alice@im.wechat"] },
     stateStore,
-    taskboard: {
+    taskboard: taskboardStub({
       async projectForWorkspace(workspace: string) {
         return workspace === secondWorkspace
           ? { id: "project-two", name: "Project Two", workspacePath: secondWorkspace, issueCount: 0 }
@@ -640,7 +654,7 @@ test("explicit commands retain Taskboard creation, current-issue context, and ca
         createdTitles.push(input.title);
         return { ...issue, id: "task-two", identifier: "PROJECT-2", title: input.title, status: "todo", threadId: null, version: 1 };
       }
-    } as never,
+    }) as never,
     weixin: {
       async sendText(input: { text: string }) { replies.push(input.text); return { messageId: "sent" }; },
       async sendTaskCard(input) {

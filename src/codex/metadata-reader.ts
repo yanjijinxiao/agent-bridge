@@ -9,7 +9,8 @@ export type MetadataConnection = {
   close(): void;
 };
 
-/** Metadata never shares a transport with bulk history or execution. */
+/** Shared-core transports isolate metadata from bulk history and execution.
+ * Explicit private stdio supplies a restricted view of its one connection. */
 export class CodexMetadataReader extends CodexReadConnections<MetadataConnection> {
   constructor(create: (hostId: string) => MetadataConnection) { super(create, "metadata"); }
 

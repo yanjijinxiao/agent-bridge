@@ -7,6 +7,11 @@ import { ForwardingInbox, type ForwardingTarget } from "../src/bridge/forwarding
 import { InboundReceiptJournal } from "../src/bridge/inbound-receipts.js";
 import { ForwardingDeferredError } from "../src/bridge/forwarding-error.js";
 import { CodexCommunicationError } from "../src/codex/communication-error.js";
+import { CodexRunAdmissionError } from "../src/codex/backend.js";
+import { BridgeService } from "../src/bridge/service.js";
+import { RuntimeStateStore } from "../src/state/runtime-state.js";
+import { resolveStatePaths } from "../src/state/paths.js";
+import { defaultConfig } from "../src/state/config.js";
 import type { ChannelMessage } from "../src/channels/message.js";
 import { forwardingCard } from "../src/bridge/forwarding-card.js";
 import { Lexer } from "marked";
@@ -40,6 +45,36 @@ function fixture(t: test.TestContext) {
     advance() { now += 2001; }, restart() { inbox.stop(); return make(); },
     saved() { return JSON.parse(fs.readFileSync(file, "utf8")).rows as Record<string, any>; } };
 }
+
+test("after a definite start race and restart, the original ordinary message is steered once rather than started or queued", async t => {
+  const f = fixture(t), store = new RuntimeStateStore(resolveStatePaths(path.join(f.root, "state")));
+  const session = store.createSession("room", f.root, "original", undefined, "session", undefined, { standalone: true });
+  store.setSessionThread(session.id, "thread");
+  let active = false, starts = 0, steers = 0, queues = 0;
+  const service = () => new BridgeService({ config: { ...defaultConfig(f.root), allowedSenderIds: ["actor"], streamReplies: false },
+    stateStore: store, inputReceipts: f.receipts,
+    weixin: { async sendTyping() {}, async sendText() { return { messageId: "reply" }; } },
+    runner: {
+      backendInfo: () => ({ id: "app-server", capabilities: { turnSteering: true, nativeQueue: true } }),
+      async inspectThread() { return { threadId: "thread", persistence: "active", runtimeStatus: active ? "active" : "idle",
+        activeFlags: [], ...(active ? { activeTurnId: "native-turn" } : {}) }; },
+      async run() { starts++; active = true; throw new CodexRunAdmissionError("active", "thread"); },
+      async submitThreadMessage(value: { prompt: string; threadId: string }) {
+        steers++; assert.equal(value.threadId, "thread"); assert.match(value.prompt, /original\nmessage/);
+        return { status: "accepted", threadId: "thread", turnId: "native-turn" };
+      },
+      async addQueuedSubmission() { queues++; throw Error("ordinary message must not enter native queue"); }
+    } as never });
+  let current = service(); f.action = message => current.handleMessage(message);
+  const message = { ...input, attachments: [] };
+  await f.inbox.receive(message);
+  assert.equal(f.receipts.receipt(message.id)?.phase, "received"); assert.equal(starts, 1);
+  f.restart(); current = service(); f.advance();
+  await f.inbox.receive(message);
+  assert.equal(starts, 1); assert.equal(steers, 1); assert.equal(queues, 0);
+  assert.equal(f.receipts.receipt(message.id)?.phase, "handled");
+  await f.inbox.receive(message); assert.equal(steers, 1);
+});
 
 test("durable claim retains exact content, attachment descriptors and references before dispatch, without raw provider secrets", t => {
   const f = fixture(t); assert.equal(f.inbox.claim(input), true); assert.equal(f.writes.length, 0);

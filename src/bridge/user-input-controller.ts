@@ -50,6 +50,7 @@ export class ChannelUserInputController {
   private readonly audienceHolds = new Map<string, () => void>();
   private resolutionRetryTimer?: NodeJS.Timeout;
   private closed = false;
+  private noticeTransfers = 0;
 
   constructor(private readonly sendCard: (senderId: string, card: ChannelActionCard, mentions?: readonly ChannelMention[]) => Promise<ChannelReceipt | void>,
     private readonly defaultTimeoutMs?: number, private readonly options: Options = {}) {
@@ -214,7 +215,9 @@ export class ChannelUserInputController {
       }
       this.waiters.set(record.id, waiter);
     });
-    if (deliver) void (async () => {
+    if (deliver) {
+      this.noticeTransfers++;
+      void (async () => {
       try {
         const sent = await this.sendCard(record.senderId, questionCard(record, index, total), record.mentions);
         if (this.closed) return;
@@ -232,7 +235,9 @@ export class ChannelUserInputController {
         }
         console.warn("[codex-im-gateway] user-input notice unconfirmed; original native request retained");
       }
-    })().catch(() => { console.warn("[codex-im-gateway] question delivery receipt could not be persisted"); });
+      })().catch(() => { console.warn("[codex-im-gateway] question delivery receipt could not be persisted"); })
+        .finally(() => { this.noticeTransfers--; });
+    }
     return answer;
   }
 
@@ -362,11 +367,10 @@ export class ChannelUserInputController {
       && ["pending", "answered", "submitting", "unconfirmed"].includes(record.status));
   }
   hasRestartBlockingWork(): boolean {
-    // An unknown receipt is already durable and must never be replayed. It is
-    // not a live handoff: old detached questions otherwise block every release
-    // forever, even after their native turn and source binding have ended.
-    return [...this.waiters.keys()].some(id => this.state.records.find(record => record.id === id)?.kind !== "async")
-      || this.state.records.some(record => ["answered", "submitting"].includes(record.status));
+    // Questions, partial answers and submitted uncertainty are durable. Native
+    // requests replay on observation; answers with unknown receipts never do.
+    // Only actual IM delivery is owned here; the runner protects response writes.
+    return this.noticeTransfers > 0 || this.resolutionUpdates.size > 0;
   }
   hasRequest(senderId: string, request: CodexUserInputRequest): boolean {
     return this.state.records.some(record => record.requestKey === requestKey(senderId, request)

@@ -10,6 +10,9 @@ import { defaultConfig } from "../src/state/config.js";
 import { resolveStatePaths } from "../src/state/paths.js";
 import { saveAccount } from "../src/weixin/accounts.js";
 import { ThreadEventHub, type ThreadSubscription } from "../src/server/thread-event-hub.js";
+import { BridgeService } from "../src/bridge/service.js";
+import { RuntimeStateStore } from "../src/state/runtime-state.js";
+import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.js";
 
 function directory(t: test.TestContext) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-result-restart-"));
@@ -41,6 +44,35 @@ test("an ambiguous external send is disclosed and never automatically resent aft
   assert.equal(await new TurnResultActions(file).apply(scope, output, () => {}, effect), false);
   assert.equal(effects, 2);
 });
+
+for (const outcome of ["confirmed", "observer-failed", "lost-receipt", "unsupported", "remote"] as const) {
+  test(`real Bridge media ${outcome} is recorded done only with a confirmed file receipt`, async t => {
+    const root = directory(t), store = new RuntimeStateStore(resolveStatePaths(path.join(root, "state")));
+    const hostId = outcome === "remote" ? "remote:fixture" : "local";
+    const session = store.createSession("chat", root, "Result", undefined, "session", undefined, { standalone: true, hostId });
+    store.setSessionThread(session.id, "thread");
+    const file = path.join(root, "result.txt"); fs.writeFileSync(file, "isolated file");
+    let sends = 0, reports = 0;
+    const confirmed = outcome === "confirmed" || outcome === "observer-failed";
+    const service = new BridgeService({ stateStore: store, config: defaultConfig(root), runner: {} as never,
+      onOutboundMessage: () => { if (outcome === "observer-failed") throw Error("isolated observer failure"); },
+      channel: createChannelClient("generic", { ...TEXT_CAPABILITIES,
+        outbound: { ...TEXT_CAPABILITIES.outbound, file: outcome === "unsupported" ? "not-implemented" : "available" } }, {
+        async sendText() { reports++; return { messageId: "notice" }; },
+        async sendMedia() { sends++; if (outcome === "lost-receipt") throw Error("isolated receipt lost"); return { messageId: "file-receipt" }; }
+      }) });
+    const journalFile = path.join(root, "result-actions.json"), scope = ["account", session.id, hostId, "thread", "turn"];
+    const result = "Result\n```codex-im-gateway-actions\n" + JSON.stringify({ send: [{ type: "file", path: file }] }) + "\n```";
+    const effect = (action: import("../src/bridge/turn-result-actions.js").TurnResultAction) =>
+      service.applyRecoveredAction(session.id, { hostId, threadId: "thread" }, action);
+    assert.equal(await new TurnResultActions(journalFile).apply(scope, result, () => {}, effect), confirmed);
+    const phases = Object.values(JSON.parse(fs.readFileSync(journalFile, "utf8")).records);
+    assert.deepEqual(phases, [confirmed ? "done" : "started"]);
+    assert.equal(await new TurnResultActions(journalFile).apply(scope, result, () => {}, effect), confirmed);
+    assert.equal(sends, confirmed || outcome === "lost-receipt" ? 1 : 0);
+    assert.equal(reports, confirmed ? 0 : 1, "failure notices must not repeat with journal recovery");
+  });
+}
 
 test("a changed binding is checked before every new effect and is never claimed or applied", async t => {
   const journal = new TurnResultActions(path.join(directory(t), "actions.json")); let effects = 0, current = true;

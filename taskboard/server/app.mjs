@@ -14,6 +14,7 @@ import {
   TASK_STATUSES,
   isTaskPriority,
   isTaskStatus,
+  isCalendarDate,
 } from "../shared/domain.mjs";
 import { normalizeWorkflowSnapshot } from "../shared/workflow-control-flow.mjs";
 import { AiChatService } from "./ai-chat.mjs";
@@ -282,8 +283,8 @@ function pathField(value, name) {
 
 function parseDueDate(value, name = "dueDate") {
   const date = stringField(value, name, { nullable: true, maxLength: 10 });
-  if (date !== null && date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    throw new ApiError(400, "INVALID_FIELD", `'${name}' must use YYYY-MM-DD`);
+  if (date !== null && date !== undefined && !isCalendarDate(date)) {
+    throw new ApiError(400, "INVALID_FIELD", `'${name}' must be a valid calendar date in YYYY-MM-DD`);
   }
   return date;
 }

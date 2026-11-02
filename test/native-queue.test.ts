@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { NativeQueueCoordinator, type QueueOrigin } from "../src/bridge/native-queue.js";
 import { CodexCommunicationError } from "../src/codex/communication-error.js";
-import { CodexQueueAdmissionError } from "../src/codex/backend.js";
+import { CodexQueueAdmissionError, CodexRunAdmissionError } from "../src/codex/backend.js";
 import { APP_SERVER_BACKEND_CAPABILITIES, EXEC_BACKEND_CAPABILITIES,
   type CodexBridgeBackend, type CodexHistoryMessage, type CodexQueuedSubmission } from "../src/codex/backend.js";
 
@@ -45,6 +45,20 @@ function fixture(t: test.TestContext) {
     setHistory(messages: CodexHistoryMessage[]) { history = messages; },
     journal() { return new NativeQueueCoordinator(file); } };
 }
+
+test("a definite busy queue/start rejection preserves the same queued item across restart without another add", async t => {
+  const f = fixture(t), journal = f.journal();
+  const original = await journal.enqueue(f.origin, "payload", f.backend);
+  await assert.rejects(journal.dispatch("ding", f.backend, async (_r, starting) => {
+    starting(); throw new CodexRunAdmissionError("active", "original");
+  }), CodexRunAdmissionError);
+  const restarted = f.journal();
+  assert.equal(restarted.list("ding")[0].status, "queued");
+  await restarted.dispatch("ding", f.backend, async (r, starting, started) => {
+    assert.equal(r.queuedSubmissionId, original.queuedSubmissionId); starting(); started("accepted");
+  });
+  assert.equal(f.adds, 1); assert.equal(restarted.list("ding")[0].delivered, true);
+});
 
 test("native queue owns prompts; receipts retain identity and dedupe across restart", async t => {
   const f = fixture(t); let j = f.journal();

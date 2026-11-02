@@ -363,7 +363,6 @@ export class TaskboardDatabase {
     if (!taskColumns.some((column) => column.name === "recurrence_unit")) {
       this.database.exec("ALTER TABLE tasks ADD COLUMN recurrence_unit TEXT");
     }
-    this.#migrateTaskStatuses();
     const migratedTaskColumns = this.database.prepare("PRAGMA table_info(tasks)").all();
     if (!migratedTaskColumns.some((column) => column.name === "creator_type")) {
       this.database.exec("ALTER TABLE tasks ADD COLUMN creator_type TEXT NOT NULL DEFAULT 'user'");
@@ -405,6 +404,7 @@ export class TaskboardDatabase {
         throw error;
       }
     }
+    this.#migrateTaskStatuses();
     this.database.exec(`
       CREATE INDEX IF NOT EXISTS tasks_project_status_sort
         ON tasks(project_id, archived_at, status, sort_order, created_at)
@@ -521,6 +521,15 @@ export class TaskboardDatabase {
           labels TEXT NOT NULL DEFAULT '[]',
           sort_order REAL NOT NULL,
           thread_id TEXT,
+          creator_type TEXT NOT NULL DEFAULT 'user',
+          creator_id TEXT NOT NULL DEFAULT 'local-user',
+          creator_name TEXT NOT NULL DEFAULT '本地用户',
+          creator_avatar_url TEXT,
+          assignee_type TEXT CHECK (assignee_type IN ('user', 'agent')),
+          assignee_id TEXT,
+          assignee_name TEXT,
+          assignee_avatar_url TEXT,
+          workflow_id TEXT,
           git_branch TEXT,
           worktree_path TEXT,
           worktree_branch TEXT,
@@ -536,12 +545,16 @@ export class TaskboardDatabase {
         INSERT INTO tasks_status_migration (
           id, identifier, project_id, title, description, status, priority, labels,
           sort_order, thread_id, git_branch, worktree_path, worktree_branch,
+          creator_type, creator_id, creator_name, creator_avatar_url,
+          assignee_type, assignee_id, assignee_name, assignee_avatar_url, workflow_id,
           due_date, recurrence_interval, recurrence_unit,
           archived_at, version, created_at, updated_at
         )
         SELECT
           id, identifier, project_id, title, description, status, priority, labels,
           sort_order, thread_id, git_branch, worktree_path, worktree_branch,
+          creator_type, creator_id, creator_name, creator_avatar_url,
+          assignee_type, assignee_id, assignee_name, assignee_avatar_url, workflow_id,
           due_date, recurrence_interval, recurrence_unit,
           archived_at, version, created_at, updated_at
         FROM tasks;
@@ -967,8 +980,15 @@ export class TaskboardDatabase {
         throw new ApiError(404, "PROJECT_NOT_FOUND", `Project '${input.projectId}' does not exist`);
       }
 
-      const number = project.next_task_number;
-      const identifier = `${projectPrefix(project.id)}-${number}`;
+      const prefix = projectPrefix(project.id);
+      // Legacy prefixes are abbreviated and can belong to several projects.
+      // Allocate within that global namespace in the same write transaction;
+      // existing issue identifiers remain stable.
+      const { number } = this.database.prepare(`
+        SELECT MAX(?, COALESCE(MAX(CAST(SUBSTR(identifier, ?) AS INTEGER)), 0) + 1) AS number
+        FROM tasks WHERE identifier LIKE ?
+      `).get(project.next_task_number, prefix.length + 2, `${prefix}-%`);
+      const identifier = `${prefix}-${number}`;
       const id = randomUUID();
       const timestamp = now();
       let sortOrder = input.sortOrder;
@@ -982,8 +1002,8 @@ export class TaskboardDatabase {
       }
 
       this.database.prepare(`
-        UPDATE projects SET next_task_number = next_task_number + 1, updated_at = ? WHERE id = ?
-      `).run(timestamp, input.projectId);
+        UPDATE projects SET next_task_number = ?, updated_at = ? WHERE id = ?
+      `).run(number + 1, timestamp, input.projectId);
       this.database.prepare(`
         INSERT INTO tasks (
           id, identifier, project_id, title, description, status, priority, labels,

@@ -65,13 +65,21 @@ function startAppServer() {
   };
   child.once("error", failPending);
   child.once("exit", failPending);
+  child.stdin.on("error", failPending);
 
   function write(message) {
-    child.stdin.write(`${JSON.stringify(message)}\n`);
+    if (closed) throw new Error("Codex App Server stopped");
+    try {
+      child.stdin.write(`${JSON.stringify(message)}\n`);
+    } catch (error) {
+      failPending();
+      throw error;
+    }
   }
 
   return {
     request(method, params) {
+      if (closed) return Promise.reject(new Error("Codex App Server stopped"));
       const id = ++sequence;
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {

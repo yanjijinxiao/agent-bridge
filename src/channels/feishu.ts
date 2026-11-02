@@ -169,19 +169,24 @@ export class FeishuChannelAdapter implements ChannelAdapter, ChannelTextClient {
         };
         if (event.message.parent_id) pendingMessage.references = [{ messageId: event.message.parent_id,
           type: "unknown", attachments: [], availability: "metadata-only", reason: "尚未取得引用正文。" }];
+        let message: ChannelMessage;
         try {
-          if (!["text", "image", "file"].includes(event.message.message_type)) {
-            const message = { ...pendingMessage, unsupportedMessageType: event.message.message_type };
-            if (!await claimInbound(options, message)) return;
-            await options.onMessage(message);
-            return;
-          }
-          const message = await this.normalizeMessage(
+          message = !["text", "image", "file"].includes(event.message.message_type)
+            ? { ...pendingMessage, unsupportedMessageType: event.message.message_type }
+            : await this.normalizeMessage(
             pendingMessage,
             event.message.message_type as "text" | "image" | "file",
             event.message.content
           );
-          if (!await claimInbound(options, message)) return;
+        } catch (error) {
+          if (!(error instanceof Error)) throw error;
+          await reportMessageError(options, error, pendingMessage);
+          return;
+        }
+        // The SDK turns a rejected handler into a non-success source response.
+        // Only failures after durable admission may return normally here.
+        if (!await claimInbound(options, message)) return;
+        try {
           await options.onMessage(message);
         } catch (error) {
           if (!(error instanceof Error)) throw error;
@@ -215,7 +220,7 @@ export class FeishuChannelAdapter implements ChannelAdapter, ChannelTextClient {
             if (!(error instanceof Error)) throw error;
             await reportMessageError(options, error, pendingMessage);
           }
-        });
+        }, event.messageId);
       },
       "application.bot.menu_v6": async (event) => {
         const command = commandForFeishuMenuEvent(event.event_key);
@@ -312,13 +317,13 @@ export class FeishuChannelAdapter implements ChannelAdapter, ChannelTextClient {
   }
 }
 
-/** SDK dispatch catches rejected callbacks itself. Durable claim errors belong
- * to the same application boundary as decoding and execution, before any input. */
+/** Report locally and reject to SDK so it cannot acknowledge an unsaved input.
+ * A known duplicate returns false because it already has a durable owner. */
 async function claimInbound(options: ChannelMonitorOptions, message: ChannelMessage): Promise<boolean> {
   try { return !options.claimMessage || options.claimMessage(message); }
   catch (error) {
     await reportMessageError(options, error instanceof Error ? error : new Error("Feishu inbound receipt unavailable"), message);
-    return false;
+    throw new Error("Feishu inbound receipt unavailable");
   }
 }
 

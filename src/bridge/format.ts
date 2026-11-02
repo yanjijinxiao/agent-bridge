@@ -1,5 +1,7 @@
 import type { PromptBufferItem } from "./prompt-buffer.js";
 import type { KnowledgeEntry } from "../state/knowledge.js";
+import { Lexer, type Token } from "marked";
+import { markdownSource, projectAssistantProse } from "../channels/assistant-presentation.js";
 
 const BRIDGE_ACTION_INSTRUCTIONS = [
   "WeChat bridge rule: when you need to send a local image, video, or file to the user, do not use Markdown local file links.",
@@ -133,14 +135,13 @@ export function parsePrompt(text: string): { text: string; attachments: PromptAt
   );
   normalized = stripCodexDesktopAttachmentEnvelope(normalized);
   const attachments: PromptAttachment[] = [];
-  const visibleText = normalized.replace(
+  const visibleText = projectAssistantProse(normalized, prose => prose.replace(
     /^\[(WeChat|Web|DingTalk|Feishu|WeCom|IM) (file|image|video|audio): (.+) saved to (.+)]\nInspect the saved local attachment before answering\.$/gm,
     (_match, source: PromptAttachment["source"], kind: PromptAttachment["kind"], label: string, filePath: string) => {
       attachments.push({ source, kind, label, path: filePath });
       return "";
     }
-  ).replace(/<image\b[^>]*\bpath="[^"]*"[^>]*><\/image>/g, "")
-    .replace(/\n{3,}/g, "\n\n").trim();
+  ).replace(/\n{3,}/g, "\n\n")).trim();
   return { text: visibleText, attachments };
 }
 
@@ -148,7 +149,36 @@ function stripCodexDesktopAttachmentEnvelope(value: string): string {
   if (!value.startsWith("# Files mentioned by the user:")) return value;
   const marker = "## My request:";
   const requestOffset = value.indexOf(marker);
-  return requestOffset >= 0 ? value.slice(requestOffset + marker.length).trim() : value;
+  if (requestOffset < 0) return value;
+  const input = markdownSource(value.slice(requestOffset + marker.length).trim());
+  let output = "", cursor = 0, scan = 0;
+  for (const token of Lexer.lex(input.text, { gfm: true })) {
+    const offset = input.text.indexOf(token.raw, scan);
+    if (offset < 0) continue;
+    scan = offset + token.raw.length;
+    // Desktop's custom <image> tags can be paragraph text, including attributes
+    // that aren't valid HTML. Only complete metadata lines at the root of this
+    // known envelope are removed; nested examples and inline code remain inert.
+    if (token.type !== "html" && token.type !== "paragraph") continue;
+    const code: Array<[number, number]> = [];
+    const collectCode = (tokens: Token[], raw: string, base: number) => {
+      let at = 0;
+      for (const child of tokens) {
+        const start = raw.indexOf(child.raw, at);
+        if (start < 0) continue;
+        at = start + child.raw.length;
+        if (child.type === "codespan") code.push([base + start, base + at]);
+        else if ("tokens" in child && Array.isArray(child.tokens)) collectCode(child.tokens, child.raw, base + start);
+      }
+    };
+    if ("tokens" in token && Array.isArray(token.tokens)) collectCode(token.tokens, token.raw, offset);
+    for (const match of token.raw.matchAll(/^[ \t]*(?:<image\b[^>\r\n]*><\/image>[ \t]*)+$/gm)) {
+      const start = offset + match.index, end = start + match[0].length;
+      if (code.some(([from, to]) => start < to && end > from)) continue;
+      output += input.original(cursor, start); cursor = end;
+    }
+  }
+  return output + input.original(cursor);
 }
 
 function escapeRegExp(value: string): string {

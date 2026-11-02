@@ -97,18 +97,28 @@ test("callbacks captured for an old invocation cannot release a new business ope
   assert.equal(source.hasBlockingWork(() => true), true); release.resolve(); await pending;
 });
 
-for (const mode of ["daemon-proxy", "remote-daemon"] as const) test(`${mode}: read polling and accepted turns do not block; handoff and synchronous requests do`, async () => {
+for (const mode of ["daemon-proxy", "remote-daemon"] as const) test(`${mode}: only live native handoffs block, not read polling, accepted turns or durable uncertainty`, async () => {
   const runner = new AppServerCodexRunner({ transport: { command: "synthetic", args: [], mode } }), inner = runner as any;
   inner.operationLeases = 1; inner.activeTurns.set("thread", "turn");
   assert.equal(runner.hasRestartBlockingWork(), false);
   inner.pending.set(1, { method: "thread/read" }); assert.equal(runner.hasRestartBlockingWork(), false);
   inner.pending.set(2, { method: "turn/start" }); assert.equal(runner.hasRestartBlockingWork(), true); inner.pending.delete(2);
-  inner.unconfirmedStarts.add("thread"); assert.equal(runner.hasRestartBlockingWork(), true); inner.unconfirmedStarts.clear();
+  inner.unconfirmedStarts.add("thread"); assert.equal(runner.hasRestartBlockingWork(), false); inner.unconfirmedStarts.clear();
   inner.userInputRequests.set("request", {submitted:false}); assert.equal(runner.hasRestartBlockingWork(), false);
-  inner.userInputRequests.set("request", {submitted:true}); assert.equal(runner.hasRestartBlockingWork(), true); inner.userInputRequests.clear();
+  inner.userInputRequests.set("request", {submitted:true}); assert.equal(runner.hasRestartBlockingWork(), false); inner.userInputRequests.clear();
   inner.approvalRequests.set("request", {submitted:false}); assert.equal(runner.hasRestartBlockingWork(), false);
-  inner.approvalRequests.set("request", {submitted:true}); assert.equal(runner.hasRestartBlockingWork(), true); inner.approvalRequests.clear();
+  inner.approvalRequests.set("request", {submitted:true}); assert.equal(runner.hasRestartBlockingWork(), false); inner.approvalRequests.clear();
   inner.pending.clear(); inner.activeTurns.clear(); inner.operationLeases = 0; await runner.close();
+});
+
+test("an independent approval response protects the actual stdin flush and releases it on write completion", async () => {
+  const runner = new AppServerCodexRunner({ transport: { command: "synthetic", args: [], mode: "daemon-proxy" } }), inner = runner as any;
+  let flushed!: (error?: Error) => void;
+  inner.child = { exitCode: null, stdin: { destroyed: false, write(_line: string, callback: typeof flushed) { flushed = callback; } } };
+  inner.send({ id: "original-native-request", result: { decision: "decline" } });
+  assert.equal(runner.hasRestartBlockingWork(), true);
+  flushed(); assert.equal(runner.hasRestartBlockingWork(), false);
+  inner.child = undefined; await runner.close();
 });
 
 test("native configured Codex uses its daemon proxy even without a standalone package", () => {

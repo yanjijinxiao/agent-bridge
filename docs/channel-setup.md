@@ -56,7 +56,7 @@
 
 文件优先使用当前有效会话回复，过期或不可用时才使用主动发送接口。如果遇到 `chatbotId.notAllow.sendOTO`，含义是机器人主动私聊发送被拒绝，不是文件后缀有问题。请先向机器人重新发送一条消息，再要求发送文件，Gateway 会使用新的会话回复地址。长期无人交互的主动文件推送还需要检查开发者后台的机器人启用/发布状态和主动单聊能力。无论是哪种发送路径，返回结果不明时都不会自动换接口重发。
 
-AI 任务卡首屏固定显示图形与状态文字，进展正文不会顶替状态：执行中、等待回答/审批、恢复中、状态待确认，以及已完成/失败/中断。原生渐变边框表示卡片流式通道尚未结束，不替代任务状态；阶段切换和解绑也不冒充任务完成。原生动效须由 AI 模板启用，Gateway 不发送逐帧假动画。状态、分页和重启恢复的设计见[任务卡状态说明](task-card-status.md)。
+AI 任务卡首屏使用紧凑、普通字号的状态行，结合模板原生加载反馈，区分执行中、等待回答/审批、恢复中、状态待确认，以及已完成/失败/中断。流式动效不替代任务状态；阶段切换和解绑也不冒充任务完成。原生动效须由 AI 模板启用，Gateway 不发送逐帧假动画。状态、分页和重启恢复的设计及真实客户端验收边界见[任务卡状态说明](task-card-status.md)。
 
 - [打开钉钉开发者后台](https://open-dev.dingtalk.com/)
 - [钉钉 Stream 模式官方教程](https://opensource.dingtalk.com/developerpedia/docs/explore/tutorials/stream/overview)
@@ -112,9 +112,9 @@ AI 任务卡首屏固定显示图形与状态文字，进展正文不会顶替�
 - `/approve A1` 或 `/ok A1`：批准一次；
 - `/reject A1` 或 `/no A1`：拒绝；
 - 只有一个待审批请求时可以省略编号；
-- 10 分钟未回复、消息发送失败或任务已结束时自动拒绝。
+- 已接管的本地通知超时或发送失败时按原策略选择拒绝，仍须等待原生回执；原生请求已结束则旧通知失效。路由缺失不代表用户拒绝，也不能代答其他客户端的问题。
 
-审批只对原账号和原联系人有效，不能从另一个微信账号、企业微信会话、飞书用户或钉钉用户代为批准。审批能力依赖 Codex app-server；带审批的任务不会降级到非交互式 `codex exec`。
+审批固定在原账号、原聊天和原生请求，只有该聊天有权限的 controller 可以处理；不能跨账号或跨聊天代为批准。实际选项与持久范围以原生请求提供的集合为准。审批能力依赖统一 Codex App Server，不降级到非交互式 `codex exec`。
 
 ## English
 
@@ -135,7 +135,7 @@ Create a smart bot in API mode from the Enterprise WeChat client, enable long co
 
 Create a custom app, enable its bot, configure message events over long connection, publish the app, and enter its App ID and App Secret in the console. Send the bot one message so the service can record a recipient ID.
 
-Feishu messages and card callbacks keep the human actor separate from the reply conversation. Explicitly allow either a user or a conversation in the Bridge console. Allowing a conversation grants every member of that chat the same Bridge and Taskboard authority; receiving a message does not auto-authorize its actor or chat.
+Feishu messages and card callbacks keep the human actor separate from the reply conversation. Explicitly allow either a user or a conversation in the Bridge console. Conversation admission does not grant identical authority: viewer, participant and controller roles still apply, and it does not establish personal Web IDE admission. Receiving a message does not auto-authorize its actor or chat.
 
 - [Feishu developer console](https://open.feishu.cn/app)
 - [Official long-connection event documentation](https://open.feishu.cn/document/server-docs/event-subscription-guide/event-subscription-configure-/request-url-configuration-case?lang=en-US)
@@ -163,4 +163,4 @@ The console and management API expose only the configured status and provider, n
 
 ### Runtime approvals
 
-When a task started from personal WeChat, Enterprise WeChat, Feishu, or DingTalk asks to run a command, change files, or obtain additional permissions, the request returns to that same channel account and sender. Use `/approve A1` or `/ok A1` to approve once, and `/reject A1` or `/no A1` to decline. The ID may be omitted when exactly one request is pending. Requests time out safely after ten minutes and are isolated from every other account and sender. This flow requires Codex app-server and does not fall back to non-interactive `codex exec`.
+Native approvals retain their original channel account, conversation and request identity. Only an authorized controller in that conversation can decide. Use the complete offered command, such as `/approve A1` or `/reject A1`; the ID may be omitted only when exactly one request is pending. Offered scopes come from the native request. An owned local notice may select denial on timeout or failed delivery, but completion still requires the native receipt. Missing routes never synthesize a decision for another client. This flow uses the unified App Server and never falls back to non-interactive `codex exec`.

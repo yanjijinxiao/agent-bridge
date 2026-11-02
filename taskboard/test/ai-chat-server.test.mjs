@@ -23,7 +23,7 @@ if (args[0] === "debug") {
     while ((i=buffer.indexOf("\\n"))>=0) { const line=buffer.slice(0,i); buffer=buffer.slice(i+1);
       if (!line.trim()) continue; const message=JSON.parse(line);
       if (message.id===1) process.stdout.write('{"id":1,"result":{}}\\n');
-      if (message.id===2) process.stdout.write('{"id":2,"result":{"data":[{"skills":[{"name":"real-skill","enabled":true,"scope":"repo","interface":null}]}]}}\\n');
+      if (message.id===2) process.stdout.write('{"id":2,"result":{"data":[{"skills":[{"name":"real-skill","path":"/fixture/real-skill/SKILL.md","enabled":true,"scope":"repo","interface":null}]}]}}\\n');
     }
   });
 } else {
@@ -59,26 +59,24 @@ if (args[0] === "debug") {
   };
 }
 
-function privateLanAddress() {
-  return Object.values(os.networkInterfaces())
-    .flat()
-    .find((entry) => {
-      if (entry?.family !== "IPv4" || entry.internal) return false;
-      const [first, second] = entry.address.split(".").map(Number);
-      return first === 10
-        || (first === 172 && second >= 16 && second <= 31)
-        || (first === 192 && second === 168)
-        || (first === 169 && second === 254);
-    })?.address;
+function nonLoopbackAddress() {
+  return Object.entries(os.networkInterfaces())
+    .filter(([name]) => !/^(?:utun|tun|tap|wg)/.test(name))
+    .flatMap(([, entries]) => entries)
+    .find(entry => entry?.family === "IPv4" && !entry.internal)?.address;
 }
 
 async function requestFrom(address, port, pathname) {
   return new Promise((resolve, reject) => {
     const outgoing = httpRequest({
-      host: address,
+      // Bind a real non-loopback peer, but keep the destination and Host on
+      // loopback. Host admission and socket-source restrictions are distinct;
+      // connecting to a VPN peer address can hang without testing either.
+      host: "127.0.0.1",
+      localAddress: address,
       port,
       path: pathname,
-      headers: { host: `${address}:${port}` },
+      headers: { host: `localhost:${port}` },
     }, (response) => {
       const chunks = [];
       response.on("data", (chunk) => chunks.push(chunk));
@@ -88,6 +86,7 @@ async function requestFrom(address, port, pathname) {
       }));
     });
     outgoing.on("error", reject);
+    outgoing.setTimeout(5000, () => outgoing.destroy(new Error("Non-loopback source fixture timed out")));
     outgoing.end();
   });
 }
@@ -134,14 +133,14 @@ test("loopback AI API freezes server-owned origin and rejects injected execution
 
     const invalidSkill = await request(fixture.baseUrl, `/api/local/ai/threads/${threadId}/turns`, {
       method: "POST",
-      body: { message: "hello", skillIds: ["invented-skill"] },
+      body: { message: "hello \uFFFC", skillIds: ["invented-skill"] },
     });
     assert.equal(invalidSkill.response.status, 400);
     assert.equal(invalidSkill.body.error.code, "INVALID_SKILL");
 
     const turn = await request(fixture.baseUrl, `/api/local/ai/threads/${threadId}/turns`, {
       method: "POST",
-      body: { message: "hello", skillIds: ["real-skill"] },
+      body: { message: "hello \uFFFC", skillIds: ["real-skill"] },
     });
     assert.equal(turn.response.status, 202);
     assert.equal(turn.body.run.threadId, threadId);
@@ -236,10 +235,10 @@ test("thread management, interrupt and query contracts stay narrow", async () =>
   }
 });
 
-test("local AI routes reject private-LAN clients while ordinary API routes remain available", async (context) => {
-  const address = privateLanAddress();
+test("local AI routes reject non-loopback socket peers while admitted ordinary API routes remain available", async (context) => {
+  const address = nonLoopbackAddress();
   if (!address) {
-    context.skip("No private LAN interface is available");
+    context.skip("No physical non-loopback IPv4 interface is available");
     return;
   }
   const fixture = await createServerFixture("0.0.0.0");

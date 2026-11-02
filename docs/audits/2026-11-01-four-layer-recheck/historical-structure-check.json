@@ -1,0 +1,34 @@
+{
+  "docs/audits/2026-10-27-full-review/inventory.json": {
+    "files": 399,
+    "functions": 11352,
+    "emptyFunctionEvidence": 11352,
+    "nullBaselineHashes": 0,
+    "errors": [],
+    "authority": "historical metadata only; current review coverage not imported"
+  },
+  "docs/audits/2026-10-27-full-review/reviewed-current.json": {
+    "files": 399,
+    "functions": 11689,
+    "emptyFunctionEvidence": 0,
+    "nullBaselineHashes": 22,
+    "errors": [],
+    "authority": "historical metadata only; current review coverage not imported"
+  },
+  "docs/audits/2026-10-28-intent-review/inventory.json": {
+    "files": 611,
+    "functions": 0,
+    "emptyFunctionEvidence": 0,
+    "nullBaselineHashes": 0,
+    "errors": [],
+    "authority": "historical metadata only; current review coverage not imported"
+  },
+  "docs/audits/2026-10-28-intent-review/reviewed-current.json": {
+    "files": 501,
+    "functions": 12576,
+    "emptyFunctionEvidence": 0,
+    "nullBaselineHashes": 0,
+    "errors": [],
+    "authority": "historical metadata only; current review coverage not imported"
+  }
+}

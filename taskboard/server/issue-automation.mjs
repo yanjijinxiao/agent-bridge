@@ -50,6 +50,13 @@ export function createIssueAutomation({
       if (quota?.state !== "available") {
         return { started: false, reason: "quota", quota };
       }
+      const currentPolicy = await readPolicy(projectId);
+      if (closing) return { started: false, reason: "closing" };
+      if (JSON.stringify(currentPolicy) !== JSON.stringify(policy)) {
+        // The quota result belongs to the original model and execution scope.
+        // Disabling or editing that policy cannot authorize a late old worker.
+        return { started: false, reason: "policy-changed" };
+      }
     }
 
     const taskboardRoot = path.resolve(path.dirname(policy.skillPath), "../..");

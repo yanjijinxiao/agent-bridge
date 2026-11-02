@@ -160,7 +160,8 @@ test("opens the selected project's Taskboard before a Codex session exists", asy
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "taskboard-channel-project-mode-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const stateStore = new RuntimeStateStore(resolveStatePaths(path.join(root, "state")));
-  stateStore.createProject("Project One", root);
+  const project = stateStore.createProject("Project One", root);
+  stateStore.activateProject("oc_test", project.id);
   const fixture = createTaskboardFixture(root, [issue("PROJECT-1", "todo", 1)]);
   const sent: ChannelTaskCard[] = [];
   const service = new BridgeService({

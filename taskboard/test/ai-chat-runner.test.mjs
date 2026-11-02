@@ -70,7 +70,7 @@ if (args[0] === "app-server") {
       if (!line.trim()) continue;
       const message = JSON.parse(line);
       if (message.id === 1) process.stdout.write('{"id":1,"result":{"platformFamily":"unix"}}\\n');
-      if (message.id === 2) process.stdout.write('{"id":2,"result":{"data":[{"skills":[{"name":"real-skill","enabled":true,"scope":"repo","interface":{"displayName":"Real Skill"}},{"name":"disabled","enabled":false,"scope":"user"}]}]}}\\n');
+      if (message.id === 2) process.stdout.write('{"id":2,"result":{"data":[{"skills":[{"name":"real-skill","path":"/fixture/real-skill/SKILL.md","description":"Fixture skill","enabled":true,"scope":"repo","interface":{"displayName":"Real Skill"}},{"name":"disabled","enabled":false,"scope":"user"}]}]}}\\n');
     }
   });
 } else if (args[0] === "exec") {
@@ -179,7 +179,7 @@ test("Codex turns use stdin, explicit resume ids, server-owned cwd and sanitized
       supportedReasoningEfforts: ["low", "medium", "high"],
       serviceTiers: [{ id: "priority", name: "Fast" }],
     }]);
-    assert.deepEqual(catalog.skills, [{ id: "real-skill", label: "Real Skill", scope: "repo" }]);
+    assert.deepEqual(catalog.skills, [{ id: "real-skill", label: "Real Skill", description: "Fixture skill", path: "/fixture/real-skill/SKILL.md", scope: "repo" }]);
 
     const thread = await fixture.service.createThread({
       projectId: "project",
@@ -190,7 +190,7 @@ test("Codex turns use stdin, explicit resume ids, server-owned cwd and sanitized
     assert.equal(thread.origin.workspacePath, fixture.workspace);
 
     const first = await fixture.service.startTurn(thread.id, {
-      message: "HIDDEN_SENTINEL first",
+      message: "HIDDEN_SENTINEL \uFFFC first",
       skillIds: ["real-skill"],
     });
     await waitFor(() => fixture.service.getRun(first.id)?.status !== "running");
@@ -202,6 +202,8 @@ test("Codex turns use stdin, explicit resume ids, server-owned cwd and sanitized
       "exec", "--json", "--color", "never",
       "-C", fixture.workspace,
       "-s", "workspace-write",
+      "-c", 'approval_policy="on-request"',
+      "-c", 'approvals_reviewer="auto_review"',
       "--add-dir", fixture.otherWorkspace,
       "-m", "gpt-real",
       "-c", 'model_reasoning_effort="high"',
@@ -210,11 +212,13 @@ test("Codex turns use stdin, explicit resume ids, server-owned cwd and sanitized
     assert.equal(captures[0].args.join(" ").includes("HIDDEN_SENTINEL"), false);
     assert.match(captures[0].prompt, /\[\$manage-taskboard\]\(\/fixture\/manage-taskboard\/SKILL\.md\) e-taskboard/);
     assert.match(captures[0].prompt, /\$real-skill/);
-    assert.match(captures[0].prompt, /HIDDEN_SENTINEL first/);
+    assert.ok(captures[0].prompt.includes("HIDDEN_SENTINEL [$real-skill](/fixture/real-skill/SKILL.md) first"));
     assert.deepEqual(captures[1].args, [
       "exec", "--json", "--color", "never",
       "-C", fixture.workspace,
       "-s", "workspace-write",
+      "-c", 'approval_policy="on-request"',
+      "-c", 'approvals_reviewer="auto_review"',
       "--add-dir", fixture.otherWorkspace,
       "-m", "gpt-real",
       "-c", 'model_reasoning_effort="high"',
@@ -371,6 +375,28 @@ test("startTurn revalidates the latest danger sandbox and persisted model settin
   } finally {
     await fixture.close();
   }
+});
+
+test("settings changed during attachment preparation govern the process that is actually spawned", async () => {
+  const fixture = await createFixture();
+  try {
+    const thread = await fixture.service.createThread({ projectId: "project", sandbox: "danger-full-access" });
+    const readThread = fixture.database.getAiChatThread.bind(fixture.database);
+    let reads = 0;
+    fixture.database.getAiChatThread = id => {
+      const value = readThread(id);
+      if (id === thread.id && ++reads === 2) queueMicrotask(() => {
+        fixture.database.updateAiChatThread(id, { sandbox: "read-only" });
+      });
+      return value;
+    };
+    const run = await fixture.service.startTurn(thread.id, { message: "use current permission", dangerFullAccessConfirmed: true });
+    await waitFor(() => fixture.service.getRun(run.id).status !== "running");
+    const captures = (await readFile(fixture.capturePath, "utf8")).trim().split("\n").map(JSON.parse);
+    assert.equal(captures.length, 1);
+    assert.equal(captures[0].args.includes("danger-full-access"), false, "the old broad permission must not survive an asynchronous preparation boundary");
+    assert.ok(captures[0].args.includes('approvals_reviewer="user"'));
+  } finally { await fixture.close(); }
 });
 
 test("startup marks abandoned runs interrupted while preserving the Codex thread id", async () => {

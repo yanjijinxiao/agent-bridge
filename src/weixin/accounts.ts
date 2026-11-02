@@ -87,7 +87,9 @@ export const STREAMING_DINGTALK_CARD_TEMPLATE_ID = "02fcf2f4-5e02-4a85-b672-46d1
 export const STREAMING_DINGTALK_CARD_CONTENT_KEY = "msgContent";
 
 export function normalizeAccountId(raw: string): string {
-  return raw.replace(/[^a-zA-Z0-9_.-]/g, "-");
+  const value = raw.replace(/[^a-zA-Z0-9_.-]/g, "-");
+  if (!value || value === "." || value === "..") throw new Error("Invalid account path identity");
+  return value;
 }
 
 export function accountChannel(account: ChannelAccount): ChannelKind {

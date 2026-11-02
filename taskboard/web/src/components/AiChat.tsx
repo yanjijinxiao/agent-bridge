@@ -671,7 +671,12 @@ function MarkdownMessage({
         components={{
           a: ({ node: _node, href, ...props }) => {
             if (href?.startsWith(SKILL_LINK_PREFIX)) {
-              const skillId = decodeURIComponent(href.slice(SKILL_LINK_PREFIX.length));
+              let skillId: string;
+              try {
+                skillId = decodeURIComponent(href.slice(SKILL_LINK_PREFIX.length));
+              } catch {
+                return <span>{props.children}</span>;
+              }
               return <SkillReference skill={skillsById?.get(skillId)} skillId={skillId} />;
             }
             return <a {...props} href={href} target="_blank" rel="noreferrer" />;
@@ -970,6 +975,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
   const [draftEffort, setDraftEffort] = useState("");
   const [draftSandbox, setDraftSandbox] = useState<AiChatSandbox>("workspace-write");
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [deletingThreadId, setDeletingThreadId] = useState<string | null>(null);
   const [attachmentDragActive, setAttachmentDragActive] = useState(false);
   const [panelGeometry, setPanelGeometry] = useState<PanelGeometry | null>(
@@ -981,6 +987,9 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
   const composerBeforeInputRef = useRef<ComposerBeforeInput | null>(null);
   const skillMenuRef = useRef<HTMLDivElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const composerGenerationRef = useRef(0);
+  const composerRevisionRef = useRef(0);
+  const submittingRef = useRef(false);
   const messagesRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   const panelResizeSessionRef = useRef<PanelResizeSession | null>(null);
@@ -1362,6 +1371,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     selectedThreadId && deletingThreadId === selectedThreadId,
   );
   const sendBlocked = loading
+    || submitting
     || settingsSaving
     || composerBlocked
     || Boolean(selectedThreadId && !snapshot);
@@ -1409,6 +1419,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
   }, [attachmentBlocked]);
 
   function resetComposer() {
+    composerGenerationRef.current += 1;
     editorRef.current?.replaceChildren();
     if (attachmentInputRef.current) attachmentInputRef.current.value = "";
     setDraft("");
@@ -1465,6 +1476,10 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
   }
 
   async function createThreadForDraftOrigin(): Promise<AiChatThread | null> {
+    const generation = composerGenerationRef.current;
+    const previousThreadId = selectedThreadRef.current;
+    const ownsDraft = () => generation === composerGenerationRef.current
+      && previousThreadId === selectedThreadRef.current;
     const origin = draftOrigin ?? (
       projectId ? { projectId, issueId } : null
     );
@@ -1503,15 +1518,17 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
         ...settings,
       });
       replaceThread(thread);
-      selectThread(thread.id);
-      setSnapshot({ thread, events: [], runs: [] });
-      draftReturnThreadIdRef.current = null;
-      setDraftOrigin(null);
-      setHistoryOpen(false);
-      setError(null);
+      if (ownsDraft()) {
+        selectThread(thread.id);
+        setSnapshot({ thread, events: [], runs: [] });
+        draftReturnThreadIdRef.current = null;
+        setDraftOrigin(null);
+        setHistoryOpen(false);
+        setError(null);
+      }
       return thread;
     } catch (nextError) {
-      setError(messageFor(nextError));
+      if (ownsDraft()) setError(messageFor(nextError));
       return null;
     } finally {
       setLoading(false);
@@ -1589,6 +1606,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
   function syncComposerState() {
     const editor = editorRef.current;
     if (!editor) return;
+    composerRevisionRef.current += 1;
     const next = serializeComposer(editor);
     setDraft(next.message);
     setSkillIds(next.skillIds);
@@ -1742,7 +1760,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     clearSubmittedDraft = true,
     boundAttachments?: AiChatAttachmentInput[],
   ) {
-    if (sendBlocked) return;
+    if (sendBlocked || submittingRef.current) return;
     const trimmed = message.trim();
     const submittedSkillIds = boundSkillIds ?? [...realSkillIdsForMessage()];
     const messageAttachments = boundAttachments ?? attachments.map((attachment) => ({
@@ -1752,7 +1770,6 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     }));
     if (!trimmed && messageAttachments.length === 0) return;
     let thread = snapshot?.thread ?? null;
-    const creatingThread = !thread;
     const messageSandbox = thread?.sandbox ?? draftSandbox;
     if (needsDangerConfirmation(messageSandbox, dangerConfirmed)) {
       setPendingDangerInput({
@@ -1763,40 +1780,50 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
       });
       return;
     }
-    if (creatingThread && clearSubmittedDraft) resetComposer();
-    if (!thread) thread = await createThreadForDraftOrigin();
-    if (!thread) return;
-    const messageSkillIds = (
-      boundSkillIds !== undefined || catalogLoadedProjectId === thread.origin.projectId
-    ) ? submittedSkillIds : [];
-    setPendingDangerInput(null);
-    setError(null);
+    const generation = composerGenerationRef.current;
+    const revision = composerRevisionRef.current;
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
+      if (!thread) thread = await createThreadForDraftOrigin();
+      if (!thread) return;
+      const targetThread = thread;
+      const messageSkillIds = (
+        boundSkillIds !== undefined || catalogLoadedProjectId === targetThread.origin.projectId
+      ) ? submittedSkillIds : [];
+      if (generation === composerGenerationRef.current && selectedThreadRef.current === targetThread.id) {
+        setPendingDangerInput(null);
+        setError(null);
+      }
       const turnInput = buildTurnInput(
         trimmed,
         messageSkillIds,
         dangerConfirmed,
         messageAttachments,
       );
-      if (clearSubmittedDraft && !creatingThread) {
+      const run = await startAiChatTurn(targetThread.id, turnInput);
+      if (clearSubmittedDraft && generation === composerGenerationRef.current
+        && revision === composerRevisionRef.current && selectedThreadRef.current === targetThread.id) {
         resetComposer();
       }
-      const run = await startAiChatTurn(thread.id, turnInput);
       observedRunStatusesRef.current.set(run.id, run.status);
-      setSnapshot((current) => current?.thread.id === thread.id ? {
+      setSnapshot((current) => current?.thread.id === targetThread.id ? {
           ...current,
           thread: { ...current.thread, status: "running", currentRun: run },
           runs: [run, ...current.runs.filter((candidate) => candidate.id !== run.id)],
         } : current);
-      replaceThread({ ...thread, status: "running", currentRun: run });
-      if (selectedThreadRef.current === thread.id) {
-        void selectedHintRefreshQueue.request(thread.id);
+      replaceThread({ ...targetThread, status: "running", currentRun: run });
+      if (selectedThreadRef.current === targetThread.id) {
+        void selectedHintRefreshQueue.request(targetThread.id);
       }
     } catch (nextError) {
-      if (selectedThreadRef.current === thread.id) setError(messageFor(nextError));
-      if (selectedThreadRef.current === thread.id) {
+      if (thread && generation === composerGenerationRef.current && selectedThreadRef.current === thread.id) {
+        setError(messageFor(nextError));
         void selectedHintRefreshQueue.request(thread.id);
       }
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   }
 
@@ -1808,6 +1835,10 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     if (attachmentBlocked) return;
     const acceptedFiles = attachmentFiles(files);
     if (acceptedFiles.length === 0) return;
+    const generation = composerGenerationRef.current;
+    const threadId = selectedThreadRef.current;
+    const isCurrent = () => generation === composerGenerationRef.current
+      && threadId === selectedThreadRef.current;
     try {
       const nextAttachments = await Promise.all(acceptedFiles.map((file, index) => (
         new Promise<ComposerAttachment>((resolve, reject) => {
@@ -1830,10 +1861,12 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
           reader.readAsDataURL(file);
         })
       )));
-      setAttachments((current) => [...current, ...nextAttachments]);
+      if (!isCurrent()) return;
+      composerRevisionRef.current += 1;
+      setAttachments((current) => isCurrent() ? [...current, ...nextAttachments] : current);
       setError(null);
     } catch (nextError) {
-      setError(messageFor(nextError));
+      if (isCurrent()) setError(messageFor(nextError));
     }
   }
 
@@ -2218,6 +2251,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
                         aria-label={`移除附件 ${attachment.filename}`}
                         title="移除附件"
                         onClick={() => {
+                          composerRevisionRef.current += 1;
                           setAttachments((current) => current.filter((item) => item.id !== attachment.id));
                         }}
                       >

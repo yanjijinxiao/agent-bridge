@@ -57,7 +57,7 @@ const SESSION_HELP_LINES = [
   "/sessions more|prev - 下一页或上一页；/sessions page 2 - 跳页",
   "/sessions search 关键词 - 搜索标题、目录或会话 ID",
   "/sessions unbound|project - 只看无项目会话或当前项目会话",
-  "/session（/s）R编号或会话ID [--host 主机ID] - 直接绑定并回看历史；App 后端同时跟随进展",
+  "/session（/s）R编号或会话ID [--host 主机ID] - 直接绑定并回看历史，同时跟随原生进展",
   "/new（/n）- 在当前项目新建并绑定会话",
   "/new P编号|C编号|完整项目名 - 在指定项目新建并切换；未绑定项目自动绑定",
   "/new --standalone - 新建本机无项目会话，使用独立持久目录",
@@ -68,7 +68,7 @@ const SESSION_HELP_LINES = [
   "/ide [status] - 获取当前项目的 Web IDE 入口；不会提交任务，浏览器另行鉴权",
   "/ide identity - 查看本人身份；Web IDE 复用个人准入，未获准时由准入审批管理员通过 /access 处理",
   "/ide auth 六位识别码 - 兼容核对流程（私聊或群聊）；优先复制原授权页生成的完整命令",
-  "/follow [on|off|sync] - 查看同步健康；on 开启并同步，sync 强制同步当前绑定（App 后端）",
+  "/follow [on|off|sync] - 查看同步健康；on 开启并同步，sync 强制同步当前绑定",
   "/follow sync --retry-delivery - 控制者明确重试原实例的未知投递，可能重复通知，不创建新卡",
   "/follow primary - 控制者将当前对话设为持久化主交互目标；提问/审批单处交互，进度仍可多处跟随",
   "/unbind - 解绑当前 IM 对话与 session，停止本对话跟随；不删除会话、不停止任务、不影响其他对话",
@@ -86,7 +86,7 @@ const SESSION_HELP_LINES = [
 ] as const;
 
 const BUILT_IN_HELP_LINES = [
-  "Codex 渠道工作台（也可直接说“查看任务”“新任务：…”“提交验收”）：",
+  "Codex 渠道工作台（普通消息转发到已绑定会话；管理操作使用命令或原生按钮）：",
   "/help（/h）- 获取全部内置命令；/help session - 只看会话介入说明",
   "",
   ...SESSION_HELP_LINES,

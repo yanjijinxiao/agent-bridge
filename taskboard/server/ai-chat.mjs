@@ -212,29 +212,7 @@ export class AiChatService {
     ]);
 
     thread = this.getThread(threadId);
-    if (this.#threadIsActive(thread)) {
-      throw new ApiError(
-        409,
-        "THREAD_BUSY",
-        `AI chat thread '${threadId}' has a running turn`,
-      );
-    }
-    if (thread.sandbox === "danger-full-access" && input.dangerFullAccessConfirmed !== true) {
-      throw new ApiError(
-        400,
-        "DANGER_CONFIRMATION_REQUIRED",
-        "danger-full-access must be confirmed for every turn",
-      );
-    }
-    const model = this.#resolveModel(catalog, thread.model);
-    this.#validateReasoningEffort(model, thread.reasoningEffort);
-    if (resolved.workspacePath !== thread.origin.workspacePath) {
-      throw new ApiError(
-        409,
-        "PROJECT_WORKSPACE_CHANGED",
-        "The project's device workspace no longer matches this conversation",
-      );
-    }
+    this.#assertReadyToSpawn(thread, input, catalog, resolved);
 
     const skillIds = input.skillIds ?? [];
     const availableSkills = new Map(
@@ -256,6 +234,10 @@ export class AiChatService {
       imagePaths,
     } = await this.#writeTurnAttachments(attachments);
     try {
+      // Attachment preparation yields even for an empty list. Use the latest
+      // stored settings and active-run identity at the final spawn boundary.
+      thread = this.getThread(threadId);
+      this.#assertReadyToSpawn(thread, input, catalog, resolved);
       const args = buildCodexArgs(thread, resolved.addDirectories, imagePaths);
       const prompt = buildCodexPrompt(
         thread,
@@ -425,6 +407,19 @@ export class AiChatService {
       );
     }
     return model;
+  }
+
+  #assertReadyToSpawn(thread, input, catalog, resolved) {
+    if (this.#threadIsActive(thread)) {
+      throw new ApiError(409, "THREAD_BUSY", `AI chat thread '${thread.id}' has a running turn`);
+    }
+    if (thread.sandbox === "danger-full-access" && input.dangerFullAccessConfirmed !== true) {
+      throw new ApiError(400, "DANGER_CONFIRMATION_REQUIRED", "danger-full-access must be confirmed for every turn");
+    }
+    this.#validateReasoningEffort(this.#resolveModel(catalog, thread.model), thread.reasoningEffort);
+    if (resolved.workspacePath !== thread.origin.workspacePath) {
+      throw new ApiError(409, "PROJECT_WORKSPACE_CHANGED", "The project's device workspace no longer matches this conversation");
+    }
   }
 
   #validateReasoningEffort(model, reasoningEffort) {

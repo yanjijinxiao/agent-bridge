@@ -110,6 +110,8 @@ export type ChannelMonitorOptions = {
   checkpoint?: string;
   onCheckpoint?: (checkpoint: string) => Promise<void> | void;
   onStatus?: (status: ChannelConnectionStatus) => void;
+  /** Synchronously persist admission before source acknowledgement. false is
+   * an already durable duplicate; an unsaved/unavailable owner must throw. */
   claimMessage?: (message: ChannelMessage) => boolean;
   onMessage: (message: ChannelMessage) => Promise<void>;
   onMessageError?: (error: unknown, message: ChannelMessage) => Promise<void> | void;

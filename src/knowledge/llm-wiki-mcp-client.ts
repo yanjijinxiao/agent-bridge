@@ -345,6 +345,12 @@ class StdioMcpSession {
     this.stderr = "";
     this.lines = readline.createInterface({ input: child.stdout });
     this.lines.on("line", (line) => { if (this.child === child) this.handleLine(line); });
+    child.stdin.on("error", error => {
+      // A peer may close its input before exiting. write() reports EPIPE on
+      // the stream asynchronously; the process error event cannot catch it.
+      this.handleFailure(child, error);
+      if (child.exitCode === null) child.kill();
+    });
     child.stderr.on("data", (chunk: Buffer) => {
       if (this.child === child) this.stderr = `${this.stderr}${chunk.toString("utf8")}`.slice(-20_000);
     });

@@ -36,6 +36,7 @@ export class ChannelApprovalController {
   private nextId = 1;
   private readonly notices = new WeakMap<CodexApprovalRequest, { id: string; senderId: string }>();
   private readonly journal: ApprovalJournal;
+  private noticeTransfers = 0;
 
   constructor(
     private readonly send: (senderId: string, notice: ChannelApprovalNotice) => Promise<void>,
@@ -100,9 +101,13 @@ export class ChannelApprovalController {
   }
 
   private sendNotice(senderId: string, notice: ChannelApprovalNotice): Promise<void> {
-    try { return Promise.resolve(this.send(senderId, notice)); }
-    catch (error) { return Promise.reject(error); }
+    this.noticeTransfers++;
+    let sent: Promise<void>;
+    try { sent = Promise.resolve(this.send(senderId, notice)); }
+    catch (error) { sent = Promise.reject(error); }
+    return sent.finally(() => { this.noticeTransfers--; });
   }
+  hasRestartBlockingWork(): boolean { return this.noticeTransfers > 0; }
   decideCurrent(senderId: string, id: string, choice: string, version: string): string {
     const pending = this.pending.get(this.key(senderId, id));
     if (!pending || pending.version !== version || Date.now() >= pending.expiresAt) throw new ApprovalDecisionConflictError("审批已处理、已过期或范围发生变化，请刷新。");
@@ -126,7 +131,7 @@ export class ChannelApprovalController {
       : result === "withdrawn"
         ? `审批 ${notice.id} 已失效或已在 Codex 中处理，请以 Codex 当前状态为准。`
         : `审批 ${notice.id} 的决定未获 Codex 确认，不能确认已生效。请在 Codex 中检查；不要重复批准其他请求。`;
-    await this.send(senderId, { text });
+    await this.sendNotice(senderId, { text });
   }
 
   declineAll(senderId: string): void {

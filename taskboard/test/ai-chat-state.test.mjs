@@ -8,14 +8,13 @@ import {
   chatPrimaryAction,
   createAiSnapshotRefreshQueue,
   filterVisibleAiEvents,
-  insertSkillMention,
+  AI_CHAT_SKILL_MARKER,
   isAiChatCapabilityAvailable,
   needsDangerConfirmation,
   normalizeChatSelection,
   patchAiChatSnapshot,
-  readSkillMention,
+  parseAiChatComposerFragment,
   routeChatState,
-  settingsForNewAiThread,
   shouldRefreshAiSnapshot,
 } from "../web/src/aiChatState.ts";
 
@@ -70,15 +69,12 @@ test("route changes update only the next origin and preserve the selected global
   );
 });
 
-test("new-thread settings are reused only when they belong to the current project catalog", () => {
-  const settings = {
-    model: "codex-real-model",
-    reasoningEffort: "high",
-    sandbox: "workspace-write",
-  };
-  assert.deepEqual(settingsForNewAiThread("project-a", "project-a", settings), settings);
-  assert.deepEqual(settingsForNewAiThread("project-b", "project-a", settings), {});
-  assert.deepEqual(settingsForNewAiThread("project-b", null, settings), {});
+test("a new project's model catalog rejects inherited settings it does not offer", () => {
+  const targetModels = [models[1]];
+  assert.deepEqual(normalizeChatSelection(targetModels, "codex-real-model", "high"), {
+    model: "codex-fast-model", reasoningEffort: "low",
+  });
+  assert.equal(normalizeChatSelection([], "codex-real-model", "high"), null);
 });
 
 test("PATCH results can update only the snapshot for the thread that started the request", () => {
@@ -122,21 +118,13 @@ test("model and effort selections are restricted to the real catalog", () => {
   assert.equal(normalizeChatSelection([], "missing-model", "high"), null);
 });
 
-test("@ skill mentions keep a visible label while sending only the selected real id", () => {
-  assert.deepEqual(readSkillMention("请用 @cl", 6), {
-    start: 3,
-    end: 6,
-    query: "cl",
-  });
-  assert.deepEqual(insertSkillMention("请用 @cl 检查", 3, 6, {
-    id: "cloudflare",
-    label: "Cloudflare",
-    scope: "user",
-  }), {
-    value: "请用 @Cloudflare 检查",
-    caret: 14,
-    skillId: "cloudflare",
-  });
+test("composer clipboard fragments retain ordered real skill ids and reject forged or missing tokens", () => {
+  const fragment = { message: `请用 ${AI_CHAT_SKILL_MARKER} 检查 ${AI_CHAT_SKILL_MARKER}`, skillIds: ["cloudflare", "cloudflare"] };
+  assert.deepEqual(parseAiChatComposerFragment(JSON.stringify(fragment), ["cloudflare"]), fragment);
+  assert.equal(parseAiChatComposerFragment(JSON.stringify(fragment), ["other"]), null);
+  assert.equal(parseAiChatComposerFragment(JSON.stringify({ ...fragment, skillIds: ["cloudflare"] }), ["cloudflare"]), null);
+  assert.equal(parseAiChatComposerFragment(JSON.stringify({ message: "@Cloudflare", skillIds: ["cloudflare"] }), ["cloudflare"]), null);
+  assert.equal(parseAiChatComposerFragment("{incomplete", ["cloudflare"]), null);
 });
 
 test("turn input cannot contain cwd, hidden context, model overrides or arbitrary args", () => {

@@ -248,7 +248,7 @@ async function pickKnowledgeBaseDirectory(button) {
 async function saveKnowledgeBase(event) {
   event.preventDefault();
   const dialogSession = knowledgeBaseDialogSession;
-  const button = event.submitter;
+  const button = event.submitter ?? event.target.querySelector('button[type="submit"]');
   const knowledgeBaseId = document.querySelector("#editingKnowledgeBaseId").value;
   const editingAccountId = document.querySelector("#editingKnowledgeBaseAccountId").value;
   const accountId = editingAccountId || document.querySelector("#knowledgeBaseAccountInput").value;

@@ -16,7 +16,7 @@ for (const kind of ["message", "card", "menu"] as const) test(`Feishu ${kind} re
     const payload=kind==="message"?{sender:{sender_id:{open_id:"ou_actor"}},message:{message_id:"m",chat_id:"oc_group",chat_type:"group",message_type:"text",content:'{"text":"hello"}'}}
       :kind==="card"?{token:"synthetic-callback",context:{open_message_id:"card",open_chat_id:"oc_group"},operator:{open_id:"ou_actor"},action:{tag:"button",value:{version:1,command:"status",arg:""}}}
       :{event_id:"menu",event_key:"codex.workbench",operator:{operator_id:{open_id:"ou_actor"}}};
-    await dispatcher.handles.get(callback)(payload);
+    await assert.rejects(dispatcher.handles.get(callback)(payload), /receipt unavailable/);
     assert.deepEqual(reported,[failure]);assert.equal(delivered,0);
   }finally{controller.abort();await work;}
 });

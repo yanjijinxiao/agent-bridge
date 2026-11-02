@@ -21,11 +21,24 @@ import type {
 export type { TaskboardChannelControllerOptions } from "./taskboard-channel-types.js";
 
 export class TaskboardChannelController {
-  private readonly submissionDedup = new TaskboardSubmissionDeduplicator();
-
-  constructor(private readonly options: TaskboardChannelControllerOptions) {}
+  constructor(private readonly options: TaskboardChannelControllerOptions,
+    private readonly submissionDedup = new TaskboardSubmissionDeduplicator(),
+    private readonly source?: { assertCurrent: () => void; changeBinding: (change: () => void) => void }) {}
 
   async handle(message: ChannelMessage, raw: string): Promise<void> {
+    let guard = this.options.sourceGuard(message, raw);
+    guard();
+    const source = { assertCurrent: () => guard(), changeBinding: (change: () => void) => {
+      guard(); change();
+      // Only this operation's synchronous acknowledged binding change advances its lease.
+      // An unrelated change during an await must still invalidate the original guard.
+      guard = this.options.sourceGuard(message, raw);
+    } };
+    const client = this.options.client?.withWriteGuard(source.assertCurrent);
+    await new TaskboardChannelController({ ...this.options, client }, this.submissionDedup, source).dispatch(message, raw);
+  }
+
+  private async dispatch(message: ChannelMessage, raw: string): Promise<void> {
     const client = this.options.client;
     if (!client) {
       await this.options.replyText(message.senderId, "Taskboard 未启用或当前不可用，请在管理页检查本地服务连接。");
@@ -50,6 +63,8 @@ export class TaskboardChannelController {
           input: command.input,
           context,
           options: this.options,
+          assertCurrent: this.source!.assertCurrent,
+          changeBinding: this.source!.changeBinding,
           showIssue: (issue, note) => this.showIssue({ message, context, issue, ...(note ? { note } : {}) }),
           showOverview: () => this.showOverview({ message, context, filter: "active", page: 1 }),
           resolveTarget: (identifier) => resolveTaskboardTarget({
@@ -162,13 +177,14 @@ export class TaskboardChannelController {
         case "workflow":
           mutationCompleted = submission.operation === "create_start";
           if (!result.issue.threadId) {
-            this.options.stateStore.createSession(
+            this.source!.changeBinding(() => this.options.stateStore.createSession(
               message.senderId,
               context.managedProject.workspace,
               result.issue.title,
               context.managedProject.id
-            );
+            ));
           }
+          this.source!.assertCurrent();
           await this.options.runWorkflow(message, result.instruction);
           mutationCompleted = true;
           reservation.finish(true);
@@ -245,7 +261,7 @@ export class TaskboardChannelController {
 
   private bindThread(senderId: string, context: TaskboardChannelContext, issue: TaskboardIssue): void {
     if (!issue.threadId) return;
-    this.options.stateStore.bindProjectThread(senderId, context.managedProject.id, issue.threadId, issue.title);
+    this.source!.changeBinding(() => this.options.stateStore.bindProjectThread(senderId, context.managedProject.id, issue.threadId!, issue.title));
   }
 
   private requireClient(): TaskboardClient {

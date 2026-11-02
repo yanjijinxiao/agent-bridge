@@ -37,7 +37,7 @@ export function userFacingMessageHandlingError(error: unknown): string {
     return "[codex-im-gateway] 提交结果尚未确认；原任务可能已接收。这不代表任务失败，Gateway 保留原卡片并只读核对，不重发消息、不停止原任务。";
   }
   if (error instanceof CodexInterventionError) return error.message;
-  if (error instanceof CodexBackendCapabilityError) return `当前后端不支持 ${error.capability}。${error.capability === "turnSteering" ? "可以使用 /queue 排队。" : ""}此操作未转交其他后端；需要时请显式切换后端配置。`;
+  if (error instanceof CodexBackendCapabilityError) return `当前原生服务未提供 ${error.capability}。请核对服务版本或在原会话处理；此操作未更换执行器或自动排队。`;
   if (error instanceof CodexThreadStateError) {
     switch (error.code) {
       case "archived":

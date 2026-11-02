@@ -1053,7 +1053,7 @@ function openTaskboardActionDialog(identifier, status, version) {
 
 async function submitTaskboardAction(event) {
   event.preventDefault();
-  const button = event.submitter;
+  const button = event.submitter ?? event.target.querySelector('button[type="submit"]');
   const lease = claimDialogSubmission(els.taskboardActionDialog, button);
   if (!lease) return;
   const identifier = document.querySelector("#taskboardActionIdentifier").value;
@@ -1079,7 +1079,7 @@ async function submitTaskboardAction(event) {
 async function submitTaskboardComment(event) {
   if (event.target.id !== "taskboardCommentForm") return;
   event.preventDefault();
-  const button = event.submitter;
+  const button = event.submitter ?? event.target.querySelector('button[type="submit"]');
   const input = document.querySelector("#taskboardCommentInput");
   try {
     button.disabled = true;
@@ -1256,7 +1256,7 @@ function openRemoveAccountDialog(account) {
 
 async function removeAccount(event) {
   event.preventDefault();
-  const button = event.submitter;
+  const button = event.submitter ?? event.target.querySelector('button[type="submit"]');
   const lease = claimDialogSubmission(els.removeAccountDialog, button);
   if (!lease) return;
   const accountId = document.querySelector("#removingAccountId").value;
@@ -1279,7 +1279,7 @@ async function removeAccount(event) {
 
 async function saveAccountSettings(event) {
   event.preventDefault();
-  const button = event.submitter;
+  const button = event.submitter ?? event.target.querySelector('button[type="submit"]');
   const accountId = document.querySelector("#editingRemarkAccountId").value;
   const displayName = document.querySelector("#accountRemarkInput").value.trim();
   const webhookUrl = document.querySelector("#accountWebhookInput").value.trim();
@@ -2011,7 +2011,7 @@ function renderChannelFields() {
 
 async function saveChannel(event) {
   event.preventDefault();
-  const button = event.submitter;
+  const button = event.submitter ?? event.target.querySelector('button[type="submit"]');
   const channel = document.querySelector("#channelTypeInput").value;
   if (channel === "weixin") {
     els.channelDialog.close();
@@ -2090,7 +2090,7 @@ function updateNotificationFields() {
 
 async function saveProjectNotifications(event) {
   event.preventDefault();
-  const button = event.submitter;
+  const button = event.submitter ?? event.target.querySelector('button[type="submit"]');
   const lease = claimDialogSubmission(els.projectNotificationDialog, button);
   if (!lease) return;
   const accountId = document.querySelector("#notificationProjectAccountId").value;
@@ -2427,7 +2427,7 @@ async function saveSession(event) {
 
 async function saveSettings(event) {
   event.preventDefault();
-  const button = event.submitter;
+  const button = event.submitter ?? event.target.querySelector('button[type="submit"]');
   try {
     button.disabled = true;
     const result = await api("/api/config", {

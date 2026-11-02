@@ -12,7 +12,7 @@
   <strong>Use local or remote OpenAI Codex from WeChat, Enterprise WeChat, Feishu, and DingTalk.</strong>
 </p>
 
-`codex-im-gateway` is a cross-platform, local instant-messaging gateway. It connects multiple messaging channels to one project, session, and task lifecycle while supporting both Codex CLI and Codex Desktop/app-server backends.
+`codex-im-gateway` is a cross-platform, local instant-messaging gateway. It connects multiple messaging channels to one project, session, and task lifecycle using one standard Codex App Server interface for Desktop and CLI-only deployments.
 
 ```text
 WeChat / Enterprise WeChat / Feishu / DingTalk
@@ -34,7 +34,7 @@ The service binds only to `127.0.0.1`. Channel credentials, attachments, session
 ## Core capabilities
 
 - **One gateway for multiple channels**: Personal WeChat, Enterprise WeChat, Feishu, and DingTalk run in parallel with account-isolated projects, sessions, approvals, and notifications.
-- **Two Codex backends**: One interface covers `codex exec` and `app-server`, including Codex Desktop-owned threads and remote projects discovered from Desktop host metadata.
+- **One native Codex interface**: Desktop, Gateway and CLI clients use the selected host’s App Server for execution, following, interactions and remote projects. Connection failure never selects another executor.
 - **Project and session management**: Discover local and remote projects from Codex Desktop and Codex session data; bind, switch, create, resume, queue, and validate archived or missing sessions.
 - **Long-running agent tasks**: Accepted tasks have no fixed overall timeout. Channels receive readable progress, tool state, and elapsed time while the final answer remains intact.
 - **Media, approvals, and notifications**: Handle images, voice, video, and files according to channel capabilities. Command, file-change, and permission approvals return to the originating account and conversation.
@@ -49,7 +49,7 @@ All four channels share the same project and session lifecycle. Native interacti
 | Personal WeChat | QR login / iLink | Text, images, voice, video, files | Voice transcription, native media transfer, typing state |
 | Enterprise WeChat | Official smart-bot long connection | Text and bot messages | No public callback, approvals, task notifications |
 | Feishu | Enterprise app long connection | Text, menus, cards, buttons, forms | Native project/task workbench and in-place card updates |
-| DingTalk | Internal app in Stream mode | Text, images, rich text, AI Cards | Thinking state, streaming card progress, text fallback |
+| DingTalk | Internal app in Stream mode | Text, images, rich text, AI Cards | Thinking state, in-place streaming card updates, file delivery |
 
 Platform capabilities and setup requirements may change with official APIs. See [channel setup](./docs/channel-setup.md).
 
@@ -140,14 +140,13 @@ Session lists also hide explicitly classified probe records and report the hidde
 
 ## Codex backends
 
-Channels use one project, session, execution, history, approval, and status interface backed by two implementations:
+Gateway implements one standard App Server interface for project, session, execution, history, approval, queue, goal and status operations. Desktop and CLI-only deployments differ only in connection and service deployment. GUI installation is not required on a CLI-only host.
 
-| Backend | Best for | Main capabilities |
-| --- | --- | --- |
-| `app-server` | Codex Desktop, new sessions, interactive tasks, remote projects | Project registry, thread lifecycle, streamed events, approvals, dynamic tools, Desktop relay |
-| `codex exec` | Local non-interactive CLI tasks and compatible fallback | Local session catalog, history paging, `codex exec` / `codex exec resume` |
+The configured host and transport select one native core. Shared daemon readers and execution connections attach to that same core. A connection failure does not fall back to exec or private Desktop IPC, and accepted or uncertain inputs are never replayed. Old auto/exec configuration values migrate to app-server; native sandbox and reviewer policies are inherited.
 
-`codexBackend: "auto"` prefers app-server and may select CLI during initial discovery or a compatible new turn. The selected backend is then pinned; existing-thread failures never switch backends. Both backends implement catalog and history APIs separately. CLI never reads Desktop's registry; unsupported live following, steering and goals fail explicitly. See [Codex backend architecture](./docs/codex-backends.md).
+A Desktop client still using private stdio must reconnect to the shared service while its work is idle. Restarting Gateway cannot merge existing cores. Explicit private stdio uses the same protocol but remains Gateway-owned, so active task survival cannot be promised across Gateway shutdown. See [Codex backend architecture](./docs/codex-backends.md).
+
+This unified interface covers Gateway messaging and management. The embedded Taskboard's separate AI panel and issue automation still spawn CLI `exec` processes and stop them when their service closes. That remains an architectural gap; messaging conformance does not establish repository-wide conformance.
 
 Lists preserve native pin order, then native project order, then other sessions. Groups use native manual or activity order. Page numbers remain stable until refresh/search or a 15-minute expiry. App includes sessions from known remote hosts, with explicit partial-results warnings for unavailable hosts. Archived, internal child and unavailable sessions are excluded.
 
@@ -200,7 +199,7 @@ CODEX_IM_GATEWAY_OPEN=0
 - The Web service binds only to loopback and validates Host, Origin, and an in-memory request token.
 - Channel credentials never reach the management page. Unknown senders and conversations are denied by default.
 - Projects come from backend discovery and cannot be injected as arbitrary paths from chat.
-- Approval IDs are isolated by channel account and conversation. Timeout, delivery failure, or turn completion safely rejects an unresolved approval.
+- Approval IDs retain the channel account, conversation and exact native request. An owned local notice selects denial on timeout or failed delivery under its existing policy, then awaits native resolution. A missing local route never answers another client’s request. An uncertain submitted decision is never replayed.
 - `danger-full-access` bypasses the Codex filesystem sandbox and should be enabled only after accepting full-machine access risk.
 - Concurrent accounts share local compute resources and Codex quotas.
 

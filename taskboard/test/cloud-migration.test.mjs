@@ -22,6 +22,7 @@ import {
   createCloudD1ImportSql,
   createCloudMigrationBundle,
   importCloudMigrationBundle,
+  verifyCloudMigrationBundle,
   readCloudMigrationBundle,
   runCli,
   writeCloudMigrationBundle,
@@ -612,7 +613,7 @@ test("cloud import rejects D1 count drift and R2 hash drift", async () => {
   );
 });
 
-test("cloud import is atomic in D1 and cleans staged R2 objects when D1 rejects", async () => {
+test("cloud import preserves staged R2 when the D1 adapter rejects without a confirmed transaction outcome", async () => {
   const fixture = await createMigrationFixture();
   const bundle = await createCloudMigrationBundle({
     databasePath: fixture.databasePath,
@@ -628,11 +629,32 @@ test("cloud import is atomic in D1 and cleans staged R2 objects when D1 rejects"
 
   assert.equal(d1.calls.length, 1);
   assert.equal(d1.state.tables, null);
-  assert.equal(r2.objects.size, 0);
-  assert.deepEqual(
-    r2.deleted.sort(),
-    bundle.attachments.map((attachment) => attachment.objectKey).sort(),
-  );
+  assert.equal(r2.objects.size, bundle.attachments.length);
+  assert.deepEqual(r2.deleted, []);
+});
+
+test("cloud import preserves referenced R2 objects when D1 commits but its acknowledgement is lost", async () => {
+  const fixture = await createMigrationFixture();
+  const bundle = await createCloudMigrationBundle({ databasePath: fixture.databasePath,
+    attachmentsDirectory: fixture.attachmentsDirectory });
+  const cloud = await createCloudWorkerHarness();
+  try {
+    const adapters = createCloudBindingMigrationAdapters({ d1: cloud.db, r2: cloud.attachments });
+    let imports = 0;
+    const uncertain = { ...adapters, d1: { ...adapters.d1, async importTables(tables) {
+      imports++; await adapters.d1.importTables(tables);
+      throw new Error("D1 import acknowledgement lost");
+    } } };
+    await assert.rejects(importCloudMigrationBundle(bundle, uncertain), /acknowledgement lost/);
+    assert.deepEqual(await adapters.d1.countByProject(), bundle.counts.byProject,
+      "the actual D1 transaction committed despite the lost acknowledgement");
+    for (const attachment of bundle.attachments) {
+      assert.ok(await cloud.attachments.head(attachment.objectKey), "an uncertain receipt must not delete data referenced by committed D1 rows");
+    }
+    const verified = await verifyCloudMigrationBundle(bundle, adapters);
+    assert.equal(verified.attachments.verified, bundle.attachments.length);
+    assert.equal(imports, 1, "read-only verification never replays an import");
+  } finally { await cloud.dispose(); }
 });
 
 test("D1 binding import uses one JSON statement per table for 100+ rows", async () => {
@@ -758,7 +780,9 @@ test("real D1 batch atomically imports a bundle containing local and maps develo
       (await failingCloud.db.prepare("SELECT COUNT(*) AS count FROM projects").first()).count,
       0,
     );
-    assert.deepEqual(await failingCloud.listAttachmentKeys(), []);
+    assert.deepEqual((await failingCloud.listAttachmentKeys()).sort(),
+      bundle.attachments.map(attachment => attachment.objectKey).sort(),
+      "D1 rollback is independently checked above; an adapter rejection still retains R2 until explicit reconciliation");
   } finally {
     await failingCloud.dispose();
   }
@@ -818,6 +842,34 @@ test("real D1 batch atomically imports a bundle containing local and maps develo
     );
     assert.equal(deleted.response.status, 204);
     assert.equal(await cloud.attachments.head(migratedAttachment.id), null);
+  } finally {
+    await cloud.dispose();
+  }
+});
+
+test("migration retains branchless worktree identity after removing local paths", async () => {
+  const fixture = await createMigrationFixture();
+  fixture.database.exec("UPDATE tasks SET worktree_branch = NULL WHERE id = 'task-a1'");
+  const bundle = await createCloudMigrationBundle({
+    databasePath: fixture.databasePath,
+    attachmentsDirectory: fixture.attachmentsDirectory,
+  });
+  const exported = bundle.tables.tasks.find(task => task.id === "task-a1");
+  assert.equal(exported.worktree_path, null);
+  assert.doesNotMatch(JSON.stringify(bundle), /\/Users\/(?:alice|bob)\//);
+  const bundleDirectory = path.join(fixture.directory, "bundle");
+  await writeCloudMigrationBundle(bundle, bundleDirectory);
+  const restored = await readCloudMigrationBundle(bundleDirectory);
+  const cloud = await createCloudWorkerHarness();
+  try {
+    await importCloudMigrationBundle(restored, createCloudBindingMigrationAdapters({
+      d1: cloud.db, r2: cloud.attachments,
+    }));
+    const result = await cloud.request("/api/tasks/task-a1", { actorName: "Alice" });
+    assert.equal(result.response.status, 200);
+    assert.deepEqual(result.body.task.developmentContext, { type: "worktree", path: null, branch: null });
+    const branch = await cloud.request("/api/tasks/task-a2", { actorName: "Alice" });
+    assert.deepEqual(branch.body.task.developmentContext, { type: "branch", branch: "feature/plain-branch" });
   } finally {
     await cloud.dispose();
   }
@@ -1191,7 +1243,7 @@ test("one-time Wrangler adapter migrates and verifies local persistence without 
   try {
     assert.deepEqual(await failureAdapters.d1.countByProject(), {});
     for (const attachment of bundle.attachments) {
-      assert.equal(await failureAdapters.r2.head(attachment.id), null);
+      assert.ok(await failureAdapters.r2.head(attachment.id), "a failed command alone cannot authorize destructive R2 cleanup");
     }
   } finally {
     await failureAdapters.cleanup();

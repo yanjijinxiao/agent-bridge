@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
+import { fetchWithBudget } from "../channels/network-request.js";
 
 const UPDATE_REGISTRY_URLS = {
   official: "https://registry.npmjs.org",
@@ -177,9 +178,9 @@ export class UpdateManager implements UpdateService {
     registry: UpdateRegistryId,
     signal: AbortSignal
   ): Promise<{ latestVersion: string; registry: UpdateRegistryId }> {
-    const response = await this.fetchImpl(`${UPDATE_REGISTRY_URLS[registry]}/${PACKAGE_NAME}/latest`, {
+    const response = await fetchWithBudget(this.fetchImpl, `${UPDATE_REGISTRY_URLS[registry]}/${PACKAGE_NAME}/latest`, {
       headers: { Accept: "application/json" },
-      signal
+      signal, timeoutMs: this.checkTimeoutMs, maxResponseBytes: MAX_REGISTRY_RESPONSE_BYTES
     });
     if (!response.ok) {
       throw new Error(`${registry} npm Registry returned HTTP ${response.status}`);

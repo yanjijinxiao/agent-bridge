@@ -4,7 +4,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { ChannelMessage } from "../channels/message.js";
 import { writeAtomicTextFile } from "../state/json-store.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
-import { CodexBackendCapabilityError, CodexQueueAdmissionError } from "../codex/backend.js";
+import { CodexBackendCapabilityError, CodexQueueAdmissionError, CodexRunAdmissionError } from "../codex/backend.js";
 
 export type InboundReceipt = {
   phase: "received" | "submitting" | "accepted" | "handled" | "unconfirmed";
@@ -128,7 +128,8 @@ export class InboundReceiptJournal {
     } catch (error) {
       if (receipt.phase === "submitting") {
         this.transition(receipt, { phase: error instanceof CodexCommunicationError && error.submission === "not-submitted"
-          || error instanceof CodexBackendCapabilityError || error instanceof CodexQueueAdmissionError ? "received" : "unconfirmed" });
+          || error instanceof CodexBackendCapabilityError || error instanceof CodexQueueAdmissionError
+          || error instanceof CodexRunAdmissionError ? "received" : "unconfirmed" });
       }
       throw error;
     } finally { this.processing.delete(key); }

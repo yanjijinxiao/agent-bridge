@@ -4,7 +4,7 @@ import type { CodexExecSandbox } from "./sandbox.js";
 import { codexFailureCode, type CodexFailureCode } from "./turn-failure.js";
 import type { CodexTurnRecovery } from "./turn-recovery.js";
 
-/** The two logical Codex execution engines exposed by Bridge. */
+/** Production uses app-server; exec remains a persisted/test compatibility ID. */
 export type CodexBackendId = "exec" | "app-server";
 
 export type CodexBackendCapabilities = {
@@ -214,6 +214,16 @@ export class CodexInterventionError extends Error {
 export class CodexQueueAdmissionError extends CodexInterventionError {
   constructor(cause: unknown) { super(cause instanceof Error ? cause.message : "队列提交前核验失败，消息未提交。"); this.name = "CodexQueueAdmissionError"; }
 }
+/** A start rejected before sending input, or explicitly rejected as busy by
+ * the native start RPC. Never use for a timeout or a missing acknowledgement. */
+export class CodexRunAdmissionError extends CodexInterventionError {
+  readonly submission = "not-submitted";
+  constructor(readonly reason: "handoff" | "active", readonly threadId?: string) {
+    super(reason === "handoff" ? "上一条输入尚在交接，当前输入未提交；请重新核对原会话状态。"
+      : "原生会话已有执行中的轮次，当前输入未提交；请按运行中消息策略处理。");
+    this.name = "CodexRunAdmissionError";
+  }
+}
 /** May be called only before the native queue mutation is sent. */
 export function assertQueueAdmissionCurrent(input: Pick<CodexQueueAddInput, "assertCurrent">): void {
   try { input.assertCurrent?.(); } catch (error) { throw new CodexQueueAdmissionError(error); }
@@ -336,7 +346,7 @@ export type CodexRunnerInput = {
   developerInstructions?: string;
   cwd: string;
   hostId?: string;
-  /** Desktop-facing project id, used as a hint; app-server resolves its native id by cwd. */
+  /** New-thread project hint. Existing threads retain their native membership. */
   projectId?: string;
   projectName?: string;
   /** Explicitly unassigned. New turns must not infer a project from the cwd. */
@@ -441,6 +451,9 @@ export type CodexRuntimeInfo = {
   provider?: string;
 };
 
+/** Host and native workspace context for a runtime/model query. */
+export type CodexRuntimeQuery = { cwd: string; threadId?: string; hostId?: string };
+
 export type CodexModelOption = {
   model: string;
   displayName: string;
@@ -481,7 +494,8 @@ export type CodexThreadGoal = {
   updatedAt: number;
 };
 
-/** Shared contract implemented independently by the CLI and app-server backends. */
+/** Native adapter contract; the retired exec implementation is retained only
+ * for explicit library compatibility and tests, never Gateway selection. */
 export interface CodexBackendAdapter extends CodexBackendControls {
   detachIndependentObservations?(): void;
   readonly executionLifetime?: "gateway" | "independent";
@@ -501,8 +515,8 @@ export interface CodexBackendAdapter extends CodexBackendControls {
 export type CodexTurnBackend = CodexBackendAdapter;
 
 /**
- * Internal continuation path used only when Codex Desktop owns the writer for
- * an app-server thread. It is deliberately not a user-selectable backend.
+ * Legacy Desktop IPC contract for explicit embedders and compatibility tests.
+ * The production Gateway never selects this continuation path.
  */
 export interface CodexThreadContinuation {
   readonly id: "desktop-relay";
@@ -586,8 +600,8 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
     hostId?: string
   ): Promise<CodexHistoryPage>;
   getRuntimeInfo(cwd: string, threadId?: string, hostId?: string, observation?: Pick<CodexMetadataObservation, "timeoutMs" | "purpose">): Promise<CodexRuntimeInfo>;
-  listModels(): Promise<CodexModelOption[]>;
-  getAccountRateLimits(): Promise<CodexAccountBalance>;
+  listModels(hostId?: string): Promise<CodexModelOption[]>;
+  getAccountRateLimits(hostId?: string): Promise<CodexAccountBalance>;
   getGoal(threadId: string, hostId?: string): Promise<CodexThreadGoal | undefined>;
   setGoal(
     threadId: string,

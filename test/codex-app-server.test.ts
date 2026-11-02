@@ -320,7 +320,7 @@ test("binds new threads to the native app-server project and keeps Bridge policy
   assert.deepEqual(created, ["thread-new"]);
 
   const repaired = await runner.run({
-    prompt: "verify-thread-metadata",
+    prompt: "verify-existing-thread-policy",
     developerInstructions: "bridge-only-policy",
     cwd: "/tmp/project",
     projectId: "desktop-project-id",
@@ -328,7 +328,7 @@ test("binds new threads to the native app-server project and keeps Bridge policy
     threadId: "thread-bridge-title",
     threadTitle: "干净的用户标题"
   });
-  assert.equal(repaired.text, "reply:verify-thread-metadata");
+  assert.equal(repaired.text, "reply:verify-existing-thread-policy");
 });
 
 test("starts a remote thread by cwd when the daemon has no project catalog API", async (t) => {
@@ -739,47 +739,23 @@ test("models active, archived, missing, and system-error thread lifecycle states
   assert.equal((await runner.inspectThread("thread-existing")).persistence, "missing");
 });
 
-test("serializes concurrent turns for the same managed session", async (t) => {
-  const runner = new HybridCodexRunner({
-    backend: "app-server",
-    codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"),
-    timeoutMs: 2_000
-  });
+test("rejects a duplicate start during handoff instead of holding an implicit execution queue", async t => {
+  const { CodexRunAdmissionError } = await import("../src/codex/backend.js");
+  const runner = new HybridCodexRunner({ backend: "app-server", codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"), timeoutMs: 2_000 });
   t.after(() => runner.close());
-
-  const completionOrder: string[] = [];
-  const first = runner.run({
-    prompt: "slow:first",
-    cwd: "/tmp/project",
-    queueKey: "managed-session"
-  }).then(() => completionOrder.push("first"));
-  const second = runner.run({
-    prompt: "second",
-    cwd: "/tmp/project",
-    queueKey: "managed-session"
-  }).then(() => completionOrder.push("second"));
-
-  await Promise.all([first, second]);
-  assert.deepEqual(completionOrder, ["first", "second"]);
+  const first = runner.run({ prompt: "slow:first", cwd: "/tmp/project", queueKey: "managed-session" });
+  await assert.rejects(runner.run({ prompt: "second", cwd: "/tmp/project", queueKey: "managed-session" }), CodexRunAdmissionError);
+  assert.equal((await first).text, "reply:slow:first");
 });
 
-test("waits for an existing thread turn before continuing it", async (t) => {
-  const runner = new AppServerCodexRunner({
-    codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"),
-    requestTimeoutMs: 2_000
-  });
+test("reports an existing active turn without waiting or submitting a later turn", async t => {
+  const { CodexRunAdmissionError } = await import("../src/codex/backend.js");
+  const runner = new AppServerCodexRunner({ codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"), requestTimeoutMs: 2_000 });
   t.after(() => runner.close());
-
   const progress: string[] = [];
-  const result = await runner.run({
-    prompt: "continue",
-    cwd: "/tmp/project",
-    threadId: "thread-external-busy",
-    onProgress: (message) => progress.push(message)
-  });
-
-  assert.equal(result.text, "reply:continue");
-  assert.deepEqual(progress, ["当前会话的上一条任务仍在执行，已排队等待完成。", "working:continue"]);
+  await assert.rejects(runner.run({ prompt: "continue", cwd: "/tmp/project", threadId: "thread-external-busy",
+    onProgress: message => { progress.push(message); } }), CodexRunAdmissionError);
+  assert.deepEqual(progress, []);
 });
 
 test("auto backend never moves an existing thread to CLI after an app-server failure", async (t) => {

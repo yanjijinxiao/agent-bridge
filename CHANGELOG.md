@@ -4,6 +4,12 @@ All notable changes to Codex IM Gateway are documented in this file.
 
 ## Unreleased
 
+This section retains changes accumulated across earlier implementations. Its
+references to exec fallback, Desktop follower IPC, and disabled Desktop queue
+operations describe those earlier stages. The current production entry uses
+one native App Server adapter; see [the backend contract](docs/codex-backends.md).
+Unreleased entries and local audit results do not establish deployment status.
+
 - Redesigned DingTalk task cards around native loading feedback and a compact normal-font status strip, removing large execution/completion headings and colored balls. Separated trusted activity metadata from the pure progress view and native transport projection; kept snapshots before active stream frames, static waiting views on the same card, readable failures, and legacy result-page boundaries.
 
 - Separated Codex execution completion from channel delivery acknowledgement in the shared turn delivery journal. Retained failed finals with their original per-turn card identities, isolated new managed streams from old terminal checkpoints, and allowed final-only turns to create their original logical card. Follow status now reports pending final deliveries; legacy false completions are repaired only by exact loaded-backend turn correlation, never by replaying stale saved text.

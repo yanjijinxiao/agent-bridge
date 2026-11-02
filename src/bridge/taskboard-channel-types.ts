@@ -11,6 +11,7 @@ export type TaskboardChannelControllerOptions = {
   readonly sendCard: (message: ChannelMessage, card: ChannelTaskCard) => Promise<void>;
   readonly runWorkflow: (message: ChannelMessage, instruction: string) => Promise<void>;
   readonly attachmentPaths: (message: ChannelMessage) => Promise<readonly string[] | undefined>;
+  readonly sourceGuard: (message: ChannelMessage, raw: string) => () => void;
 };
 
 export type TaskboardOverviewInput = {

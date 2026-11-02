@@ -12,6 +12,8 @@ Desktop must itself attach to the selected native service. The installed Desktop
 
 Old execution classes and private IPC DTO readers remain only as compatibility/test and migration material; production factories instantiate `CodexAppServerGateway` directly. They cannot be selected by runtime configuration. Historical audit documents describe their former behavior, not current deployment guarantees.
 
+This facade does not yet own the embedded Taskboard AI panel or issue-automation executor: `taskboard/server/ai-chat.mjs` and `issue-automation.mjs` still start CLI `exec` processes. They lack this shared connection's interaction/restart contract and stop their own workers on service close. Unifying the messaging facade does not complete those separate execution paths; disabling them would not constitute interface adaptation.
+
 ## Interface conformance
 
 | Responsibility | Native contract | Verification |
@@ -102,13 +104,13 @@ Private stdio shutdown interrupts active execution. Native pending items and rec
 
 ## Routing rules
 
-| Setting | Local turn | App-server failure | Remote Desktop project |
-| --- | --- | --- | --- |
-| `exec` | Always `codex exec` | Not applicable | Rejected with an explicit error |
-| `app-server` | Always app-server | Returned to the caller | Supported |
-| `auto` | App-server first; pin the chosen backend for this router's lifetime | Initial project discovery or a compatible fresh turn can choose CLI; existing-thread operations and already-selected App operations never switch after failure | Supported unless CLI was selected |
+| Configuration | Connection and failure behavior |
+| --- | --- |
+| app-server | All operations use the selected host/core; errors are returned without changing executor |
+| legacy auto/exec | Configuration migration normalizes to app-server; direct retired exec construction rejects |
+| daemon/stdio transport | Deployment choice within the same protocol; stdio has a Gateway-owned lifetime |
 
-An active-writer error is not a backend fallback. It remains inside the app-server path and may use the Desktop continuation relay for that thread.
+Model, effort, runtime and account queries preserve the bound host; model/runtime queries also retain the native cwd and thread. A remote failure never substitutes the local model list or account. A late query cannot apply settings or disclose its result after binding or access changes.
 
 ## Follow synchronization boundary
 
@@ -147,7 +149,7 @@ The selected per-conversation session receipt is the binding authority. Project 
 
 `ThreadEventHub` owns persistent delivery state above the backend facade. Its keys include the account/binding, host, thread, and active turn. `readThreadSnapshot` is the backend's read-only observation API; it uses native thread reads and paginated turns, without resuming or taking writer ownership. Local rollout notifications supply immediate activity; five-second reconciliation repairs missed notifications, supports remote hosts, and closes a card when its turn completed while the gateway was stopped. Only public commentary, progress summaries and answers are forwarded.
 
-`runtime/thread-subscriptions.json` stores the active turn, last observed lifecycle state, delivered-event hashes, completed turn IDs, and streaming card checkpoint. DingTalk declares support for updating a persisted card ID after restart. Other transports fall back to new messages when they cannot resume a card. A failed terminal card update remains pending for retry; the fallback answer is not repeatedly sent.
+`runtime/thread-subscriptions.json` stores the active turn, last observed lifecycle state, delivered-event hashes, completed turn IDs, and streaming card checkpoint. DingTalk declares support for updating a persisted card ID after restart. Transports that cannot restore a saved handle retain an explicit unconfirmed delivery state; card recovery does not silently create a replacement. A failed terminal update remains associated with the same turn and handle.
 
 Historical baselines are separate from confirmed completions. Private App Server reads of `notLoaded` Desktop threads can reconstruct an active turn as completed/interrupted, so these snapshots never finalize a card. Local lifecycle records supply terminal evidence and recover persisted pending turns after restart. The bounded log-tail reader can recover a long turn's identity from explicit context/usage records even when its start marker is outside the tail. Remote recovery needs an authoritative shared runtime; an unloaded, foreign remote writer's terminal state cannot be safely inferred. Card recovery applies to checkpoints created by this implementation, not cards created by older releases that never saved their handles.
 
@@ -171,8 +173,8 @@ Explicit per-session overrides remain intact: `ask` offers only supported guarde
 | `/sessions detail R1` or `/session detail R1` | Read details from the current actor's catalog snapshot without binding; available to viewers |
 | `/sessions more`, `/sessions prev`, `/sessions page 3` | Page within the same snapshot; R codes remain stable for 15 minutes, until refreshed |
 | `/sessions search words` | Filter titles, previews, IDs and directories, then paginate matches |
-| `/sessions unbound` | Sessions without native/Desktop project membership; CLI has no native membership, so its sessions qualify |
-| `/sessions project` | Optional current-project filter; App uses actual membership, CLI uses derived workspaces |
+| `/sessions unbound` | Sessions with explicit native projectless membership; cwd does not establish membership |
+| `/sessions project` | Optional current-project filter using native membership on the selected host |
 | `/session R1` | Bind, replay history, and start following if the backend supports it |
 | `/session THREAD_ID [--host HOST_ID]` | Directly inspect and bind without a project; default host is local |
 | `/project`, `/project C1`, `/project P1` | Optional project-first workflow; selecting registers and switches; `/project add` is a compatibility alias |
@@ -189,7 +191,7 @@ Explicit per-session overrides remain intact: `ask` offers only supported guarde
 | `/intervene ID steer\|queue\|cancel` | Resolve the originating user's pending choice |
 | `/role`, `/role USER viewer\|participant\|controller` | Inspect or configure chat permissions |
 
-Global catalog loading follows every App-server page or scans the full CLI store; UI page size is not a discovery cap. Internal review/subagent, archived, missing, ephemeral and system-error sessions are excluded. Unavailable remote hosts produce partial-results warnings, not backend fallback. Native card choices carry exact host + thread IDs, so an old card never reinterprets its R code against a newer snapshot. R snapshots are scoped to conversation + actor. Selection rechecks lifecycle and permissions rather than trusting cached rows.
+Global catalog loading follows every native App Server page; UI page size is not a discovery cap. Internal review/subagent, archived, missing, ephemeral and system-error sessions are excluded. Unavailable remote hosts produce partial-results warnings, not backend fallback. Native card choices carry exact host + thread IDs, so an old card never reinterprets its R code against a newer snapshot. R snapshots are scoped to conversation + actor. Selection rechecks lifecycle and permissions rather than trusting cached rows.
 
 #### Probe records versus user conversations
 
@@ -199,35 +201,22 @@ Health-check conversations are not necessarily archived: `source=exec` and a `RE
 {"version":1,"entries":[{"hostId":"local","threadId":"confirmed-probe-thread-id","purpose":"probe","reason":"Verified against the health-check script and run record"}]}
 ```
 
-This is Gateway catalog policy, not a backend lifecycle state. Both CLI and App-server catalogs pass through the same filter before counting, grouping, numbering and pagination; all IM renderers receive the same filtered rows. `/sessions`, `all`, `unbound`, `project` and search exclude marked probes and report the hidden count. Unmarked conversations are not removed by this filter because of their titles or `exec` source; Desktop's own catalog visibility rules still apply in App mode. Host + thread ID matches are exact. A missing file means no classifications; malformed or unreadable files produce an explicit warning and do not silently hide tasks. Keep real host IDs and thread IDs in deployment state, not in source control.
+This is Gateway catalog policy, not a backend lifecycle state. Every native App Server catalog passes through the same filter before counting, grouping, numbering and pagination; all IM renderers receive the same filtered rows. `/sessions`, `all`, `unbound`, `project` and search exclude marked probes and report the hidden count. Unmarked conversations are not removed by this filter because of their titles or `exec` source; Native catalog visibility rules still apply. Host + thread ID matches are exact. A missing file means no classifications; malformed or unreadable files produce an explicit warning and do not silently hide tasks. Keep real host IDs and thread IDs in deployment state, not in source control.
 
 Discovery does not write the registry or modify, archive or delete Codex tasks. Direct `/session <ID> [--host HOST]` access remains available after lifecycle checks. Remove an entry (or set its purpose to `conversation`) and refresh `/sessions` to restore its visibility. Registry changes take effect on refresh; existing page snapshots keep stable R identities until refreshed or expired.
 
 Prevent new probe pollution at the source: use `codex exec --ephemeral` for disposable CLI health checks, or `ephemeral: true` for App-server test threads. Normal Gateway conversations remain persistent. See [official non-interactive documentation](https://learn.chatgpt.com/docs/non-interactive-mode).
 
-Bindings are identified by host + thread ID within a channel recipient. A project is optional: `ManagedSession.projectBinding: "none"` prevents normalization from creating a fake project from an independent task's cwd, including pending sessions without a thread ID. Existing persisted project bindings are preserved. New-session commands prepare the Gateway record; the next message starts the actual Codex thread. Independent workspaces are allocated under the account state directory at `workspaces/standalone/session-*`, persist across restarts, and are not deleted on switching or completion. Project selection remains useful for project-scoped `/new`, Taskboard and knowledge-base modes, but is no longer required to continue existing tasks or create independent sessions. CLI's project catalog is still a derived list of working directories, not a native project registry.
+Bindings are identified by host + thread ID within a channel recipient. A project is optional: `ManagedSession.projectBinding: "none"` prevents normalization from creating a fake project from an independent task's cwd, including pending sessions without a thread ID. Existing persisted project bindings are preserved. New-session commands prepare the Gateway record; the next message starts the actual Codex thread. Independent workspaces are allocated under the account state directory at `workspaces/standalone/session-*`, persist across restarts, and are not deleted on switching or completion. Project selection remains useful for project-scoped `/new`, Taskboard and knowledge-base modes, but is no longer required to continue existing tasks or create independent sessions. Derived legacy workspace groups remain presentation hints, never project membership or IDE authorization.
 
-### Backend capability coverage
+### Native capability coverage
 
-| Operation | CLI (`exec`) | App (`app-server`) |
-| --- | --- | --- |
-| Project discovery | Derived local workspaces from rollouts | Native catalog + Desktop routing metadata |
-| Global sessions | Local rollout/index implementation; no Desktop dependency | Read-only Desktop catalog, with explicit older-App storage fallback |
-| Inspection, public history/paging | Local rollout/index implementation | Native paginated thread/turn APIs |
-| Continue existing task | `codex exec resume ID` | Native continuation; Desktop-owned writer relay where applicable |
-| Runtime state | Unknown for foreign processes; own active process is confirmed | Catalog runtime unknown; native inspection describes the queried server, not a different Desktop writer |
-| Remote host | Explicitly unsupported | Registered remote transport |
-| Live following / guarded steering | Explicitly unsupported; history and new turns remain available | Supported subject to writer/protocol constraints below |
-| Native queue add/list/delete/consume | Explicitly unsupported | Experimental native APIs; actual Desktop relay consumption unsupported |
-| Stop | Gateway's own CLI subprocess only | Native interrupt / guarded Desktop relay |
-| Models, rate limits, goals, lifecycle mutations, native plan mode | Explicitly unsupported; explicit model/effort execution flags remain usable | Native APIs |
+Desktop and CLI-only deployments use the same native capability contract: project/catalog discovery, public history paging, new/existing execution, follow, guarded steering, native queues, stop, models, account limits, goals, lifecycle changes and structured interactions. Experimental methods can explicitly report an unsupported server version; they do not trigger another adapter. Legacy exec capability constants and disk readers exist only for compatibility tests/migration, outside production selection.
 
-The CLI history reader only emits public user/assistant messages; developer/tool/private reasoning and internal child sessions are excluded. Disk history does not prove that another CLI process is running. CLI bindings do not start live-follow subscriptions, and cannot promise to queue behind an unrelated process. The gateway never kills another application's process to acquire a session.
+Disk history alone does not prove that an execution is active or ended. Native membership is distinct from cwd-based presentation groups. The Gateway does not kill another application's process to acquire a thread.
 
-Protocol reference: [official App Server documentation](https://learn.chatgpt.com/docs/app-server). Desktop membership is separate from native project IDs: explicit assignments and independent-task markers override legacy workspace grouping; no unregistered projects are invented from directories.
-
-The existing allowlist still gates access. Explicitly allowed individual users default to controller. Users admitted only by a group allowlist default to participant. An explicit per-user role overrides that default; `/role * viewer` sets the group default without removing individually configured controllers. Viewers can inspect sessions and history; participants can converse and steer; controllers can additionally stop turns, handle approvals, and manage roles. Natural-language intents and native card callbacks pass through the same role checks as slash commands.
+The existing allowlist still gates access. Explicitly allowed individual users default to controller. Users admitted only by a group allowlist default to participant. An explicit per-user role overrides that default; `/role * viewer` sets the group default without removing individually configured controllers. Viewers can inspect sessions and history; participants can converse and steer; controllers can additionally stop turns, handle approvals, and manage roles. Trusted native card callbacks pass through the same role checks as slash commands; ordinary natural-language text is forwarded rather than interpreted as a control command.
 
 Validation includes a completed-offline turn updating its original card, host isolation, duplicate and ambiguous control receipts across restart, concurrent actors, stale choice rejection, role restrictions, and history cursors. Full live validation additionally requires a running shared App Server and actual IM delivery; mocked tests alone do not establish Desktop compatibility or client-side rendering.
 
-The opt-in `scripts/verify-live-intervention.mjs` creates a separate ephemeral, read-only task and checks that guarded steering changes that same turn's final response. Run with `TMPDIR=/private/tmp node --import tsx scripts/verify-live-intervention.mjs --run /absolute/path/to/codex` on macOS. It never sends to an existing thread or IM account. This test passed with Codex 0.153.4; it verifies the official protocol, not the Desktop private relay or DingTalk rendering. Protocol reference: [official App Server documentation](https://learn.chatgpt.com/docs/app-server).
+The opt-in `scripts/verify-live-intervention.mjs` creates a separate ephemeral, read-only task and checks that guarded steering changes that same turn's final response. Run with `TMPDIR=/private/tmp node --import tsx scripts/verify-live-intervention.mjs --run /absolute/path/to/codex` on macOS. It never sends to an existing thread or IM account. This test passed with Codex 0.153.4; it verifies the official protocol, not DingTalk client rendering. Protocol reference: [official App Server documentation](https://learn.chatgpt.com/docs/app-server).

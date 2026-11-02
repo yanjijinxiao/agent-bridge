@@ -811,7 +811,7 @@ function seedApprovalBinding(paths: ReturnType<typeof resolveStatePaths>, accoun
   options: { hostId?: string; follow?: boolean; project?: boolean } = {}) {
   const store = new RuntimeStateStore(accountStatePaths(paths, accountId));
   const workspace = path.join(paths.root, "approval-workspace");
-  const project = options.project ? store.createProject("审批项目", workspace) : undefined;
+  const project = options.project ? store.createProject("审批项目", workspace, { hostId: options.hostId }) : undefined;
   const session = store.createSession(room, workspace, "审批会话", project?.id, "session", undefined,
     { standalone: !project, hostId: options.hostId });
   store.setSessionThread(session.id, "bound-approval-thread");
@@ -819,6 +819,33 @@ function seedApprovalBinding(paths: ReturnType<typeof resolveStatePaths>, accoun
   if (project) store.setProjectNotifications(project.id, [{ accountId: "account-two", recipientId: "other-room", enabled: true }]);
   return session;
 }
+
+for (const change of ["channel-stopped", "binding-replaced"] as const) test(`Web execution cannot synthesize a denial or deliver approval after ${change}`, async t => {
+  const f = setup(t); await f.manager.startAccount("account-one", false);
+  const store = f.bridges.get("account-one")!.stateStore;
+  const created = store.createSession("room", f.root, "Original");
+  store.setSessionThread(created.id, "original-thread");
+  let outcome: { decision?: unknown; error?: unknown } | undefined;
+  f.setRunHandler(async input => {
+    if (change === "channel-stopped") (f.manager as any).entries.get("account-one").status = "stopped";
+    else store.createSession("room", f.root, "Replacement");
+    const onApproval = input.onApproval as (request: object) => Promise<unknown>;
+    outcome = await Promise.resolve().then(() => onApproval({ kind: "command", threadId: "original-thread", turnId: "turn", itemId: "approval" }))
+      .then(decision => ({ decision }), error => ({ error }));
+    return { threadId: "original-thread", turnId: "turn", text: "result", raw: "" };
+  });
+  await f.manager.continueSession("account-one", created.id, "continue", []).catch(() => undefined);
+  assert.ok(outcome?.error, "the unavailable original route must leave the native request unanswered");
+  assert.equal(Object.hasOwn(outcome!, "decision"), false, "channel failure is not a native deny decision");
+  assert.equal(f.channelApprovals.length, 0, "the old group must not receive a new request after its source changed");
+});
+
+test("capacity recovery without its original approval route leaves the native request unanswered", async t => {
+  const f = setup(t);
+  const handler = (f.manager as any).capacityRecovery.options.handlers({ hostId: "remote", threadId: "thread", turnId: "failed" }).onApproval;
+  await assert.rejects(Promise.resolve().then(() => handler({ kind: "command", threadId: "thread", turnId: "recovered", itemId: "approval" })));
+  assert.equal(f.channelApprovals.length, 0);
+});
 
 function boundApproval(): CodexDesktopApproval {
   return { requestId: 316, method: "item/commandExecution/requestApproval", request: {
@@ -1268,6 +1295,20 @@ test("session binding projection adds only provider-confirmed conversation ident
   assert.equal(sessions.find(s => s.id === unknown.id)?.binding.conversation, undefined);
 });
 
+test("a retired monitor cannot report an unsaved input as an already durable duplicate", async t => {
+  let observed!: import("../src/channels/types.js").ChannelMonitorOptions;
+  const { manager } = setup(t, { adapterFactory: () => ({
+    client: createChannelClient("dingtalk", TEXT_CAPABILITIES, { async sendText() { return { messageId: "sent" }; } }),
+    async monitor(options) { observed = options; await new Promise<void>(resolve => options.signal?.addEventListener("abort", () => resolve(), { once: true })); }
+  }) });
+  await manager.startAccount("account-one");
+  const message = { id: "source-before-stop", senderId: "actor", replyTargetId: "room", text: "body", attachments: [], raw: {} };
+  assert.equal(observed.claimMessage?.(message), true);
+  assert.equal(observed.claimMessage?.(message), false, "a known durable source is a duplicate");
+  await manager.stopAccount("account-one");
+  assert.throws(() => observed.claimMessage?.({ ...message, id: "source-after-stop" }), /尚未保存/);
+});
+
 test("rejects projects outside the configured workspace allowlist", (t) => {
   const { manager } = setup(t);
 
@@ -1556,6 +1597,23 @@ test("reports the models and reasoning efforts advertised by Codex", async (t) =
     defaultEffort: "medium",
     supportedEfforts: [{ effort: "medium", description: "Balanced" }]
   }]);
+});
+
+test("model callbacks keep the remote host, workspace and thread through AccountManager", async t => {
+  const f = setup(t), modelHosts: unknown[] = [], runtimeScopes: unknown[][] = [], balanceHosts: unknown[] = [];
+  Object.assign(f.runner, {
+    async listModels(host: unknown) { modelHosts.push(host); return []; },
+    async getRuntimeInfo(...scope: unknown[]) { runtimeScopes.push(scope); return { provider: "remote-provider" }; },
+    async getAccountRateLimits(host: unknown) { balanceHosts.push(host); return { limitName: "Remote" }; }
+  });
+  await f.manager.startAccount("account-one", false);
+  const bridge = f.bridges.get("account-one")!;
+  const scope = { hostId: "remote-a", cwd: "/srv/remote", threadId: "remote-thread" };
+  await bridge.listCodexModels!(scope);
+  await bridge.getCodexBalance!(scope.hostId);
+  assert.deepEqual(modelHosts, ["remote-a"]);
+  assert.deepEqual(runtimeScopes, [["/srv/remote", "remote-thread", "remote-a"]]);
+  assert.deepEqual(balanceHosts, ["remote-a"]);
 });
 
 test("keeps the GPT-5.6 provider family available after selecting another model", async (t) => {

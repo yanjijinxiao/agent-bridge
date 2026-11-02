@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs";
 import { z } from "zod";
 
 import { parseCodexExecSandbox, type CodexExecSandbox } from "../codex/sandbox.js";
@@ -136,10 +137,33 @@ function normalizeInboundBytes(value: unknown, fallback: number): number {
 }
 
 export function isWorkspaceAllowed(workspace: string, allowedWorkspaces: string[]): boolean {
-  const resolved = path.resolve(workspace);
+  const resolved = workspaceLocation(workspace);
+  if (!resolved) return false;
   return allowedWorkspaces.some((allowed) => {
-    const root = path.resolve(allowed);
+    const root = workspaceLocation(allowed);
+    if (!root) return false;
     const relative = path.relative(root, resolved);
     return relative === "" || (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
   });
+}
+
+/** New directories may not exist yet. Resolve their nearest real ancestor,
+ * without treating a dangling symlink as an ordinary missing directory. */
+function workspaceLocation(value: string): string | undefined {
+  let cursor = path.resolve(value);
+  const missing: string[] = [];
+  while (true) {
+    try {
+      const real = fs.realpathSync(cursor);
+      if (!fs.statSync(real).isDirectory()) return undefined;
+      return path.join(real, ...missing);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") return undefined;
+      try { if (fs.lstatSync(cursor).isSymbolicLink()) return undefined; }
+      catch (probe) { if ((probe as NodeJS.ErrnoException).code !== "ENOENT") return undefined; }
+      const parent = path.dirname(cursor);
+      if (parent === cursor) return undefined;
+      missing.unshift(path.basename(cursor)); cursor = parent;
+    }
+  }
 }

@@ -11,6 +11,8 @@ type FeishuMessagePatch = Lark.Client["im"]["v1"]["message"]["patch"];
 
 type CallbackResponse = {
   card: FeishuCardPayload | undefined;
+  messageId?: string;
+  active: boolean;
 };
 
 type FeishuCardCallbackResponse = {
@@ -25,15 +27,16 @@ export class FeishuCardUpdater {
 
   constructor(private readonly patch: FeishuMessagePatch | undefined) {}
 
-  async respondToCallback(handler: () => Promise<void>): Promise<FeishuCardCallbackResponse | undefined> {
-    const response: CallbackResponse = { card: undefined };
-    await this.callbackResponse.run(response, handler);
+  async respondToCallback(handler: () => Promise<void>, messageId?: string): Promise<FeishuCardCallbackResponse | undefined> {
+    const response: CallbackResponse = { card: undefined, messageId, active: true };
+    try { await this.callbackResponse.run(response, handler); }
+    finally { response.active = false; }
     return response.card ? { card: { type: "raw", data: response.card } } : undefined;
   }
 
   async update(messageId: string, card: FeishuCardPayload): Promise<void> {
     const response = this.callbackResponse.getStore();
-    if (response) {
+    if (response?.active && response.messageId && response.messageId === messageId) {
       response.card = card;
       return;
     }
