@@ -44,6 +44,6 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 
 ## 本轮阅读与验证结论
 
-基线663个文本文件已逐行阅读，25个非源码制品另按视觉/结构检查，未读0。243个场景有精确测试映射，145个仅限注明边界通过；97个部分覆盖、1个场景有2项失败、38个缺直接断言。详见本轮review-conclusions.md及gateway-case-coverage.md。
+基线663个文本文件已逐行阅读，25个非源码制品另按视觉/结构检查，未读0。244个场景有精确测试映射，146个仅限注明边界通过；97个部分覆盖、1个场景有2项失败、38个缺直接断言。详见本轮review-conclusions.md及gateway-case-coverage.md。
 
 后续三个真实Chrome缺陷的反例、修复与首次上线状态见本目录2026-11-02-followup.md（架构目录文件请看docs/audits/2026-11-01-four-layer-recheck/2026-11-02-followup.md）。

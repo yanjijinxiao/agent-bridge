@@ -11,7 +11,7 @@ verified只表示JSON中注明的窄场景；partial不是通过；failed保留�
 | NATIVE-05 · 线程和轮次状态正交 | native | 4 | 3 | 1 | 0 | 无 |
 | NATIVE-06 · 长任务不因静默超时 | native | 3 | 2 | 1 | 0 | 无 |
 | IN-01 · 普通消息透明转发 | inbound | 4 | 2 | 2 | 0 | 无 |
-| IN-02 · 可靠接收与持久交接 | inbound | 5 | 3 | 2 | 0 | 无 |
+| IN-02 · 可靠接收与持久交接 | inbound | 6 | 4 | 2 | 0 | 无 |
 | IN-03 · 未知前序不永久阻塞 | inbound | 3 | 2 | 1 | 0 | 无 |
 | IN-04 · 群命令归一化 | inbound | 3 | 2 | 1 | 0 | 无 |
 | IN-05 · 入站附件和引用 | inbound | 4 | 1 | 3 | 0 | 无 |

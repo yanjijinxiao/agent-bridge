@@ -1,6 +1,8 @@
 # 内置 Taskboard 模块：安装、迁移与回滚
 
-Taskboard 已作为独立 workspace 模块放在 `taskboard/`，由 `codex-im-gateway` 进程统一启动和关闭。管理后台仍使用 `http://127.0.0.1:8787`，完整看板与 CLI API 使用 `http://127.0.0.1:47823`；两个端口由同一个进程提供。
+Taskboard 已作为独立 workspace 模块放在 `taskboard/`。内置模式由 `codex-im-gateway` 进程启动和关闭；外部服务模式只连接配置的服务，不接管其进程。管理后台默认 `http://127.0.0.1:8787`，内置看板与 CLI API 默认 `http://127.0.0.1:47823`；实际地址以当前安装配置和 `/api/taskboard` 返回为准，不能拿示例端口判断已部署实例。
+
+本文件主要说明安装、数据及生命周期，不是完整模块设计。功能与 case 见 [架构文档入口](architecture/README.md) 中的 TB 系列；编辑、上传、工作流和独立 AI 执行链的未完成核对继续保留在审查记录中。
 
 任务面板页面先读取 `/api/taskboard`。停用或服务不可用时不加载 iframe，而显示当前状态与操作入口。在停用状态点击「启用任务面板」会通过本机受保护的 `POST /api/taskboard/start` 启动同一内置服务并保存开关，不重启 IM 账号或 Codex 任务。设置页修改开关/地址也会同步应用到看板生命周期，无需重启 Gateway。
 
@@ -24,12 +26,7 @@ npm run install:check
 
 内置模式使用：
 
-```text
-~/.codex-im-gateway/taskboard/
-  taskboard.sqlite
-  attachments/
-  cloud-companion.json
-```
+默认目录为 `~/.codex-im-gateway/taskboard/`，其中 `taskboard.sqlite` 保存本地数据，`attachments/` 保存本地附件，`cloud-companion.json` 保存云伴随配置。实际目录可能由配置覆盖或沿用旧安装。
 
 Taskboard Issue 不会复制到 Bridge 的 JSON 状态中。数据库仍是唯一事实源，只是生命周期和目录由 Gateway 统一管理。已有安装会复用其实际状态根目录，不能仅根据新安装默认值判断迁移目标。
 
@@ -37,7 +34,7 @@ Taskboard Issue 不会复制到 Bridge 的 JSON 状态中。数据库仍是唯�
 
 ## 从独立仓库迁移
 
-1. 停止独立 Taskboard 和 Bridge，确认 47823、8787 没有监听进程。
+1. 停止需要迁移的独立 Taskboard 和 Bridge，确认各自实际配置的端口不再监听；8787 和 47823 只是默认值。
 2. 在确认迁移与备份前保留旧目录和 `.data/`。
 3. 核对服务实际使用的状态根目录（包括环境变量覆盖和旧目录复用），用 SQLite 在线备份语义复制旧库。以下是需替换路径的模板，目标必须与服务的实际 STATE_DIR 一致：
 

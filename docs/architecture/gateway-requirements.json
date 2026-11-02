@@ -416,7 +416,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/server/account-manager.ts",
@@ -469,7 +469,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -724,7 +724,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -810,7 +810,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "实际Bridge四渠道替身：自然语言完整进入原线程，零AI控制分类；非真实IM网络。"
@@ -832,7 +832,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/channels/dingtalk.ts",
@@ -866,7 +866,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "四渠道普通消息及显式help覆盖；所有任务/QA扩展组合未完整核验。"
@@ -1067,9 +1067,103 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ]
+        },
+        {
+          "id": "IN-02.6",
+          "scenario": "显式 steer/queue 在引用、附件下载/转存或状态读取期间换绑，零后端提交时保留 received；已进入原生修改但回执未知仍为 unconfirmed；本地设置已落盘而回复丢失仍禁止重放。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "ordinary-download: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "ordinary-download: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "queue-download: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "queue-download: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "steer-staging: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "steer-staging: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "queue-staging: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "queue-staging: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "ordinary-inspect: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "ordinary-inspect: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "steer-inspect: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "steer-inspect: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "ordinary-reference: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "ordinary-reference: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "queue-reference: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "queue-reference: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "steer-reference: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "steer-reference: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "a local command with a persisted side effect keeps its unknown receipt when reply acknowledgement is lost"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
+            },
+            {
+              "file": "src/bridge/inbound-receipts.ts",
+              "sha256": "edf1d52746ddcb4ae1ee3d436986804ea205b9ad0e3253afc24bd8014ff749f2"
+            }
+          ],
+          "verifiedBoundary": "实际 Bridge/RuntimeStateStore/InboundReceiptJournal，9种等待路径各有换绑反例与正常对照，重开真实文件核验phase和claim；另核本地设置持久化及回复丢失。原生接口为替身；不证明真实 App Server 全部断连组合，未提交不代表自动转向新绑定。"
         }
       ]
     },
@@ -1195,7 +1289,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/channel-commands.ts",
@@ -1336,7 +1430,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/weixin/media.ts",
@@ -1389,7 +1483,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/channels/client.ts",
@@ -1419,7 +1513,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "附件准备结束后线程/角色/准入复核；远端实际SSH转存中撤权的独立场景仍需补。"
@@ -1758,7 +1852,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -1792,7 +1886,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "detach持久、模式槽位与显式新建不复活旧关系；Gateway真实进程重启另需端到端。"
@@ -1870,7 +1964,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "旧项目漂移保独立绑定，四渠道项目命令不覆盖；普通真实native续聊权限另证。"
@@ -1892,7 +1986,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "真实scope generation，模式session切换ABA不复活；其他任意项目变更由来源测试另核。"
@@ -2004,7 +2098,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "实际显式queue/steer准备后来源守卫，全部降权/停账号组合仍待。"
@@ -2012,7 +2106,7 @@
         {
           "id": "BIND-03.4",
           "auditKey": "attachment-source-lease",
-          "scenario": "附件下载、远端转存、原生状态检查及引用解析等待后，原会话换绑时不能把普通输入、显式 queue 或 steer 改投新线程；七条实际准备路径各有正常对照，共 14 项。旧版七项换绑均有失败证据。同一原生线程的任务板展示模式变化不视为换绑，原请求 ID 并发去重仍保留。此项不代表所有撤权/停账号分支已验收。",
+          "scenario": "附件下载、远端转存、原生状态检查及引用解析等待后，原会话换绑时不能把普通输入、显式 queue 或 steer 改投新线程；九条实际准备路径各有正常对照，共18项。原七项换绑失败及本次 steer 状态读取后的层级复核缺口分别保留反例。实际后端另有请求前guard，不把Bridge替身计数当真实Codex写入。此项不代表所有撤权/停账号分支已验收。",
           "status": "verified",
           "tests": [
             {
@@ -2041,11 +2135,27 @@
             },
             {
               "file": "test/attachment-source-binding.test.ts",
+              "name": "queue-staging: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "queue-staging: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
               "name": "ordinary-inspect: an unchanged source reaches the intended native mutation"
             },
             {
               "file": "test/attachment-source-binding.test.ts",
               "name": "ordinary-inspect: a replaced source binding cannot retarget the prepared attachment"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "steer-inspect: an unchanged source reaches the intended native mutation"
+            },
+            {
+              "file": "test/attachment-source-binding.test.ts",
+              "name": "steer-inspect: a replaced source binding cannot retarget the prepared attachment"
             },
             {
               "file": "test/attachment-source-binding.test.ts",
@@ -2075,7 +2185,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ]
         }
@@ -2320,7 +2430,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/codex/desktop-session-catalog.ts",
@@ -2510,7 +2620,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "完整快照稳定R身份，翻页/resize不重排，原生pin与metadata时间分开。"
@@ -2528,7 +2638,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -2558,7 +2668,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "跨host同名/同projectID分组隔离；同host同roots多个native身份创建仍是独立未决项。"
@@ -2592,7 +2702,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/new-session.ts",
@@ -2669,7 +2779,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ]
         }
@@ -2864,7 +2974,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "真实JSONL预期turn比较和Bridge默认steer，ACK中的全部thread/turn反例未在这组穷尽。"
@@ -2920,7 +3030,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "普通消息写前来源复核，原生steer连接等待后原角色/个人准入仍需另一末次lease场景。"
@@ -3181,7 +3291,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -3226,7 +3336,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -3252,7 +3362,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/channel-commands.ts",
@@ -3286,7 +3396,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "首屏和status不挡的各自故障已覆盖；Taskboard挂起时IMstatus的联合场景未专测。"
@@ -3323,7 +3433,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/access.ts",
@@ -3349,7 +3459,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/access.ts",
@@ -3405,7 +3515,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "真实准入服务和Bridge，actor/group范围、原任务不重放，管理者必须显式登记。"
@@ -3621,7 +3731,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -4011,7 +4121,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -4486,7 +4596,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "结果投递失败保原终态payload，不发替代答案；native executor终态在更下层fixture。"
@@ -4735,7 +4845,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "永久错单次非答案提示，终态仍只更新原handle，重启不替代答案。"
@@ -4984,7 +5094,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/turn-audience.ts",
@@ -5159,7 +5269,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "包含真实多次compaction phase进入同卡，不仅去重单一文本；真实客户端圆环/排版未验。"
@@ -5738,7 +5848,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/format.ts",
@@ -5815,7 +5925,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/turn-result-actions.ts",
@@ -7292,7 +7402,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             },
             {
               "file": "src/bridge/taskboard-channel-controller.ts",
@@ -7438,7 +7548,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ],
           "verifiedBoundary": "真实Web/Bridge业务计数分界，native通过fixture接收；accept落盘失败的整个release组合还需联动。"
@@ -7517,7 +7627,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ]
         },
@@ -7586,7 +7696,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ]
         },
@@ -7607,7 +7717,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3851b9ddc8daa386467723b5fd2440ab7fa4ad520052a3a9e849150e0678acd9"
+              "sha256": "3e771dd1919252447531a461661ec960abbc3f545f10fd9cd113bf68dc05d4ea"
             }
           ]
         },
@@ -8673,6 +8783,6 @@
     "baselineUnread": 0,
     "verification": "open",
     "deployment": "The initial audit was undeployed; 763cddd was subsequently pushed and verified live. Follow-up fixes use separate release verification.",
-    "functionRecords": "39 selected manually documented functions; not a claim that all repository functions have individual executable cases."
+    "functionRecords": "42 selected manually documented functions; not a claim that all repository functions have individual executable cases."
   }
 }

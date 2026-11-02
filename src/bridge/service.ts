@@ -511,9 +511,14 @@ export class BridgeService {
     command: ChannelCommand,
     channelCapabilities: readonly ChannelCommandCapability[]
   ): Promise<void | false> {
-    // Command controllers own exact native receipts; an interrupted dispatch is
-    // never replayed merely because the transport redelivers its source message.
-    this.options.inputReceipts?.submitting();
+    // These native-input paths own a later write-ahead boundary, after async
+    // attachment preparation and the source guard. Marking them here would turn
+    // a proven preparation refusal into an unknown native acknowledgement.
+    // Other commands can mutate local/Taskboard state before native dispatch;
+    // retain their conservative boundary so interrupted side effects cannot replay.
+    const deferredInputBoundary = command.name === "steer" || command.name === "queue"
+      && command.arg.trim().length > 0 && command.arg.trim() !== "list" && !/^cancel(?:\s|$)/.test(command.arg.trim());
+    if (!deferredInputBoundary) this.options.inputReceipts?.submitting();
     const capabilityResolution = isReservedChannelCommandToken(command.name)
       ? undefined
       : resolveChannelCapabilityCommand(command, channelCapabilities);
@@ -1654,6 +1659,7 @@ export class BridgeService {
     let state: Awaited<ReturnType<NonNullable<CodexBridgeBackend["inspectThread"]>>>;
     try { state = await this.runner.inspectThread(session.threadId, hostId); }
     catch (error) { throw communicationError(error, { phase: "preflight", operation: "thread/read", threadId: session.threadId }); }
+    assertCurrent();
     if (state.persistence !== "active" || state.runtimeStatus === "systemError") {
       const reason = unavailableProjectSessionChoiceReason({
         managed: session,
@@ -1989,7 +1995,6 @@ export class BridgeService {
     const preview = buildPromptPreview(text, items) ?? text;
     const knowledge = this.options.stateStore.relevantKnowledge(preview, session.projectId);
     const { prompt } = buildPromptParts(text, await this.stagePromptItems(items, session, message), channelPromptSource(this.channel.channel), knowledge);
-    this.options.inputReceipts?.submitting({ sessionId: session.id, hostId: this.sessionHostId(session) ?? "local", threadId: session.threadId });
     const assertCurrent = () => {
       this.options.assertRuntimeWritable?.();
       const current = this.executionSession(message.senderId);
@@ -1999,6 +2004,7 @@ export class BridgeService {
         throw new CodexInterventionError("当前准入或角色权限已改变，排队消息未提交。");
     };
     assertCurrent();
+    this.options.inputReceipts?.submitting({ sessionId: session.id, hostId: this.sessionHostId(session) ?? "local", threadId: session.threadId });
     const receipt = await this.nativeQueue.enqueue({
       accountId: this.options.accountId ?? "standalone", conversationId: message.senderId,
       actorId, messageId: message.id,
