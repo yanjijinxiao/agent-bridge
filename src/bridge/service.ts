@@ -344,6 +344,7 @@ export class BridgeService {
     );
     this.taskboardController = new TaskboardChannelController({
       client: options.taskboard,
+      submissionScope: message => JSON.stringify([this.options.accountId ?? "standalone", message.senderId, this.actor.getStore() ?? message.senderId]),
       stateStore: options.stateStore,
       replyText: (senderId, text) => this.reply(senderId, text),
       sendCard: (message, card) => this.replyTaskCard(message, card),
@@ -2803,7 +2804,7 @@ export class BridgeService {
         }
         for (const action of journaled ? [] : parsed.actions.send) {
           if (!stillBound()) break;
-          await this.sendLocalMedia(message.senderId, action, this.sessionHostId(session));
+          await this.sendLocalMedia(message.senderId, action, this.sessionHostId(session), stillBound);
         }
         await this.options.onTurnCompleted?.({
           senderId: message.senderId,
@@ -2898,17 +2899,19 @@ export class BridgeService {
     }
     for (const action of parsed.actions.send) {
       if (!binding.current()) break;
-      await this.sendLocalMedia(session.senderId, action, native.hostId);
+      await this.sendLocalMedia(session.senderId, action, native.hostId, binding.current);
     }
   }
 
   async applyRecoveredAction(sessionId: string, native: { hostId: string; threadId: string }, action: TurnResultAction): Promise<void> {
     this.options.stateStore.refresh();
     const session = this.options.stateStore.getSession(sessionId);
-    if (!session || session.threadId !== native.threadId || this.sessionHostId(session) !== native.hostId
-      || !sessionExecutionScope(this.options.stateStore, session).current()) throw new CodexInterventionError("Result application binding changed");
+    if (!session || session.threadId !== native.threadId || this.sessionHostId(session) !== native.hostId)
+      throw new CodexInterventionError("Result application binding changed");
+    const binding = sessionExecutionScope(this.options.stateStore, session);
+    if (!binding.current()) throw new CodexInterventionError("Result application binding changed");
     if (action.kind === "remember") this.options.stateStore.rememberKnowledge(action.value, session.projectId, session.id);
-    else if (!await this.sendLocalMedia(session.senderId, action.value, native.hostId))
+    else if (!await this.sendLocalMedia(session.senderId, action.value, native.hostId, binding.current))
       throw new Error("Result media delivery was not confirmed");
   }
 
@@ -3016,19 +3019,27 @@ export class BridgeService {
     );
   }
 
-  private async sendLocalMedia(senderId: string, action: { type: "image" | "file" | "video"; path: string }, hostId = "local"): Promise<boolean> {
+  private async sendLocalMedia(senderId: string, action: { type: "image" | "file" | "video"; path: string }, hostId = "local",
+    isCurrent: () => boolean = () => true): Promise<boolean> {
+    let lease: import("../codex/output-files.js").OutputFileLease | undefined;
     try {
-      // File paths belong to the execution host. There is no outbound remote
-      // transfer port yet; never substitute a same-path Gateway-local file.
-      if (hostId !== "local") {
-        await this.reply(senderId, `文件位于远程主机，当前无法回传：${path.basename(action.path)}。请通过该项目的 Web IDE 下载。`);
-        return false;
-      }
+      if (this.audienceSuspended || !isCurrent()) return false;
       if (this.channel.capabilities.outbound[action.type] !== "available") {
         await this.reply(senderId, `当前渠道暂不支持直接发送 ${action.type} 文件：${path.basename(action.path)}`);
         return false;
       }
-      const sent = await this.channel.sendMedia({ toUserId: senderId, path: action.path, kind: action.type,
+      if (hostId !== "local") {
+        if (!this.runner.fetchOutputFile) {
+          await this.reply(senderId, `远程执行器没有文件回传端口：${path.basename(action.path)}。请通过项目 Web IDE 下载。`);
+          return false;
+        }
+        lease = await this.runner.fetchOutputFile(action.path, { hostId, maxBytes: this.options.config.maxInboundBytes,
+          ...(this.options.inboundDir ? { directory: this.options.inboundDir } : {}) });
+      }
+      // The read-only download may outlive a detach/rebind. Never send its bytes
+      // to the newly selected conversation/thread or fall back to a local path.
+      if (this.audienceSuspended || !isCurrent()) return false;
+      const sent = await this.channel.sendMedia({ toUserId: senderId, path: lease?.path ?? action.path, kind: action.type,
         contextToken: this.options.stateStore.getContextToken(senderId) });
       try {
         void Promise.resolve(this.options.onOutboundMessage?.({
@@ -3043,8 +3054,10 @@ export class BridgeService {
       }
       return true;
     } catch (error) {
-      await this.reply(senderId, `[codex-im-gateway] Failed to send ${action.type}: ${error instanceof Error ? error.message : String(error)}`);
+      if (!this.audienceSuspended && isCurrent()) await this.reply(senderId, `[codex-im-gateway] Failed to send ${action.type}: ${error instanceof Error ? error.message : String(error)}`);
       return false;
+    } finally {
+      try { await lease?.dispose(); } catch { console.warn("Remote output temporary copy cleanup failed"); }
     }
   }
 

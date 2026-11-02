@@ -6,6 +6,7 @@ import type { TaskboardChannelContext } from "./taskboard-channel-context.js";
 
 export type TaskboardChannelControllerOptions = {
   readonly client?: TaskboardClient;
+  readonly submissionScope?: (message: ChannelMessage) => string;
   readonly stateStore: RuntimeStateStore;
   readonly replyText: (senderId: string, text: string) => Promise<void>;
   readonly sendCard: (message: ChannelMessage, card: ChannelTaskCard) => Promise<void>;

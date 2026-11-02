@@ -141,3 +141,11 @@ npm run check
 ```
 
 This runs TypeScript checking, a production frontend build, and the server/CLI/injection test suite.
+
+## Durable task mutation receipts
+
+Task creation, comment creation, move, and transition POST bodies accept an optional `clientRequestId` (64 lowercase hex characters). The server binds it to the actor, API path, and complete payload. The business write and receipt commit together in SQLite or one D1 batch. Reusing an identity with another payload returns `REQUEST_ID_CONFLICT`; an exact retry returns the existing entity without repeating events or automation.
+
+`GET /api/task-submissions/:id` returns the accepted task/comment identities, or `submission: null`. An empty lookup alone does not prove that an earlier request was never received: retries must retain the same identity. Receipts survive entity deletion and are included in migration bundles when present. Apply D1 migration `0002_task_submissions.sql` before enabling this interface against a cloud deployment. Older strict servers reject the new body field instead of performing an unprotected write.
+
+The Gateway IM form journal separately records pending data writes and uncertain Codex execution handoffs. It reconciles task receipts after a lost response or restart, while an uncertain native start is never automatically sent again. See `docs/architecture/modules/taskboard-data-handoffs.md` in the parent project for the tested boundaries and remaining native recovery case.

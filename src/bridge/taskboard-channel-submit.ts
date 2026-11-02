@@ -6,6 +6,7 @@ type ExecuteTaskboardSubmissionInput = {
   readonly client: TaskboardClient;
   readonly projectId: string;
   readonly submission: TaskboardSubmission;
+  readonly recoverOperationId?: string;
 };
 
 type CreateSubmission = Extract<TaskboardSubmission, { readonly operation: "create_todo" | "create_start" }>;
@@ -21,6 +22,18 @@ export async function executeTaskboardSubmission(
   input: ExecuteTaskboardSubmissionInput
 ): Promise<TaskboardSubmissionResult> {
   const submission = input.submission;
+  if (input.recoverOperationId) {
+    const receipt = await input.client.getSubmission(input.recoverOperationId);
+    if (receipt) {
+      const issue = await input.client.getIssue(receipt.taskId);
+      if (issue.projectId !== input.projectId) throw new Error("Taskboard receipt belongs to another project");
+      if (submission.operation === "create_start") return workflowForCreatedIssue(issue);
+      return { kind: "issue", issue, note: "已核对服务端回执，该操作已处理。",
+        ...("body" in submission ? { latestComment: submission.body } : {}) };
+    }
+    // The same durable server identity makes retry safe even if an earlier
+    // HTTP handler is still completing after this read-only receipt lookup.
+  }
   switch (submission.operation) {
     case "create_todo":
     case "create_start":
@@ -51,11 +64,12 @@ async function createIssue(
   });
   return submission.operation === "create_todo"
     ? { kind: "issue", issue, note: "已记入待办，尚未开始处理。" }
-    : {
-      kind: "workflow",
-      issue,
-      instruction: `领取并开始处理刚创建的 ${issue.identifier}；将当前 Codex thread 绑定到该 Issue。`
-    };
+    : workflowForCreatedIssue(issue);
+}
+
+function workflowForCreatedIssue(issue: TaskboardIssue): TaskboardSubmissionResult {
+  return { kind: "workflow", issue,
+    instruction: `领取并开始处理刚创建的 ${issue.identifier}；将当前 Codex thread 绑定到该 Issue。` };
 }
 
 async function updateIssue(

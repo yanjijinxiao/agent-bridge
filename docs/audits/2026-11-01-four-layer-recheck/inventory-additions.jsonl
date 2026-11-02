@@ -118,3 +118,10 @@
 {"path":"test/helpers/gap-browser.ts","module":"tests","sha256":"1c1919796048bab14be02deafe7cbcc77a7388640438218e9bd5591b4e32377c","lines":35,"kind":"text","addedAfterBaseline":true}
 {"path": "docs/architecture/remaining-work.md", "module": "docs", "sha256": "c8132425c87fbcef1fe73908bc2e5c3737a2f8e8c0bc8fa54cf0342465316ebe", "lines": 322, "kind": "generated-structure", "addedAfterBaseline": true}
 {"path": "docs/audits/2026-11-01-four-layer-recheck/pending-findings.md", "module": "docs", "sha256": "be748822ad49f6d353f0fe8dc64123860abb86c980e1094471fe0b15fd125490", "lines": 75, "kind": "generated-structure", "addedAfterBaseline": true}
+{"path": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-task-receipts-remote-output.md", "module": "docs", "sha256": "6066a624130868500b2c7143ff656e166433b68f884dbb10f9dd64fc1768c462", "lines": 34, "kind": "text", "addedAfterBaseline": true}
+{"path": "src/codex/output-files.ts", "module": "native", "sha256": "5945a2efc6b0c950e6a6827ba8024897cc0cca757c1a5e5b24ce050e0af15b54", "lines": 81, "kind": "text", "addedAfterBaseline": true}
+{"path": "taskboard/cloud/migrations/0002_task_submissions.sql", "module": "taskboard", "sha256": "12d5109cd991af8c235a5ab6621b633842e2c957ee346cfa102f6ad303eb239f", "lines": 1, "kind": "text", "addedAfterBaseline": true}
+{"path": "taskboard/shared/task-submissions.mjs", "module": "taskboard", "sha256": "066e72aedba590a6fe44bdf317aa85f2ae91496cc5e3711a0bc7dc6bf9d82845", "lines": 30, "kind": "text", "addedAfterBaseline": true}
+{"path": "taskboard/test/task-submissions.test.mjs", "module": "taskboard", "sha256": "0ef7dc8b226d2e4d07010fa2db9c41094fbeb2aedae6ab091330569306a3d01d", "lines": 105, "kind": "text", "addedAfterBaseline": true}
+{"path": "test/output-files.test.ts", "module": "tests", "sha256": "ef08fcf97cf2c88a4107d7e916f03f32bcb9c254ea5d7cbacd41450cbf1cdb15", "lines": 54, "kind": "text", "addedAfterBaseline": true}
+{"path": "test/taskboard-im-receipts.test.ts", "module": "tests", "sha256": "6a718ad1430455d25add8c6469f8bbf44ec070d2e641c649ff7abd0f0cb92a37", "lines": 79, "kind": "text", "addedAfterBaseline": true}

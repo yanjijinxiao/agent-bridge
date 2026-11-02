@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { checkTaskSubmission } from "../shared/task-submissions.mjs";
 
 export class ApiError extends Error {
   constructor(status, code, message, details) {
@@ -318,6 +319,11 @@ export class TaskboardDatabase {
         thread_id TEXT REFERENCES ai_chat_threads(id) ON DELETE SET NULL,
         run_id TEXT REFERENCES ai_chat_runs(id) ON DELETE SET NULL,
         dirty INTEGER NOT NULL DEFAULT 0 CHECK(dirty IN (0, 1))
+      );
+
+      CREATE TABLE IF NOT EXISTS task_submissions (
+        id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, task_id TEXT NOT NULL,
+        comment_id TEXT, created_at TEXT NOT NULL
       );
 
       CREATE TABLE IF NOT EXISTS ai_chat_submissions (
@@ -1045,8 +1051,54 @@ export class TaskboardDatabase {
     return row ? this.#taskWithRelations(row) : null;
   }
 
-  createTask(input) {
+  /** Receipt and business mutation commit together, including nested task/comment writes.
+   * Receipts survive entity deletion: absence of a task must never authorize replay. */
+  getTaskSubmission(id) {
+    const row = this.database.prepare("SELECT * FROM task_submissions WHERE id = ?").get(id);
+    return row ? { id: row.id, fingerprint: row.fingerprint, taskId: row.task_id,
+      commentId: row.comment_id, createdAt: row.created_at } : null;
+  }
+
+  runTaskSubmission(submission, effect) {
+    if (!submission) return { value: effect(), replayed: false };
     this.database.exec("BEGIN IMMEDIATE");
+    this.taskSubmissionActive = true;
+    try {
+      const existing = checkTaskSubmission(this.getTaskSubmission(submission.id), submission, ApiError);
+      if (existing) {
+        const task = this.getTask(existing.taskId);
+        const comment = existing.commentId ? this.getComment(existing.commentId) : undefined;
+        if (!task || (existing.commentId && !comment)) {
+          throw new ApiError(409, "SUBMISSION_TARGET_REMOVED", "Operation was accepted; its target was subsequently removed");
+        }
+        this.database.exec("COMMIT");
+        return { value: { task, ...(comment ? { comment } : {}) }, replayed: true };
+      }
+      const value = effect();
+      const taskId = value.task?.id ?? value.comment?.taskId;
+      if (!taskId) throw new Error("Task submission must return a task or comment identity");
+      this.database.prepare("INSERT INTO task_submissions(id, fingerprint, task_id, comment_id, created_at) VALUES (?, ?, ?, ?, ?)")
+        .run(submission.id, submission.fingerprint, taskId, value.comment?.id ?? null, now());
+      this.database.exec("COMMIT");
+      return { value, replayed: false };
+    } catch (error) {
+      this.database.exec("ROLLBACK");
+      throw error;
+    } finally { this.taskSubmissionActive = false; }
+  }
+
+  #beginTaskMutation() {
+    this.database.exec(this.taskSubmissionActive ? "SAVEPOINT task_mutation" : "BEGIN IMMEDIATE");
+  }
+  #commitTaskMutation() {
+    this.database.exec(this.taskSubmissionActive ? "RELEASE task_mutation" : "COMMIT");
+  }
+  #rollbackTaskMutation() {
+    this.database.exec(this.taskSubmissionActive ? "ROLLBACK TO task_mutation; RELEASE task_mutation" : "ROLLBACK");
+  }
+
+  createTask(input) {
+    this.#beginTaskMutation();
     try {
       const project = this.database.prepare(`
         SELECT id, next_task_number FROM projects WHERE id = ?
@@ -1117,10 +1169,10 @@ export class TaskboardDatabase {
         timestamp,
         timestamp,
       );
-      this.database.exec("COMMIT");
+      this.#commitTaskMutation();
       return this.getTask(id);
     } catch (error) {
-      this.database.exec("ROLLBACK");
+      this.#rollbackTaskMutation();
       throw error;
     }
   }
@@ -1213,7 +1265,7 @@ export class TaskboardDatabase {
     }
 
     const timestamp = now();
-    this.database.exec("BEGIN IMMEDIATE");
+    this.#beginTaskMutation();
     try {
       const result = this.database.prepare(`
         UPDATE tasks
@@ -1223,9 +1275,9 @@ export class TaskboardDatabase {
       if (result.changes !== 1) {
         this.#throwMissingOrConflict(id, version);
       }
-      this.database.exec("COMMIT");
+      this.#commitTaskMutation();
     } catch (error) {
-      this.database.exec("ROLLBACK");
+      this.#rollbackTaskMutation();
       throw error;
     }
     return this.getTask(current.id);
@@ -1248,7 +1300,7 @@ export class TaskboardDatabase {
 
     const commentId = randomUUID();
     const timestamp = now();
-    this.database.exec("BEGIN IMMEDIATE");
+    this.#beginTaskMutation();
     try {
       const result = this.database.prepare(`
         UPDATE tasks
@@ -1275,9 +1327,9 @@ export class TaskboardDatabase {
         timestamp,
         timestamp,
       );
-      this.database.exec("COMMIT");
+      this.#commitTaskMutation();
     } catch (error) {
-      this.database.exec("ROLLBACK");
+      this.#rollbackTaskMutation();
       throw error;
     }
     return { task: this.getTask(current.id), comment: this.getComment(commentId) };
@@ -1428,27 +1480,35 @@ export class TaskboardDatabase {
   }
 
   createComment(taskId, input) {
-    const task = this.#requireTask(taskId);
-    const id = randomUUID();
-    const timestamp = now();
-    this.database.prepare(`
-      INSERT INTO comments (
-        id, task_id, body, thread_id, author_type, author_id, author_name, author_avatar_url,
-        version, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-    `).run(
-      id,
-      task.id,
-      input.body,
-      input.threadId ?? null,
-      input.actor.type,
-      input.actor.id,
-      input.actor.name,
-      input.actor.avatarUrl,
-      timestamp,
-      timestamp,
-    );
-    return this.getComment(id);
+    this.#beginTaskMutation();
+    try {
+      const task = this.#requireTask(taskId);
+      const id = randomUUID();
+      const timestamp = now();
+      this.database.prepare(`
+        INSERT INTO comments (
+          id, task_id, body, thread_id, author_type, author_id, author_name, author_avatar_url,
+          version, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+      `).run(
+        id,
+        task.id,
+        input.body,
+        input.threadId ?? null,
+        input.actor.type,
+        input.actor.id,
+        input.actor.name,
+        input.actor.avatarUrl,
+        timestamp,
+        timestamp,
+      );
+      const comment = this.getComment(id);
+      this.#commitTaskMutation();
+      return comment;
+    } catch (error) {
+      this.#rollbackTaskMutation();
+      throw error;
+    }
   }
 
   getComment(id) {

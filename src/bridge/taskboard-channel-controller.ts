@@ -1,3 +1,5 @@
+import { CodexRunAdmissionError } from "../codex/backend.js";
+import path from "node:path";
 import { createTaskCard, createTaskFormCard, createTaskOverviewCard } from "../channels/task-card.js";
 import type { TaskboardClient, TaskboardIssue } from "../taskboard/client.js";
 import type { ChannelMessage } from "../channels/message.js";
@@ -22,7 +24,7 @@ export type { TaskboardChannelControllerOptions } from "./taskboard-channel-type
 
 export class TaskboardChannelController {
   constructor(private readonly options: TaskboardChannelControllerOptions,
-    private readonly submissionDedup = new TaskboardSubmissionDeduplicator(),
+    private readonly submissionDedup = new TaskboardSubmissionDeduplicator(path.join(path.dirname(options.stateStore.controlJournalPath), "taskboard-submissions.json")),
     private readonly source?: { assertCurrent: () => void; changeBinding: (change: () => void) => void }) {}
 
   async handle(message: ChannelMessage, raw: string): Promise<void> {
@@ -137,9 +139,14 @@ export class TaskboardChannelController {
     submission: TaskboardSubmission
   ): Promise<void> {
     const requestId = submission.request_id;
-    const reservation = this.submissionDedup.reserve(requestId, context.taskboardProject.id, submission);
+    const reservation = this.submissionDedup.reserve(requestId, context.taskboardProject.id, submission,
+      this.options.submissionScope?.(message) ?? message.senderId);
     if (reservation.kind === "mismatch") {
       await this.options.replyText(message.senderId, "该请求标识已用于其他任务操作，请刷新任务面板后重试。");
+      return;
+    }
+    if (reservation.kind === "workflow-unknown") {
+      await this.refreshSubmissionTarget({ message, context, submission, note: "该请求的 Codex 交接结果尚未确认；请查看原会话，不会自动重复启动。" });
       return;
     }
     if (reservation.kind === "duplicate") {
@@ -156,8 +163,10 @@ export class TaskboardChannelController {
         reservation.finish(false);
         return;
       }
+      const client = reservation.operationId ? this.requireClient().withSubmission(reservation.operationId) : this.requireClient();
       const result = await executeTaskboardSubmission({
-        client: this.requireClient(),
+        client,
+        ...(reservation.recovering && reservation.operationId ? { recoverOperationId: reservation.operationId } : {}),
         projectId: context.taskboardProject.id,
         submission
       });
@@ -175,7 +184,7 @@ export class TaskboardChannelController {
           });
           return;
         case "workflow":
-          mutationCompleted = submission.operation === "create_start";
+          // Task creation and native execution have separate acceptance boundaries.
           if (!result.issue.threadId) {
             this.source!.changeBinding(() => this.options.stateStore.createSession(
               message.senderId,
@@ -185,6 +194,7 @@ export class TaskboardChannelController {
             ));
           }
           this.source!.assertCurrent();
+          reservation.beginWorkflow();
           await this.options.runWorkflow(message, result.instruction);
           mutationCompleted = true;
           reservation.finish(true);
@@ -208,7 +218,7 @@ export class TaskboardChannelController {
           return assertNever(result);
       }
     } catch (error) {
-      reservation.finish(mutationCompleted);
+      reservation.finish(mutationCompleted, error instanceof CodexRunAdmissionError ? { nativeNotSubmitted: true } : undefined);
       throw error;
     }
   }

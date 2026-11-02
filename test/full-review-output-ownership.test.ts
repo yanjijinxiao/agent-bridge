@@ -64,3 +64,18 @@ for (const change of ["binding", "access", "newer-query"]) test(`a delayed IM hi
   assert.equal(f.text.some(text => text.includes("STALE_HISTORY")), false);
   if (change === "newer-query") assert.equal(f.text.filter(text => text.includes("FRESH_HISTORY")).length, 1);
 });
+
+for (const changed of [false, true]) test(`remote media uses downloaded bytes and rechecks binding after download (changed=${changed})`, async t => {
+  const f = fixture(t, "remote"), source = path.join(f.root, "report.pdf"), received = path.join(f.root, "downloaded", "report.pdf");
+  fs.writeFileSync(source, "LOCAL-ONLY"); fs.mkdirSync(path.dirname(received)); fs.writeFileSync(received, "REMOTE-BYTES");
+  const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>(); let disposed = false;
+  (f.service as any).runner = { async fetchOutputFile(remotePath: string, options: { hostId: string }) {
+    assert.equal(remotePath, source); assert.equal(options.hostId, "remote"); entered.resolve(); await release.promise;
+    return { path: received, async dispose() { disposed = true; fs.rmSync(received); } };
+  } };
+  f.setSend(async file => { assert.equal(file, received); assert.equal(fs.readFileSync(file, "utf8"), "REMOTE-BYTES"); });
+  const pending = f.service.applyRecoveredOutput(f.session.id, actions([source]), { hostId: "remote", threadId: "thread" });
+  await entered.promise; if (changed) f.store.setSessionThread(f.session.id, "replacement"); release.resolve(); await pending;
+  assert.equal(f.media.length, changed ? 0 : 1); assert.equal(disposed, true);
+  assert.equal(fs.readFileSync(source, "utf8"), "LOCAL-ONLY");
+});

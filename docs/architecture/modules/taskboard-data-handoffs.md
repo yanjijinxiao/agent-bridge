@@ -47,6 +47,12 @@ File对象仅保存在当前表单内存；页面关闭后不能宣称文件内�
 
 这不代表云端所有未知写、R2补偿或手机端已验证。工作流和现已完成的原生 AI 执行分别见独立模块说明；AI HTTP 幂等也有自己的 UUID/事务合同，不能从普通议题/评论的浏览器记录外推。
 
-## IM入口仍未完成的交接
+## IM表单的持久交接与事务回执
 
-TB-09.5已通过真实Bridge/Controller/TaskboardClient和隔离HTTP替身复现：后端创建成功但响应丢失，重试相同表单request_id会创建第二条Task。当前内存去重在异常后删除记录，createIssue不带服务端操作身份；尚未修复。网页表单的持久实体/逐文件记录不覆盖IM入口，不能将网页测试通过外推此项。完整剩余工作见../remaining-work.md。
+入口是TaskboardChannelController.submit，经TaskboardClient.withSubmission到原有POST任务/评论/move/transition API。表单request_id按账号、对话、actor生成独立身份；同ID换项目或载荷拒绝。Gateway在每账号taskboard-submissions.json中先durable保存pending，再发HTTP，成功记录completed；重启后未确认操作先GET /api/task-submissions/:id核对。
+
+服务端用独立fingerprint绑定操作路径、actor与完整请求体。SQLite在BEGIN IMMEDIATE中执行业务SAVEPOINT与回执INSERT；D1把业务与唯一回执放在同一batch，竞争回执冲突回滚本批业务。失败CAS不记accepted。回执不随Task/Comment删除，避免删除后再次创建；精确重试不重复发事件或触发自动化。云迁移可选携带task_submissions，旧数据库/旧包无此表仍按原数据迁移。云端启用新接口前须应用0002_task_submissions.sql；旧后端严格拒绝clientRequestId，而不会忽略它后写入。
+
+未知HTTP结果不删除操作身份；重试只读核对已提交实体。若读回执仍为空，只允许携带同一服务端幂等身份重试，不由“查询为空”推断此前未提交。TB-09.5用实际Bridge→HTTP→SQLite丢响应及双重启验证；SQLite/D1并发、失败回滚、删除后回执与迁移都有直接检查。
+
+“创建并开始”分为Taskboard写入与Codex执行交接。进入原生调用前单独持久记录workflow，未知结果只提示查看原会话，不把创建成功当作执行已接收，也不自动重发。真实原生交接中骤停后按原turn自动核对尚未验证，单列TB-09.6 partial；这不阻塞其他请求。无request_id的旧文字命令不承诺跨消息幂等。完整剩余工作见../remaining-work.md。

@@ -1,17 +1,19 @@
 # 当前未完成工作（2026-11-02）
 
-此表以当前源码和功能清单核对，不把旧pending-findings全部当成当前故障。原28项均已建立直接测试映射；本次另外确认1个尚未修复的实际问题。当前305case：199窄边界通过、105部分覆盖、1失败；304有测试映射，新失败尚缺正式回归。105部分不等于105个已确认bug。
+此表以当前源码和功能清单核对，不把旧pending-findings全部当成当前故障。原28项均已建立直接测试映射；后来确认的IM重复创建已修复并有实际HTTP/SQLite回归。当前306case：200窄边界通过、106部分覆盖，全部有测试映射；部分覆盖不等于已确认bug。
 
-## 优先修复：IM Taskboard未知回执重复写
+## 本轮已补齐
 
-TB-09.5：IM的/task submit先经过TaskboardSubmissionDeduplicator内存Map；TaskboardClient.createIssue没有传request_id/服务端幂等身份，HTTP异常时finish(false)删除记录。实际隔离Bridge复现：HTTP替身创建后丢响应，相同表单request_id再次提交，发生2次POST、创建2条Task。当前未修复。网页TaskEditor/评论的浏览器持久交接已实现，不能拿来证明IM入口。下一步应先保留该失败回归，再统一IM持久交接、未知结果核对和服务端操作身份；不以无限拦截后续输入掩盖。
+- TB-09.5：IM表单的持久交接、服务端精确操作身份与业务数据同事务提交；丢响应/双重启后只读核对原回执，任务、评论及状态变更不会靠内存Map去重。迁移到D1也保留回执。
+- IN-06.3：已有远程结果文件回传端口，复用所选执行主机SSH路由，校验字节与摘要，下载后再核对绑定并清理私有临时副本；缺端口/渠道无能力明确失败，不读本机同名文件。真实SSH与手机验收仍未完成。
+- TB-09.6：Taskboard创建与原生执行交接分开保存；原生交接未知不自动重复启动。重启后按原turn自动核对并恢复这一组合的真实原生验证仍未完成。
 
 ## 已确认未实现或能力尚不齐平
 
 | 范围 | 当前事实 | 剩余工作 |
 | --- | --- | --- |
 | 流程画布33种kind | 只编辑、校验结构和版本化保存文档；没有逐节点执行器 | kind执行入口、完整必填、凭据授权、结果与失败/恢复回执。通用AI和议题自动化已有原生路径，不能混同 |
-| 远程产物回IM | BridgeService.sendLocalMedia对非local明确返回false，让用户从IDE下载 | 远端文件到Gateway的受控回传端口及后续渠道投递；不能读本机同名文件 |
+| 远程产物回IM | 已有按执行主机读取、下载校验和渠道投递路径 | 真实SSH主机与供应商IM的联调验收仍未完成；无SSH传输端口的自定义执行器需提供同等文件端口 |
 | IM能力差异 | Feishu outbound只有image；WeCom只声明文本能力、mentions未实现 | 飞书文件/视频回传及企微原生@/媒体等尚未实现，不能把四渠道文字打通说成所有能力齐平 |
 | npm更新 | UpdateManager直接npm install到当前installPrefix | 与源码发布相同的隔离准备、激活和失败回退尚未实现；当前源码上线流程已有prepare/seal/switch/verify |
 | IDE自动安装平台 | installer只列Linux x64、macOS x64/arm64的制品pin | Linux arm64自动安装尚不支持；其他平台目前要求已安装的可执行文件，不伪称已覆盖 |
@@ -29,7 +31,7 @@ TB-09.5：IM的/task submit先经过TaskboardSubmissionDeduplicator内存Map；T
 
 统一原生App Server、Taskboard AI/自动处理/模型额度、工作区根与项目unknown、WorkflowBoard移动/CAS冲突、网页部分上传和AI未知提交、28项缺测映射均已有当前实现及对应测试。保留各自设备/组合边界，不再沿用“Taskboard仍走exec”“28项未映射”当作现状。
 
-## 105条部分覆盖的逐项入口
+## 部分覆盖的逐项入口
 
 下列为当前验证登记，保留其范围限制；不是逐项确认失败。
 
@@ -86,7 +88,7 @@ TB-09.5：IM的/task submit先经过TaskboardSubmissionDeduplicator内存Map；T
 
 - IN-06.1：实际Bridge准备远端转存路径，远端存储与runner为替身；未在真实SSH主机读取。
 - IN-06.2：附件准备结束后线程/角色/准入复核；远端实际SSH转存中撤权的独立场景仍需补。
-- IN-06.3：已复核实际source对remote没有下载通道的明确反馈；不能把仅媒体done修复外推remote字节全链路。
+- IN-06.3：本轮以隔离SSH替身执行实际读文件脚本及回传校验，真实Bridge验证下载后换绑不发送；真实远程主机/供应商渠道/手机尚未联调。
 
 ### STATE-01 · 状态唯一与原子持久化
 
@@ -320,3 +322,7 @@ TB-09.5：IM的/task submit先经过TaskboardSubmissionDeduplicator内存Map；T
 ### TB-10 · 工作流编辑与执行能力分开核验
 
 - TB-10.3：33kind的编辑配置合同已补；当前工作流服务只版本化保存文档，没有按各kind执行、凭据授权和运行回执的统一执行器。不能宣称33种节点可执行；不为此开放隐藏入口或禁用已有功能。
+
+### TB-09 · 原生交接剩余组合
+
+- TB-09.6：Taskboard创建已有回执；Codex交接未知阶段持久保留且不自动重启。真实原生接收与Gateway落盘间骤停、按原turn自动恢复未完成。

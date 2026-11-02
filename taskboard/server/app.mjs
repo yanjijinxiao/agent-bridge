@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readTaskSubmission } from "../shared/task-submissions.mjs";
 import { execFile } from "node:child_process";
 import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
@@ -1547,7 +1548,7 @@ export function createTaskboardServer(options = {}) {
               }
             }
             const upstream = await cloudProxy.forward(proxyRequest);
-            if (upstream.ok && (taskCreated || taskMayEnterTodo)) {
+            if (upstream.ok && upstream.headers.get("x-taskboard-replayed") !== "true" && (taskCreated || taskMayEnterTodo)) {
               const payload = await upstream.clone().json();
               if (payload?.task) {
                 if (taskCreated) events.emit("task.created", { task: payload.task });
@@ -1661,20 +1662,26 @@ export function createTaskboardServer(options = {}) {
         return sendJson(response, 200, await scanDevelopmentContexts(workspacePath));
       }
 
+      const taskSubmissionRoute = pathname.match(/^\/api\/task-submissions\/([a-f0-9]{64})$/);
+      if (taskSubmissionRoute) {
+        if (request.method !== "GET") return methodNotAllowed(response, ["GET"]);
+        assertNoQuery(url.searchParams, "Task submission receipt");
+        return sendJson(response, 200, { submission: database.getTaskSubmission(taskSubmissionRoute[1]) });
+      }
+
       if (pathname === "/api/tasks") {
         if (request.method === "GET") {
           return sendJson(response, 200, { tasks: database.listTasks(parseTaskFilters(url.searchParams)) });
         }
         if (request.method === "POST") {
           const actor = actorFromRequest(request);
-          const { assigneeTarget, ...input } = parseTaskCreate(await readJson(request));
-          const task = database.createTask({
-            ...input,
-            actor,
-            assignee: resolveAssignee(assigneeTarget, actor),
-          });
-          events.emit("task.created", { task });
-          if (isLoopbackRequest(request)) {
+          const parsed = await readTaskSubmission(await readJson(request), [pathname, actor.type, actor.id], ApiError);
+          const { assigneeTarget, ...input } = parseTaskCreate(parsed.body);
+          const { value: { task }, replayed } = database.runTaskSubmission(parsed.submission, () => ({ task: database.createTask({
+            ...input, actor, assignee: resolveAssignee(assigneeTarget, actor),
+          }) }));
+          if (!replayed) events.emit("task.created", { task });
+          if (!replayed && isLoopbackRequest(request)) {
             triggerIssueAutomation(task);
           }
           return sendJson(response, 201, { task });
@@ -1762,12 +1769,13 @@ export function createTaskboardServer(options = {}) {
           return sendJson(response, 200, { comments: database.listComments(taskId) });
         }
         if (request.method === "POST") {
-          const comment = database.createComment(taskId, {
-            ...parseCommentCreate(await readJson(request)),
-            actor: actorFromRequest(request),
-          });
+          const actor = actorFromRequest(request);
+          const parsed = await readTaskSubmission(await readJson(request), [pathname, actor.type, actor.id], ApiError);
+          const input = parseCommentCreate(parsed.body);
+          const { value: { comment }, replayed } = database.runTaskSubmission(parsed.submission,
+            () => ({ comment: database.createComment(taskId, { ...input, actor }) }));
           const task = database.getTask(taskId);
-          events.emit("comment.created", { comment, task });
+          if (!replayed) events.emit("comment.created", { comment, task });
           return sendJson(response, 201, { comment });
         }
         return methodNotAllowed(response, ["GET", "POST"]);
@@ -1991,12 +1999,15 @@ export function createTaskboardServer(options = {}) {
           return sendJson(response, 200, { task, previousStatus: previousTask?.status ?? task.status });
         }
         if (action === "move" && request.method === "POST") {
-          const move = parseMove(await readJson(request));
+          const actor = actorFromRequest(request);
+          const parsed = await readTaskSubmission(await readJson(request), [pathname, actor.type, actor.id], ApiError);
+          const move = parseMove(parsed.body);
           const previousTask = database.getTask(id);
-          const task = database.moveTask(id, move.version, move.status, move.sortOrder, move.threadId);
-          events.emit("task.moved", { task });
+          const { value: { task }, replayed } = database.runTaskSubmission(parsed.submission,
+            () => ({ task: database.moveTask(id, move.version, move.status, move.sortOrder, move.threadId) }));
+          if (!replayed) events.emit("task.moved", { task });
           if (
-            isLoopbackRequest(request)
+            !replayed && isLoopbackRequest(request)
             && previousTask?.status !== "todo"
             && task.status === "todo"
           ) {
@@ -2005,20 +2016,21 @@ export function createTaskboardServer(options = {}) {
           return sendJson(response, 200, { task, previousStatus: previousTask?.status ?? task.status });
         }
         if (action === "transition" && request.method === "POST") {
-          const transition = parseMoveWithComment(await readJson(request));
+          const actor = actorFromRequest(request);
+          const parsed = await readTaskSubmission(await readJson(request), [pathname, actor.type, actor.id], ApiError);
+          const transition = parseMoveWithComment(parsed.body);
           const previousTask = database.getTask(id);
-          const result = database.moveTaskWithComment(
+          const { value: result, replayed } = database.runTaskSubmission(parsed.submission, () => database.moveTaskWithComment(
             id,
             transition.version,
             transition.status,
             transition.sortOrder,
             transition.threadId,
-            { ...transition, actor: actorFromRequest(request) },
-          );
-          events.emit("comment.created", result);
-          events.emit("task.moved", result);
+            { ...transition, actor },
+          ));
+          if (!replayed) { events.emit("comment.created", result); events.emit("task.moved", result); }
           if (
-            isLoopbackRequest(request)
+            !replayed && isLoopbackRequest(request)
             && previousTask?.status !== "todo"
             && result.task.status === "todo"
           ) {

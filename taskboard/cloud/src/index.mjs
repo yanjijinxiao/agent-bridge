@@ -1,3 +1,4 @@
+import { readTaskSubmission, checkTaskSubmission } from "../../shared/task-submissions.mjs";
 import { normalizeWorkflowSnapshot } from "../../shared/workflow-control-flow.mjs";
 import { isCalendarDate } from "../../shared/domain.mjs";
 
@@ -1083,7 +1084,49 @@ async function listTasks(env, filters) {
   return Promise.all(rows.map((row) => hydrateTask(env, row)));
 }
 
-async function createTask(env, input, actor) {
+async function getTaskSubmission(env, id) {
+  const row = await env.DB.prepare("SELECT * FROM task_submissions WHERE id = ?").bind(id).first();
+  return row ? { id: row.id, fingerprint: row.fingerprint, taskId: row.task_id,
+    commentId: row.comment_id, createdAt: row.created_at } : null;
+}
+
+async function taskSubmissionResult(env, submission) {
+  if (!submission) return null;
+  const receipt = checkTaskSubmission(await getTaskSubmission(env, submission.id), submission, ApiError);
+  if (!receipt) return null;
+  const task = await getTask(env, receipt.taskId);
+  const commentRow = receipt.commentId
+    ? await env.DB.prepare("SELECT * FROM comments WHERE id = ?").bind(receipt.commentId).first() : null;
+  if (!task || (receipt.commentId && !commentRow)) {
+    throw new ApiError(409, "SUBMISSION_TARGET_REMOVED", "Operation was accepted; its target was subsequently removed");
+  }
+  submission.replayed = true;
+  return { task, ...(commentRow ? { comment: await hydrateComment(env, commentRow) } : {}) };
+}
+
+/** D1 batch is the transaction boundary. A concurrent receipt collision rolls
+ * back every business statement; a failed CAS cannot create a receipt. */
+async function commitTaskSubmission(env, submission, statements, taskId, commentId = null) {
+  try {
+    const results = await env.DB.batch([...statements, ...(submission ? [env.DB.prepare(`
+      INSERT INTO task_submissions(id, fingerprint, task_id, comment_id, created_at)
+      SELECT ?, ?, ?, ?, ? WHERE changes() > 0
+    `).bind(submission.id, submission.fingerprint, taskId, commentId, now())] : [])]);
+    return { results };
+  } catch (error) {
+    const existing = await taskSubmissionResult(env, submission);
+    if (existing) return { existing };
+    throw error;
+  }
+}
+
+function taskSubmissionHeaders(submission) {
+  return submission?.replayed ? { "x-taskboard-replayed": "true" } : {};
+}
+
+async function createTask(env, input, actor, submission) {
+  const existing = await taskSubmissionResult(env, submission);
+  if (existing) return existing.task;
   await requireProject(env, input.projectId);
   let sortOrder = input.sortOrder;
   if (sortOrder === undefined) {
@@ -1100,7 +1143,7 @@ async function createTask(env, input, actor) {
   const prefix = projectPrefix(input.projectId);
   // D1 batches serialize allocation and counter update. Abbreviated legacy
   // prefixes may be shared by projects; never rename their existing issues.
-  const results = await env.DB.batch([
+  const committed = await commitTaskSubmission(env, submission, [
     env.DB.prepare(`
       INSERT INTO tasks (
         id, identifier, project_id, title, description, status, priority, labels,
@@ -1158,7 +1201,9 @@ async function createTask(env, input, actor) {
           updated_at = ?
       WHERE id = ?
     `).bind(id, prefix.length + 2, timestamp, input.projectId),
-  ]);
+  ], id);
+  if (committed.existing) return committed.existing.task;
+  const results = committed.results;
   if (!changed(results[0]) || !changed(results[1])) {
     throw new ApiError(
       404,
@@ -1242,7 +1287,9 @@ async function updateTask(env, id, input, actor) {
   };
 }
 
-async function moveTask(env, id, input, commentActor) {
+async function moveTask(env, id, input, commentActor, submission) {
+  const existing = await taskSubmissionResult(env, submission);
+  if (existing) return existing;
   const current = await requireTaskRow(env, id);
   assertTaskVersion(current, input.version);
   if (current.archived_at !== null) {
@@ -1278,7 +1325,7 @@ async function moveTask(env, id, input, commentActor) {
   let result, commentId;
   if (commentActor) {
     commentId = uuid();
-    const results = await env.DB.batch([
+    const committed = await commitTaskSubmission(env, submission, [
       env.DB.prepare(`
         INSERT INTO comments (
           id, task_id, body, thread_id, author_type, author_id, author_name,
@@ -1290,10 +1337,13 @@ async function moveTask(env, id, input, commentActor) {
         commentActor.id, commentActor.name, commentActor.avatarUrl,
         timestamp, timestamp, current.id, input.version),
       update,
-    ]);
-    result = results[1];
+    ], current.id, commentId);
+    if (committed.existing) return committed.existing;
+    result = committed.results[1];
   } else {
-    result = await update.run();
+    const committed = await commitTaskSubmission(env, submission, [update], current.id);
+    if (committed.existing) return committed.existing;
+    result = committed.results[0];
   }
   if (!changed(result)) {
     const latest = await requireTaskRow(env, current.id);
@@ -1678,11 +1728,13 @@ async function listComments(env, taskId) {
   return Promise.all(rows.map((row) => hydrateComment(env, row)));
 }
 
-async function createComment(env, taskId, input, actor) {
+async function createComment(env, taskId, input, actor, submission) {
+  const existing = await taskSubmissionResult(env, submission);
+  if (existing) return existing.comment;
   const task = await requireTaskRow(env, taskId);
   const id = uuid();
   const timestamp = now();
-  await env.DB.prepare(`
+  const statement = env.DB.prepare(`
     INSERT INTO comments (
       id, task_id, body, thread_id, author_type, author_id, author_name,
       author_avatar_url, version, created_at, updated_at
@@ -1698,7 +1750,9 @@ async function createComment(env, taskId, input, actor) {
     actor.avatarUrl,
     timestamp,
     timestamp,
-  ).run();
+  );
+  const committed = await commitTaskSubmission(env, submission, [statement], task.id, id);
+  if (committed.existing) return committed.existing.comment;
   const row = await env.DB.prepare("SELECT * FROM comments WHERE id = ?").bind(id).first();
   return hydrateComment(env, row);
 }
@@ -2007,6 +2061,13 @@ async function routeApi(request, env, actor, url) {
     methodNotAllowed(["GET", "PUT"]);
   }
 
+  const taskSubmissionRoute = pathname.match(/^\/api\/task-submissions\/([a-f0-9]{64})$/);
+  if (taskSubmissionRoute) {
+    requireNoQuery(url, "Task submission receipt");
+    if (request.method !== "GET") methodNotAllowed(["GET"]);
+    return json(200, { submission: await getTaskSubmission(env, taskSubmissionRoute[1]) });
+  }
+
   if (pathname === "/api/tasks") {
     if (request.method === "GET") {
       return json(200, {
@@ -2014,9 +2075,9 @@ async function routeApi(request, env, actor, url) {
       });
     }
     if (request.method === "POST") {
-      return json(201, {
-        task: await createTask(env, parseTaskCreate(await readJson(request)), actor),
-      });
+      const parsed = await readTaskSubmission(await readJson(request), [pathname, actor.type, actor.id], ApiError);
+      const task = await createTask(env, parseTaskCreate(parsed.body), actor, parsed.submission);
+      return json(201, { task }, taskSubmissionHeaders(parsed.submission));
     }
     methodNotAllowed(["GET", "POST"]);
   }
@@ -2047,14 +2108,9 @@ async function routeApi(request, env, actor, url) {
       return json(200, { comments: await listComments(env, taskId) });
     }
     if (request.method === "POST") {
-      return json(201, {
-        comment: await createComment(
-          env,
-          taskId,
-          parseCommentCreate(await readJson(request)),
-          actor,
-        ),
-      });
+      const parsed = await readTaskSubmission(await readJson(request), [pathname, actor.type, actor.id], ApiError);
+      const comment = await createComment(env, taskId, parseCommentCreate(parsed.body), actor, parsed.submission);
+      return json(201, { comment }, taskSubmissionHeaders(parsed.submission));
     }
     methodNotAllowed(["GET", "POST"]);
   }
@@ -2165,15 +2221,19 @@ async function routeApi(request, env, actor, url) {
       ));
     }
     if (action === "move" && request.method === "POST") {
-      return json(200, await moveTask(env, taskId, parseMove(await readJson(request))));
+      const parsed = await readTaskSubmission(await readJson(request), [pathname, actor.type, actor.id], ApiError);
+      const value = await moveTask(env, taskId, parseMove(parsed.body), undefined, parsed.submission);
+      return json(200, value, taskSubmissionHeaders(parsed.submission));
     }
     if (action === "transition" && request.method === "POST") {
-      const payload = await readJson(request);
+      const parsed = await readTaskSubmission(await readJson(request), [pathname, actor.type, actor.id], ApiError);
+      const payload = parsed.body;
       assertPlainObject(payload);
       assertAllowedKeys(payload, new Set(["version", "status", "sortOrder", "threadId", "body"]));
       const { body, ...move } = payload;
       const input = { ...parseMove(move), body: stringField(body, "body", { required: true, maxLength: 100_000 }) };
-      return json(200, await moveTask(env, taskId, input, actor));
+      const value = await moveTask(env, taskId, input, actor, parsed.submission);
+      return json(200, value, taskSubmissionHeaders(parsed.submission));
     }
     if (action === "archive" && request.method === "POST") {
       return json(200, {

@@ -158,7 +158,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -184,7 +184,7 @@
             },
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             }
           ],
           "verifiedBoundary": "旧配置输入均规范为app-server，未触碰权限/绑定；构造只一个adapter仍需实际构造场景，故不以配置断言代替。"
@@ -346,7 +346,7 @@
             },
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "taskboard/server/ai-chat.mjs",
@@ -521,7 +521,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/server/account-manager.ts",
@@ -529,11 +529,11 @@
             },
             {
               "file": "src/codex/backend.ts",
-              "sha256": "58bdfc65a7aa3bf4c99fd6986c0b0cf745bce081f1f83bbdfd21c2f6567ffd8e"
+              "sha256": "a2d9ce4381d7e8a669caf42ea516eaaf846be1bb121e4d99edb0e0e5553eb20e"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -574,7 +574,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -621,7 +621,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "src/codex/history-reader.ts",
@@ -677,7 +677,7 @@
             },
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "src/taskboard/embedded-server.ts",
@@ -738,7 +738,7 @@
             },
             {
               "file": "src/codex/backend.ts",
-              "sha256": "58bdfc65a7aa3bf4c99fd6986c0b0cf745bce081f1f83bbdfd21c2f6567ffd8e"
+              "sha256": "a2d9ce4381d7e8a669caf42ea516eaaf846be1bb121e4d99edb0e0e5553eb20e"
             }
           ]
         },
@@ -872,7 +872,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -905,7 +905,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "src/server/thread-event-hub.ts",
@@ -958,7 +958,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "实际Bridge四渠道替身：自然语言完整进入原线程，零AI控制分类；非真实IM网络。"
@@ -980,7 +980,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/channels/dingtalk.ts",
@@ -1014,7 +1014,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "四渠道普通消息及显式help覆盖；所有任务/QA扩展组合未完整核验。"
@@ -1215,7 +1215,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ]
         },
@@ -1304,7 +1304,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/inbound-receipts.ts",
@@ -1437,7 +1437,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/channel-commands.ts",
@@ -1578,7 +1578,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/weixin/media.ts",
@@ -1631,7 +1631,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/channels/client.ts",
@@ -1661,28 +1661,64 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "附件准备结束后线程/角色/准入复核；远端实际SSH转存中撤权的独立场景仍需补。"
         },
         {
           "id": "IN-06.3",
-          "scenario": "远程输出未提供下载通道时明确失败，不误读本地同名文件",
+          "scenario": "远程输出按原执行主机端口回传并校验字节；缺端口时明确失败，不误读本地同名文件。",
           "status": "partial",
           "tests": [
             {
               "file": "test/turn-result-actions.test.ts",
               "name": "real Bridge media remote is recorded done only with a confirmed file receipt"
+            },
+            {
+              "file": "test/output-files.test.ts",
+              "name": "remote output transfer preserves bytes and filename using the selected SSH route and cleans its private copy"
+            },
+            {
+              "file": "test/output-files.test.ts",
+              "name": "remote output sender rejects symlinks, non-files, oversize and invalid paths"
+            },
+            {
+              "file": "test/output-files.test.ts",
+              "name": "remote output receiver rejects another transport, corrupt bytes, excessive output and timeout"
+            },
+            {
+              "file": "test/full-review-output-ownership.test.ts",
+              "name": "remote media uses downloaded bytes and rechecks binding after download (changed=false)"
+            },
+            {
+              "file": "test/full-review-output-ownership.test.ts",
+              "name": "remote media uses downloaded bytes and rechecks binding after download (changed=true)"
             }
           ],
           "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
+            },
+            {
+              "file": "src/codex/output-files.ts",
+              "sha256": "5945a2efc6b0c950e6a6827ba8024897cc0cca757c1a5e5b24ce050e0af15b54"
+            },
+            {
+              "file": "src/codex/app-server-gateway.ts",
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
+            },
+            {
+              "file": "src/codex/backend.ts",
+              "sha256": "a2d9ce4381d7e8a669caf42ea516eaaf846be1bb121e4d99edb0e0e5553eb20e"
+            },
             {
               "file": "src/bridge/turn-result-actions.ts",
               "sha256": "5f0dd2adc5b6e3ec6be72a10e43326e24214acc74d9146c288db17e123a2d4de"
             }
           ],
-          "verifiedBoundary": "已复核实际source对remote没有下载通道的明确反馈；不能把仅媒体done修复外推remote字节全链路。"
+          "verifiedBoundary": "实际只读发送脚本与下载器保留文件名/完整二进制、大小与SHA256校验、超时/坏摘要拒绝及0600临时文件清理；真实Bridge在异步下载后复核线程绑定。SSH进程为隔离本机替身，渠道发送为替身；没有真实远程主机、供应商IM或手机实机验收，故仍partial。"
         }
       ]
     },
@@ -2089,7 +2125,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -2123,7 +2159,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "detach持久、模式槽位与显式新建不复活旧关系；Gateway真实进程重启另需端到端。"
@@ -2201,7 +2237,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "旧项目漂移保独立绑定，四渠道项目命令不覆盖；普通真实native续聊权限另证。"
@@ -2223,7 +2259,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "真实scope generation，模式session切换ABA不复活；其他任意项目变更由来源测试另核。"
@@ -2245,7 +2281,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -2354,7 +2390,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "实际显式queue/steer准备后来源守卫，全部降权/停账号组合仍待。"
@@ -2441,7 +2477,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ]
         }
@@ -2686,7 +2722,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/codex/desktop-session-catalog.ts",
@@ -2876,7 +2912,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "完整快照稳定R身份，翻页/resize不重排，原生pin与metadata时间分开。"
@@ -2894,7 +2930,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -2924,7 +2960,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "跨host同名/同projectID分组隔离；同host同roots多个native身份创建仍是独立未决项。"
@@ -2975,7 +3011,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/session-catalog-view.ts",
@@ -3025,7 +3061,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/new-session.ts",
@@ -3090,7 +3126,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -3153,7 +3189,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ]
         }
@@ -3396,7 +3432,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "真实JSONL预期turn比较和Bridge默认steer，ACK中的全部thread/turn反例未在这组穷尽。"
@@ -3452,7 +3488,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "普通消息写前来源复核，原生steer连接等待后原角色/个人准入仍需另一末次lease场景。"
@@ -3489,7 +3525,7 @@
             },
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             }
           ],
           "verifiedBoundary": "真实隔离原生核心两peer覆盖queue正常链，专门并发append竞争矩阵仍需补，不能只靠both peers标题。"
@@ -3639,7 +3675,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "src/codex/native-turn-lifecycle.ts",
@@ -3674,7 +3710,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -3701,7 +3737,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "pause/clear纯文本各一次，通过真实IM命令路径核对原host/thread的goal set payload。"
@@ -3731,7 +3767,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -3845,7 +3881,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "真实Bridge、绑定/角色状态和来源journal，原生接口/渠道替身，4种操作×6种来源共24项；先完成原生动作再挂起返回，旧结果零发送、原host/thread恰好一次、重开journal handled不重放。viewer只读降权仍允许。真实远端及发送已进入供应商后的撤权窗口另验。"
@@ -3907,7 +3943,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "实际Bridge+RuntimeStateStore，2种设置×6种来源结果；原10反例失败及2正常对照。"
@@ -3948,11 +3984,11 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             }
           ],
           "verifiedBoundary": "本地故意挂起依赖，状态/queue列表在规定预算返回；不证明供应商真实网络时延。"
@@ -3974,7 +4010,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/channel-commands.ts",
@@ -4008,7 +4044,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "首屏和status不挡的各自故障已覆盖；Taskboard挂起时IMstatus的联合场景未专测。"
@@ -4045,7 +4081,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/access.ts",
@@ -4071,7 +4107,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/access.ts",
@@ -4147,7 +4183,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "真实准入服务和Bridge，actor/group范围、原任务不重放，管理者必须显式登记。"
@@ -4270,7 +4306,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -4363,7 +4399,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -4429,7 +4465,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "tests": [
@@ -4788,7 +4824,7 @@
             },
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "taskboard/server/ai-chat.mjs",
@@ -4872,7 +4908,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -4948,7 +4984,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/channels/turn-presentation.ts",
@@ -5225,7 +5261,7 @@
             },
             {
               "file": "src/codex/backend.ts",
-              "sha256": "58bdfc65a7aa3bf4c99fd6986c0b0cf745bce081f1f83bbdfd21c2f6567ffd8e"
+              "sha256": "a2d9ce4381d7e8a669caf42ea516eaaf846be1bb121e4d99edb0e0e5553eb20e"
             }
           ]
         },
@@ -5478,7 +5514,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "结果投递失败保原终态payload，不发替代答案；native executor终态在更下层fixture。"
@@ -5608,7 +5644,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/channels/client.ts",
@@ -5793,7 +5829,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "永久错单次非答案提示，终态仍只更新原handle，重启不替代答案。"
@@ -6042,7 +6078,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/turn-audience.ts",
@@ -6238,7 +6274,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "包含真实多次compaction phase进入同卡，不仅去重单一文本；真实客户端圆环/排版未验。"
@@ -6912,7 +6948,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/format.ts",
@@ -7057,7 +7093,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/turn-result-actions.ts",
@@ -7193,7 +7229,7 @@
             },
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "src/server/account-manager.ts",
@@ -8585,7 +8621,7 @@
           "implementation": [
             {
               "file": "src/bridge/taskboard-channel-controller.ts",
-              "sha256": "94628e229551d2cfd5fcec9d02a7d458931bae72a972f7edb6585671ea449251"
+              "sha256": "788410f7b7750043d109d955e1511b374814b3bc8951fe3be806b4eb44eddb31"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -8709,11 +8745,11 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/bridge/taskboard-channel-controller.ts",
-              "sha256": "94628e229551d2cfd5fcec9d02a7d458931bae72a972f7edb6585671ea449251"
+              "sha256": "788410f7b7750043d109d955e1511b374814b3bc8951fe3be806b4eb44eddb31"
             },
             {
               "file": "src/bridge/taskboard-channel-legacy.ts",
@@ -8721,11 +8757,11 @@
             },
             {
               "file": "src/bridge/taskboard-channel-types.ts",
-              "sha256": "7dd59527b657c47d744236ec351c4f99ad85dccf35d7094f29fe4103f19183a6"
+              "sha256": "a241ef4f6f72ed82157dbb56ae5a49865099d2b1159c26b4c4f376d3f90769f2"
             },
             {
               "file": "src/taskboard/client.ts",
-              "sha256": "63c0792d2a9a82e5e70ed3ac928175ed5184dab6082f0a99529384a3a011a1a3"
+              "sha256": "8998e91ee59d4afd42cd1553b479ecab81ecd9d956402c168db82f507394f51a"
             }
           ],
           "verifiedBoundary": "真实Bridge/TaskboardClient/state+fetch替身与临时文件；21个给定组合，不证明真实服务事务接收未知时的幂等、部分附件补偿或workflow运行全程权限。"
@@ -8866,7 +8902,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "真实Web/Bridge业务计数分界，native通过fixture接收；accept落盘失败的整个release组合还需联动。"
@@ -8946,7 +8982,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ]
         },
@@ -8991,7 +9027,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -8999,7 +9035,7 @@
             },
             {
               "file": "src/codex/backend.ts",
-              "sha256": "58bdfc65a7aa3bf4c99fd6986c0b0cf745bce081f1f83bbdfd21c2f6567ffd8e"
+              "sha256": "a2d9ce4381d7e8a669caf42ea516eaaf846be1bb121e4d99edb0e0e5553eb20e"
             },
             {
               "file": "src/bridge/inbound-receipts.ts",
@@ -9015,7 +9051,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ]
         },
@@ -9036,7 +9072,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ]
         },
@@ -9151,7 +9187,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             },
             {
               "file": "src/server/account-manager.ts",
@@ -9421,7 +9457,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "6b1f99079ba6a8500d8cdc43b5255333f68a5ac634bbaa749b1ef004e050aee5"
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
             }
           ],
           "verifiedBoundary": "历史manifest明确92可读/5丢失且不是当前客户端验收；实际Bridge把引用/围栏中的stop/allow/queue与附件示例当本轮分析数据，无控制写入。",
@@ -9634,7 +9670,7 @@
             },
             {
               "file": "taskboard/server/database.mjs",
-              "sha256": "9f653cbc9a753c183a232d273c2609f223ea53caf19264882606d4cc204471a4"
+              "sha256": "d8aa50bc411b5fbacc118b1d3bc1b7e67d5d7cff918c3ccacbd2b1731dcc6a73"
             }
           ],
           "tests": [
@@ -9990,7 +10026,7 @@
             },
             {
               "file": "src/codex/app-server-gateway.ts",
-              "sha256": "401d4c7a7e040c114f719e55291fc328cd66473299dc3fa1947f7e84945be03b"
+              "sha256": "7b0efe3699fa0c3da50ac4f25c6b13635996ddf11c8543efdd4acec16b5c8e3a"
             }
           ],
           "verifiedBoundary": "真实安装0.166.0/临时Home/假模型/SQLite，原生审批和双消费者；独立stdio限制明确，真实IM/手机另验。"
@@ -10080,7 +10116,7 @@
           "implementation": [
             {
               "file": "src/taskboard/client.ts",
-              "sha256": "63c0792d2a9a82e5e70ed3ac928175ed5184dab6082f0a99529384a3a011a1a3"
+              "sha256": "8998e91ee59d4afd42cd1553b479ecab81ecd9d956402c168db82f507394f51a"
             },
             {
               "file": "taskboard/server/cloud-proxy.mjs",
@@ -10088,7 +10124,7 @@
             },
             {
               "file": "taskboard/cloud/src/index.mjs",
-              "sha256": "9c7406f9ab8467df4c07376bec64960c16f65d1063f5db1f7490d50da5c1cd07"
+              "sha256": "737e522ee07a1ed26f8abd189c89089e83ee9ee748e6500370b468ffd04a2831"
             }
           ]
         }
@@ -10128,11 +10164,11 @@
           "implementation": [
             {
               "file": "taskboard/server/database.mjs",
-              "sha256": "9f653cbc9a753c183a232d273c2609f223ea53caf19264882606d4cc204471a4"
+              "sha256": "d8aa50bc411b5fbacc118b1d3bc1b7e67d5d7cff918c3ccacbd2b1731dcc6a73"
             },
             {
               "file": "taskboard/cloud/src/index.mjs",
-              "sha256": "9c7406f9ab8467df4c07376bec64960c16f65d1063f5db1f7490d50da5c1cd07"
+              "sha256": "737e522ee07a1ed26f8abd189c89089e83ee9ee748e6500370b468ffd04a2831"
             }
           ]
         }
@@ -10167,11 +10203,11 @@
             },
             {
               "file": "taskboard/server/app.mjs",
-              "sha256": "eb5a30ea485b9a8edc14ba94f6a51a2bc5dd5be48fc2be95a03354b2508bd927"
+              "sha256": "d1ed7b09ffca9d313e6483a3fed90c41883d8d3a8ac9d2ad67581c7dc7d6272e"
             },
             {
               "file": "taskboard/cloud/src/index.mjs",
-              "sha256": "9c7406f9ab8467df4c07376bec64960c16f65d1063f5db1f7490d50da5c1cd07"
+              "sha256": "737e522ee07a1ed26f8abd189c89089e83ee9ee748e6500370b468ffd04a2831"
             }
           ]
         },
@@ -10231,7 +10267,7 @@
           "implementation": [
             {
               "file": "taskboard/server/database.mjs",
-              "sha256": "9f653cbc9a753c183a232d273c2609f223ea53caf19264882606d4cc204471a4"
+              "sha256": "d8aa50bc411b5fbacc118b1d3bc1b7e67d5d7cff918c3ccacbd2b1731dcc6a73"
             }
           ]
         }
@@ -10404,29 +10440,103 @@
         {
           "id": "TB-09.5",
           "scenario": "IM Taskboard表单使用同一request_id；创建已在后端成功但HTTP回执丢失时，再提交或重启后不得重复创建，应持久保存未知结果并只读核对原操作。",
-          "status": "failed",
-          "tests": [],
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/taskboard-im-receipts.test.ts",
+              "name": "IM task creation recovers a lost committed response without another POST (restart=false)"
+            },
+            {
+              "file": "test/taskboard-im-receipts.test.ts",
+              "name": "IM task creation recovers a lost committed response without another POST (restart=true)"
+            },
+            {
+              "file": "taskboard/test/task-submissions.test.mjs",
+              "name": "Task mutations retain atomic idempotency receipts (sqlite)"
+            },
+            {
+              "file": "taskboard/test/task-submissions.test.mjs",
+              "name": "Task mutations retain atomic idempotency receipts (d1)"
+            },
+            {
+              "file": "taskboard/test/task-submissions.test.mjs",
+              "name": "receipt persistence failure rolls back the business mutation and migration preserves accepted identities"
+            }
+          ],
           "implementation": [
             {
+              "file": "src/bridge/service.ts",
+              "sha256": "a77871c42dada5f023eec9f61571d04db4454bfb71a0ec1ad53eb3b56020fc20"
+            },
+            {
               "file": "src/bridge/taskboard-channel-dedup.ts",
-              "sha256": "bc6a9bc0ca1753496ac7e33891aa735d862a7f68b44e6966bd03e1501818f14e"
+              "sha256": "5a091cfa67fe40a1ef8edac658856744a4994105d84294cbaf381b442e63a801"
             },
             {
               "file": "src/bridge/taskboard-channel-controller.ts",
-              "sha256": "94628e229551d2cfd5fcec9d02a7d458931bae72a972f7edb6585671ea449251"
+              "sha256": "788410f7b7750043d109d955e1511b374814b3bc8951fe3be806b4eb44eddb31"
             },
             {
               "file": "src/bridge/taskboard-channel-submit.ts",
-              "sha256": "1db8ca1840bc6de8061b235191a1a5b1e0f2718d1e7a20ab64c81ff2eafd07a3"
+              "sha256": "0d57f82490f3d1fdbfb080dccaaf86009979d23d252c63b59ee923562980763c"
             },
             {
               "file": "src/taskboard/client.ts",
-              "sha256": "63c0792d2a9a82e5e70ed3ac928175ed5184dab6082f0a99529384a3a011a1a3"
+              "sha256": "8998e91ee59d4afd42cd1553b479ecab81ecd9d956402c168db82f507394f51a"
+            },
+            {
+              "file": "taskboard/server/app.mjs",
+              "sha256": "d1ed7b09ffca9d313e6483a3fed90c41883d8d3a8ac9d2ad67581c7dc7d6272e"
+            },
+            {
+              "file": "taskboard/server/database.mjs",
+              "sha256": "d8aa50bc411b5fbacc118b1d3bc1b7e67d5d7cff918c3ccacbd2b1731dcc6a73"
+            },
+            {
+              "file": "taskboard/cloud/src/index.mjs",
+              "sha256": "737e522ee07a1ed26f8abd189c89089e83ee9ee748e6500370b468ffd04a2831"
+            },
+            {
+              "file": "taskboard/cloud/migrations/0002_task_submissions.sql",
+              "sha256": "12d5109cd991af8c235a5ab6621b633842e2c957ee346cfa102f6ad303eb239f"
+            },
+            {
+              "file": "taskboard/shared/task-submissions.mjs",
+              "sha256": "066e72aedba590a6fe44bdf317aa85f2ae91496cc5e3711a0bc7dc6bf9d82845"
+            },
+            {
+              "file": "taskboard/scripts/migrate-to-cloud.mjs",
+              "sha256": "43de8edc73def886c55fae92bd212913411e639d1d9309c621a52611f7917e07"
             }
           ],
           "confirmedFailure": "2026-11-02实际Bridge→TaskboardChannelController→TaskboardClient，隔离HTTP替身先保存Task再丢响应；相同表单request_id重试，观测2次POST、2条Task，未传服务端幂等键。未连接真实Taskboard或发送IM消息。",
-          "verifiedBoundary": "确认的是当前IM入口存在重复创建反例；网页TaskEditor的持久提交记录不适用于该入口。尚未修复，也未提交正式失败回归。",
-          "testGap": "需要直接失败回归、持久交接记录及服务端精确操作核对；明确未提交与未知接收必须区分，覆盖相同表单重试、Gateway重启和重复回调。"
+          "verifiedBoundary": "原失败反例保留在confirmedFailure作为历史。现以真实Bridge/Controller/Client→隔离HTTP/SQLite，在服务端提交后丢响应；同表单重试及Gateway/Taskboard双重启后均仅1次创建POST、1条Task。SQLite/D1直接覆盖并发创建/评论/状态事务去重、异载荷与异actor拒绝、失败CAS无回执、实体删除后保留接受证据；注入回执INSERT失败验证业务回滚，导出/导入D1保留原回执。未连接真实IM/真实云或模拟真实电源掉电。"
+        },
+        {
+          "id": "TB-09.6",
+          "scenario": "创建并开始时，Taskboard业务回执与Codex执行交接分开；未知原生交接不自动重新创建/启动，不阻塞别的表单。",
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/taskboard-im-receipts.test.ts",
+              "name": "IM journal retains uncertain native starts and rejects identity reuse after restart"
+            },
+            {
+              "file": "test/taskboard-im-receipts.test.ts",
+              "name": "IM journal retries a definitively unsubmitted native start with the same task identity"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/taskboard-channel-controller.ts",
+              "sha256": "788410f7b7750043d109d955e1511b374814b3bc8951fe3be806b4eb44eddb31"
+            },
+            {
+              "file": "src/bridge/taskboard-channel-dedup.ts",
+              "sha256": "5a091cfa67fe40a1ef8edac658856744a4994105d84294cbaf381b442e63a801"
+            }
+          ],
+          "verifiedBoundary": "持久journal恢复后同请求的workflow阶段保持未知，异载荷拒绝、另一来源可独立预留；未做真实原生交接中骤停后自动只读匹配turn的端到端场景。当前仅明确提示核对原会话，不自动重发未知执行。"
         }
       ]
     },
@@ -10536,7 +10646,7 @@
             },
             {
               "file": "taskboard/server/app.mjs",
-              "sha256": "eb5a30ea485b9a8edc14ba94f6a51a2bc5dd5be48fc2be95a03354b2508bd927"
+              "sha256": "d1ed7b09ffca9d313e6483a3fed90c41883d8d3a8ac9d2ad67581c7dc7d6272e"
             }
           ],
           "verifiedBoundary": "逐一执行33种palette配置校验，必填分支和动态Skill/MCP失败、旧选项不可用；真实能力HTTP目录失败返回500无伪造列表。流程文档保存与节点执行分开，详见taskboard-node-contracts.md。",
@@ -10570,7 +10680,7 @@
           "implementation": [
             {
               "file": "taskboard/scripts/migrate-to-cloud.mjs",
-              "sha256": "ba3c9491b005d6111703700c5cb835281048685d389b6377fa75885fb5609e97"
+              "sha256": "43de8edc73def886c55fae92bd212913411e639d1d9309c621a52611f7917e07"
             },
             {
               "file": "taskboard/scripts/wrangler-cloud-adapter.mjs",
@@ -10607,7 +10717,7 @@
           "implementation": [
             {
               "file": "taskboard/scripts/migrate-to-cloud.mjs",
-              "sha256": "ba3c9491b005d6111703700c5cb835281048685d389b6377fa75885fb5609e97"
+              "sha256": "43de8edc73def886c55fae92bd212913411e639d1d9309c621a52611f7917e07"
             },
             {
               "file": "taskboard/scripts/wrangler-cloud-adapter.mjs",
@@ -10628,7 +10738,7 @@
           "implementation": [
             {
               "file": "taskboard/scripts/migrate-to-cloud.mjs",
-              "sha256": "ba3c9491b005d6111703700c5cb835281048685d389b6377fa75885fb5609e97"
+              "sha256": "43de8edc73def886c55fae92bd212913411e639d1d9309c621a52611f7917e07"
             }
           ],
           "verifiedBoundary": "真实临时SQLite导出→写盘包/重读→Miniflare D1/R2→真实Worker任务API，branchless worktree仍保type，普通branch仍正确且不泄本机路径；原版API实际返回null。旧包已丢信息不可逆，本修复仅保全新导出包。"

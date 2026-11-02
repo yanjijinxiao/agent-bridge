@@ -4,6 +4,7 @@ import type { CodexExecSandbox } from "./sandbox.js";
 import { resolveRemoteCodexTransport } from "./remote-host.js";
 import { CodexMetadataReader, type MetadataConnection } from "./metadata-reader.js";
 import { CodexHistoryReader, type HistoryConnection } from "./history-reader.js";
+import { fetchRemoteOutputFile, type FetchOutputFile } from "./output-files.js";
 import { stageRemoteFiles, type StageInboundFiles } from "./inbound-files.js";
 import { observeOwnerTurn } from "./native-turn-lifecycle.js";
 import { CodexCommunicationError, isCodexCommunicationFailure } from "./communication-error.js";
@@ -107,6 +108,11 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
     if (!files.length || !input.hostId || input.hostId === "local") return files;
     return this.options.stageAttachments ? this.options.stageAttachments(files, input)
       : stageRemoteFiles(files, input.scope, input.maxBytes, this.remoteTransport(input.hostId));
+  };
+
+  fetchOutputFile: FetchOutputFile = async (remotePath, input) => {
+    if (input.hostId === "local") throw new Error("Remote output transfer requires the execution host identity");
+    return fetchRemoteOutputFile(remotePath, input, this.remoteTransport(input.hostId));
   };
 
   async steer(input: CodexSteerInput, hostId?: string) {

@@ -616,6 +616,7 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
   recoverSystemError?(input: CodexSystemRecoveryInput, hostId?: string): Promise<CodexSystemRecoveryResult>;
   resumeAfterCapacity?(input: CodexCapacityResumeInput): Promise<CodexRunResult>;
   stageAttachments?: import("./inbound-files.js").StageInboundFiles;
+  fetchOutputFile?: import("./output-files.js").FetchOutputFile;
   backendInfo(hostId?: string): { id: CodexBackendAdapter["id"]; capabilities: CodexBackendCapabilities };
   readThreadSnapshot(threadId: string, hostId?: string): Promise<CodexThreadSnapshot>;
   readTurnLifecycle?(threadId: string, turnId: string, hostId?: string): Promise<CodexTurnObservation>;

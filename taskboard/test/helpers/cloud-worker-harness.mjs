@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,7 +48,9 @@ export async function createCloudWorkerHarness({
   try {
     await miniflare.ready;
     const db = await miniflare.getD1Database("DB");
-    await db.exec(await readFile(MIGRATION_PATH, "utf8"));
+    for (const filename of (await readdir(path.dirname(MIGRATION_PATH))).filter(name => name.endsWith(".sql")).sort()) {
+      await db.exec(await readFile(path.join(path.dirname(MIGRATION_PATH), filename), "utf8"));
+    }
     const attachments = await miniflare.getR2Bucket("ATTACHMENTS");
 
     async function request(pathname, {

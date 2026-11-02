@@ -33,6 +33,7 @@ const SORT_FIELDS = {
   task_relations: ["source_task_id", "target_task_id", "relation_type"],
   attachments: ["task_id", "comment_id", "created_at", "id"],
   workflow_workspaces: ["project_id"],
+  task_submissions: ["id"],
 };
 function compareValues(left, right) {
   if (left === right) return 0;
@@ -224,6 +225,11 @@ async function readSnapshot(databasePath) {
         sortRows(table, snapshot.prepare(`SELECT * FROM "${table}"`).all()),
       ]),
     );
+    // Optional on older databases, but never discard receipts when present:
+    // otherwise an uncertain pre-migration IM write could be created again.
+    if (snapshot.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'task_submissions'").get()) {
+      tables.task_submissions = sortRows("task_submissions", snapshot.prepare("SELECT * FROM task_submissions").all());
+    }
     snapshot.close();
     snapshot = null;
     return tables;
@@ -263,6 +269,9 @@ function validateBundle(bundle) {
     if (!Array.isArray(bundle.tables?.[table])) {
       throw new Error(`Cloud migration bundle is missing table '${table}'`);
     }
+  }
+  if (bundle.tables.task_submissions !== undefined && !Array.isArray(bundle.tables.task_submissions)) {
+    throw new Error("Invalid task submission receipts in cloud migration bundle");
   }
   if (!Array.isArray(bundle.attachments)) {
     throw new Error("Cloud migration bundle is missing attachment payloads");
@@ -347,6 +356,7 @@ export async function createCloudMigrationBundle({
 }
 
 const CLOUD_COLUMNS = {
+  task_submissions: ["id", "fingerprint", "task_id", "comment_id", "created_at"],
   projects: ["id", "name", "workspace_path", "next_task_number", "created_at", "updated_at"],
   tasks: [
     "id", "identifier", "project_id", "title", "description", "status", "priority", "labels",
@@ -391,7 +401,7 @@ function insertTableSql(table) {
 }
 
 export function createCloudD1ImportPlan(tables) {
-  return TABLE_ORDER.map((table) => {
+  return [...TABLE_ORDER, ...(tables.task_submissions?.length ? ["task_submissions"] : [])].map((table) => {
     const columns = CLOUD_COLUMNS[table];
     const values = cloudRows(table, tables[table]).map((row) => (
       Object.fromEntries(columns.map((column) => [column, row[column] ?? null]))
@@ -598,7 +608,7 @@ export async function writeCloudMigrationBundle(bundle, outputDirectory) {
     await mkdir(attachmentsDirectory, { mode: 0o700 });
 
     const tableFiles = {};
-    for (const table of TABLE_ORDER) {
+    for (const table of [...TABLE_ORDER, ...(bundle.tables.task_submissions?.length ? ["task_submissions"] : [])]) {
       const relativePath = `data/${table}.json`;
       await writePrivateFile(
         bundleFile(outputDirectory, relativePath),
@@ -663,7 +673,7 @@ export async function readCloudMigrationBundle(inputDirectory) {
   }
 
   const tables = {};
-  for (const table of TABLE_ORDER) {
+  for (const table of [...TABLE_ORDER, ...(manifest.tables?.task_submissions ? ["task_submissions"] : [])]) {
     const entry = manifest.tables?.[table];
     if (!entry?.file) throw new Error(`Cloud migration manifest is missing table '${table}'`);
     const rows = await readJsonFile(

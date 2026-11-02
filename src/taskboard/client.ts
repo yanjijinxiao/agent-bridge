@@ -83,6 +83,23 @@ export class TaskboardClient {
     } });
   }
 
+  /** Applied only to one form operation. The explicit body field makes an old
+   * backend fail validation instead of silently ignoring idempotency metadata. */
+  withSubmission(operationId: string): TaskboardClient {
+    return new TaskboardClient({ baseUrl: this.baseUrl, timeoutMs: this.timeoutMs, fetch: (input, init) => {
+      if (init?.method === "POST" && typeof init.body === "string"
+        && /^\/api\/tasks(?:\/[^/]+\/(?:comments|move|transition))?$/.test(new URL(input).pathname)) {
+        return this.fetch(input, { ...init, body: JSON.stringify({ ...JSON.parse(init.body), clientRequestId: operationId }) });
+      }
+      return this.fetch(input, init);
+    } });
+  }
+
+  async getSubmission(operationId: string): Promise<{ taskId: string; commentId: string | null } | null> {
+    const value = await this.request(`/api/task-submissions/${encodeURIComponent(operationId)}`);
+    return z.object({ submission: z.object({ taskId: z.string(), commentId: z.string().nullable() }).nullable() }).parse(value).submission;
+  }
+
   async health(): Promise<{ available: true }> {
     await this.listProjects();
     return { available: true };
