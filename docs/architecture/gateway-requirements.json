@@ -122,7 +122,8 @@
               "file": "test/shared-app-server-integration.test.ts",
               "name": "the same native adapter retains dynamic tools and structured ephemeral output"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "NATIVE-01.2",
@@ -274,7 +275,8 @@
               "file": "test/shared-app-server-integration.test.ts",
               "name": "one native core provides creation, unloaded continuation, goals, lifecycle, catalog and queue for both peers"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "NATIVE-02.2",
@@ -285,7 +287,8 @@
               "file": "test/shared-app-server-integration.test.ts",
               "name": "Gateway continuation inherits the peer's permissions and reviewer instead of deriving them from callback presence"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "NATIVE-02.3",
@@ -296,7 +299,8 @@
               "file": "test/shared-app-server-integration.test.ts",
               "name": "Gateway disconnect after acceptance does not interrupt a peer-visible native turn or repeat its input"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "NATIVE-02.4",
@@ -461,7 +465,8 @@
               "file": "test/account-manager.test.ts",
               "name": "model callbacks keep the remote host, workspace and thread through AccountManager"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "NATIVE-03.2",
@@ -472,7 +477,8 @@
               "file": "test/host-metadata-routing.test.ts",
               "name": "model and account queries use the selected native host and never substitute the local account"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "NATIVE-03.3",
@@ -487,7 +493,8 @@
               "file": "test/intent-review-control-races.test.ts",
               "name": "late model lookup cannot change settings after revoke"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "NATIVE-03.4",
@@ -3571,7 +3578,8 @@
               "file": "test/native-queue.test.ts",
               "name": "a consumed item is reconciled against older history by id, not similar text"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "CTRL-03.2",
@@ -3607,7 +3615,8 @@
               "file": "test/native-turn-lifecycle.test.ts",
               "name": "queue recovery preserves interrupted in its acceptance event instead of announcing a live start"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "CTRL-03.4",
@@ -4513,7 +4522,8 @@
               "file": "test/shared-app-server-integration.test.ts",
               "name": "a shared-core approval survives observer restart with the exact native request id and no synthetic refusal"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "INT-02.4",
@@ -4715,7 +4725,8 @@
               "name": "MCP input forms, security challenges and unsupported schema constraints never become approve buttons"
             }
           ],
-          "auditNote": "已核对schema parser/typed response与secret拒绝；不支持类型的原渠道通知尚未完整验收，保留partial。"
+          "auditNote": "已核对schema parser/typed response与secret拒绝；不支持类型的原渠道通知尚未完整验收，保留partial。",
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "INT-03.4",
@@ -6538,7 +6549,8 @@
               "file": "src/channels/dingtalk-markdown.ts",
               "sha256": "b423de463cebd697fc1a013844844a991888fa541abcce5f1aebbe173c1c38a6"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         }
       ]
     },
@@ -8868,7 +8880,8 @@
               "file": "test/shared-app-server-integration.test.ts",
               "name": "Gateway disconnect after acceptance does not interrupt a peer-visible native turn or repeat its input"
             }
-          ]
+          ],
+          "testGap": "已有精确关联测试，但尚未逐项登记本case的实际断言覆盖范围；需对照当前测试、真实原生或替身边界补清，不能因说明为空认定功能未实现或升级为verified。"
         },
         {
           "id": "REL-01.3",
@@ -10387,6 +10400,33 @@
             }
           ],
           "verifiedBoundary": "真实Chrome生产TaskDetail/InlineMediaComposer，fetch为本地替身。旧版实际把later edits清成空串；正常未编辑仍清理。未验证未知create幂等或附件部分成功。"
+        },
+        {
+          "id": "TB-09.5",
+          "scenario": "IM Taskboard表单使用同一request_id；创建已在后端成功但HTTP回执丢失时，再提交或重启后不得重复创建，应持久保存未知结果并只读核对原操作。",
+          "status": "failed",
+          "tests": [],
+          "implementation": [
+            {
+              "file": "src/bridge/taskboard-channel-dedup.ts",
+              "sha256": "bc6a9bc0ca1753496ac7e33891aa735d862a7f68b44e6966bd03e1501818f14e"
+            },
+            {
+              "file": "src/bridge/taskboard-channel-controller.ts",
+              "sha256": "94628e229551d2cfd5fcec9d02a7d458931bae72a972f7edb6585671ea449251"
+            },
+            {
+              "file": "src/bridge/taskboard-channel-submit.ts",
+              "sha256": "1db8ca1840bc6de8061b235191a1a5b1e0f2718d1e7a20ab64c81ff2eafd07a3"
+            },
+            {
+              "file": "src/taskboard/client.ts",
+              "sha256": "63c0792d2a9a82e5e70ed3ac928175ed5184dab6082f0a99529384a3a011a1a3"
+            }
+          ],
+          "confirmedFailure": "2026-11-02实际Bridge→TaskboardChannelController→TaskboardClient，隔离HTTP替身先保存Task再丢响应；相同表单request_id重试，观测2次POST、2条Task，未传服务端幂等键。未连接真实Taskboard或发送IM消息。",
+          "verifiedBoundary": "确认的是当前IM入口存在重复创建反例；网页TaskEditor的持久提交记录不适用于该入口。尚未修复，也未提交正式失败回归。",
+          "testGap": "需要直接失败回归、持久交接记录及服务端精确操作核对；明确未提交与未知接收必须区分，覆盖相同表单重试、Gateway重启和重复回调。"
         }
       ]
     },
@@ -10654,9 +10694,36 @@
   "verificationUpdate": {
     "date": "2026-11-02",
     "previousUnmappedCases": 28,
-    "nowUnmappedCases": 0,
+    "nowUnmappedCases": 1,
     "mappedDirectTests": 59,
     "deviceAcceptance": "not-performed",
-    "workflowNodeExecution": "not-implemented; editor/configuration tests only"
+    "workflowNodeExecution": "not-implemented; editor/configuration tests only",
+    "note": "原28项已全部映射；本次另外发现TB-09.5已复现未修复，尚缺正式失败回归。"
+  },
+  "remainingReview": {
+    "date": "2026-11-02",
+    "caseCount": 305,
+    "mappedCases": 304,
+    "verifiedNarrowCases": 199,
+    "partialCases": 105,
+    "newConfirmedUnfixedCases": [
+      "TB-09.5"
+    ],
+    "prior28UnmappedCasesAllMapped": true,
+    "needsBoundaryReconciliation": [
+      "NATIVE-01.1",
+      "NATIVE-02.1",
+      "NATIVE-02.2",
+      "NATIVE-02.3",
+      "NATIVE-03.1",
+      "NATIVE-03.2",
+      "NATIVE-03.3",
+      "CTRL-03.1",
+      "CTRL-03.3",
+      "INT-02.3",
+      "INT-03.3",
+      "DEL-09.4",
+      "REL-01.2"
+    ]
   }
 }

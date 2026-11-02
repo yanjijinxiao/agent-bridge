@@ -116,3 +116,5 @@
 {"path":"test/gap-state-contracts.test.ts","module":"tests","sha256":"bda665bd0140e9c78dcb0e6cab1e60eb2701cc91a9afd6db1d2bbc11a0cf0fef","lines":108,"kind":"text","addedAfterBaseline":true}
 {"path":"test/gap-taskboard-contracts.test.ts","module":"tests","sha256":"2eebd035bd2b5a31ff83d4ae5103f15b3981d2a98308ccc023ada11f6a553bcb","lines":66,"kind":"text","addedAfterBaseline":true}
 {"path":"test/helpers/gap-browser.ts","module":"tests","sha256":"1c1919796048bab14be02deafe7cbcc77a7388640438218e9bd5591b4e32377c","lines":35,"kind":"text","addedAfterBaseline":true}
+{"path": "docs/architecture/remaining-work.md", "module": "docs", "sha256": "c8132425c87fbcef1fe73908bc2e5c3737a2f8e8c0bc8fa54cf0342465316ebe", "lines": 322, "kind": "generated-structure", "addedAfterBaseline": true}
+{"path": "docs/audits/2026-11-01-four-layer-recheck/pending-findings.md", "module": "docs", "sha256": "be748822ad49f6d353f0fe8dc64123860abb86c980e1094471fe0b15fd125490", "lines": 75, "kind": "generated-structure", "addedAfterBaseline": true}
