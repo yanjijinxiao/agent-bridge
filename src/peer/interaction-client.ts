@@ -6,7 +6,7 @@ import { PeerError } from "./rpc.js";
 export class PeerInteractionClient {
   private readonly subscriptions = new Map<string, { host: string; thread: string; id: string; ready: boolean; close(): Promise<void> }>();
   constructor(private readonly registry: PeerRegistry) {}
-  ready(thread: string, host: string): boolean { return [...this.subscriptions.values()].some(s => s.host === host && s.thread === thread && s.ready); }
+  ready(thread: string, host: string, consumer = "gateway"): boolean { return this.subscriptions.get(JSON.stringify([host, thread, consumer]))?.ready === true; }
   async observe(thread: string, host: string, observer: NativeInteractionObserver, consumer = "gateway"): Promise<void> {
     if (!this.registry.description(host).interactions) throw new PeerError("unsupported", "请更新 Connector 以启用原生交互订阅。");
     await this.unobserve(thread, host, consumer);

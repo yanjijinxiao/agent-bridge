@@ -623,7 +623,7 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
   listMcpServers?(threadId?: string, hostId?: string): Promise<CodexMcpServerOption[]>;
   observeThreadInteractions?(threadId: string, hostId: string, observer: import("./interactions.js").NativeInteractionObserver, consumerId?: string): Promise<void>;
   unobserveThreadInteractions?(threadId: string, hostId: string, consumerId?: string): Promise<void>;
-  interactionSubscriptionReady?(threadId: string, hostId: string): boolean;
+  interactionSubscriptionReady?(threadId: string, hostId: string, consumerId?: string): boolean;
   serverIdentity?(hostId?: string): Promise<{ processId: number }>;
   createThread?(input: CodexThreadCreateInput, hostId?: string): Promise<CodexThreadState>;
   renameThread?(threadId: string, title: string, hostId?: string, assertCurrent?: CodexWriteGuard, clientUserMessageId?: string): Promise<CodexThreadState>;

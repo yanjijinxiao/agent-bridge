@@ -275,8 +275,8 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
       if (!this.closed && !this.interactionFanouts.has(key)) await this.appServerFor(hostId).unobserveThreadInteractions?.(threadId);
     });
   }
-  interactionSubscriptionReady(threadId: string, hostId: string) {
-    return Boolean(this.interactionFanouts.get(JSON.stringify([hostId, threadId]))?.has("gateway")
+  interactionSubscriptionReady(threadId: string, hostId: string, consumerId = "gateway") {
+    return Boolean(this.interactionFanouts.get(JSON.stringify([hostId, threadId]))?.has(consumerId)
       && this.appServerFor(hostId).interactionSubscriptionReady?.(threadId));
   }
   serverIdentity(hostId?: string) { const backend = this.appServerFor(hostId); if (!backend.serverIdentity) throw new Error("Native server diagnostics unavailable"); return backend.serverIdentity(); }

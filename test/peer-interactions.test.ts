@@ -80,6 +80,8 @@ test('native JSONL pending approval survives peer reconnect on the same core and
   // The native fixture intentionally loses its first pending-request replay.
   await f.facade.unobserveThreadInteractions!('thread',f.ticket.hostId);
   await f.facade.observeThreadInteractions!('thread',f.ticket.hostId,observer);await shown.promise;
+  await delay(1200);
+  assert.equal(f.facade.interactionSubscriptionReady!('thread',f.ticket.hostId),true,'the peer consumer stays subscribed across the readiness heartbeat');
   const pid=(native as any).child.pid;
   await f.reconnect();await withdrawn.promise;
   await until(()=>!native.interactionSubscriptionReady('thread'));

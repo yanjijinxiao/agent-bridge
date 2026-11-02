@@ -256,7 +256,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       ? interactions.observe(id, host, observer, consumer) : native("observeThreadInteractions", [id, host, observer, consumer]),
     unobserveThreadInteractions: (id, host, consumer) => registry.isPeer(host)
       ? interactions.unobserve(id, host, consumer) : native("unobserveThreadInteractions", [id, host, consumer]),
-    interactionSubscriptionReady: (id, host) => registry.isPeer(host) ? interactions.ready(id, host) : Boolean(local.interactionSubscriptionReady?.(id, host)),
+    interactionSubscriptionReady: (id, host, consumer) => registry.isPeer(host) ? interactions.ready(id, host, consumer) : Boolean(local.interactionSubscriptionReady?.(id, host, consumer)),
     serverIdentity: async host => {
       if (registry.isPeer(host)) throw new PeerError("unsupported", "Connector 尚未开放原生进程诊断接口。");
       return native("serverIdentity", [host]);

@@ -55,7 +55,7 @@ export class PeerInteractionService {
       await starting;
       check(); await callback("ready", []);
       timer = setInterval(() => {
-        try { check(); if (this.backend.interactionSubscriptionReady?.(threadId, "local") === false) throw Error("refresh"); }
+        try { check(); if (this.backend.interactionSubscriptionReady?.(threadId, "local", consumer) === false) throw Error("refresh"); }
         catch { void close().catch(() => {}); }
       }, 1000); timer.unref();
       await done.promise; return null;
