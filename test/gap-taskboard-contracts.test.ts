@@ -36,14 +36,14 @@ const kinds = ["issue-trigger", "rss-trigger", "pull-request-submitted-trigger",
 test("TB-10.3: every palette kind has an explicit configuration boundary, and failed Skill/MCP discovery cannot invent ready options", async t => {
   assert.deepEqual(catalog.PALETTE_ITEMS.map((item: any) => item.data.kind), kinds);
   const dynamic = { skills: [{ id: "native-skill", label: "Skill", path: "/fixture/SKILL.md" }], mcpServers: [{ id: "native-mcp", label: "MCP", transport: "native" }] };
-  const emptyDefaults = new Set(["rss-trigger", "skill", "mcp", "twitter-post", "custom-code", "issue-create"]);
+  const emptyDefaults = new Set(["rss-trigger", "skill", "mcp", "twitter-post", "custom-code", "issue-create", "nano-banana", "jimeng-image", "midjourney-image", "seedance-video", "kling-video", "feishu-docs", "feishu-message", "custom-api", "git", "opencli", "cloudflare-deploy", "custom-integration", "custom-planning"]);
   for (const kind of kinds) await t.test(kind, () => {
     const data = catalog.paletteData(kind);
     assert.equal(catalog.workflowNodeConfigured(data, { skills: [], mcpServers: [] }, false), !emptyDefaults.has(kind), `${kind}: editor configuration only, not execution admission`);
     assert.ok(data.title && data.description && data.outputLabel);
   });
   for (const [kind, field, selected] of [["skill", "selectedSkill", "native-skill"], ["mcp", "selectedMcpServer", "native-mcp"]]) {
-    const data = { ...catalog.paletteData(kind), [field]: selected };
+    const data = { ...catalog.paletteData(kind), [field]: selected, additionalInstructions: "fixture operation" };
     assert.equal(catalog.workflowNodeConfigured(data, dynamic, false), true);
     for (const caps of [null, { skills: [], mcpServers: [] }, dynamic]) assert.equal(catalog.workflowNodeConfigured(data, caps, true), false);
     assert.match(catalog.capabilityNodeMeta(data, null, true), /无法读取/);
@@ -51,7 +51,7 @@ test("TB-10.3: every palette kind has an explicit configuration boundary, and fa
   }
   for (const [kind, field, valid] of [["rss-trigger", "rssFeedUrl", "https://fixture.invalid/rss"], ["twitter-post", "twitterPostContent", "fixture post"], ["custom-code", "codeContent", "fixture code"], ["issue-create", "createIssueTitle", "fixture issue"]]) {
     assert.equal(catalog.workflowNodeConfigured({ ...catalog.paletteData(kind), [field]: "  " }, dynamic, false), false);
-    assert.equal(catalog.workflowNodeConfigured({ ...catalog.paletteData(kind), [field]: valid }, dynamic, false), true);
+    assert.equal(catalog.workflowNodeConfigured({ ...catalog.paletteData(kind), [field]: valid, providerProfile: "configured-fixture" }, dynamic, false), true);
   }
   assert.equal(catalog.workflowNodeConfigured({ ...catalog.paletteData("run-tests"), testScope: "custom", testCommand: "" }, dynamic, false), false);
   assert.equal(catalog.workflowNodeConfigured({ ...catalog.paletteData("feishu-message"), feishuRecipientType: "user", feishuUserId: "" }, dynamic, false), false);

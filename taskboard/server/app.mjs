@@ -30,6 +30,9 @@ import {
 } from "./cloud-proxy.mjs";
 import { ApiError, TaskboardDatabase } from "./database.mjs";
 import { createIssueAutomation } from "./issue-automation.mjs";
+import { WorkflowExecutionService } from "./workflow-execution.mjs";
+import { prepareNativeWorkflowNode } from "./workflow-native-nodes.mjs";
+import { WorkflowHttpNodes } from "./workflow-http-nodes.mjs";
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const execFileAsync = promisify(execFile);
@@ -1244,6 +1247,14 @@ export function createTaskboardServer(options = {}) {
     automationPoliciesPath: resolved.automationPoliciesPath,
     aiChat, database, nativeBackend,
   });
+  const workflowExecution = new WorkflowExecutionService({ database, aiChat,
+    assertDataAuthority: async () => {
+      if ((await cloudConfig.read()).remoteUrl) throw new ApiError(409, "WORKFLOW_CLOUD_EXECUTION_PENDING", "云项目节点写回适配尚未完成；本机流程已暂停，未写入同名本机项目");
+    },
+    httpNodes: new WorkflowHttpNodes({ configPath: options.workflowConnectionsPath ?? path.join(resolved.dataDirectory, "workflow-connections.json"),
+      fetch: options.workflowFetch ?? globalThis.fetch }),
+    prepareNativeNode: input => prepareNativeWorkflowNode({ ...input, aiChat, nativeBackend }),
+    emit: (type, data) => events.emit(type, data) });
   const triggerIssueAutomation = (task) => {
     issueAutomation.trigger(task).catch((error) => {
       console.error(`Taskboard issue automation trigger failed: ${error.message}`);
@@ -1584,6 +1595,31 @@ export function createTaskboardServer(options = {}) {
           return sendJson(response, 201, { project });
         }
         return methodNotAllowed(response, ["GET", "POST"]);
+      }
+
+      const workflowRunRoute = pathname.match(/^\/api\/local\/workflow-runs\/([^/]+)(?:\/([^/]+))?$/);
+      if (workflowRunRoute) {
+        assertNoQuery(url.searchParams, "Workflow execution");
+        let projectId, runId;
+        try { projectId = decodeURIComponent(workflowRunRoute[1]); runId = workflowRunRoute[2] && decodeURIComponent(workflowRunRoute[2]); }
+        catch { throw new ApiError(400, "INVALID_PATH", "Workflow execution path contains invalid encoding"); }
+        projectId = validateProjectId(projectId);
+        runId = runId ? parseAiRequestId(runId) : undefined;
+        if (request.method === "GET") return sendJson(response, 200, runId
+          ? { run: workflowExecution.get(runId, projectId) } : { runs: workflowExecution.store.list(projectId) });
+        if (request.method === "DELETE" && runId) return sendJson(response, 200, { run: await workflowExecution.stop(runId, projectId) });
+        if (request.method !== "POST" || runId) return methodNotAllowed(response, runId ? ["GET", "DELETE"] : ["GET", "POST"]);
+        const body = await readJson(request);
+        assertPlainObject(body); assertAllowedKeys(body, new Set(["clientRequestId", "workflowId", "version", "input"]));
+        const input = body.input ?? {}; assertPlainObject(input); assertAllowedKeys(input, new Set(["issueId", "text", "event"]));
+        if (input.issueId !== undefined) input.issueId = stringField(input.issueId, "issueId", { required: true, maxLength: 128 });
+        if (input.text !== undefined) input.text = stringField(input.text, "text", { maxLength: 100_000 });
+        if (input.event !== undefined) assertPlainObject(input.event);
+        const workflowId = stringField(body.workflowId, "workflowId", { required: true, maxLength: 128 });
+        await workflowExecution.assertDataAuthority();
+        const run = workflowExecution.start({ projectId, workflowId, version: parseWorkflowVersion(body.version),
+          clientRequestId: parseAiRequestId(body.clientRequestId), input });
+        return sendJson(response, 202, { run });
       }
 
       const workflowWorkspaceRoute = pathname.match(/^\/api\/projects\/([^/]+)\/workflow-workspace$/);
@@ -2087,11 +2123,12 @@ export function createTaskboardServer(options = {}) {
   return {
     database,
     aiChat,
+    workflowExecution,
     server,
     options: resolved,
-    hasRestartBlockingWork() { return nativeBackend.hasRestartBlockingWork(); },
-    pauseForRestart() { aiChat.pauseForRestart(); issueAutomation.pauseForRestart(); },
-    resumeAfterCancelledRestart() { aiChat.resumeAfterCancelledRestart(); issueAutomation.resumeAfterCancelledRestart(); },
+    hasRestartBlockingWork() { return nativeBackend.hasRestartBlockingWork() || workflowExecution.localHandoffs > 0; },
+    pauseForRestart() { workflowExecution.pauseForRestart(); aiChat.pauseForRestart(); issueAutomation.pauseForRestart(); },
+    resumeAfterCancelledRestart() { aiChat.resumeAfterCancelledRestart(); issueAutomation.resumeAfterCancelledRestart(); workflowExecution.resumeAfterCancelledRestart(); },
     async listen({ host = "127.0.0.1", port = resolvePort() } = {}) {
       if (host !== "127.0.0.1" && host !== "0.0.0.0") {
         throw new Error("Taskboard server must bind to 127.0.0.1 or 0.0.0.0");
@@ -2112,6 +2149,7 @@ export function createTaskboardServer(options = {}) {
       listening = true;
       aiChat.recover();
       issueAutomation.recover();
+      workflowExecution.recover();
       return server.address();
     },
     async close() {
@@ -2123,6 +2161,7 @@ export function createTaskboardServer(options = {}) {
       events.close();
       for (const response of aiEventResponses) response.end();
       aiEventResponses.clear();
+      workflowExecution.close();
       await issueAutomation.close();
       await aiChat.close();
       await nativeBackend.close();

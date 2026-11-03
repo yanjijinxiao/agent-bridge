@@ -10,6 +10,7 @@ export type TaskboardServerOptions = {
   attachmentsDirectory?: string;
   cloudConfigPath?: string;
   automationPoliciesPath?: string;
+  workflowConnectionsPath?: string;
   staticDirectory?: string;
   skillPath?: string;
   codexExecutable?: string;

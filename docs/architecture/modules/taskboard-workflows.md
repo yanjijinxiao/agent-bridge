@@ -1,6 +1,6 @@
 # Taskboard 工作流编辑与保存
 
-WorkflowBoard 负责项目流程文档的编辑和持久化；shared/workflow-control-flow.mjs 负责结构合法性、树操作和布局；server/cloud 的 workflow-workspace 接口负责版本化存储。画布节点存在并不证明该 kind 已具备执行器。App 中原本隐藏的节点入口保持原有设置，不能通过打开入口或改测试假装完成所有执行能力。
+WorkflowBoard 负责项目流程文档的编辑和持久化；shared/workflow-control-flow.mjs 负责结构合法性、树操作和布局；server/cloud 的 workflow-workspace 接口负责版本化存储。画布节点存在并不证明该 kind 已具备执行器。2026-11-03 用户要求逐节点执行后，App 节点模式入口已开放；保存与运行保持独立，执行职责见 workflow-node-execution.md。
 
 ## 结构权威
 
@@ -22,7 +22,7 @@ VERSION_CONFLICT 保留本地画布并暂停自动保存，读取远端只用于
 
 ## 33种节点的配置与执行边界
 
-TB-10.3逐kind调用生产workflowNodeConfigured，对动态Skill/MCP、必填分支和真实能力HTTP失败补充直接测试。capabilityNodeMeta必须先显示读取失败，再判断是否尚未载入目录；失败不再持续显示正在读取。节点编辑/保存的当前职责没有变成执行器；33种kind的执行入口与授权限制逐项列在../taskboard-node-contracts.md。测试不发送真实Twitter/飞书、不执行部署，也不开放原隐藏入口。
+TB-10.3逐kind调用生产workflowNodeConfigured，对动态Skill/MCP、必填分支和真实能力HTTP失败补充直接测试。capabilityNodeMeta必须先显示读取失败，再判断是否尚未载入目录；失败不再持续显示正在读取。编辑/保存模块不直接执行副作用；新增 WorkflowExecutionService 消费已保存的不可变版本。33 种 kind 的实现状态、授权限制和未完成项逐项列在 ../taskboard-node-contracts.md。测试不发送真实 X/飞书消息、不对供应商部署。旧段落中的 409/48 项是当时编辑保存阶段的结果，不代表新增执行器的覆盖。
 
 ## 旧浏览器工作流迁移
 

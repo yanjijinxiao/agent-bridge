@@ -19,7 +19,7 @@ test("Twitter publishing is a third-party workflow choice with the official tran
   assert.doesNotMatch(catalog, /twitterUser|twitterAccount|twitterCredential|twitterToken/);
 });
 
-test("Twitter publishing owns only one shared node-data configuration field", () => {
+test("Twitter publishing keeps post content and a connection reference without embedding credentials", () => {
   assert.match(node, /twitterPostContent\?: string/);
   assert.match(
     inspector,
@@ -31,7 +31,7 @@ test("Twitter publishing owns only one shared node-data configuration field", ()
   );
 });
 
-test("Twitter node title, summary and configured state derive from actual post content", () => {
+test("Twitter title and summary use post content while execution readiness also requires a connection", () => {
   assert.match(
     catalog,
     /if \(data\.kind === "twitter-post"\)[\s\S]*?twitterPostContent\?\.trim\(\)[\s\S]*?尚未填写发布内容/,
@@ -42,7 +42,7 @@ test("Twitter node title, summary and configured state derive from actual post c
   );
   assert.match(
     catalog,
-    /if \(data\.kind === "twitter-post"\)[\s\S]*?Boolean\(data\.twitterPostContent\?\.trim\(\)\)/,
+    /if \(data\.kind === "twitter-post"\)[\s\S]*?Boolean\(data\.twitterPostContent\?\.trim\(\) && data\.providerProfile\?\.trim\(\)\)/,
   );
 });
 

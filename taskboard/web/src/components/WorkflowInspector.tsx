@@ -48,6 +48,7 @@ export function WorkflowInspector({
     (operator) => operator === data.conditionOperator,
   ) ?? selectedConditionField.defaultOperator;
   const conditionValue = data.conditionValue || selectedConditionField.defaultValue;
+  const pendingExecutor = ["nano-banana", "jimeng-image", "midjourney-image", "seedance-video", "kling-video", "feishu-docs", "feishu-message"].includes(data.kind);
 
   return (
     <div className="workflow-inspector-content">
@@ -90,6 +91,7 @@ export function WorkflowInspector({
           onClick={() => setActiveTab("configuration")}
         >配置</button>
       </div>
+      {pendingExecutor && <p className="comments-error" role="status">此节点的提供方执行适配尚未完成。配置可以保存，但运行到此处会停止并显示原因。</p>}
 
       {activeTab === "settings" ? (
         <div role="tabpanel" aria-label="设置">
@@ -803,6 +805,7 @@ export function WorkflowInspector({
                 />
                 <span>附加流程运行产物</span>
               </label>
+              {data.attachArtifacts && <p className="comments-error">产物上传适配尚未完成。保留此选项会阻止本节点写入，避免遗漏附件后误报成功。</p>}
               <label className="workflow-action-toggle workflow-action-toggle-full">
                 <input
                   type="checkbox"
@@ -814,6 +817,25 @@ export function WorkflowInspector({
             </div>
           )}
 
+          {["custom-api", "twitter-post"].includes(data.kind) && <div className="workflow-config-section">
+            <label><span>连接配置名称</span><input value={data.providerProfile ?? ""} onChange={event => onChange({ providerProfile: event.target.value })} /></label>
+            <p>地址与认证由执行主机的连接配置管理。这里不填写密钥。</p>
+            {data.kind === "custom-api" && <label><span>JSON 请求正文</span><textarea rows={5} value={data.providerRequest ?? ""} onChange={event => onChange({ providerRequest: event.target.value })} />
+              <small>字符串值 {"{{input}}"} 会替换为上游输出。</small></label>}
+          </div>}
+          {["opencli", "custom-integration"].includes(data.kind) && <div className="workflow-config-section">
+            <h2>执行参数</h2>
+            <label><span>{data.kind === "opencli" ? "OpenCLI 参数（JSON 数组）" : "程序及参数（JSON 数组）"}</span>
+              <textarea rows={4} value={data.integrationArguments ?? ""} onChange={event => onChange({ integrationArguments: event.target.value })} /></label>
+            <p>使用执行主机已安装的程序；参数中的空格与引号会保留。认证使用主机已有配置。</p>
+          </div>}
+          {data.kind === "cloudflare-deploy" && <div className="workflow-config-section">
+            <label><span>Wrangler 配置文件</span><input value={data.deploymentConfig ?? ""} placeholder="wrangler.jsonc" onChange={event => onChange({ deploymentConfig: event.target.value })} /></label>
+          </div>}
+          {data.kind === "vercel-deploy" && <div className="workflow-config-section">
+            <p>部署到当前项目已绑定的 Vercel 项目。未绑定时会停止并提示。</p>
+            <label><input type="checkbox" checked={data.deploymentProduction ?? false} onChange={event => onChange({ deploymentProduction: event.target.checked })} />部署到生产环境</label>
+          </div>}
           <div className="workflow-config-section">
             <h2>连接</h2>
             <div className="workflow-port-row">

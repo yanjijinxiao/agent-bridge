@@ -1,0 +1,81 @@
+{
+  "commit": "c46d12cf507f3ecb86342295b6b2deceb6d51ffc",
+  "sourceHash": "3b503b424d535f88a308e5321d75a5519f07cef2dd2c5bb570985aae02ca02e9",
+  "services": {
+    "tantan": {
+      "running": true,
+      "pid": 256081,
+      "workingDirectory": "/home/admin/codex-gateway-tantan/releases/checklist-release",
+      "build": {
+        "commit": "c46d12cf507f3ecb86342295b6b2deceb6d51ffc",
+        "sourceHash": "3b503b424d535f88a308e5321d75a5519f07cef2dd2c5bb570985aae02ca02e9",
+        "builtAt": "2026-11-03T14:56:40.644Z"
+      },
+      "runnerSource": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52",
+      "runnerCompiled": "77575713f1218548e595d236f138e7e63e27d9d5c4eb4b5a0bb5177bf0bdf964"
+    },
+    "linuxConnector": {
+      "running": true,
+      "pid": 50973,
+      "workingDirectory": "/home/admin/gateway-connector-linux-test/releases/checklist-release",
+      "build": {
+        "commit": "c46d12cf507f3ecb86342295b6b2deceb6d51ffc",
+        "sourceHash": "3b503b424d535f88a308e5321d75a5519f07cef2dd2c5bb570985aae02ca02e9",
+        "builtAt": "2026-11-03T14:56:40.644Z"
+      },
+      "runnerSource": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52",
+      "runnerCompiled": "77575713f1218548e595d236f138e7e63e27d9d5c4eb4b5a0bb5177bf0bdf964"
+    },
+    "macConnector": {
+      "running": true,
+      "build": {
+        "commit": "c46d12cf507f3ecb86342295b6b2deceb6d51ffc",
+        "sourceHash": "3b503b424d535f88a308e5321d75a5519f07cef2dd2c5bb570985aae02ca02e9",
+        "builtAt": "2026-11-03T14:56:40.644Z"
+      }
+    },
+    "toutou": {
+      "commit": "c46d12cf507f3ecb86342295b6b2deceb6d51ffc",
+      "pid": 71369,
+      "retainedGrants": 14,
+      "ttlDays": 90,
+      "endpoints": 3,
+      "tests": {
+        "tests": 3177,
+        "passed": 3175,
+        "skipped": 2
+      }
+    }
+  },
+  "tantanHealth": {
+    "build": {
+      "commit": "c46d12cf507f3ecb86342295b6b2deceb6d51ffc",
+      "sourceHash": "3b503b424d535f88a308e5321d75a5519f07cef2dd2c5bb570985aae02ca02e9",
+      "builtAt": "2026-11-03T14:56:40.644Z"
+    },
+    "accounts": [
+      {
+        "id": "tantan-test",
+        "status": "running",
+        "connection": "connected"
+      }
+    ]
+  },
+  "tantanReleaseAdmission": {
+    "pid": 87999,
+    "prepared": false
+  },
+  "macCores": "PID COMM\n 1272 /Users/xking/.codex/packages/app-server-daemon/releases/0.166.0-aarch64-apple-darwin/bin/codex\n11238 /Users/xking/.codex/packages/app-server-daemon/releases/0.166.0-aarch64-apple-darwin/bin/codex",
+  "linuxCores": "PID COMMAND\n  9955 codex\n 10115 codex",
+  "postReleaseProbe": {
+    "kind": "authorized-tantan-native-roundtrip",
+    "hostId": "peer:linux12:headless",
+    "threadId": "01a19b25-5fa7-7333-b4d1-5d553936898e",
+    "turnId": "01a1a1ec-9500-7d42-9f21-2224d321fb78",
+    "finalizedCard": true,
+    "resultDelivery": "delivered",
+    "at": "2026-11-03T15:00:01.200Z",
+    "logSha256": "51ac71541a29801698029b736907e2bb7893e345d490d3df993b788a27432367",
+    "note": "IM事件记录新卡；最终结果通过同卡更新结束，完成证据来自真实供应商ACK与Gateway投递日志，不冒充手机截图。"
+  }
+}

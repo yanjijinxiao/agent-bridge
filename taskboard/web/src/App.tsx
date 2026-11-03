@@ -93,7 +93,7 @@ import { createRevisionPoller, getRevisionPollingInterval } from "./revisionPoll
 type ConnectionState = "connecting" | "live" | "reconnecting";
 type Theme = "light" | "dark";
 type BoardView = "issues" | "workflow";
-const SHOW_WORKFLOW_BOARD_ENTRY = false;
+const SHOW_WORKFLOW_BOARD_ENTRY = true;
 
 const WorkflowBoard = lazy(() => import("./components/WorkflowBoard").then((module) => ({
   default: module.WorkflowBoard,

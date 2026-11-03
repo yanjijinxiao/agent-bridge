@@ -1250,7 +1250,7 @@
             },
             {
               "file": "taskboard/server/native-backend.mjs",
-              "sha256": "8ada95b249099c25ba0b9ed12d60ba4b6fcd12e8fcedcf8d47de6eb5a101ca92"
+              "sha256": "f6d70aa903219b702c133be83571768d6a697834d07f78f9a9f54f62b870a79d"
             }
           ],
           "verifiedBoundary": "实际manager构造和同对象借用；显式stdio属于宿主，不冒充daemon跨宿主退出。",
@@ -13208,7 +13208,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
+              "sha256": "57fd0fe44434ddcd0d26ab6d766f48a3496719cea7df8ee010a9511100f65366"
             },
             {
               "file": "src/server/release-admission.ts",
@@ -13349,7 +13349,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
+              "sha256": "57fd0fe44434ddcd0d26ab6d766f48a3496719cea7df8ee010a9511100f65366"
             }
           ],
           "verifiedBoundary": "stage边界和制品hash，隔离release main另由rollback四场景；未发布真实服务。",
@@ -13376,7 +13376,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
+              "sha256": "57fd0fe44434ddcd0d26ab6d766f48a3496719cea7df8ee010a9511100f65366"
             }
           ],
           "verifiedBoundary": "真实临时lock竞态和错误cleanup；全发布崩溃/各平台回滚尚不完整。",
@@ -13436,7 +13436,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
+              "sha256": "57fd0fe44434ddcd0d26ab6d766f48a3496719cea7df8ee010a9511100f65366"
             }
           ],
           "verifiedBoundary": "实际release命令在隔离Git/launchd/HTTP边界执行10种结果，检查build、绑定、ACL、grant、IDE、90天期限和渠道连接；失败回滚代码不复活旧授权。",
@@ -13492,7 +13492,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
+              "sha256": "57fd0fe44434ddcd0d26ab6d766f48a3496719cea7df8ee010a9511100f65366"
             }
           ],
           "verifiedBoundary": "发布端点比较函数真实输入组合与既有rollback/lease测试；不宣称远程网络已恢复或完成手机验收。",
@@ -13570,7 +13570,7 @@
             },
             {
               "file": "package.json",
-              "sha256": "4de6a9b0d87cc58db62b0a5305fa64e0b72c6ec22c6e83023ccdfff08fc3d532"
+              "sha256": "3a422f8c5600867bf3cc0baa19ea90117e646bd56cd8d705834242d60234d161"
             },
             {
               "file": "package-lock.json",
@@ -13731,7 +13731,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
+              "sha256": "57fd0fe44434ddcd0d26ab6d766f48a3496719cea7df8ee010a9511100f65366"
             }
           ],
           "verifiedBoundary": "真实隔离HTTP 5.5秒成功；头/体停滞按120ms剩余预算失败，过期零请求；既有完整切换/回滚/权限/端点反例44项全过。",
@@ -13888,7 +13888,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/AiChat.tsx",
-              "sha256": "e41fbc4b76e93a0272f1ef3b602319e46f87454c3e78468528183a77fee1c490"
+              "sha256": "f7dfdcbef276593c70ebffa8b35deddfe901dd867dbdef541d372feb076a7b66"
             },
             {
               "file": "taskboard/web/src/aiChatState.ts",
@@ -13896,7 +13896,7 @@
             },
             {
               "file": "taskboard/web/src/api.ts",
-              "sha256": "8f8212101eb8714d1a9d7f5224f3004a8a5197f7495e181991add45edfea13b0"
+              "sha256": "61c267e0464ad8761a450b763ded094e19091472eeb2b449796bbd1f2eac003e"
             },
             {
               "file": "taskboard/web/src/styles.css",
@@ -13960,7 +13960,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/AiChat.tsx",
-              "sha256": "e41fbc4b76e93a0272f1ef3b602319e46f87454c3e78468528183a77fee1c490"
+              "sha256": "f7dfdcbef276593c70ebffa8b35deddfe901dd867dbdef541d372feb076a7b66"
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
@@ -13996,7 +13996,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/AiChat.tsx",
-              "sha256": "e41fbc4b76e93a0272f1ef3b602319e46f87454c3e78468528183a77fee1c490"
+              "sha256": "f7dfdcbef276593c70ebffa8b35deddfe901dd867dbdef541d372feb076a7b66"
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
@@ -14022,7 +14022,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/AiChat.tsx",
-              "sha256": "e41fbc4b76e93a0272f1ef3b602319e46f87454c3e78468528183a77fee1c490"
+              "sha256": "f7dfdcbef276593c70ebffa8b35deddfe901dd867dbdef541d372feb076a7b66"
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
@@ -14064,11 +14064,11 @@
             },
             {
               "file": "taskboard/web/src/components/AiChat.tsx",
-              "sha256": "e41fbc4b76e93a0272f1ef3b602319e46f87454c3e78468528183a77fee1c490"
+              "sha256": "f7dfdcbef276593c70ebffa8b35deddfe901dd867dbdef541d372feb076a7b66"
             },
             {
               "file": "taskboard/web/src/api.ts",
-              "sha256": "8f8212101eb8714d1a9d7f5224f3004a8a5197f7495e181991add45edfea13b0"
+              "sha256": "61c267e0464ad8761a450b763ded094e19091472eeb2b449796bbd1f2eac003e"
             },
             {
               "file": "taskboard/server/ai-chat-submissions.mjs",
@@ -14076,7 +14076,7 @@
             },
             {
               "file": "taskboard/server/database.mjs",
-              "sha256": "d8aa50bc411b5fbacc118b1d3bc1b7e67d5d7cff918c3ccacbd2b1731dcc6a73"
+              "sha256": "0f443a2b3dfd783f15ca1d098ec584b80b79cb5d2db3e65630d8d983515bf558"
             }
           ],
           "tests": [
@@ -14187,7 +14187,7 @@
           "implementation": [
             {
               "file": "taskboard/server/app.mjs",
-              "sha256": "6d7049afe4bbf63c008beb256a045e28fdf6945c35260af5d4bf183ca97da24d"
+              "sha256": "a3311502777ee0c80e6d027d4224bf3b9cc9398eda1639005f81f4199f218f50"
             }
           ],
           "verifiedBoundary": "真实TaskboardServer/AiChat/临时SQLite及项目目录文件，NativeCore替身捕获最终原生提交设置；不是生产权限变更。"
@@ -14209,7 +14209,7 @@
             },
             {
               "file": "taskboard/web/src/components/AiChat.tsx",
-              "sha256": "e41fbc4b76e93a0272f1ef3b602319e46f87454c3e78468528183a77fee1c490"
+              "sha256": "f7dfdcbef276593c70ebffa8b35deddfe901dd867dbdef541d372feb076a7b66"
             }
           ],
           "verifiedBoundary": "隔离Chrome真实组件/CSS，主题重绘后断言实际文字颜色及至少4.5对比度；同一场景核对未知/确认回执且无第二次POST。不代表手机或真实IM验收。"
@@ -14583,7 +14583,7 @@
           "implementation": [
             {
               "file": "taskboard/server/native-backend.mjs",
-              "sha256": "8ada95b249099c25ba0b9ed12d60ba4b6fcd12e8fcedcf8d47de6eb5a101ca92"
+              "sha256": "f6d70aa903219b702c133be83571768d6a697834d07f78f9a9f54f62b870a79d"
             },
             {
               "file": "taskboard/server/ai-chat.mjs",
@@ -14644,7 +14644,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/App.tsx",
-              "sha256": "85aa23eb63610cd72f4af5dbe35012819d7b37a53226c300bf7b8f3135bc4eab"
+              "sha256": "78a87b0959fcb605b87eabbe0f1d47e6f570cc7554f25ba7c52e203757549e24"
             },
             {
               "file": "taskboard/web/src/components/ProjectAutomationMenu.tsx",
@@ -14800,7 +14800,7 @@
             },
             {
               "file": "taskboard/server/app.mjs",
-              "sha256": "6d7049afe4bbf63c008beb256a045e28fdf6945c35260af5d4bf183ca97da24d"
+              "sha256": "a3311502777ee0c80e6d027d4224bf3b9cc9398eda1639005f81f4199f218f50"
             }
           ],
           "verifiedBoundary": "真实本机HTTP入口与生产proxy，替身上游及虚构凭据；原版1通过2失败，修后通过。",
@@ -14864,7 +14864,7 @@
           "implementation": [
             {
               "file": "taskboard/server/database.mjs",
-              "sha256": "d8aa50bc411b5fbacc118b1d3bc1b7e67d5d7cff918c3ccacbd2b1731dcc6a73"
+              "sha256": "0f443a2b3dfd783f15ca1d098ec584b80b79cb5d2db3e65630d8d983515bf558"
             },
             {
               "file": "taskboard/cloud/src/index.mjs",
@@ -14908,7 +14908,7 @@
             },
             {
               "file": "taskboard/server/app.mjs",
-              "sha256": "6d7049afe4bbf63c008beb256a045e28fdf6945c35260af5d4bf183ca97da24d"
+              "sha256": "a3311502777ee0c80e6d027d4224bf3b9cc9398eda1639005f81f4199f218f50"
             },
             {
               "file": "taskboard/cloud/src/index.mjs",
@@ -14982,7 +14982,7 @@
           "implementation": [
             {
               "file": "taskboard/server/database.mjs",
-              "sha256": "d8aa50bc411b5fbacc118b1d3bc1b7e67d5d7cff918c3ccacbd2b1731dcc6a73"
+              "sha256": "0f443a2b3dfd783f15ca1d098ec584b80b79cb5d2db3e65630d8d983515bf558"
             }
           ]
         }
@@ -15053,7 +15053,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/App.tsx",
-              "sha256": "85aa23eb63610cd72f4af5dbe35012819d7b37a53226c300bf7b8f3135bc4eab"
+              "sha256": "78a87b0959fcb605b87eabbe0f1d47e6f570cc7554f25ba7c52e203757549e24"
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
@@ -15096,7 +15096,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/App.tsx",
-              "sha256": "85aa23eb63610cd72f4af5dbe35012819d7b37a53226c300bf7b8f3135bc4eab"
+              "sha256": "78a87b0959fcb605b87eabbe0f1d47e6f570cc7554f25ba7c52e203757549e24"
             },
             {
               "file": "taskboard/web/src/components/TaskEditor.tsx",
@@ -15225,11 +15225,11 @@
             },
             {
               "file": "taskboard/server/app.mjs",
-              "sha256": "6d7049afe4bbf63c008beb256a045e28fdf6945c35260af5d4bf183ca97da24d"
+              "sha256": "a3311502777ee0c80e6d027d4224bf3b9cc9398eda1639005f81f4199f218f50"
             },
             {
               "file": "taskboard/server/database.mjs",
-              "sha256": "d8aa50bc411b5fbacc118b1d3bc1b7e67d5d7cff918c3ccacbd2b1731dcc6a73"
+              "sha256": "0f443a2b3dfd783f15ca1d098ec584b80b79cb5d2db3e65630d8d983515bf558"
             },
             {
               "file": "taskboard/cloud/src/index.mjs",
@@ -15293,7 +15293,7 @@
             },
             {
               "file": "taskboard/server/database.mjs",
-              "sha256": "d8aa50bc411b5fbacc118b1d3bc1b7e67d5d7cff918c3ccacbd2b1731dcc6a73"
+              "sha256": "0f443a2b3dfd783f15ca1d098ec584b80b79cb5d2db3e65630d8d983515bf558"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -15325,11 +15325,11 @@
           "implementation": [
             {
               "file": "taskboard/web/src/App.tsx",
-              "sha256": "85aa23eb63610cd72f4af5dbe35012819d7b37a53226c300bf7b8f3135bc4eab"
+              "sha256": "78a87b0959fcb605b87eabbe0f1d47e6f570cc7554f25ba7c52e203757549e24"
             },
             {
               "file": "taskboard/web/src/components/AiChat.tsx",
-              "sha256": "e41fbc4b76e93a0272f1ef3b602319e46f87454c3e78468528183a77fee1c490"
+              "sha256": "f7dfdcbef276593c70ebffa8b35deddfe901dd867dbdef541d372feb076a7b66"
             },
             {
               "file": "taskboard/web/src/submissionReceipts.ts",
@@ -15475,7 +15475,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/WorkflowBoard.tsx",
-              "sha256": "f62b8264f805d64c39c79c6b90c52780c37fbd6f12a21ec6472a2a40d0c4468e"
+              "sha256": "37e9d82752619396646900a9d5a14ef4b86e0cb98850062999f8e2b7d31e4525"
             },
             {
               "file": "taskboard/shared/workflow-control-flow.mjs",
@@ -15518,7 +15518,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/WorkflowBoard.tsx",
-              "sha256": "f62b8264f805d64c39c79c6b90c52780c37fbd6f12a21ec6472a2a40d0c4468e"
+              "sha256": "37e9d82752619396646900a9d5a14ef4b86e0cb98850062999f8e2b7d31e4525"
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
@@ -15540,21 +15540,149 @@
             {
               "file": "test/gap-taskboard-contracts.test.ts",
               "name": "TB-10.3: every palette kind has an explicit configuration boundary, and failed Skill/MCP discovery cannot invent ready options"
+            },
+            {
+              "file": "test/taskboard-release-package.test.ts",
+              "name": "compiled Gateway resolves its pinned Taskboard server, skill CLI and web from one artifact"
+            },
+            {
+              "file": "test/taskboard-release-package.test.ts",
+              "name": "the actual packaged Taskboard imports all runtime dependencies without the workspace source"
+            },
+            {
+              "file": "test/workflow-browser-execution.test.ts",
+              "name": "production WorkflowBoard runs the saved flow through HTTP and opens its exact AI conversation"
+            },
+            {
+              "file": "test/workflow-native-execution.test.ts",
+              "name": "workflow custom code actually executes on the native core and checks its command receipt"
+            },
+            {
+              "file": "test/workflow-native-execution.test.ts",
+              "name": "workflow reconnects the same native node after owner restart and advances the writeback exactly once"
+            },
+            {
+              "file": "taskboard/test/workflow-command-nodes.test.mjs",
+              "name": "command parameters preserve quotes, substitution characters and newlines as literal argv"
+            },
+            {
+              "file": "taskboard/test/workflow-command-nodes.test.mjs",
+              "name": "a plausible model answer cannot replace exact ordered native command receipts"
+            },
+            {
+              "file": "taskboard/test/workflow-command-nodes.test.mjs",
+              "name": "CLI integration plans keep supplied targets and do not disable provider permissions"
+            },
+            {
+              "file": "taskboard/test/workflow-command-nodes.test.mjs",
+              "name": "all eight Git operations perform their specified effects in isolated repositories"
+            },
+            {
+              "file": "taskboard/test/workflow-execution-http.test.mjs",
+              "name": "HTTP saved workflow runs a native planning node and exposes durable per-node output after restart"
+            },
+            {
+              "file": "taskboard/test/workflow-execution.test.mjs",
+              "name": "workflow run follows the selected branch, creates an issue and writes the original issue once"
+            },
+            {
+              "file": "taskboard/test/workflow-execution.test.mjs",
+              "name": "workflow business receipt survives losing the node projection and later document edits"
+            },
+            {
+              "file": "taskboard/test/workflow-execution.test.mjs",
+              "name": "workflow false branch and invalid node configuration stop before later effects"
+            },
+            {
+              "file": "taskboard/test/workflow-execution.test.mjs",
+              "name": "native node resumes the same acknowledged submission after projection loss without a second turn"
+            },
+            {
+              "file": "taskboard/test/workflow-execution.test.mjs",
+              "name": "stop waits for the original native receipt and does not mistake a rejected handoff for termination"
+            },
+            {
+              "file": "taskboard/test/workflow-execution.test.mjs",
+              "name": "planned children use saved visual order and a reserved identity cannot corrupt run state"
+            },
+            {
+              "file": "taskboard/test/workflow-execution.test.mjs",
+              "name": "unsupported artifact action rolls back all changes before task mutation"
+            },
+            {
+              "file": "taskboard/test/workflow-execution.test.mjs",
+              "name": "a transient native receipt read does not fail an accepted node or run its successor"
+            },
+            {
+              "file": "taskboard/test/workflow-execution.test.mjs",
+              "name": "cloud authority refusal cannot write a local shadow issue"
+            },
+            {
+              "file": "taskboard/test/workflow-execution.test.mjs",
+              "name": "manual input supplements the issue instead of being discarded by the trigger"
+            },
+            {
+              "file": "taskboard/test/workflow-http-nodes.test.mjs",
+              "name": "custom API uses an authorized profile and sanitizes reflected credentials before durable output"
+            },
+            {
+              "file": "taskboard/test/workflow-http-nodes.test.mjs",
+              "name": "lost POST response and restored submitting marker never create a replacement request"
+            },
+            {
+              "file": "taskboard/test/workflow-http-nodes.test.mjs",
+              "name": "closing after dispatch retains an outstanding receipt"
+            },
+            {
+              "file": "taskboard/test/workflow-http-nodes.test.mjs",
+              "name": "asynchronous acceptance is not completion and an unauthorized project sends nothing"
+            },
+            {
+              "file": "taskboard/test/workflow-http-nodes.test.mjs",
+              "name": "X uses the documented endpoint and requires its concrete post receipt"
             }
           ],
           "previousTestGap": "配置catalog不等于执行支持；每个palette的必填、授权、执行入口仍缺逐kind合同测试。",
           "implementation": [
             {
               "file": "taskboard/web/src/components/workflowCatalog.ts",
-              "sha256": "dcfe850be9b47c39d629a3990e9d61d19c0934c7af68a6246a2ba1b8674022cb"
+              "sha256": "0f84e046fd235d8f1773ab32f9f6cfc694da72769410ac1ec41fe4afc9779609"
             },
             {
               "file": "taskboard/server/app.mjs",
-              "sha256": "6d7049afe4bbf63c008beb256a045e28fdf6945c35260af5d4bf183ca97da24d"
+              "sha256": "a3311502777ee0c80e6d027d4224bf3b9cc9398eda1639005f81f4199f218f50"
+            },
+            {
+              "file": "taskboard/server/workflow-execution.mjs",
+              "sha256": "37586603965e8a15052a14cd92ce9c9cb59ffc602cf5bc8d9f233e15685f8e96"
+            },
+            {
+              "file": "taskboard/server/workflow-runs.mjs",
+              "sha256": "f13953d68acd9e23957c58bbec1bd4b5d6336307f22b4c495e35dff757cc6fab"
+            },
+            {
+              "file": "taskboard/server/workflow-local-nodes.mjs",
+              "sha256": "72618e56ad9b3d973f8044beeeb89eb89aa07b955973cf1aea7fc35389d3183d"
+            },
+            {
+              "file": "taskboard/server/workflow-native-nodes.mjs",
+              "sha256": "7e40a1270fd9e9e4aaf0efd28f24056ee1795223ead736886fbc325cc8d730c5"
+            },
+            {
+              "file": "taskboard/server/workflow-command-nodes.mjs",
+              "sha256": "8e1ac693a7139da85b7caa628522160de491c718938d1bc1abba18e7ade2256f"
+            },
+            {
+              "file": "taskboard/server/workflow-http-nodes.mjs",
+              "sha256": "0e69ebbb6ae103a5fb28272ab5df79b8e688605b5d631954f926820aab47f9e7"
+            },
+            {
+              "file": "scripts/package-taskboard-runtime.mjs",
+              "sha256": "d94a43045ffa14d10f35deb8d496322cdb391f0794423bc91deb7abba80c0492"
             }
           ],
-          "verifiedBoundary": "逐一执行33种palette配置校验，必填分支和动态Skill/MCP失败、旧选项不可用；真实能力HTTP目录失败返回500无伪造列表。流程文档保存与节点执行分开，详见taskboard-node-contracts.md。",
-          "testGap": "33kind的编辑配置合同已补；当前工作流服务只版本化保存文档，没有按各kind执行、凭据授权和运行回执的统一执行器。不能宣称33种节点可执行；不为此开放隐藏入口或禁用已有功能。",
+          "verifiedBoundary": "固定快照/UUID、选定条件分支、原生实际命令及观察端重启、SQLite一次写回、生产页面显示和准确线程、Git八操作、custom-api/X替身回执与未知不重放。",
+          "testGap": "26 kind接入，7个供应商执行器仍未实现。真实外部账号暂缺；具体 Skill/MCP/Claude/deploy 实账号、自动触发订阅、云权威写回与产物归档未完成。",
           "implementationRecheck": {
             "date": "2026-11-03",
             "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
@@ -15582,7 +15710,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/components/WorkflowBoard.tsx",
-              "sha256": "f62b8264f805d64c39c79c6b90c52780c37fbd6f12a21ec6472a2a40d0c4468e"
+              "sha256": "37e9d82752619396646900a9d5a14ef4b86e0cb98850062999f8e2b7d31e4525"
             },
             {
               "file": "taskboard/web/src/workflowStore.ts",
@@ -16308,7 +16436,7 @@
           "implementation": [
             {
               "file": "taskboard/web/src/App.tsx",
-              "sha256": "85aa23eb63610cd72f4af5dbe35012819d7b37a53226c300bf7b8f3135bc4eab"
+              "sha256": "78a87b0959fcb605b87eabbe0f1d47e6f570cc7554f25ba7c52e203757549e24"
             },
             {
               "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
@@ -16481,7 +16609,7 @@
     "mappedCases": 383,
     "recordedNarrowVerified": 299,
     "partialCases": 84,
-    "selectedFunctionContracts": 208,
+    "selectedFunctionContracts": 217,
     "note": "逐项验收边界，不等于所有平台和任意时序；历史证据与本轮运行分别保存。"
   }
 }

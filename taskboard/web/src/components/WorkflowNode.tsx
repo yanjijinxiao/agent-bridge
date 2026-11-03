@@ -70,6 +70,11 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   codeContent?: string;
   testScope?: "related" | "all" | "custom";
   testCommand?: string;
+  integrationArguments?: string;
+  deploymentConfig?: string;
+  deploymentProduction?: boolean;
+  providerProfile?: string;
+  providerRequest?: string;
   acceptsChildren?: boolean;
   childCount?: number;
   stepNumber?: number;

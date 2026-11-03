@@ -14,7 +14,7 @@ Taskboard 借用同一个根原生端口并参与同一 release participant；fr
 
 端点就绪状态与切换前比较：原本ready的入口必须保持ready；原本已在reconnecting的远程中继允许同一精确host/origin继续connecting/reconnecting或恢复ready。既有远端网络故障不能单独锁住Gateway重启。新增error、端点/地址变化、本机入口退化仍拒绝验收；原授权、ACL和绑定不变的检查独立执行，不能通过改变状态文案代替。
 
-核对编译 commit/sourceHash、实际新 PID、平台连接、原生 daemon PID、原 grant/ACL/endpoint、任务板服务监听 PID 与静态 index/assets 字节。只更新 Gateway dist 不代表独立 Taskboard 后端已更新；只重启也不代表前端已发布。普通 Taskboard build 会触发 Desktop 注入，不用于本次隔离发布，web 产物显式指定 outDir 后单独原子发布。
+核对编译 commit/sourceHash、实际新 PID、平台连接、原生 daemon PID、原 grant/ACL/endpoint、任务板服务监听 PID 与静态 index/assets 字节。新版嵌入式 Taskboard 固定打包到 Gateway dist/node_modules/codex-taskboard，包含服务端、共享模块、技能及CLI、运行依赖脚本和 web；同一 dist 的切换/回滚包含它们。独立 Taskboard 仍需核对其自身监听进程，不能以 Gateway 重启代替。普通 Taskboard build 会触发 Desktop 注入，不用于隔离发布；准备阶段使用 build:web 或显式 outDir，不注入或重启 Codex App。
 
 release-local、release-rollback-recovery、intent-review-release、taskboard-restart-participant、restart-handoff-boundaries 与 channel-write-leases 覆盖直接规则。安装器/Windows/真实断电和手机连通限制继续记录，不用这套脚本的通过冒充全部平台已验证。
 

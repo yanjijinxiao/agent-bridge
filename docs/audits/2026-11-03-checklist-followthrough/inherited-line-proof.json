@@ -1,11 +1,11 @@
 {
-  "newRanges": 249,
+  "newRanges": 186,
   "unavailable": [
     {
       "file": "docs/architecture/gateway-case-coverage.md",
       "unavailableHistoricalHashes": [
-        "b11b68c9b383962f5b0d570f8a694e965f47b58317b8d3b576268a74f97b419a",
-        "96507f58c2fcdd593a96a4cecef65af1c80ff42ee6c935d9ad255f3a56123933"
+        "96507f58c2fcdd593a96a4cecef65af1c80ff42ee6c935d9ad255f3a56123933",
+        "b11b68c9b383962f5b0d570f8a694e965f47b58317b8d3b576268a74f97b419a"
       ]
     },
     {
@@ -53,9 +53,9 @@
     {
       "file": "docs/architecture/remaining-work.md",
       "unavailableHistoricalHashes": [
+        "f927f535efa597970b6fd96401f7cd3a331cbfb0280e2c89976cb86ad3d16da6",
         "9664c4c07f893e24abe753312977977f734d000a43dd3d3a93ce485d3a4d1e5e",
-        "088283a1185ab6215e8ad1e4a1d19fb607a40cb8ab745d8986c15ed5cebeff39",
-        "f927f535efa597970b6fd96401f7cd3a331cbfb0280e2c89976cb86ad3d16da6"
+        "088283a1185ab6215e8ad1e4a1d19fb607a40cb8ab745d8986c15ed5cebeff39"
       ]
     },
     {
@@ -85,9 +85,15 @@
     {
       "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
       "unavailableHistoricalHashes": [
-        "46ef77b5b91f816e440ac25ae264f7fbaf83a8e659c043f1dbe61f465b5a313a",
         "14e86e77beb05736c9e5778ffb2d6af6a872ede442d4a965523ad3d9d6146b9b",
-        "e8423df4391ced3c2edc0a8f53cd95d3ce0324083567dfb170084d9ef92d96d2"
+        "e8423df4391ced3c2edc0a8f53cd95d3ce0324083567dfb170084d9ef92d96d2",
+        "46ef77b5b91f816e440ac25ae264f7fbaf83a8e659c043f1dbe61f465b5a313a"
+      ]
+    },
+    {
+      "file": "taskboard/web/src/App.tsx",
+      "unavailableHistoricalHashes": [
+        "caf0433b04dff025980c6eee08ebaf13c9847731d2c7424bef9bd516bab97306"
       ]
     },
     {

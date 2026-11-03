@@ -56,6 +56,7 @@ import {
 import { LinearIcon } from "./LinearIcon";
 import { WorkflowInsertEdge } from "./WorkflowInsertEdge";
 import { WorkflowInspector } from "./WorkflowInspector";
+import { WorkflowRunPanel } from "./WorkflowRunPanel";
 import {
   WorkflowNode,
   type WorkflowCanvasNode,
@@ -1478,6 +1479,9 @@ function ProjectWorkflowBoard({
             }}>重新加载流程</button>}
           </div>
         </div>
+        <WorkflowRunPanel key={activeWorkflowId} projectId={projectId} workflowId={activeWorkflowId}
+          version={remoteVersionRef.current} canRun={hydrated && saveState === "saved"}
+          triggerKind={nodes.find(node => !node.parentId && isWorkflowTriggerKind(node.data.kind))?.data.kind} />
         {saveConflict && <div className="comments-error" role="alert" data-workflow-conflict>
           <span>流程已在其他位置更新，本地编辑已保留。请选择要保存的版本。</span>
           <button type="button" className="button" onClick={() => {

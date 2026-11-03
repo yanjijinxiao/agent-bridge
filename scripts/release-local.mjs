@@ -231,6 +231,15 @@ export async function main(argv) {
     runLog('tests.log', process.execPath, ['--test', '--test-concurrency=4', '--import', 'tsx', '--test-reporter=spec', '--test-timeout=120000', ...fs.readdirSync(path.join(repo, 'test')).filter(name => name.endsWith('.test.ts')).map(name => 'test/' + name)]);
     const tests = testCounts(fs.readFileSync(path.join(dir, 'tests.log'), 'utf8'));
     runLog('build.log', process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.json', '--outDir', staged]);
+    // Embed a pinned Taskboard package in the same movable artifact. Resolving
+    // the workspace symlink would mix new source with old deployed web assets
+    // and make a Gateway-only rollback incomplete.
+    runLog('taskboard-typecheck.log', process.execPath, ['taskboard/node_modules/typescript/bin/tsc', '-p', 'taskboard/web/tsconfig.json', '--noEmit']);
+    runLog('taskboard-tests.log', process.execPath, ['--test', ...fs.readdirSync(path.join(repo, 'taskboard/test')).filter(name => name.endsWith('.test.mjs')).map(name => 'taskboard/test/' + name)]);
+    testCounts(fs.readFileSync(path.join(dir, 'taskboard-tests.log'), 'utf8'));
+    const taskboardWeb = path.join(dir, 'taskboard-web');
+    runLog('taskboard-build.log', process.execPath, ['taskboard/node_modules/vite/bin/vite.js', 'build', '--config', 'taskboard/web/vite.config.ts', '--outDir', taskboardWeb]);
+    runLog('taskboard-package.log', process.execPath, ['scripts/package-taskboard-runtime.mjs', '--out', path.join(staged, 'node_modules/codex-taskboard'), '--web', taskboardWeb]);
     fs.cpSync(path.join(repo, 'src/web'), path.join(staged, 'web'), { recursive: true });
     fs.mkdirSync(path.join(staged, 'web/vendor'), { recursive: true });
     for (const [file, target] of [['lucide/dist/umd/lucide.min.js', 'lucide.min.js'], ['marked/lib/marked.umd.js', 'marked.umd.js'], ['dompurify/dist/purify.min.js', 'purify.min.js']]) fs.copyFileSync(path.join(repo, 'node_modules', file), path.join(staged, 'web/vendor', target));

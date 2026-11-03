@@ -1012,6 +1012,15 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     selectedThreadRef.current = threadId;
     setSelectedThreadId(threadId);
   }, []);
+  useEffect(() => {
+    const openWorkflowThread = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (!available || detail?.projectId !== projectId || typeof detail?.threadId !== "string") return;
+      selectThread(detail.threadId); setPanelOpen(true);
+    };
+    window.addEventListener("taskboard:open-workflow-thread", openWorkflowThread);
+    return () => window.removeEventListener("taskboard:open-workflow-thread", openWorkflowThread);
+  }, [available, projectId, selectThread]);
   const refreshSubmissionReceipts = useCallback(() => {
     setSubmissionReceipts(readAiReceipts(receiptProjectRef.current, selectedThreadRef.current));
   }, []);

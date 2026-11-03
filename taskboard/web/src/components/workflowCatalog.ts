@@ -679,7 +679,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
       labelsToAdd: "",
       setPriority: false,
       targetPriority: "none",
-      attachArtifacts: true,
+      attachArtifacts: false,
       recordConversation: true,
     },
   },
@@ -876,6 +876,24 @@ export function workflowNodeConfigured(
   capabilities: WorkflowCapabilities | null,
   failed: boolean,
 ): boolean {
+  if (["nano-banana", "jimeng-image", "midjourney-image", "seedance-video", "kling-video", "feishu-docs", "feishu-message"].includes(data.kind)) return false;
+  if (["opencli", "custom-integration"].includes(data.kind)) {
+    try { const args = JSON.parse(data.integrationArguments ?? ""); return Array.isArray(args) && args.length > 0 && args.every(arg => typeof arg === "string" && !arg.includes("\0")); }
+    catch { return false; }
+  }
+  if (data.kind === "cloudflare-deploy") return Boolean(data.deploymentConfig?.trim());
+  if (data.kind === "custom-planning") return Boolean(data.additionalInstructions?.trim());
+  if (data.kind === "custom-api") {
+    try { const body = JSON.parse(data.providerRequest ?? ""); return Boolean(data.providerProfile?.trim() && body && typeof body === "object" && !Array.isArray(body)); }
+    catch { return false; }
+  }
+  if (data.kind === "git") {
+    const operation = data.gitOperation ?? "commit";
+    if (operation === "commit") return Boolean(data.gitCommitMessage?.trim());
+    if (["create-branch", "switch-branch", "merge-branch"].includes(operation)) return Boolean(data.gitBranchName?.trim());
+    if (operation === "create-worktree") return Boolean(data.gitWorktreePath?.trim());
+    return ["status", "pull", "push"].includes(operation);
+  }
   if (data.kind === "issue-create") {
     return Boolean(data.createIssueTitle?.trim());
   }
@@ -883,7 +901,7 @@ export function workflowNodeConfigured(
     return Boolean(data.rssFeedUrl?.trim());
   }
   if (data.kind === "twitter-post") {
-    return Boolean(data.twitterPostContent?.trim());
+    return Boolean(data.twitterPostContent?.trim() && data.providerProfile?.trim());
   }
   if (data.kind === "condition") {
     const field = CONDITION_FIELDS.find(
@@ -918,9 +936,11 @@ export function workflowNodeConfigured(
   if (data.kind === "mcp") {
     return !failed
       && Boolean(data.selectedMcpServer)
+      && Boolean(data.additionalInstructions?.trim())
       && Boolean(capabilities?.mcpServers.some((item) => item.id === data.selectedMcpServer));
   }
   if (data.kind === "issue-update") {
+    if (data.attachArtifacts) return false;
     return Boolean(
       data.changeStatus
       || data.addComment

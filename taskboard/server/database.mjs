@@ -1233,7 +1233,7 @@ export class TaskboardDatabase {
     const timestamp = now();
     values.push(timestamp, current.id, version);
 
-    this.database.exec("BEGIN IMMEDIATE");
+    this.#beginTaskMutation();
     try {
       const result = this.database.prepare(`
         UPDATE tasks SET ${assignments.join(", ")} WHERE id = ? AND version = ?
@@ -1241,9 +1241,9 @@ export class TaskboardDatabase {
       if (result.changes !== 1) {
         this.#throwMissingOrConflict(id, version);
       }
-      this.database.exec("COMMIT");
+      this.#commitTaskMutation();
     } catch (error) {
-      this.database.exec("ROLLBACK");
+      this.#rollbackTaskMutation();
       throw error;
     }
     return this.getTask(current.id);

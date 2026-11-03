@@ -275,6 +275,32 @@ export async function saveWorkflowWorkspace<T>(
   return data.workflow;
 }
 
+export interface WorkflowRun {
+  id: string;
+  workflowId: string;
+  version: number;
+  status: "running" | "stopping" | "completed" | "failed" | "cancelled" | "uncertain";
+  error?: string;
+  createdAt: string;
+  steps: Record<string, { nodeId: string; title: string; status: string; threadId?: string; error?: string; output?: { text?: string; branch?: boolean } }>;
+}
+
+export async function workflowRuns(projectId: string, signal?: AbortSignal): Promise<WorkflowRun[]> {
+  return (await request<{ runs: WorkflowRun[] }>(`/api/local/workflow-runs/${encodeURIComponent(projectId)}`, { signal })).runs;
+}
+
+export async function startWorkflowRun(projectId: string, input: {
+  clientRequestId: string; workflowId: string; version: number; input: { issueId?: string; text?: string; event?: object };
+}): Promise<WorkflowRun> {
+  return (await request<{ run: WorkflowRun }>(`/api/local/workflow-runs/${encodeURIComponent(projectId)}`,
+    { method: "POST", body: JSON.stringify(input) })).run;
+}
+
+export async function stopWorkflowRun(projectId: string, id: string): Promise<WorkflowRun> {
+  return (await request<{ run: WorkflowRun }>(`/api/local/workflow-runs/${encodeURIComponent(projectId)}/${encodeURIComponent(id)}`,
+    { method: "DELETE" })).run;
+}
+
 export async function createProject(input: {
   id: string;
   name: string;

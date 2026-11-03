@@ -1,6 +1,13 @@
 /** The Taskboard is another client of the Gateway's one protocol adapter.
  * Deployment chooses the endpoint; catalog/execution never spawn CLI helpers.
  * Standalone distributions must include the root build beside this package. */
+export function gatewayAdapterUrl(moduleUrl = import.meta.url) {
+  // The release embeds this package in dist/node_modules. Development keeps it
+  // in the workspace. These are code locations, not alternative executors.
+  return new URL(new URL("../../", moduleUrl).pathname.endsWith("/node_modules/")
+    ? "../../../codex/app-server-gateway.js" : "../../dist/codex/app-server-gateway.js", moduleUrl);
+}
+
 export function createTaskboardNativeBackend(options = {}) {
   let backend = options.nativeBackend;
   let pending;
@@ -10,7 +17,7 @@ export function createTaskboardNativeBackend(options = {}) {
     if (backend) return backend;
     pending ??= (async () => {
       if (options.nativeBackendFactory) return options.nativeBackendFactory();
-      const { CodexAppServerGateway } = await import("../../dist/codex/app-server-gateway.js");
+      const { CodexAppServerGateway } = await import(gatewayAdapterUrl().href);
       return new CodexAppServerGateway({
         codexBin: options.codexExecutable,
         codexHome: options.codexHome,

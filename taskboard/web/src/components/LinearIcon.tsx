@@ -168,7 +168,9 @@ interface LinearIconProps extends Omit<SVGProps<SVGSVGElement>, "children"> {
 }
 
 export function LinearIcon({ name, title, style, ...props }: LinearIconProps) {
-  const icon: { viewBox?: string; content: ReactNode } = ICONS[name];
+  // Persisted documents can outlive this client's icon catalog. Unknown
+  // presentation metadata must not crash the entire application.
+  const icon: { viewBox?: string; content: ReactNode } = Object.hasOwn(ICONS, name) ? ICONS[name] : ICONS.file;
   return (
     <svg
       data-linear-icon={name}

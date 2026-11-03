@@ -1,0 +1,12 @@
+[
+  {
+    "file": "scripts/package-taskboard-runtime.mjs",
+    "symbol": "packageTaskboardRuntime",
+    "lines": [
+      8,
+      27
+    ],
+    "bodyUnchanged": false,
+    "review": "把服务端、共享合同、技能CLI和前端钉在同一Gateway制品内，避免混版回滚；参照节点运行专项、实际原生执行/重连及浏览器证据，外部供应商真实账号未验。"
+  }
+]
