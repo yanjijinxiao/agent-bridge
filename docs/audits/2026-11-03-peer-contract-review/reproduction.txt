@@ -33,9 +33,9 @@
 test at docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts:1:662
 ✖ BIND final native guard rejects a downgraded actor (66.174875ms)
   AssertionError [ERR_ASSERTION]: final native write must obey the current Gateway role
-  
+
   1 !== 0
-  
+
       at TestContext.<anonymous> (/Users/xking/.codex/worktrees/gateway-main-review/codex-channel-bridge/docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts:38:10)
       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
       at async Test.run (node:internal/test_runner/test:1208:7)

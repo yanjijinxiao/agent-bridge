@@ -5,4 +5,3 @@ export function peerOperationId(hostId: string, method: string, principal: PeerP
   return crypto.createHash("sha256").update(JSON.stringify([hostId, method,
     principal?.accountId, principal?.conversationId, principal?.actorId, sourceId])).digest("hex");
 }
-
