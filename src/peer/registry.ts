@@ -17,12 +17,13 @@ const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/
   label: z.string().min(1).max(80).optional(),
   writeGuard: z.literal(1).optional(),
   interactions: z.literal(1).optional(),
+  nativeContract: z.literal(1).optional(),
   files: z.object({ version: z.literal(1) }).strict().optional(),
   management: z.object({ version: z.literal(1) }).strict().optional(),
   sharing: z.object({ version: z.union([z.literal(1), z.literal(2)]) }).strict().optional(),
   info: z.object({ id: z.enum(["exec", "app-server"]), capabilities: z.record(z.string(), z.boolean()) }),
   independent: z.boolean() }).strict();
-export type PeerDescription = { profileId: string; label?: string; writeGuard?: 1; interactions?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
+export type PeerDescription = { profileId: string; label?: string; writeGuard?: 1; interactions?: 1; nativeContract?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
   info: { id: CodexBackendId; capabilities: CodexBackendCapabilities }; independent: boolean };
 type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection };
 const samePrincipal = (a: PeerPrincipal, b: PeerPrincipal) => a.accountId === b.accountId && a.conversationId === b.conversationId && a.actorId === b.actorId;
@@ -40,6 +41,10 @@ export class PeerRegistry implements PeerBridgePort {
     this.sharing = new PeerSharingGateway(this, stateFile + ".sharing");
   }
   grantsFor(principal: PeerPrincipal): PeerGrant[] { return this.grants.filter(g => samePrincipal(g.principal, principal) && (!g.delegation || g.delegation.version === 2 && g.delegation.expiresAt > Date.now())); }
+  sourcesForScope(scope: { hostId: string; threadId: string }): PeerPrincipal[] {
+    return this.grants.filter(g => g.hostId === scope.hostId && (g.scope === "device" || g.threadId === scope.threadId)
+      && (!g.delegation || g.delegation.version === 2 && g.delegation.expiresAt > Date.now())).map(g => g.principal);
+  }
   allSharedGrants(target: { hostId: string; threadId: string }): PeerGrant[] { return this.grants.filter(g => g.hostId === target.hostId && g.threadId === target.threadId && g.delegation); }
   addSharedGrant(raw: unknown): PeerGrant {
     const grant = grantSchema.parse(raw); if (!grant.delegation || grant.delegation.version !== 2) throw new PeerError("scope", "共享授权需要重新批准；请更新 Gateway 和 Connector。");
@@ -132,9 +137,9 @@ export class PeerRegistry implements PeerBridgePort {
     return peerPrincipal.run(grant.principal, () => this.invoke<T>(hostId, method, [payload], false, undefined, undefined, undefined, grant.id));
   }
   async invoke<T>(hostId: string, method: string, args: unknown[], write = false,
-    operationId?: string, callback?: (name: string, args: unknown[]) => Promise<unknown>, signal?: AbortSignal, selectedGrantId?: string): Promise<T> {
+    operationId?: string, callback?: (name: string, args: unknown[]) => Promise<unknown>, signal?: AbortSignal, selectedGrantId?: string, retainCallback = false): Promise<T> {
     const principal = peerPrincipal.getStore();
-    const first = args[0] as any, target = method === "getRuntimeInfo" ? args[1] : typeof first === "string" ? first : first?.threadId;
+    const first = args[0] as any, target = ["listSkills", "warmUp"].includes(method) ? undefined : method === "getRuntimeInfo" ? args[1] : typeof first === "string" ? first : first?.threadId;
     const candidates = this.grants.filter(g => g.hostId === hostId && (!principal || samePrincipal(g.principal, principal))
       && (!selectedGrantId || g.id === selectedGrantId)
       && (!g.delegation || g.delegation.version === 2 && g.delegation.expiresAt > Date.now() && (!target || target === g.threadId)));
@@ -144,19 +149,33 @@ export class PeerRegistry implements PeerBridgePort {
     if (!host?.connection?.open) throw new PeerConnectionError(false);
     if (write && host.description.writeGuard !== 1) throw new PeerError("unsupported", "请更新 Connector：当前版本不支持最终写入前的来源检查。");
     const connection = host.connection, callbacks = this.callbacks.get(connection)!;
-    if (operationId && callback) {
+    let registeredCallback = false;
+    if (operationId && callback && !(retainCallback && callbacks.has(operationId))) {
+      if (callbacks.size >= 512) throw new PeerError("busy", "Too many pending native callback leases");
       if (callbacks.has(operationId)) throw new PeerError("busy", "同一条消息正在交接，请等待原回执。");
+      registeredCallback = true;
       callbacks.set(operationId, async (name, values) => {
         if (grant.delegation && !this.grantsFor(grant.principal).some(g => g.id === grant.id)) throw new PeerError("access", "共享已撤销或过期。");
         return callback(name, values);
       });
     }
+    let completed = false;
     try {
       const result = await connection.request<T>("execution.call", { grant, method, args, operationId }, write || method === "observeThreadInteractions" ? PEER_EXECUTION_TIMEOUT_MS : 30_000, signal);
       if (grant.delegation && !this.grantsFor(grant.principal).some(g => g.id === grant.id)) throw new PeerError("access", "共享已撤销或过期，未继续投递。");
-      return result;
+      completed = true; return result;
     }
-    finally { if (operationId && callback) callbacks.delete(operationId); }
+    finally { if (operationId && registeredCallback && (!completed || !retainCallback)) callbacks.delete(operationId); }
+  }
+  callbackLease(hostId: string, operationId: string): () => void {
+    const connection = this.entries.get(hostId)?.connection;
+    const callbacks = connection && this.callbacks.get(connection);
+    return () => { callbacks?.delete(operationId); };
+  }
+  onDisconnect(hostId: string, handler: () => void): () => void {
+    const connection = this.entries.get(hostId)?.connection;
+    if (!connection?.open) { handler(); return () => {}; }
+    return connection.onClose(handler);
   }
   close(): void { for (const host of this.entries.values()) host.connection?.close(); this.tickets.clear(); }
 }

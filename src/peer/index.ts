@@ -7,6 +7,7 @@ import readline from "node:readline/promises";
 import { z } from "zod";
 import { CodexBackendRouter } from "../codex/runner.js";
 import { readJsonFile } from "../state/json-store.js";
+import { withConnectorProjects } from "./project-catalog.js";
 import { PeerExecutionService } from "./execution-service.js";
 import { GatewayPeerClient } from "./transport.js";
 import { acquireServiceProcessLock } from "../server/process-lock.js";
@@ -24,8 +25,8 @@ async function main(): Promise<void> {
     appServerTransport: z.enum(["daemon", "stdio"]).default("daemon"),
     stateDir: z.string().optional() }).strict().parse(readJsonFile(file, null));
   const resolve = (name: string) => path.resolve(path.dirname(file), name);
-  const backend = new CodexBackendRouter({ backend: config.backend, appServerTransport: config.appServerTransport,
-    codexBin: config.codexBin, codexHome: config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME });
+  const backend = withConnectorProjects(new CodexBackendRouter({ backend: config.backend, appServerTransport: config.appServerTransport,
+    codexBin: config.codexBin, codexHome: config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME }), config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME);
   let questions: Promise<unknown> = Promise.resolve();
   const stateKey = crypto.createHash("sha256").update(JSON.stringify([config.url, config.nodeId, config.profileId, config.threadId])).digest("hex").slice(0, 24);
   const stateDir = config.stateDir ? resolve(config.stateDir) : path.join(os.homedir(), ".codex-im-gateway", "peer-client", stateKey);

@@ -515,7 +515,7 @@ export class BridgeService {
     const commands = slashCommand ? [slashCommand] : undefined;
     if (commands) {
       for (const command of commands) {
-        const readBinding = shared && (["leave", "unbind"].includes(command.name) || command.name === "session" && !/^(?:rename|archive|restore|unarchive)(?:\s|$)/i.test(command.arg));
+        const readBinding = shared && (["leave", "unbind"].includes(command.name) || command.name === "session");
         const required = readBinding ? "viewer" : requiredCommandRole(command.name, command.arg);
         const assertCommandCurrent = this.conversationControlGuard(replyTargetId, required, false);
         if (!await this.requireRole(replyTargetId, required)) return;
@@ -626,9 +626,7 @@ export class BridgeService {
         if (target.threadId) {
           const state = await this.runner.inspectThread(target.threadId, target.hostId);
           if (state.persistence === "archived") {
-            await this.reply(message.senderId, copyableChoices("设备已配对，指定会话已归档。需要恢复时，请主动查看归档会话。", [
-              { label: "查看该设备归档会话", value: `/sessions archived --host ${target.hostId}` }
-            ]));
+            await this.reply(message.senderId, "设备已配对，指定会话已归档。请在原生 Codex 中恢复后，再通过 /sessions 选择。");
           } else await this.bindCatalogSession(message.senderId, target.threadId, target.hostId);
         }
         else {
@@ -1517,74 +1515,14 @@ export class BridgeService {
     return this.catalogControls.run(senderId, () => this.handleSessionCatalog(senderId, arg, sourceId));
   }
 
-  private async handleSessionManagement(senderId: string, input: string, sourceId?: string): Promise<boolean> {
-    const rename = /^rename(?:\s+(.+))?$/i.exec(input), archive = /^archive$/i.test(input), restore = /^(?:restore|unarchive)(?:\s+(.+))?$/i.exec(input);
-    if (!rename && !archive && !restore) return false;
-    if (!await this.requireRole(senderId, "controller")) return true;
-    const assertConversation = this.conversationControlGuard(senderId, "controller");
-    const source = sourceId ?? randomUUID();
-    if (restore) {
-      const selector = restore[1]?.trim();
-      if (!selector) { await this.reply(senderId, "请先发送 /sessions archived，再使用 /session restore R编号 恢复并绑定。"); return true; }
-      const numbered = /^r([1-9]\d*)$/i.exec(selector);
-      let threadId: string, hostId: string | undefined;
-      if (numbered) {
-        const listing = this.sessionLists.get(this.catalogActorKey(senderId));
-        const row = listing && Date.now() - listing.createdAt <= 15 * 60_000 ? listing.rows[Number(numbered[1]) - 1] : undefined;
-        if (!row || row.state.persistence !== "archived") { await this.reply(senderId, "归档列表已失效或编号不是已归档会话，请发送 /sessions archived 刷新。"); return true; }
-        threadId = row.state.threadId; hostId = row.hostId;
-      } else {
-        const direct = /^(\S+)(?:\s+--host\s+(\S+))?$/.exec(selector);
-        if (!direct) { await this.reply(senderId, "用法：/session restore R编号，或 /session restore 会话ID --host 主机ID。"); return true; }
-        threadId = direct[1]; hostId = direct[2];
-        if (!hostId) {
-          const principal = peerPrincipal.getStore(), paired = principal ? this.options.peer?.hosts(principal) ?? [] : [];
-          const current = this.executionSession(senderId);
-          hostId = (current ? this.sessionHostId(current) : undefined) ?? (paired.length === 1 ? paired[0] : paired.length ? undefined : "local");
-          if (!hostId) { await this.reply(senderId, "有多个已配对设备，请从 /sessions archived 的列表选择，或明确提供 --host。"); return true; }
-        }
-      }
-      const state = await this.runner.inspectThread(threadId, hostId);
-      assertConversation();
-      if (state.persistence !== "archived" || state.internal) throw new Error("该会话当前不是可恢复的归档会话，未改变绑定。");
-      await this.runner.unarchiveThread(threadId, hostId, assertConversation, source);
-      assertConversation();
-      await this.bindCatalogSession(senderId, threadId, hostId); this.sessionLists.delete(this.catalogActorKey(senderId));
-      return true;
-    }
-    const session = this.executionSession(senderId);
-    if (!session?.threadId) { await this.reply(senderId, "请先通过 /sessions 选择要管理的会话。"); return true; }
-    const hostId = this.sessionHostId(session), binding = sessionExecutionScope(this.options.stateStore, session);
-    const assertCurrent = () => { assertConversation(); if (!binding.current()) throw new Error("会话绑定已改变，管理操作未提交。"); };
-    const state = await this.runner.inspectThread(session.threadId, hostId); assertCurrent();
-    if (state.persistence !== "active" || state.activeTurnId || state.pendingTurnWithoutId || state.activeFlags.length
-      || !["idle", "notLoaded"].includes(state.runtimeStatus)) throw new Error("会话仍在运行或空闲状态未确认，请等待任务结束后再管理。");
-    if (rename) {
-      const title = rename[1]?.trim();
-      if (!title || title.length > 120) { await this.reply(senderId, "用法：/session rename 新名称（1–120 字）。"); return true; }
-      if (!this.runner.renameThread) throw new Error("当前后端尚不支持原生重命名。");
-      const renamed = await this.runner.renameThread(session.threadId, title, hostId, assertCurrent, source); assertCurrent();
-      this.options.stateStore.renameSession(session.id, renamed.title ?? title);
-      await this.reply(senderId, `已重命名原生会话：${renamed.title ?? title}`);
-    } else {
-      await this.runner.archiveThread(session.threadId, hostId, assertCurrent, source); assertCurrent();
-      this.options.stateStore.unbindSession(session.id, this.options.stateStore.sessionBindingTarget(session));
-      this.clearConversationBindingState(senderId);
-      await this.reply(senderId, "已归档原生会话，并解除当前聊天绑定。发送 /sessions archived 可查找并恢复。");
-    }
-    this.sessionLists.delete(this.catalogActorKey(senderId)); return true;
-  }
-
   private async handleSessionCatalog(senderId: string, arg: string, sourceId?: string): Promise<void> {
     const actorId = this.actor.getStore() ?? senderId;
     const key = JSON.stringify([senderId, actorId]);
     let input = arg.trim();
-    if (await this.handleSessionManagement(senderId, input, sourceId)) return;
-    const archived = /^archived(?:\s+--host\s+(\S+))?$/i.exec(input);
     const principal = peerPrincipal.getStore();
     const pairedHosts = principal ? this.options.peer?.hosts(principal) ?? [] : [];
     const currentHost = this.sessionHostId(this.executionSession(senderId));
-    const hostFilter = /^--host\s+(\S+)$/i.exec(input)?.[1] ?? archived?.[1] ?? (!input || archived
+    const hostFilter = /^--host\s+(\S+)$/i.exec(input)?.[1] ?? (!input
       ? currentHost?.startsWith("peer:") && pairedHosts.includes(currentHost) ? currentHost : pairedHosts.length === 1 ? pairedHosts[0] : undefined
       : undefined);
     let resized = false;
@@ -1631,7 +1569,7 @@ export class BridgeService {
           `主机：${hostId}`, `目录：${state.cwd}`, `ID：${state.threadId}`,
           `状态：${projectSessionChoiceStateLabel({ title: state.title ?? "", updatedAt: state.updatedAt ?? "", candidate: codexThreadStateCandidate(state, state.cwd ?? "") })}`,
           `更新：${state.updatedAt ? formatSessionTime(state.updatedAt) : "时间未知"}`,
-          `${state.persistence === "archived" ? "恢复并绑定" : "继续此会话"}：\n\n${copyBlock(`/session ${state.persistence === "archived" ? "restore " : ""}R${detail[1]}`)}`
+          `继续此会话：\n\n${copyBlock(`/session R${detail[1]}`)}`
         ].join("\n\n"));
         return;
       }
@@ -1643,7 +1581,7 @@ export class BridgeService {
       const requested = /(?:^|\s)page\s+(\d+)$/i.exec(input);
       if (!resized) listing.page = requested ? Number(requested[1]) - 1 : listing.page + (/^prev$/i.test(input) ? -1 : 1);
       listing.page = Math.min(Math.max(0, Math.ceil(listing.items.length / listing.pageSize) - 1), Math.max(0, listing.page));
-    } else if (input && !hostFilter && !/^(all|archived|unbound|unassigned|project|search\s+.+)$/i.test(input)) {
+    } else if (input && !hostFilter && !/^(all|unbound|unassigned|project|search\s+.+)$/i.test(input)) {
       const direct = /^(\S+)(?:\s+--host\s+(\S+))?$/.exec(input);
       if (!direct) { await this.reply(senderId, "用法：/sessions [all|unbound|project|search 关键词|more|prev]；/session <会话ID> [--host 主机ID]"); return; }
       await this.bindCatalogSession(senderId, direct[1], direct[2]); return;
@@ -1661,7 +1599,7 @@ export class BridgeService {
       try { purposes = readSessionPurposes(this.options.stateStore.sessionPurposeRegistryPath); }
       catch { warnings.push("会话用途配置无法读取，本次未隐藏探活记录；请检查 session-purposes.json 后刷新。"); }
       const hiddenProbes = new Set<string>();
-      const catalogInput = { persistence: archived ? "archived" as const : "active" as const, ...(projectOnly ? { cwd: activeProject!.workspace, projectId: activeProject!.sourceProjectId } : {}), ...(unassigned ? { unassigned: true } : {}) };
+      const catalogInput = { persistence: "active" as const, ...(projectOnly ? { cwd: activeProject!.workspace, projectId: activeProject!.sourceProjectId } : {}), ...(unassigned ? { unassigned: true } : {}) };
       const firstHost = hostFilter ?? (resourceOnly ? pairedHosts[0] : projectOnly ? activeProject?.hostId ?? "local" : "local");
       // Resolve the catalog backend before optional project-name enrichment.
       // In auto mode a failed enrichment must not select a different backend.
@@ -1696,7 +1634,7 @@ export class BridgeService {
             if (!hostFilter && !projectOnly && catalog.backend === "app-server") for (const host of catalog.hostIds) hosts.add(host);
           }
           for (const state of states) {
-            if (state.persistence !== (archived ? "archived" : "active") || state.internal || (unassigned && state.projectId)) continue;
+            if (state.persistence !== "active" || state.internal || (unassigned && state.projectId)) continue;
             if (query && !`${state.title ?? ""} ${state.preview ?? ""} ${state.threadId} ${state.cwd ?? ""}`.toLocaleLowerCase().includes(query)) continue;
             if (purposes.isProbe(state.threadId, hostId)) {
               hiddenProbes.add(JSON.stringify([hostId, state.threadId]));
@@ -1716,8 +1654,8 @@ export class BridgeService {
       const ordered = orderSessionCatalog(unique, projectCatalog, this.options.stateStore.listProjects(), activeProject);
       const activeGroupId = activeProject?.sourceProjectId ? JSON.stringify([activeProject.hostId ?? "local", activeProject.sourceProjectId]) : undefined;
       const displayProjects = projectOnly ? projectCatalog.filter(p => JSON.stringify([p.hostId ?? "local", p.projectId]) === activeGroupId) : projectCatalog;
-      const items = sessionCatalogItems(ordered, displayProjects, { includeEmpty: !archived && !query && !unassigned, incompleteHosts, activeGroupId });
-      listing = { rows: ordered, items, page: 0, pageSize: this.options.stateStore.getSessionPageSize(senderId, actorId), createdAt: Date.now(), label: `${archived ? "已归档 · " : ""}${hostFilter ? this.options.peer?.label(hostFilter) ?? sessionHostLabel(hostFilter) : projectOnly ? `项目 ${activeProject!.name}` : unassigned ? "无项目" : query ? `搜索：${query}` : "全部"}`, warnings: [...new Set(warnings)] };
+      const items = sessionCatalogItems(ordered, displayProjects, { includeEmpty: !query && !unassigned, incompleteHosts, activeGroupId });
+      listing = { rows: ordered, items, page: 0, pageSize: this.options.stateStore.getSessionPageSize(senderId, actorId), createdAt: Date.now(), label: `${hostFilter ? this.options.peer?.label(hostFilter) ?? sessionHostLabel(hostFilter) : projectOnly ? `项目 ${activeProject!.name}` : unassigned ? "无项目" : query ? `搜索：${query}` : "全部"}`, warnings: [...new Set(warnings)] };
       for (const [k,v] of this.sessionLists) if (Date.now() - v.createdAt > 15 * 60_000) this.sessionLists.delete(k);
       this.sessionLists.set(key, listing);
     }
@@ -1745,16 +1683,15 @@ export class BridgeService {
       const shortStatus = status.replace("Desktop 已打开", "已打开").replace("上次执行失败", "上次失败").replace("上次已停止", "已停止").replace("状态未知", "未知");
       lines.push(`　[R${item.number}] ${current ? "【当前】 " : ""}${escapeTableMarkdown(compactTableCell(name, 48))} · ${shortStatus}${attribution ? ` · ${escapeTableMarkdown(compactTableCell(attribution, 64))}` : ""}`);
     }
-    const archivedListing = listing.label.startsWith("已归档 · ");
-    const body = [pageItems.length ? lines.join("\n").trim() : (archivedListing ? "没有符合条件的已归档会话。" : "没有符合条件的未归档会话或项目。"), ...listing.warnings.map(escapeTableMarkdown)].join("\n\n");
+    const body = [pageItems.length ? lines.join("\n").trim() : "没有符合条件的未归档会话或项目。", ...listing.warnings.map(escapeTableMarkdown)].join("\n\n");
     const note = `置顶 → 项目目录顺序 → 其他会话；组内遵循 App 排序。每页 ${listing.pageSize} 项（会话或空项目）。\n查看详情：/sessions detail R编号。`;
     const text = [title, body, note].filter(Boolean).join("\n\n");
     await this.replyActionCard(senderId, createChoiceCard({ title, body, note, fallbackText: text,
       copyChoices: [
-        ...(pageRows.length ? [{ label: archivedListing ? "恢复并绑定模板（将“编号”替换为列表数字）" : "选择会话模板（将“编号”替换为列表数字）", value: archivedListing ? "/session restore R编号" : "/session R编号" }] : []),
+        ...(pageRows.length ? [{ label: "选择会话模板（将“编号”替换为列表数字）", value: "/session R编号" }] : []),
         ...(listing.page > 0 ? [{ label: "上一页", value: "/sessions prev" }] : []),
         ...(start + listing.pageSize < listing.items.length ? [{ label: "下一页", value: "/sessions more" }] : [])],
-      choices: [...pageRows.map(({row: {state,hostId}, number}): ChannelChoice => ({ label: `R${number}`, command: "session", arg: `${state.persistence === "archived" ? "restore " : ""}${state.threadId} --host ${hostId}`, copyValue: `/session ${state.persistence === "archived" ? "restore " : ""}R${number}` })),
+      choices: [...pageRows.map(({row: {state,hostId}, number}): ChannelChoice => ({ label: `R${number}`, command: "session", arg: `${state.threadId} --host ${hostId}`, copyValue: `/session R${number}` })),
         ...(listing.page > 0 ? [{ label: "上一页", command: "sessions" as const, arg: "prev" }] : []),
         ...(start + listing.pageSize < listing.items.length ? [{ label: "下一页", command: "sessions" as const, arg: "more" }] : [])] }));
   }
@@ -2292,9 +2229,9 @@ export class BridgeService {
         if (!session || session.threadId !== receipt.threadId || (this.sessionHostId(session) ?? "local") !== receipt.hostId) {
           throw new Error("Queued session identity changed; native item was not started");
         }
-        await this.actor.run(receipt.actorId, () => this.runCodexTurn({
+        await peerPrincipal.run({ accountId, conversationId: receipt.conversationId, actorId: receipt.actorId }, () => this.actor.run(receipt.actorId, () => this.runCodexTurn({
           id: receipt.messageId, senderId: receipt.conversationId, text: "", attachments: [], raw: {}
-        }, item?.input.map(x => x.type === "text" ? x.text ?? "" : "").join("\n") ?? "", [], { receipt, starting, started }));
+        }, item?.input.map(x => x.type === "text" ? x.text ?? "" : "").join("\n") ?? "", [], { receipt, starting, started })));
         });
       });
     } finally { this.recoveringQueue = false; }

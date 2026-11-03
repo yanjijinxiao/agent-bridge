@@ -3,7 +3,7 @@ import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import { PeerError } from "./rpc.js";
 
 const row = z.object({ fingerprint: z.string(), phase: z.enum(["submitting", "accepted", "completed", "not-submitted", "failed"]),
-  threadId: z.string(), turnId: z.string().optional(), operation: z.string().optional(), result: z.unknown().optional() });
+  threadId: z.string(), turnId: z.string().optional(), operation: z.string().optional(), sourceId: z.string().optional(), principal: z.string().optional(), result: z.unknown().optional() });
 export type PeerReceipt = z.infer<typeof row>;
 /** No executable prompts; intent and native receipts are flushed before ack. */
 export class PeerReceipts {
@@ -12,11 +12,18 @@ export class PeerReceipts {
     this.rows = z.object({ version: z.literal(1), rows: z.record(z.string(), row) }).parse(readJsonFile(file, { version: 1, rows: {} })).rows;
   }
   get(id: string): PeerReceipt | undefined { const r = this.rows[id]; return r && structuredClone(r); }
-  begin(id: string, fingerprint: string, threadId: string, operation?: string): PeerReceipt | undefined {
+  begin(id: string, fingerprint: string, threadId: string, operation?: string, source?: { sourceId: string; principal: string }): PeerReceipt | undefined {
     const prior = this.get(id);
     if (prior && prior.fingerprint !== fingerprint) throw new PeerError("identity", "The source identity was reused for different input");
     if (prior && prior.phase !== "not-submitted") return prior;
-    this.write(id, { fingerprint, phase: "submitting", threadId, ...(operation ? { operation } : {}) }); return undefined;
+    this.write(id, { fingerprint, phase: "submitting", threadId, ...(operation ? { operation } : {}), ...source }); return undefined;
+  }
+  originalSource(nativeId: string, principal: string, snapshotThreadId?: string): string {
+    const r = nativeId.startsWith("peer-") ? this.rows[nativeId.slice(5)] : undefined;
+    // Capacity recovery belongs to the thread coordinator, not one IM actor.
+    // An authorized snapshot must reconcile that same receipt after the active
+    // binding changes. Queue/user receipts retain their exact principal scope.
+    return r?.sourceId && (r.principal === principal || r.operation === "resumeAfterCapacity" && r.threadId === snapshotThreadId) ? r.sourceId : nativeId;
   }
   created(id: string, threadId: string): void { this.write(id, { ...this.rows[id], phase: "accepted", threadId }); }
   createdThreads(): string[] { return Object.values(this.rows).filter(r => r.operation === "createThread" && ["accepted", "completed"].includes(r.phase)).map(r => r.threadId).slice(-200); }

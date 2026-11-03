@@ -254,6 +254,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const snapshot = await this.readThreadSnapshot(resume.threadId);
       assertCapacityResume(snapshot, resume.failedTurnId);
       return await this.runWithLease({ prompt: "", cwd: snapshot.state.cwd ?? "", threadId: resume.threadId,
+        assertCurrent: resume.assertCurrent,
         onTurnStarted: async event => {
           try { await resume.onTurnStarted(event); accepted(); }
           catch (error) { failed(error); throw error; }
@@ -556,7 +557,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       // do not issue this additional RPC at all.
       let latest: Record<string, unknown> | undefined;
       if (!observation && thread.ephemeral !== true) {
-        const page = nativePage(await this.request("thread/turns/list", { threadId, limit: 1, sortDirection: "desc", itemsView: "notLoaded" }), "thread/turns/list");
+        const page = await this.nativeTurns({ threadId, limit: 1, sortDirection: "desc", itemsView: "notLoaded" });
         latest = isRecord(page.data[0]) ? page.data[0] : undefined;
       }
       const state = membership(parseThreadState({ ...thread, turns: latest ? [latest] : [] }, persistenceFromThread(thread)));
@@ -610,24 +611,23 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     };
     // Do not load threads or start a second app-server just to discover what
     // Desktop already indexes, including hosts with no saved project.
-    const catalog = input.persistence === "archived" ? undefined : readDesktopSessionCatalog(this.options.codexHome, this.options.hostId, input);
-    if (catalog && input.persistence !== "all") return catalog;
+    const catalog = readDesktopSessionCatalog(this.options.codexHome, this.options.hostId, input);
+    if (catalog) return catalog;
     await this.ensureConnected();
     try {
       const persistence = input.persistence ?? "active", limit = input.limit ?? Infinity;
       const listed: CodexThreadState[] = [];
-      if (persistence !== "archived") listed.push(...(catalog?.threads ?? await this.listThreadsByPersistence(input, false, limit, true)));
+      if (persistence !== "archived") listed.push(...await this.listThreadsByPersistence(input, false, limit, true));
       if (persistence !== "active") listed.push(...await this.listThreadsByPersistence(input, true, limit, true));
       const threads = [...new Map(listed.map(state => [state.threadId, state])).values()]
         .sort((left, right) => (right.updatedAt ?? "").localeCompare(left.updatedAt ?? "")).slice(0, limit);
-      return { backend: this.id, source: catalog?.source ?? "app-server-storage", hostIds: catalog?.hostIds ?? [this.options.hostId ?? "local"], complete: catalog?.complete ?? true,
+      return { backend: this.id, source: "app-server-storage", hostIds: [this.options.hostId ?? "local"], complete: true,
         threads: threads.map(state => ({ ...state,
           // A private reader's notLoaded/idle says nothing about Desktop.
           runtimeStatus: this.options.transport?.mode === "remote-daemon" || state.runtimeStatus === "active" || state.runtimeStatus === "systemError"
             ? state.runtimeStatus : "unknown"
         })),
-        warnings: catalog?.warnings ?? [persistence === "archived" ? "已归档会话来自原生 app-server 存储；恢复后可重新绑定。"
-          : "Codex App 目录不可用；当前显示 app-server 存储中符合 App 筛选规则的会话，不保证与 App 侧栏完全一致。ChatGPT 聊天不支持绑定。"] };
+        warnings: ["Codex App 目录不可用；当前显示 app-server 存储中符合 App 筛选规则的会话，不保证与 App 侧栏完全一致。ChatGPT 聊天不支持绑定。"] };
     } finally { await this.recyclePrivateTransportIfIdle(); }
   }
 
@@ -681,7 +681,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const state = this.sessionMembership()(parseThreadState({ ...thread, cwd: input.cwd, ...(title ? { name: title } : {}) }, "active"));
       this.threadStates.set(threadId, state); return state;
     } finally {
-      if (threadId) await this.unsubscribeThread(threadId);
+      // Native empty threads cannot be resumed before their first input.
+      // Keep this subscription until the first run or adapter close.
       this.operationLeases--; await this.recyclePrivateTransportIfIdle();
     }
   }
@@ -898,10 +899,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         this.projectCatalogSupported = false;
         projects = [];
       }
-      const canonicalId = this.projectIdentity();
       return {
         backend: "app-server",
-        projects: projects.map(project => ({ ...project, id: canonicalId(project.id) }))
+        projects
       };
     } finally {
       await this.recyclePrivateTransportIfIdle();
@@ -962,9 +962,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const state = await this.inspectThread(threadId, { includeTurns: false, timeoutMs });
       if (state.persistence === "missing" || state.persistence === "archived") return { state, turns: [] };
       await this.ensureConnected();
-      const response = nativePage(await this.request("thread/turns/list", {
-        threadId, limit: 20, sortDirection: "desc", itemsView: "summary"
-      }, timeoutMs), "thread/turns/list");
+      const response = await this.nativeTurns({ threadId, limit: 20, sortDirection: "desc", itemsView: "summary" }, timeoutMs);
       const turns = (response.data as Array<{ id: string; status: import("./backend.js").CodexTurnStatus; startedAt?: number }>).slice().reverse();
       const failure = lastCodexTurnFailure(turns.at(-1));
       const activeId = state.activeTurnId ?? turns.filter(turn => turn.status === "inProgress").at(-1)?.id;
@@ -1023,11 +1021,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           // runtime without executing a turn. Rollback intent must be durable
           // BEFORE archive, and restoring active persistence is mandatory even
           // if the source lease changes after that write.
-          input.lifecycle.beforeArchive();
+          const journal = input.lifecycle.beforeArchive();
+          if (journal) await journal;
           let acknowledged = false;
           try {
-            await this.request("thread/archive", { threadId: input.threadId }, 5_000);
-            acknowledged = true; input.lifecycle.archived();
+            await guardNativeWrite(input.assertCurrent, () => this.request("thread/archive", { threadId: input.threadId }, 5_000));
+            acknowledged = true; const receipt = input.lifecycle.archived(); if (receipt) await receipt;
           } finally { await this.restoreRecoveryPersistence(input, acknowledged); }
           input.assertCurrent();
           before = await this.readThreadSnapshot(input.threadId);
@@ -1042,7 +1041,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         // Resume on a loaded errored thread does not clear its native status.
         // Release only this connection's subscription; native idle unload
         // decides when it is safe. Never kill a shared server or other owner.
-        const released = await this.request("thread/unsubscribe", { threadId: input.threadId }, 5_000) as { status?: string };
+        const released = await guardNativeWrite(input.assertCurrent, () => this.request("thread/unsubscribe", { threadId: input.threadId }, 5_000)) as { status?: string };
         if (!["notLoaded", "notSubscribed", "unsubscribed"].includes(released?.status ?? ""))
           return { status: "deferred", reason: "unconfirmed" };
         this.subscribedThreads.delete(input.threadId);
@@ -1050,7 +1049,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         return { status: "deferred", reason: "awaiting-unload", state: before.state };
         }
       }
-      const response = await this.request("thread/resume", { threadId: input.threadId, excludeTurns: true }, 5_000) as { thread?: { id?: string } };
+      const response = await guardNativeWrite(input.assertCurrent, () => this.request("thread/resume", { threadId: input.threadId, excludeTurns: true }, 5_000)) as { thread?: { id?: string } };
       if (response?.thread?.id !== input.threadId) return { status: "deferred", reason: "unconfirmed" };
       this.subscribedThreads.add(input.threadId);
       input.assertCurrent();
@@ -1072,7 +1071,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     }
     const actual = (await this.readThreadSnapshot(input.threadId)).state;
     if (actual.threadId === input.threadId && actual.persistence === "active" && confirmed) {
-      input.lifecycle!.restored(); return true;
+      const receipt = input.lifecycle!.restored(); if (receipt) await receipt; return true;
     }
     // A timed-out archive may still be executing. Do not clear the durable
     // restoration obligation, or repeat archive, merely because a read is active.
@@ -1103,13 +1102,27 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     } finally { this.operationLeases--; await this.recyclePrivateTransportIfIdle(); }
   }
 
+  private async nativeTurns(params: Record<string, unknown>, timeoutMs?: number): Promise<ReturnType<typeof nativePage>> {
+    try { return nativePage(await this.request("thread/turns/list", params, timeoutMs), "thread/turns/list", params.cursor as string | undefined); }
+    catch (error) {
+      // Current native servers explicitly distinguish an unmaterialized empty
+      // thread from missing/malformed history. Never normalize another error.
+      const expected = `app-server thread/turns/list failed (-32600): thread ${params.threadId} is not materialized yet; thread/turns/list is unavailable before first user message`;
+      if (params.cursor || !(error instanceof Error) || error.message !== expected) throw error;
+      const thread = nativeThread(await this.request("thread/read", { threadId: params.threadId, includeTurns: false }, timeoutMs) as Record<string, unknown>, String(params.threadId));
+      const state = parseThreadState(thread, persistenceFromThread(thread));
+      if (state.persistence !== "active" || state.activeTurnId || state.activeFlags.length || !["idle", "notLoaded"].includes(state.runtimeStatus)) throw error;
+      return { data: [] };
+    }
+  }
+
   async getHistoryPage(
     threadId: string,
     input: CodexHistoryPageInput = {}
   ): Promise<CodexHistoryPage> {
     await this.ensureConnected();
     try {
-      const response = nativePage(await this.request("thread/turns/list", compactObject({
+      const response = await this.nativeTurns(compactObject({
         threadId,
         cursor: input.cursor,
         limit: Math.max(1, Math.min(input.limit ?? 20, 100)),
@@ -1117,7 +1130,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         // Explicit history preserves commentary as well as final replies.
         // The router confines this bulk read to the history-only connection.
         itemsView: "full"
-      })), "thread/turns/list", input.cursor);
+      }));
       const turns = response.data.slice();
       if ((input.sortDirection ?? "desc") === "desc") turns.reverse();
       return {

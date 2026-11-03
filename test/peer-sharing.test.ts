@@ -261,7 +261,7 @@ test("shared visitors use the existing chat roles for inputs, approvals, stops a
   await send(`/role ${visitor.actorId} controller`);
   assert.equal(store.roleFor(visitor.conversationId, visitor.actorId), undefined, "admission cannot self-promote");
   assert.match(replies.at(-1)!, /controller/);
-  await send("/session rename denied"); await send("/stop");
+  await send("/stop");
   assert.equal(f.management.length, 0); assert.equal(f.stops.length, 0);
   await send("participant can chat"); assert.equal(f.runs.length, 1);
 
@@ -269,7 +269,7 @@ test("shared visitors use the existing chat roles for inputs, approvals, stops a
   await send(`/role ${visitor.actorId} viewer`, principal.actorId);
   await send("/role"); assert.match(replies.at(-1)!, /你的权限：viewer/);
   await send("/history"); assert.doesNotMatch(replies.at(-1)!, /需要.*权限/);
-  for (const text of ["viewer cannot chat", "/stop", "/session rename denied", "/approve A1"])
+  for (const text of ["viewer cannot chat", "/stop", "/approve A1"])
     await send(text);
   assert.equal(f.runs.length, 1); assert.equal(f.management.length, 0); assert.equal(f.stops.length, 0);
 
@@ -291,8 +291,6 @@ test("shared visitors use the existing chat roles for inputs, approvals, stops a
   await send(`/role ${visitor.actorId} controller`, principal.actorId);
   await send(`/approve ${approval.id}`); await pending;
   assert.equal(decision, "accept");
-  await send("/session rename main-role-controlled");
-  assert.equal(f.thread.title, "main-role-controlled");
   await send("/stop"); assert.deepEqual(f.stops, [f.thread.threadId]);
   assert.deepEqual(f.registry.grantsFor(visitor), [grant], "chat role changes never mutate the resource grant");
   await assert.rejects(f.share("invite", visitor), /未授权/, "controller still cannot re-share someone else's session");

@@ -40,6 +40,7 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
     async stop(id: string, _host?: string, guard?: () => void) { guard?.(); stops.push(id); return { stopped: true, threadId: id }; },
     async listSessionCatalog(input: any = {}) { return { backend: "app-server", source: "app-server-storage", threads: options.device
       ? structuredClone(threads.filter(t => input.persistence === "all" || t.persistence === (input.persistence ?? "active"))) : [], hostIds: ["local"], complete: true, warnings: [] }; },
+    async listThreads(input: any = {}) { return (await this.listSessionCatalog(input)).threads; },
     async listProjects() { return { backend: "app-server", projects: structuredClone(projects) }; }, async warmUp() {},
     async createThread(input: CodexThreadCreateInput) {
       input.assertCurrent?.();

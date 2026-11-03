@@ -65,7 +65,7 @@ test("unmapped native ports never fall through to the Gateway core for a peer ho
     return Reflect.get(target, key);
   } });
   const facade = withPeerBackend(local, f.registry), host = f.ticket.hostId, id = f.thread.threadId;
-  const unsupported = (e: unknown) => e instanceof PeerError && e.code === "unsupported" || e instanceof CodexBackendCapabilityError;
+  const unsupported = (e: unknown) => e instanceof PeerError && ["unsupported", "scope"].includes(e.code) || e instanceof CodexBackendCapabilityError;
   const attempts = [
     () => facade.listSkills!(f.thread.cwd!, host),
     () => facade.listMcpServers!(id, host),
@@ -105,11 +105,12 @@ test("native project roots and public item callbacks survive peer execution", as
   };
   await f.as(() => f.facade.run(f.input({ projectRoots: [f.thread.cwd!], onItem: item => { seen.push(item); } })));
   assert.deepEqual(seen, [item]);
-  for (const extra of [{ imagePaths: ["/gateway/image.png"] }, { nativeSettings: {
-    sandbox: "danger-full-access" as const, approvalPolicy: "never" as const,
-    approvalsReviewer: "user" as const, runtimeWorkspaceRoots: ["/gateway"]
-  } }]) await assert.rejects(f.as(() => f.facade.run(f.input(extra))), /Connector 尚未开放/);
-  assert.equal(f.runs.length, 1);
+  await assert.rejects(f.as(() => f.facade.run(f.input({ imagePaths: ["/gateway/nonexistent.png"] }))));
+  const settings = { sandbox: "workspace-write" as const, approvalPolicy: "on-request" as const,
+    approvalsReviewer: "user" as const, runtimeWorkspaceRoots: [f.thread.cwd!] };
+  f.run = async input => { assert.deepEqual(input.nativeSettings, settings); return { text: "settings", threadId: input.threadId, raw: "" }; };
+  assert.equal((await f.as(() => f.facade.run(f.input({ clientUserMessageId: "settings", nativeSettings: settings })))).text, "settings");
+  assert.equal(f.runs.length, 2);
 });
 
 test("native activity reads use the selected device thread and the exact chat grant", async t => {

@@ -45,7 +45,7 @@ export class PeerSharingAuthority {
   private inspect(threadId: string) { return this.backend.inspectThread(threadId, undefined, { includeTurns: false, timeoutMs: 5000 }); }
   assert(grant: SharedPeerGrant, method: string, args: unknown[]): void {
     const first = args[0] as any;
-    const thread = method === "getRuntimeInfo" ? args[1] : typeof first === "string" ? first : first?.threadId;
+    const thread = ["listSkills", "warmUp"].includes(method) ? grant.threadId : method === "getRuntimeInfo" ? args[1] : typeof first === "string" ? first : first?.threadId;
     if (!grant.delegation) {
       const owned = this.data.resources.find(r => r.hostId === grant.hostId && r.threadId === thread);
       if (owned && !samePerson(owned.owner, grant.principal)) throw unavailable();

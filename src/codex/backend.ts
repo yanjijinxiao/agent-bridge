@@ -86,9 +86,9 @@ export type CodexSystemRecoveryInput = {
   lifecycle?: {
     restoring?: boolean;
     archiveConfirmed?: boolean;
-    beforeArchive(): void;
-    archived(): void;
-    restored(): void;
+    beforeArchive(): void | Promise<void>;
+    archived(): void | Promise<void>;
+    restored(): void | Promise<void>;
   };
 };
 export type CodexSystemRecoveryResult = {
@@ -303,7 +303,7 @@ export type CodexRunResult = {
   raw: string;
 };
 
-/** Create persisted metadata only; a subsequent ordinary message starts work. */
+/** Create native empty metadata only; first input materialization is owned by Codex. */
 export type CodexThreadCreateInput = {
   cwd?: string; title?: string; projectId?: string; projectName?: string;
   projectBinding?: "none"; standalone?: boolean; sourceThreadId?: string; clientUserMessageId?: string;
@@ -614,6 +614,8 @@ export type CodexInputRecoverySource = {
 };
 
 export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
+  /** Re-establish a persisted source for background receipt reads; not new authority. */
+  withSource?<T>(source: { accountId: string; conversationId: string; actorId: string }, action: () => Promise<T>): Promise<T>;
   /** Resolve transport-specific source IDs without submitting or replaying input. */
   findNativeInputReceipts?(scope: { hostId: string; threadId: string },
     sources: readonly CodexInputRecoverySource[]): Promise<Map<string, string>>;

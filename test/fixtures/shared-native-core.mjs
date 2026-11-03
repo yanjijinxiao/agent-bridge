@@ -18,7 +18,7 @@ export const until = async (predicate, timeoutMs = 10000) => {
 /** One test-owned native process, a fresh home and a localhost fake model.
  * No account credentials, external inference or real Desktop sessions. */
 export async function sharedNativeCore(t, respond = (_body, n) => message(`DONE_${n}`, n)) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-shared-native-"));
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "gateway-shared-native-")));
   const endpoint = path.join(root, "core.sock"), closers = [], children = [];
   const calls = []; let core;
   const model = http.createServer((request, response) => {

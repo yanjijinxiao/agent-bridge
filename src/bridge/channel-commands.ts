@@ -61,8 +61,6 @@ const SESSION_HELP_LINES = [
   "/sessions more|prev - 下一页或上一页；/sessions page 2 - 跳页",
   "/sessions search 关键词 - 搜索标题、目录或会话 ID",
   "/sessions unbound|project - 只看无项目会话或当前项目会话",
-  "/sessions archived - 查看已归档会话；/session restore R编号 - 恢复并绑定（controller）",
-  "/session rename 新名称；/session archive - 重命名或归档当前原生会话（controller，需空闲）",
   "/session（/s）R编号或会话ID [--host 主机ID] - 直接绑定并回看历史，同时跟随原生进展",
   "/new（/n）- 在当前项目新建并绑定会话",
   "/new P编号|C编号|完整项目名 - 在指定项目新建并切换；未绑定项目自动绑定",

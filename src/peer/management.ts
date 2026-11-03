@@ -115,6 +115,14 @@ export class PeerManagement {
       }
       return { cwd, title: data.title, projectBinding: "none" };
     }
+    // Whole-device approval permits the same explicit unassigned workspace as
+    // the native facade. Fixed-thread and delegated grants were rejected above.
+    if (!data.projectId && data.cwd && !data.projectName) {
+      if (!path.isAbsolute(data.cwd)) throw new PeerError("scope", "Workspace must be absolute");
+      const cwd = fs.realpathSync(data.cwd);
+      if (!fs.statSync(cwd).isDirectory()) throw new PeerError("scope", "Workspace is unavailable");
+      return { cwd, title: data.title, projectBinding: data.projectBinding };
+    }
     if (!data.projectId || data.projectBinding === "none") throw new PeerError("scope", "Select a device project or request a standalone session");
     const catalog = await this.backend.listProjects(), project = catalog.projects.find(p => p.id === data.projectId);
     if (!project) throw new PeerError("scope", "The selected project is no longer in the device catalog");

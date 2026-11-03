@@ -109,7 +109,7 @@ test("management writes require chat authority, a live guard, an idle target and
   assert.equal(f.management.length, 0);
 });
 
-test("DingTalk selects a device project, creates, renames, archives and restores the native session", async t => {
+test("DingTalk selects a device project and creates a native session without running a model", async t => {
   const f = await fixture(t), paths = resolveStatePaths(path.join(f.root, "gateway-state")), store = new RuntimeStateStore(paths);
   const replies: string[] = [];
   const runner = new Proxy(f.facade, { get(target, key) {
@@ -125,17 +125,11 @@ test("DingTalk selects a device project, creates, renames, archives and restores
   await send("/new C1");
   const created = store.getBoundSession(principal.conversationId)!;
   assert.ok(created?.threadId, replies.at(-1)); assert.equal(created.hostId, f.ticket.hostId); assert.equal(f.runs.length, 0);
-  await send("/session rename 生命周期测试"); assert.equal(f.threads.find(t=>t.threadId===created.threadId)?.title,"生命周期测试");
-  await send("/session archive"); assert.equal(store.getBoundSession(principal.conversationId),undefined);
-  await send("/sessions archived"); assert.ok(replies.at(-1)?.includes("生命周期测试"),replies.at(-1));
-  await send("/session restore R1"); assert.equal(store.getBoundSession(principal.conversationId)?.threadId,created.threadId);
-  await send("/session archive");
-  await send(`/session restore ${created.threadId}`); assert.equal(store.getBoundSession(principal.conversationId)?.threadId,created.threadId);
   await send("继续这个会话"); assert.equal(f.runs.at(-1)?.threadId,created.threadId);
   await send("/leave"); assert.equal(store.getBoundSession(principal.conversationId),undefined); assert.equal(f.threads.find(t=>t.threadId===created.threadId)?.persistence,"active");
 });
 
-test("an unbound paired chat can explicitly create a standalone device session and viewers cannot rename it", async t => {
+test("an unbound paired chat can create a standalone device session and viewers cannot create another", async t => {
   const f = await fixture(t), paths=resolveStatePaths(path.join(f.root,"gateway-state")), store=new RuntimeStateStore(paths), replies:string[]=[];
   const service=new BridgeService({accountId:principal.accountId,stateStore:store,runner:f.facade,peer:f.registry,
     config:{...defaultConfig(paths.root),allowedSenderIds:[principal.actorId],streamReplies:false},
@@ -145,6 +139,7 @@ test("an unbound paired chat can explicitly create a standalone device session a
   await send("/new --standalone"); const session=store.getBoundSession(principal.conversationId)!;
   assert.equal(session?.hostId,f.ticket.hostId); assert.equal(session.projectBinding,"none"); assert.equal(f.runs.length,0);
   store.setRole(principal.conversationId,principal.actorId,"viewer");
-  await send("/session rename 不允许"); await send("/session archive");
-  assert.equal(f.management.length,1); assert.ok(replies.at(-1)?.includes("controller"));
+  await send("/new --standalone");
+  assert.equal(f.management.length,1); assert.equal(store.getBoundSession(principal.conversationId)?.id, session.id);
+  assert.ok(replies.at(-1)?.includes("participant"));
 });

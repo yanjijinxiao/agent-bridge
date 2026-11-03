@@ -1,9 +1,9 @@
 /** Local sources stay synchronous. A transport can add an asynchronous check
  * at the last native request boundary without replacing the source guard. */
-export type CodexWriteGuard = (() => void) & { beforeWrite?: () => Promise<void> };
+export type CodexWriteGuard = (() => void) & { beforeWrite?: () => Promise<void>; source?: { accountId: string; conversationId: string; actorId: string } };
 
 export function inheritWriteCheck(source: CodexWriteGuard | undefined, check: () => void): CodexWriteGuard {
-  return Object.assign(check, { beforeWrite: source?.beforeWrite });
+  return Object.assign(check, { beforeWrite: source?.beforeWrite, source: source?.source });
 }
 
 export function guardNativeWrite<T>(guard: CodexWriteGuard | undefined, write: () => Promise<T>): Promise<T> {

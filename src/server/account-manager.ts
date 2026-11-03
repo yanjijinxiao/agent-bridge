@@ -1948,6 +1948,29 @@ export class AccountManager {
     return (this.respondingSessions.get(sessionRuntimeKey(accountId, sessionId)) ?? 0) > 0;
   }
 
+  private peerRecoverySource(scope: { hostId: string; threadId: string }) {
+    const peers = this.options.peerRegistry;
+    if (!peers?.isPeer(scope.hostId)) return;
+    for (const source of peers.sourcesForScope(scope)) {
+      const entry = this.entries.get(source.accountId), store = entry?.store;
+      const session = store?.getBoundSession(source.conversationId);
+      if (!entry || !store || !session || session.threadId !== scope.threadId
+        || (session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local") !== scope.hostId) continue;
+      const binding = sessionExecutionScope(store, session);
+      const assertCurrent = () => {
+        this.assertRuntimeWritable();
+        const personallyAllowed = [...this.configProvider().allowedSenderIds, ...store.listPairedSenderIds()].includes(source.actorId);
+        const admitted = personallyAllowed || [...this.configProvider().allowedSenderIds, ...store.listPairedSenderIds()].includes(source.conversationId)
+          || peers.sharing.admitted(source);
+        const role = store.roleFor(source.conversationId, source.actorId) ?? (personallyAllowed ? "controller" : store.roleFor(source.conversationId, "*") ?? "participant");
+        if (entry.status !== "running" || !binding.current() || !admitted || role === "viewer"
+          || !peers.sourcesForScope(scope).some(p => p.accountId === source.accountId && p.conversationId === source.conversationId && p.actorId === source.actorId))
+          throw Error("Remote recovery source is no longer authorized");
+      };
+      try { assertCurrent(); return { source, assertCurrent }; } catch { /* Try another explicitly authorized binding. */ }
+    }
+  }
+
   private systemRecoveryLease(scope: SystemRecoveryScope): (() => void) | undefined {
     const leases = this.threadSubscriptions().filter(sub => sub.enabled !== false && sub.hostId === scope.hostId && sub.threadId === scope.threadId)
       .flatMap(sub => {
@@ -1981,7 +2004,7 @@ export class AccountManager {
   private runnerFor(config = this.configProvider()): CodexBridgeBackend {
     if (this.runner) return this.runner;
     const native = this.runnerFactory(config);
-    const runner = this.options.peerRegistry ? withPeerBackend(native, this.options.peerRegistry) : native;
+    const runner = this.options.peerRegistry ? withPeerBackend(native, this.options.peerRegistry, scope => this.peerRecoverySource(scope)) : native;
     this.runner = runner;
     runner.warmUp(this.options.paths.root).catch((error: unknown) => {
       console.warn("[codex-im-gateway] Codex app-server warm-up failed", {

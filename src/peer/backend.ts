@@ -1,8 +1,10 @@
+import { NATIVE_CONTRACT_METHODS } from "./contract.js";
 import { PeerInteractionClient } from "./interaction-client.js";
 import crypto from "node:crypto";
+import { peerOperationId } from "./identity.js";
 import { findNativeInputReceipts } from "../bridge/native-input-recovery.js";
 import type { PeerPrincipal } from "./context.js";
-import { CodexBackendCapabilityError, CodexRunAdmissionError, CodexTurnExecutionError, EXEC_BACKEND_CAPABILITIES,
+import { CodexBackendCapabilityError, CodexQueueAdmissionError, CodexInterventionError, CodexThreadStateError, CodexRunAdmissionError, CodexTurnExecutionError, EXEC_BACKEND_CAPABILITIES,
   type CodexBridgeBackend, type CodexThreadState, type CodexTurnStatus, type CodexTurnObservation,
   type CodexInputReceipt, type CodexStopResult } from "../codex/backend.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
@@ -11,15 +13,14 @@ import { PeerConnectionError, PeerError } from "./rpc.js";
 import { peerPrincipal } from "./context.js";
 import { downloadPeerFile, uploadPeerFiles } from "./files.js";
 
-function peerOperationId(hostId: string, method: string, principal: PeerPrincipal | undefined, sourceId: string): string {
-  return crypto.createHash("sha256").update(JSON.stringify([hostId, method,
-    principal?.accountId, principal?.conversationId, principal?.actorId, sourceId])).digest("hex");
-}
 
 /** Remote host routing decorates the existing facade; channel code continues
  * to use the same execution contract, including source/approval callbacks. */
-export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistry): CodexBridgeBackend {
+export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistry,
+  recoverySource?: (scope: { hostId: string; threadId: string }) => { source: PeerPrincipal; assertCurrent: () => void } | undefined): CodexBridgeBackend {
   const interactions = new PeerInteractionClient(registry);
+  const queueCallbacks = new Map<string, () => void>();
+  const queueItems = new Map<string, string>();
   const operations = new Set<{ hostId: string; threadId: string; turnId?: string; independent: boolean; controller: AbortController }>();
   const describe = (hostId: string) => {
     try { return registry.description(hostId); }
@@ -31,12 +32,12 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     return fn.apply(local, args);
   };
   const invoke = async <T = unknown>(method: string, args: unknown[], hostId: string, write = false, input?: Record<string, any>): Promise<T> => {
-    if (input?.dynamicTools?.length || input?.onDynamicToolCall || input?.ephemeral || input?.sandbox)
-      throw new CodexBackendCapabilityError("dynamicTools", describe(hostId).info.id);
-    if (input?.outputSchema) throw new CodexBackendCapabilityError("structuredOutput", describe(hostId).info.id);
-    if (input?.nativeSettings || input?.imagePaths?.length)
-      throw new PeerError("unsupported", "Connector 尚未开放远程权限设置或原生图片路径；请使用设备权限和附件传输。");
-    const principal = peerPrincipal.getStore();
+    if ((NATIVE_CONTRACT_METHODS.has(method) || input?.nativeSettings || input?.imagePaths?.length || input?.dynamicTools?.length
+      || input?.onDynamicToolCall || input?.outputSchema || method === "run" && !input?.threadId) && describe(hostId).nativeContract !== 1)
+      throw new PeerError("unsupported", "请升级 Connector：此接口需要 nativeContract: 1。");
+    const authority = !peerPrincipal.getStore() && ["recoverSystemError", "resumeAfterCapacity"].includes(method)
+      ? recoverySource?.({ hostId, threadId: input?.threadId }) : undefined;
+    const principal = peerPrincipal.getStore() ?? input?.assertCurrent?.source ?? authority?.source;
     const operationId = write ? peerOperationId(hostId, method, principal, input?.clientUserMessageId ?? crypto.randomUUID()) : undefined;
     let acceptedTurnId: string | undefined;
     // Channel controllers associate native receipts with the exact request
@@ -44,11 +45,17 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     const interactionRequests = new Map<string, unknown>();
     const answeredInteractions = new Set<string>();
     const scope: { hostId: string; threadId: string; turnId?: string; independent: boolean; controller: AbortController } | undefined = write
-      ? { hostId, threadId: method === "createThread" ? "new" : input?.threadId ?? String(args[0]), independent: describe(hostId).independent, controller: new AbortController() } : undefined;
+      ? { hostId, threadId: (method === "createThread" || method === "run" && !input?.threadId) ? "new" : input?.threadId ?? String(args[0]), independent: describe(hostId).independent && !input?.dynamicTools?.length && !input?.onDynamicToolCall, controller: new AbortController() } : undefined;
     if (scope) operations.add(scope);
+    const releaseCallback = operationId ? registry.callbackLease(hostId, operationId) : () => {};
+    let retireQueue: (() => void) | undefined;
+    let retainQueue = false;
+    let queueRetired = false;
     const callback = async (name: string, values: unknown[]): Promise<unknown> => {
+      if (name === "queueRetired" && method === "addQueuedSubmission") { queueRetired = true; retireQueue?.(); return null; }
+      if (name === "assertCurrent") authority?.assertCurrent();
       let interactionKey: string | undefined;
-      if (!["assertCurrent", "onThreadCreated", "onTurnStarted", "onDelta", "onItem", "onProgress", "onRecovery", "onApproval", "onApprovalResult", "onUserInput", "onUserInputResult"].includes(name))
+      if (!["assertCurrent", "onThreadCreated", "onTurnStarted", "onDelta", "onItem", "onProgress", "onRecovery", "onApproval", "onApprovalResult", "onUserInput", "onUserInputResult", "onDynamicToolCall", "onAccepted", "onQueueStarting", "beforeArchive", "archived", "restored"].includes(name))
         throw new PeerError("unsupported", "Unknown execution callback");
       if (name === "onTurnStarted") {
         const event = values[0] as { threadId: string; turnId: string; status?: CodexTurnStatus };
@@ -59,7 +66,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         return null;
       }
       if (name === "onThreadCreated") {
-        if (method === "createThread" && scope?.threadId === "new" && typeof values[0] === "string" && values[0]) scope.threadId = values[0];
+        if ((method === "createThread" || method === "run") && scope?.threadId === "new" && typeof values[0] === "string" && values[0]) scope.threadId = values[0];
         else if (values[0] !== scope?.threadId) throw new PeerError("scope", "The exported native thread cannot be replaced");
       }
       if (name === "onApproval" || name.startsWith("onApprovalResult") || name === "onUserInput" || name === "onUserInputResult") {
@@ -79,6 +86,17 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
           values[0] = original;
         }
       }
+      if (["beforeArchive", "archived", "restored"].includes(name)) return await input?.lifecycle?.[name]?.() ?? null;
+      if (name === "onDynamicToolCall") {
+        const call = values[0] as { threadId?: string; turnId?: string };
+        if (call?.threadId !== scope?.threadId || acceptedTurnId && call.turnId !== acceptedTurnId)
+          throw new PeerError("scope", "Invalid dynamic tool scope");
+        if (!input?.onDynamicToolCall) throw new PeerError("unsupported", "No source dynamic tool handler");
+      }
+      if (name === "onAccepted") {
+        if (typeof values[0] !== "string" || !values[0]) throw new PeerError("scope", "Invalid queue acceptance");
+        acceptedTurnId = values[0];
+      }
       if (name === "onApproval" && !input?.onApproval) return null;
       try {
         const result = await input?.[name]?.(...values) ?? null;
@@ -91,8 +109,38 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       }
     };
     const wireArgs = args.map(value => value && typeof value === "object" && !Array.isArray(value)
-      ? Object.fromEntries(Object.entries(value).filter(([key, item]) => typeof item !== "function" && item !== undefined && key !== "hostId")) : value);
-    try { return await registry.invoke<T>(hostId, method, wireArgs, write, operationId, write ? callback : undefined, scope?.controller.signal); }
+      ? { ...Object.fromEntries(Object.entries(value).filter(([key, item]) => typeof item !== "function" && item !== undefined && key !== "hostId")),
+        ...((value as any).onDynamicToolCall ? { _dynamicToolCallback: true } : {}) } : value);
+    const retireInteractions = () => {
+      for (const [key, request] of interactionRequests) {
+        const handler = key.startsWith('["approval"') ? input?.onApprovalResult : input?.onUserInputResult;
+        try { void Promise.resolve(handler?.(request, answeredInteractions.has(key) ? "failed" : "withdrawn")).catch(() => {}); } catch { /* No native answer. */ }
+      }
+      interactionRequests.clear();
+    };
+    try {
+      const result = await peerPrincipal.run(principal!, () => registry.invoke<T>(hostId, method, wireArgs, write, operationId, write ? callback : undefined,
+        scope?.controller.signal, undefined, method === "addQueuedSubmission"));
+      if (method === "addQueuedSubmission" && operationId && (result as any)?._peerQueueCallback && !queueRetired && !queueCallbacks.has(operationId)) {
+        retainQueue = true;
+        let detach = () => {};
+        const itemKey = JSON.stringify([hostId, scope!.threadId, (result as any).id]);
+        queueItems.set(itemKey, operationId);
+        retireQueue = () => { releaseCallback(); queueCallbacks.delete(operationId); queueItems.delete(itemKey); detach(); retireInteractions(); };
+        queueCallbacks.set(operationId, retireQueue);
+        detach = registry.onDisconnect(hostId, retireQueue);
+      }
+      if (method === "addQueuedSubmission" && result && typeof result === "object") {
+        if ((!(result as any)._peerQueueCallback || queueRetired) && operationId && !queueCallbacks.has(operationId)) releaseCallback();
+        const { _peerQueueCallback, ...item } = result as any; return item;
+      }
+      if (method === "deleteQueuedSubmission" && result === true || method === "runQueuedSubmission") {
+        const itemKey = JSON.stringify([hostId, scope?.threadId, method === "deleteQueuedSubmission" ? args[1] : input?.queuedSubmissionId]);
+        const queueOperation = queueItems.get(itemKey);
+        if (queueOperation) queueCallbacks.get(queueOperation)?.();
+      }
+      return result;
+    }
     catch (error) {
       if (error instanceof PeerConnectionError) throw new CodexCommunicationError(
         acceptedTurnId ? "observation" : write && error.sent ? "submission" : "preflight", method, scope?.threadId, acceptedTurnId, error);
@@ -111,6 +159,14 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         if (reason === "active" || reason === "handoff") throw new CodexRunAdmissionError(reason, scope?.threadId);
         throw new CodexCommunicationError("submission", method, scope?.threadId);
       }
+      if (error instanceof PeerError && error.code === "capability")
+        throw new CodexBackendCapabilityError((error.data as any).capability, describe(hostId).info.id);
+      if (error instanceof PeerError && error.code === "queue-admission") throw new CodexQueueAdmissionError(error.message);
+      if (error instanceof PeerError && error.code === "intervention") throw new CodexInterventionError(error.message);
+      if (error instanceof PeerError && error.code === "thread-state") {
+        const data = error.data as any;
+        throw new CodexThreadStateError(data.code, data.threadId, error.message, data.lastTurnFailure, data.systemRecovery);
+      }
       if (error instanceof PeerError && error.code === "turn-failed") {
         const data = error.data as any;
         throw new CodexTurnExecutionError(data?.status === "interrupted" ? "interrupted" : "failed", error.message, data?.failureCode);
@@ -118,14 +174,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       throw error;
     } finally {
       if (scope) operations.delete(scope);
-      // A lost run RPC also owns pending UI callbacks, even when the native
-      // turn survives. Retire that route before a fresh observer replays it.
-      for (const [key, request] of interactionRequests) {
-        const result = answeredInteractions.has(key) ? "failed" : "withdrawn";
-        const handler = key.startsWith('["approval"') ? input?.onApprovalResult : input?.onUserInputResult;
-        try { void Promise.resolve(handler?.(request, result)).catch(() => {}); } catch { /* UI failure cannot manufacture a native answer. */ }
-      }
-      interactionRequests.clear();
+      if (!retainQueue) retireInteractions();
     }
   };
   const route = (method: string, args: unknown[], hostId?: string, write = false, input?: Record<string, any>) => registry.isPeer(hostId)
@@ -142,6 +191,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     return invoke<T>(method, [input], hostId, true, input);
   };
   const overrides: Partial<CodexBridgeBackend> = {
+    withSource: (source, action) => peerPrincipal.run(source, action),
     async findNativeInputReceipts(scope, sources) {
       if (!registry.isPeer(scope.hostId)) return local.findNativeInputReceipts
         ? local.findNativeInputReceipts(scope, sources)
@@ -208,9 +258,9 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       const description = describe(host!);
       if (description.thread) return { backend: description.info.id, projects: [] };
       if (!description.management) throw new PeerError("unsupported", "设备尚未启用项目目录，请更新 Connector。");
-      return invoke<import("../codex/backend.js").CodexProjectCatalog>("listProjects", [], host!);
+      return invoke<import("../codex/backend.js").CodexProjectCatalog>("listProjects", [observation], host!);
     },
-    async warmUp(cwd, host) { if (!registry.isPeer(host)) await local.warmUp(cwd, host); },
+    async warmUp(cwd, host) { if (registry.isPeer(host)) await invoke("warmUp", [cwd], host!); else await local.warmUp(cwd, host); },
     stageAttachments: async (files, input) => {
       if (registry.isPeer(input.hostId)) {
         if (!files.length) return [];
@@ -236,9 +286,9 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       if (local.fetchOutputFile) return local.fetchOutputFile(remotePath, input);
       throw new PeerError("unsupported", "This execution host has no output file transfer transport");
     },
-    getGoal: (id, host) => route("getGoal", [id], host),
+    getGoal: async (id, host) => (await route("getGoal", [id, host], host)) ?? undefined,
     setGoal: (id, value, host, assertCurrent) => registry.isPeer(host)
-      ? invoke("setGoal", [id, value], host!, true, { threadId: id, assertCurrent }) : local.setGoal(id, value, host, assertCurrent),
+      ? invoke<import("../codex/backend.js").CodexThreadGoal | null>("setGoal", [id, value], host!, true, { threadId: id, assertCurrent }).then(value => value ?? undefined) : local.setGoal(id, value, host, assertCurrent),
     clearGoal: async (id, host, assertCurrent) => {
       if (registry.isPeer(host)) await invoke("clearGoal", [id], host!, true, { threadId: id, assertCurrent });
       else await local.clearGoal(id, host, assertCurrent);
@@ -256,29 +306,28 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       if (registry.isPeer(host)) await manage("deleteThread", { threadId: id, assertCurrent, clientUserMessageId }, host!);
       else await local.deleteThread(id, host, assertCurrent);
     },
-    recoverSystemError: (input, host) => registry.isPeer(host) ? Promise.resolve({ status: "unsupported", reason: "owner-unsupported" })
+    recoverSystemError: (input, host) => registry.isPeer(host) ? invoke("recoverSystemError", [input], host!, true, input)
       : local.recoverSystemError ? local.recoverSystemError(input, host) : Promise.resolve({ status: "unsupported" }),
-    readThreadProvenance: (id, host) => registry.isPeer(host) ? Promise.resolve(undefined) : local.readThreadProvenance?.(id, host) ?? Promise.resolve(undefined),
+    readThreadProvenance: (id, host) => registry.isPeer(host) ? invoke<import("../codex/backend.js").CodexThreadProvenance | null>("readThreadProvenance", [id], host!).then(value => value ?? undefined) : local.readThreadProvenance?.(id, host) ?? Promise.resolve(undefined),
     readTurnLifecycle: async (id, turn, host) => {
       if (!registry.isPeer(host)) return local.readTurnLifecycle?.(id, turn, host) ?? { status: "unknown", source: "unknown" };
       return invoke<CodexTurnObservation>("readTurnLifecycle", [id, turn], host!);
     },
     readTurnActivities: (id, turn, host) => route("readTurnActivities", [id, turn, host], host),
-    // These ports are new in the unified native adapter, but are not part of
-    // the peer protocol yet. Never pass peer identities to a local/SSH core.
+    // Every host-scoped port is routed explicitly; a peer never reaches the local core.
     interruptTurn: async (id, turn, host, assertCurrent) => {
       if (registry.isPeer(host)) await invoke("interruptTurn", [id, turn], host!, true, { threadId: id, assertCurrent });
       else await native("interruptTurn", [id, turn, host, assertCurrent]);
     },
-    listSkills: async (cwd, host) => registry.isPeer(host) ? unsupported("skills", host!) : native("listSkills", [cwd, host]),
-    listMcpServers: async (id, host) => registry.isPeer(host) ? unsupported("mcpServers", host!) : native("listMcpServers", [id, host]),
+    listSkills: async (cwd, host) => registry.isPeer(host) ? invoke("listSkills", [cwd], host!) : native("listSkills", [cwd, host]),
+    listMcpServers: async (id, host) => registry.isPeer(host) ? invoke("listMcpServers", [id], host!) : native("listMcpServers", [id, host]),
     observeThreadInteractions: (id, host, observer, consumer) => registry.isPeer(host)
       ? interactions.observe(id, host, observer, consumer) : native("observeThreadInteractions", [id, host, observer, consumer]),
     unobserveThreadInteractions: (id, host, consumer) => registry.isPeer(host)
       ? interactions.unobserve(id, host, consumer) : native("unobserveThreadInteractions", [id, host, consumer]),
     interactionSubscriptionReady: (id, host, consumer) => registry.isPeer(host) ? interactions.ready(id, host, consumer) : Boolean(local.interactionSubscriptionReady?.(id, host, consumer)),
     serverIdentity: async host => {
-      if (registry.isPeer(host)) throw new PeerError("unsupported", "Connector 尚未开放原生进程诊断接口。");
+      if (registry.isPeer(host)) return invoke("serverIdentity", [], host!);
       return native("serverIdentity", [host]);
     },
     hasInFlightWork: () => operations.size > 0 || Boolean(local.hasInFlightWork?.()),
@@ -290,18 +339,20 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       for (const op of operations) if (op.independent && op.turnId) op.controller.abort();
       local.detachIndependentObservations?.();
     },
-    async close() { await interactions.close(); for (const op of operations) op.controller.abort(); await local.close(); }
+    async close() { for (const retire of queueCallbacks.values()) retire(); await interactions.close(); for (const op of operations) op.controller.abort(); await local.close(); }
   };
-  // Explicitly reject optional native writes instead of letting a peer host
-  // fall through the old SSH branch or the local executor.
-  for (const method of ["addQueuedSubmission", "listQueuedSubmissions", "deleteQueuedSubmission", "runQueuedSubmission", "resumeAfterCapacity"] as const) {
-    (overrides as any)[method] = (...args: any[]) => {
-      const host = method === "runQueuedSubmission" || method === "resumeAfterCapacity" ? args[0]?.hostId
-        : method === "addQueuedSubmission" ? args[1] : args[2];
-      if (registry.isPeer(host)) return unsupported("nativeQueue", host);
-      return native(method, args);
-    };
-  }
+  overrides.addQueuedSubmission = (input, host) => registry.isPeer(host)
+    ? invoke("addQueuedSubmission", [input], host!, true, input) : native("addQueuedSubmission", [input, host]);
+  overrides.listQueuedSubmissions = (id, cursor, host) => route("listQueuedSubmissions", [id, cursor, host], host);
+  overrides.deleteQueuedSubmission = (id, queuedId, host, assertCurrent) => registry.isPeer(host)
+    ? invoke("deleteQueuedSubmission", [id, queuedId], host!, true, { threadId: id, assertCurrent })
+    : native("deleteQueuedSubmission", [id, queuedId, host, assertCurrent]);
+  overrides.runQueuedSubmission = input => {
+    if (!registry.isPeer(input.hostId)) return native("runQueuedSubmission", [input]);
+    const { prompt: _presentationOnly, ...wire } = input as typeof input & { prompt?: string };
+    return invoke("runQueuedSubmission", [wire], input.hostId!, true, input);
+  };
+  overrides.resumeAfterCapacity = input => route("resumeAfterCapacity", [input], input.hostId, true, input);
   return new Proxy(local, { get(target, key) {
     const value = Object.hasOwn(overrides, key) ? (overrides as any)[key] : Reflect.get(target, key);
     return typeof value === "function" ? value.bind(Object.hasOwn(overrides, key) ? overrides : target) : value;

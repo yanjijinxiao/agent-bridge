@@ -59,7 +59,7 @@ test("creates and names persisted empty threads without running a model turn", a
   assert.equal((await runner.unarchiveThread(state.threadId)).persistence, "active");
 });
 
-test("project discovery, worktree creation and inspection share exact Desktop migration identities", async t => {
+test("empty-thread creation accepts exact Desktop migration identity without changing project discovery", async t => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-project-identity-"));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
   fs.writeFileSync(path.join(home, ".codex-global-state.json"), JSON.stringify({
@@ -70,7 +70,7 @@ test("project discovery, worktree creation and inspection share exact Desktop mi
     command: process.execPath, args: [path.join(fixturesDir, "fake-codex-app-server.mjs"), "--lifecycle-only"], mode: "remote-daemon"
   } });
   t.after(() => runner.close());
-  assert.equal((await runner.listProjects()).projects[0].id, "legacy");
+  assert.equal((await runner.listProjects()).projects[0].id, "project-native");
   const state = await runner.createThread({ cwd: "/tmp/existing-worktree", projectId: "legacy" });
   assert.equal(state.projectId, "legacy");
   assert.equal((await runner.inspectThread(state.threadId)).projectId, "legacy");

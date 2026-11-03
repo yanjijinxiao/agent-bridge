@@ -116,7 +116,8 @@ export class NativeQueueCoordinator {
     let cursor: string | undefined;
     do {
       if (cursors.size >= 100) throw new Error("Native queue observation page budget exceeded; receipts preserved");
-      const page = await this.readObservation(() => backend.listQueuedSubmissions!(r.threadId, cursor, r.hostId), deadline);
+      const read = () => this.readObservation(() => backend.listQueuedSubmissions!(r.threadId, cursor, r.hostId), deadline);
+      const page = await (backend.withSource ? backend.withSource(r, read) : read());
       items.push(...page.data); cursor = page.nextCursor;
       if (cursor && cursors.has(cursor)) throw new Error("Native queue pagination repeated a cursor");
       if (cursor) cursors.add(cursor);
@@ -137,7 +138,8 @@ export class NativeQueueCoordinator {
     const groups = new Map<string, QueueReceipt[]>();
     for (const r of Object.values(this.receipts)) {
       if (r.accountId !== accountId || scope && r.conversationId !== scope.conversationId || !unsettled.has(r.status)) continue;
-      const key = threadKey(r); groups.set(key, [...groups.get(key) ?? [], r]);
+      const key = backend.withSource ? JSON.stringify([threadKey(r), r.accountId, r.conversationId, r.actorId]) : threadKey(r);
+      groups.set(key, [...groups.get(key) ?? [], r]);
     }
     const results = await Promise.allSettled([...groups].map(([key, receipts]) => {
       // Observations never own the mutation lane. A delayed catalog/history
@@ -147,14 +149,14 @@ export class NativeQueueCoordinator {
         if (JSON.stringify(r) !== versions.get(r)) return;
         this.update(r, changes); versions.set(r, JSON.stringify(r));
       };
-      return (async () => {
+      const observe = async () => {
       const deadline = this.observationDeadline();
       const origin = receipts[0];
       if (backend.backendInfo(origin.hostId).id !== origin.backend) return;
       const items = await this.nativeItems(origin, backend, deadline);
       const missing: QueueReceipt[] = [];
       for (const r of receipts) {
-        if (this.dispatching.has(key) && (r.status === "starting" || r.status === "running")) continue;
+        if (this.dispatching.has(threadKey(r)) && (r.status === "starting" || r.status === "running")) continue;
         const item = items.find(x => x.clientUserMessageId === r.clientUserMessageId);
         if (item) update(r, { status: "queued", queuedSubmissionId: item.id, reason: undefined });
         else missing.push(r);
@@ -186,7 +188,8 @@ export class NativeQueueCoordinator {
       } while (cursor && missing.length);
       for (const r of missing) update(r, { status: "uncertain",
         reason: "原生队列和历史未能确认接收状态，未自动重发；请核对 Codex 历史。" });
-    })().catch(error => {
+    };
+    return (backend.withSource ? backend.withSource(receipts[0], observe) : observe()).catch(error => {
       for (const r of receipts) if (!r.delivered) update(r, {
         reason: "无法读取原生队列或历史；回执已保留，未重发消息，等待后端恢复。"
       });
