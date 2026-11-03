@@ -46,6 +46,19 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 
 ## 当前验证边界与历史记录
 
-当前310case全部有精确测试映射，204项仅在列明边界通过、106项部分覆盖；状态与人读功能清单以gateway-requirements.json对应的具体case为准。13项原先缺少边界说明的记录已逐条核对现有断言，未因此新增运行证据或升级状态。
+主分支基线310case全部有精确测试映射，204项仅在列明边界通过、106项部分覆盖；状态与人读功能清单以gateway-requirements.json对应的具体case为准。13项原先缺少边界说明的记录已逐条核对现有断言，未因此新增运行证据或升级状态。
 
-[当前剩余清单](remaining-work.md)给出未实现、缺测与实机验收；[文档校准记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md)记录具体差异；首次阅读计数和旧失败保留于历史审计报告，不再当作当前结果。按行记录与140份精选函数合同不能证明全部模块行为或真实设备已验收。
+[当前剩余清单](remaining-work.md)给出未实现、缺测与实机验收；[文档校准记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md)记录具体差异；首次阅读计数和旧失败保留于历史审计报告，不再当作当前结果。原检查点按行记录与140份精选函数合同不能证明全部模块行为或真实设备已验收。
+
+## Connector 增量映射（2026-11-03）
+
+| 入口/责任 | 实现 | 对应契约 |
+| --- | --- | --- |
+| 可选listener、设备主动dial、固定profile与凭据、配对 | peer/runtime、transport、registry、index；server/index与arguments | PEER-01、PEER-02 |
+| 完整后端装饰器、DTO、回调、错误与版本 | peer/backend、execution-service、contract、interaction-client/service | PEER-01、PEER-02.2 |
+| 末次来源核验、原生队列来源与补偿 | codex/write-guard、peer/write-guard、receipts、recovery-journal；原NativeQueue与AccountManager | PEER-03 |
+| 原session管理、附件、所有者与共享浏览器入口 | peer/management、files、sharing-*、workspace-* | PEER-02、PEER-04 |
+
+非peer路径直接委托原facade。新端口没有新的业务调度器；渠道卡片、复制、审批和结果投递继续由原模块处理。`peer/channel`是可组合Channel适配器，未增加第二套渠道业务处理，也没有自动启用远端Channel入口。
+
+[当前增量验收](../audits/2026-11-03-peer-contract-review/merge-completion.md)单列本地、真实SSH、真实Codex及协议夹具；原main的partial和真实设备待办不因Connector回归被升级。

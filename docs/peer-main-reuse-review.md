@@ -1,5 +1,8 @@
 # Connector 分支复用审查
 
+> 当前候选结论见[2026-11-03接口与文档补齐记录](audits/2026-11-03-peer-contract-review/merge-completion.md)。下文保留原检查点的版本和当时范围，不作为当前候选的接口缺口或测试结果。
+
+
 2026-11-02，重新 rebase 到 `origin/main b9d05bc`。保留 rebase 前完整备份分支 `codex/gateway-peer-backup-f63b581`。
 
 ## 已收敛

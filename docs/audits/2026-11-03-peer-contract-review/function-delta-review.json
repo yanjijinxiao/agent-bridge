@@ -1,0 +1,222 @@
+[
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleCommand",
+    "lines": [
+      573,
+      815
+    ],
+    "unchanged": false,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleSteerCommand",
+    "lines": [
+      1810,
+      1878
+    ],
+    "unchanged": false,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "enqueueNativeMessage",
+    "lines": [
+      2154,
+      2203
+    ],
+    "unchanged": false,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleGoalCommand",
+    "lines": [
+      1337,
+      1399
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "runWithLease",
+    "lines": [
+      270,
+      490
+    ],
+    "unchanged": false,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "resolveProjectId",
+    "lines": [
+      827,
+      881
+    ],
+    "unchanged": false,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "listSkills",
+    "lines": [
+      1430,
+      1454
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "listMcpServers",
+    "lines": [
+      1456,
+      1479
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "readTurnActivities",
+    "lines": [
+      1544,
+      1564
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "taskboardNativeBackend",
+    "lines": [
+      2019,
+      2044
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleSessionCatalog",
+    "lines": [
+      1518,
+      1697
+    ],
+    "unchanged": false,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "observeThreadInteractions",
+    "lines": [
+      1598,
+      1626
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "closeRunner",
+    "lines": [
+      2046,
+      2055
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "sessionSummary",
+    "lines": [
+      1926,
+      1945
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/codex/output-files.ts",
+    "symbol": "fetchRemoteOutputFile",
+    "lines": [
+      40,
+      83
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/codex/output-files.ts",
+    "symbol": "OUTPUT_FILE_SENDER",
+    "lines": [
+      17,
+      38
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/codex/app-server-gateway.ts",
+    "symbol": "fetchOutputFile",
+    "lines": [
+      113,
+      116
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "sendLocalMedia",
+    "lines": [
+      3142,
+      3192
+    ],
+    "unchanged": false,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "applyRecoveredAction",
+    "lines": [
+      3021,
+      3031
+    ],
+    "unchanged": false,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/bridge/turn-submission.ts",
+    "symbol": "run",
+    "lines": [
+      60,
+      85
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "recoverNativeInputs",
+    "lines": [
+      1793,
+      1834
+    ],
+    "unchanged": false,
+    "baselineMatches": true
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "recoveredInputsFor",
+    "lines": [
+      1836,
+      1843
+    ],
+    "unchanged": true,
+    "baselineMatches": true
+  }
+]

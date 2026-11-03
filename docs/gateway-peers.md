@@ -163,8 +163,7 @@ Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输�
 
 连接每 15 秒 ping/pong，单帧最大 1 MiB，每方向最多 256 个在途请求。历史可分页；超限明确报错。协议版本不匹配拒绝连接，不猜测兼容字段。
 
-Codex 执行写调用允许 `run`、`steer`、`submitThreadMessage`、`stop`；会话管理写调用见下节。只读支持 `listSessionCatalog`、inspect、snapshot、history/page、runtime、models、limits、turn lifecycle 和 receipt。目录请求通过 `execution.call` 发送，在获准配对后才查询本机，不在注册时公开全部会话。B 在执行前验证目标是本地普通会话，并核对该会话真实 cwd；受限模式额外固定 thread。不提供任意命令执行 RPC。
-
+Codex 公共 facade 端口按 [接口表](architecture/modules/peer-interface-matrix.md) 适配，包含队列、恢复、Skills/MCP、精确中断、goal、独立交互、动态工具及显式原生设置。写入需要 `writeGuard: 1`；扩展原生端口需要 `nativeContract: 1`。不支持的原生能力或越出资源范围的调用明确拒绝，不改用 Gateway 本机。原生目录只在获准后查询。
 ### 本机项目与会话管理
 
 两端更新后，注册信息通过 `management: { version: 1 }` 声明能力。除上述执行方法外，允许 `createThread`、`renameThread`、`archiveThread`、`unarchiveThread`，以及仅限已归档会话的 `deleteThread`；聊天中不开放永久删除命令。`listProjects` 从获准设备读取原生项目目录，Gateway 不检查远端路径在服务器上是否存在。旧 Connector 的管理请求会明确提示升级。
@@ -174,23 +173,18 @@ Codex 执行写调用允许 `run`、`steer`、`submitThreadMessage`、`stop`；�
 /new C1                       在选中项目新建原生空会话并绑定
 /new                          在当前项目新建
 /new --standalone             在当前设备的私有目录新建无项目会话
-/session rename 探探测试       重命名当前原生会话
-/session archive              归档当前原生会话并解除当前聊天绑定
-/sessions archived            查看已归档会话
-/session restore R1           恢复列表中的会话并绑定
 ```
 
-项目查询只提供目录和选择能力，项目新增、重命名、删除仍不在本次范围内。创建采用原生 `thread/start`，不会发送 `turn/start`，下一条消息才启动任务，也不会覆盖设备的默认模型。项目工作目录必须匹配设备端确认的项目根目录，或同项目现有会话的工作树；独立会话固定放在 `stateDir/workspaces/`，不接受 Gateway 任意指定路径。未绑定时若只有一个已配对设备，可直接新建该设备的独立会话；多个设备时要求先选择来源。
+项目查询只提供目录和选择能力，项目新增、重命名、删除仍不在本次范围内。创建采用原生 `thread/start`，不会发送 `turn/start`，下一条消息才启动任务，也不会覆盖设备的默认模型。项目工作目录必须匹配设备端确认的项目根目录，或同项目现有会话的工作树；`/new --standalone` 的工作区放在 `stateDir/workspaces/`；完整设备授权的原生创建接口也可显式选择设备上的已有目录，固定会话或资源委托不能扩大到其他目录。未绑定时若只有一个已配对设备，可直接新建该设备的独立会话；多个设备时要求先选择来源。
 
-重命名、归档和恢复要求聊天 `controller` 权限；运行中、空闲状态不明或有待执行原生队列的会话不会被归档。归档遵循 Codex 原生生命周期及子会话处理规则，其他入口也会看到归档结果；它与 `/leave` 的“仅解除当前聊天绑定”不同。恢复可使用编号，或 `/session restore 会话ID --host 主机ID`，编号有效期为 15 分钟。固定会话授权只能管理该 thread，不能新建其他会话；归档后重连仍能查询并恢复它。
-
+通用 `/session rename|archive|restore`、`/sessions archived` 已拆到独立后续分支，本分支不新增这些聊天命令。管理端口仍供授权调用方使用，固定会话授权只允许操作该 thread。`/leave` 继续只解除聊天绑定。原生空线程在首条输入前可能尚未物化，适配器保留其订阅；不承诺在首次输入前重启仍可恢复该空线程。
 每次管理写入都使用稳定源消息身份并持久记录意图、原生创建 ID 和结果。断线后状态不明的写入不自动重放，可刷新会话目录核对；重复的已完成操作返回原结果。管理与文件能力均不扩大既有用户、聊天和设备授权。
 
-App 的项目 ID 与原生 app-server 的项目 ID 可能不同。设备端按现有 App 保存的精确 host/home 映射统一目录与会话身份，再将写入转换为原生 ID；不按同名或相同目录推断项目身份。
+项目创建接入复用原生精确 ID；目录的通用别名展示调整已拆分，不在本分支改变本地和 SSH 目录。
 
 ### 会话附件传输
 
-两端均需更新到包含文件传输的版本。注册信息中的 `files: { version: 1 }` 声明能力；旧 Connector 的文字路径继续可用，尝试传文件时明确提示更新，不会把设备路径当作 Gateway 本地路径读取。
+两端均需更新到包含文件传输的版本。注册信息中的 `files: { version: 1 }` 声明能力；缺失 writeGuard 的旧 Connector 不允许写入；缺失文件能力时尝试传文件明确提示更新，不会把设备路径当作 Gateway 本地路径读取。
 
 - 入站：复用渠道下载和附件校验，再以 256 KiB 分块传给 B。上传必须有当前聊天用户身份，并匹配其设备授权和所选 thread。B 自行决定存储位置：`stateDir/files/inbound/<授权>/<thread摘要>/<会话摘要>/`，文件名带 SHA-256，重复传输复用已核对内容。完成前只写私有 `.part` 文件。
 - 出站：模型继续使用 `codex-im-gateway-actions` 的 `send` 动作。B 只允许读取所选会话真实工作目录内、或该授权和 thread 的入站附件目录内的普通文件。解析真实路径，拒绝指向目录外的符号链接、相对路径及特殊文件；不允许读取其他聊天的附件。生成在临时目录等其他位置的文件，需先保存到会话工作目录再发送。
@@ -207,11 +201,13 @@ App 的项目 ID 与原生 app-server 的项目 ID 可能不同。设备端按�
 - 独立 app-server daemon / Desktop 的执行可以在 Gateway 观察连接断开后继续；Gateway 仅在其接受回执持久化后允许安全分离观察。显式 `stdio` 连接属于客户端进程生命周期，不获得这一豁免。
 - 默认沿用 B 的模型、effort、认证和本地资源配置。A 的全局模型默认值不覆盖它；聊天中显式设置的 `/model` 或 `/effort` 仍会传给 B。
 - 每个客户端连接一个本地 Codex profile，支持选择、创建、重命名、归档和恢复普通会话，可选固定到单个 thread。主要验证 macOS/Linux 的绝对路径；不附着任意终端进程。
-- 本版本不启用动态工具、原生队列操作、目标、自动系统错误恢复和原生项目增删改。后端能力明确关闭或拒绝这些操作；不能回退到服务器本地执行。
-- 已适配原生公共 item 回调、轮次活动读取、项目 roots 和按模型查询账号用量。主分支新增的技能/MCP 目录、精确轮次中断、独立交互订阅及进程诊断尚未纳入 Peer 协议，设备请求明确拒绝，取消订阅为本地空操作；不会把 `peer:` 身份交给 Gateway 本机或 SSH 执行器。权限设置沿用设备本地配置，图片使用已有附件传输路径。
-- Web 管理的远程发送入口尚未接入用户级 Peer 授权；通过钉钉等已有渠道的 `handleMessage` 路径使用本功能。已启动任务期间的审批/问答已做回调适配；独立外部任务的审批和断线期间错过的回调还需后续补齐。
+- 原生队列、目标、容量/系统恢复、Skills/MCP、精确中断、独立交互、动态工具和结构化输出已接入公共端口；见接口表与逐项测试。项目增删改、完整 code-server 和 Taskboard 产品入口不由 Connector 自动新增。
+- 显式 nativeSettings 限获准设备用户；资源委托沿用原生权限。所有文件路径属于设备，不读取 Gateway 同名文件。
+- Web 管理的远程发送入口仍需用户级 Peer 授权接入；当前产品使用已有 IM 渠道。双向远端 Channel 保留独立原型，不属于此次机器人 Connector 合入范围。
 
 ## 6. 验证
+
+当前接口、范围与结果见 [合入记录](peer-merge-readiness.md)。以下为早期版本的历史验证，不代表当前分支仍包含其中的通用会话管理命令。
 
 ```sh
 npm run typecheck
@@ -225,3 +221,5 @@ node --test --test-timeout=20000 --import tsx test/peer-transport.test.ts test/p
 同日管理联调验证了本机项目目录、原生空会话创建（创建后 0 个模型轮次）、重命名、归档、按 R 编号恢复，以及恢复后继续同一原生会话并收到固定回复。另通过 `/new --standalone` 在 Mac Connector 私有目录新建并自动绑定了无项目会话。项目身份映射修复有独立回归，在项目中新建会话并自动绑定的完整路径另由真实 WebSocket + 模拟后端集成测试覆盖。
 
 共享准入只决定谁能访问哪个原生会话；操作权限复用现有 `/role`，不另设 `read / chat / control` 分档。文件回传与 Web 编辑器仍单独授权。升级时旧分档委托必须重新批准，Gateway 与 Connector 需配套升级，详见[会话所有权与共享工作区](./peer-sharing.md)。
+
+Connector导出的项目ID使用设备当前host/home的明确Desktop迁移映射，与原生session归属一致；这一适配只在Connector进程内启用，本地及SSH列表保持main行为。

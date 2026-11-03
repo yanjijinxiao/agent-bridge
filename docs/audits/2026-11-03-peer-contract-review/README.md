@@ -1,5 +1,8 @@
 # Connector 与 main 功能/模块契约审查（2026-11-03）
 
+> 当前候选结论见[2026-11-03接口与文档补齐记录](merge-completion.md)。下文保留原检查点的版本和当时范围，不作为当前候选的接口缺口或测试结果。
+
+
 > 本轮问题的修复、正式回归和当前能力矩阵见 [修复记录](./fixes.md)。下文是 `4bb6cd2` 的历史审查结论，失败复现保留原样；当前回归入口为 `test/peer-write-boundary.test.ts` 和 `test/peer-interactions.test.ts`。
 
 ## 历史结论

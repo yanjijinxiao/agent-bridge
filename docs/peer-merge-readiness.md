@@ -1,5 +1,8 @@
 # Connector 合入验收（2026-11-02）
 
+> 当前候选结论见[2026-11-03接口与文档补齐记录](audits/2026-11-03-peer-contract-review/merge-completion.md)。下文保留原检查点的版本和当时范围，不作为当前候选的接口缺口或测试结果。
+
+
 > **2026-11-03 最新结论：** 运行修复 `2f4280e` 已完成 A1/A2 修复与复测。类型检查、完整构建及全量 2823 项（2790 通过、33 跳过）通过；真实钉钉续聊、文件回传、待审批时 Connector 崩溃重连、旧卡退休与新卡批准均已核验。可按默认关闭的实验 Connector 范围进入合并审查，未执行合并或推送。见[修复与能力矩阵](./audits/2026-11-03-peer-contract-review/fixes.md)、[本轮实机证据](./audits/2026-11-03-peer-contract-review/real-validation.md)。下文是历史记录。
 
 ## 历史结论与范围

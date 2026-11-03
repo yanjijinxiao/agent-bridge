@@ -45,11 +45,11 @@ Connector 校验身份、指定 thread、工作目录、有效期和撤销状态
 | `--ide write` | 另可编辑该目录内已有文本文件；有文件版本冲突时拒绝覆盖 |
 | `--files` | 另可通过 Connector 回传会话工作目录及其附件目录中的文件 |
 
-不再提供 `--manage`；重命名、归档和恢复遵守现有 controller 检查。会话聊天允许访问者驱动原生 Codex，执行能力沿用设备的 Codex 沙箱和审批策略；`--ide read` 只约束 Web 编辑器，不意味着 Codex 不能修改文件。具备本机操作权限的人仍能直接操作原生 Codex，这不是操作系统级多用户隔离。
+不再提供 `--manage`；会话控制遵守 main 的角色检查。通用重命名、归档、恢复聊天命令已拆分，本分支不额外开放。会话聊天允许访问者驱动原生 Codex，执行能力沿用设备的 Codex 沙箱和审批策略；`--ide read` 只约束 Web 编辑器，不意味着 Codex 不能修改文件。具备本机操作权限的人仍能直接操作原生 Codex，这不是操作系统级多用户隔离。
 
 ### 升级兼容
 
-Gateway 与 Connector 应配套升级，共享能力标识为 `sharing.version: 2`。新 Gateway 可以连接旧 Connector 执行普通设备操作，但共享命令提示升级；旧 Gateway 不支持新的共享能力标识。
+Gateway 与 Connector 应配套升级，共享能力标识为 `sharing.version: 2`。写操作要求 `writeGuard: 1`，扩展原生端口要求 `nativeContract: 1`，独立交互要求 `interactions: 1`；缺失时明确提示升级。旧 Gateway 不支持新的共享能力标识。
 
 旧 `read / chat / control` 委托保留在状态中，但不再用于准入、执行或浏览器访问，避免旧只读授权自动变为可续聊。资源所有者、目录确认和设备配对保留。访问者重新申请（原邀请码未过期时可复用），由所有者使用新的 `/share approve 申请ID` 明确批准。旧审批参数返回用法，不自动转换。
 

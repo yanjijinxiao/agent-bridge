@@ -19,7 +19,7 @@
 
 | 模块 | 说明 |
 | --- | --- |
-| 实验 Connector | [Peer 的原生边界、授权和当前接口子集](modules/peer-transport.md) |
+| 实验 Connector | [Peer 的接口适配、授权和验证边界](modules/peer-transport.md) |
 | 原生协议与连接 | [同一核心、权限继承、读写连接和生命周期](modules/native-protocol.md) |
 | 消息接收与交接 | [来源、提交、接收和未知回执](modules/inbound-forwarding.md) |
 | 持久状态与账号 | [版本、迁移、内存/磁盘一致性和特殊标识](modules/persistent-state.md) |
@@ -36,7 +36,7 @@
 | 构建与重启 | [同一交接门禁、制品和实际运行版本核验](modules/release-lifecycle.md) |
 | 四层检查与证据 | [历史、意图、逐行范围、反例和验收限制](modules/audit-method.md) |
 
-上述说明覆盖 17 个职责模块，其中紧密关联的绑定/准入、进展/渠道合并解释跨模块边界。详细程度按真实职责组织，不建立空模板冒充完成。机器清单中的状态和设备验收限制仍独立保留。
+上述说明覆盖主分支17个职责模块和新增Connector模块，其中紧密关联的绑定/准入、进展/渠道合并解释跨模块边界。详细程度按真实职责组织，不建立空模板冒充完成。机器清单中的状态和设备验收限制仍独立保留。
 
 ## 注释约定
 
@@ -85,3 +85,9 @@
 - [33种节点配置/执行对照](taskboard-node-contracts.md)：配置可保存不等于节点可执行。
 
 后续维护同时更新当前入口、需求JSON与人读场景；历史报告保留当时事实并注明历史身份。手机实机验收继续单列，不新增为发布门禁。
+
+## Connector 合并检查点（2026-11-03）
+
+新增PEER-01～PEER-04及9个明确场景，逐项映射实际测试；主分支原310case的验证边界保留。查看[完整接口表](modules/peer-interface-matrix.md)、[功能文档](../gateway-peers.md)、[本轮合并记录](../audits/2026-11-03-peer-contract-review/merge-completion.md)。本轮没有把已有完整Web IDE/Taskboard的产品入口声称为Connector支持。
+
+当前机器清单共319个case（213个窄边界通过、106个partial），精选函数合同160条。Connector增量不会将主分支未验证的产品组合改成通过。
