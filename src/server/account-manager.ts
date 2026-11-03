@@ -767,12 +767,12 @@ export class AccountManager {
         onTextDelivered: (part) => webhook.publish({ direction: "outbound", id: part.messageId,
           recipientId: session.senderId, text: part.text, attachments: [] })
       }, acceptedTurnId),
-      deliverTurnResult: (session, turnId, text) => this.threadEvents.managedCompletion({
+      deliverTurnResult: (session, turnId, text, outcome) => this.threadEvents.managedCompletion({
         key: JSON.stringify([account.accountId, session.id]),
         hostId: session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local",
         threadId: session.threadId ?? "", recipientId: session.senderId, client, managed: true,
         contextToken: store.getContextToken(session.senderId)
-      }, turnId, text),
+      }, turnId, text, outcome),
       config,
       stateStore: store,
       inputReceipts: this.receiptsFor(account.accountId),
@@ -1890,6 +1890,17 @@ export class AccountManager {
   private async applyNativeResult(sub: ThreadSubscription, turnId: string, text: string): Promise<string | undefined> {
     const [accountId, sessionId] = JSON.parse(sub.key) as [string, string];
     const store = this.storeFor(accountId), session = store.getSession(sessionId), entry = this.entries.get(accountId);
+    // The Hub can observe completion before the queue monitor reconstructs its
+    // turn ID after a crash. Resolve only this original thread's queue evidence
+    // before deciding that a result has no Gateway action authority. Otherwise
+    // final delivery would permanently hide an unprocessed file/memory action.
+    if (this.nativeQueue.list(accountId).some(r => r.sessionId === sessionId && r.hostId === sub.hostId
+      && r.threadId === sub.threadId && r.conversationId === sub.recipientId && !r.turnId
+      && ["submitting", "queued", "starting", "uncertain"].includes(r.status))) {
+      await this.nativeQueue.reconcile(accountId, this.runnerFor(), {
+        conversationId: sub.recipientId, hostId: sub.hostId, threadId: sub.threadId
+      });
+    }
     const receipts = Object.values(this.receiptsFor(accountId).snapshot()).filter(r => r.sessionId === sessionId
       && (r.hostId ?? "local") === sub.hostId && r.threadId === sub.threadId && r.turnId === turnId
       && r.conversationId === sub.recipientId && ["accepted", "handled"].includes(r.phase));

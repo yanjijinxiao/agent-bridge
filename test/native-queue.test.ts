@@ -328,3 +328,20 @@ test("queue observation deadlines preserve uncertainty and ignore late read resu
   finally { release.resolve(); await read; }
   assert.equal(journal.list("ding")[0].status, "queued", "a read deadline is not evidence of native rejection or completion");
 });
+
+test("CTRL-03.3: native completion without delivery acknowledgement remains a terminal read-only retry", async t => {
+  const f = fixture(t), queue = f.journal();
+  await queue.enqueue(f.origin, "task", f.backend);
+  await queue.dispatch("ding", f.backend, async (_receipt, starting, started) => {
+    starting(); started("native-turn"); f.items.length = 0; return false;
+  });
+  const pending = queue.list("ding")[0];
+  assert.equal(pending.status, "completed"); assert.equal(pending.delivered, undefined);
+  assert.equal(pending.deliveryUnconfirmed, undefined); assert.equal(pending.lifecycleVersion, 2);
+  const recovered = f.journal(); let observations = 0;
+  await recovered.dispatch("ding", f.backend, async receipt => {
+    observations++; assert.equal(receipt.status, "completed"); assert.equal(receipt.turnId, "native-turn"); return true;
+  });
+  await recovered.dispatch("ding", f.backend, async () => assert.fail("delivered result cannot be replayed"));
+  assert.equal(observations, 1); assert.equal(recovered.list("ding")[0].delivered, true); assert.equal(f.adds, 1);
+});

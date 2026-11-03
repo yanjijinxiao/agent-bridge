@@ -966,17 +966,32 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   async readThreadSnapshot(threadId: string): Promise<import("./backend.js").CodexThreadSnapshot> {
-    // Keep both observation reads on one connection and bound their payload.
+    // Keep observation reads on one connection and bound their payload.
     // A five-second follow tick must not reload an entire long-lived history.
     this.operationLeases++;
     try {
       const activeAtRead = this.activeTurns.get(threadId);
       const timeoutMs = Math.min(this.options.requestTimeoutMs ?? 15_000, 15_000);
-      const state = await this.inspectThread(threadId, { includeTurns: false, timeoutMs });
+      let state = await this.inspectThread(threadId, { includeTurns: false, timeoutMs });
       if (state.persistence === "missing" || state.persistence === "archived") return { state, turns: [] };
       await this.ensureConnected();
       const response = await this.nativeTurns({ threadId, limit: 20, sortDirection: "desc", itemsView: "summary" }, timeoutMs);
-      const turns = (response.data as Array<{ id: string; status: import("./backend.js").CodexTurnStatus; startedAt?: number }>).slice().reverse();
+      const history = (response.data as Array<{ id: string; status: import("./backend.js").CodexTurnStatus; startedAt?: number; completedAt?: number | null }>).slice().reverse();
+      // Native history reconstruction can label a newly consumed queue turn
+      // interrupted before it has an end event. Even idle metadata after the
+      // history read cannot certify that older view: the turn may have finished
+      // in between. An explicit null completion time is not a terminal receipt.
+      // Omitted fields from older servers retain their existing compatibility.
+      const unconfirmedEnd = (turn: typeof history[number]) => turn.status !== "inProgress" && turn.completedAt === null;
+      if (history.at(-1) && unconfirmedEnd(history.at(-1)!))
+        throw new CodexCommunicationError("observation", "thread/snapshot", threadId, history.at(-1)!.id);
+      // Older incomplete reconstructions cannot close a historical task either;
+      // omitting them from this bounded view does not settle any pending turn.
+      const turns = history.filter(turn => !unconfirmedEnd(turn));
+      // A native queue can advance after the initial metadata read. History
+      // reconstruction alone can briefly label its new running turn interrupted;
+      // recheck the owner after history before treating any turn as terminal.
+      state = await this.inspectThread(threadId, { includeTurns: false, timeoutMs });
       this.reconcileObservedTerminal(threadId, state, turns.find(turn => turn.id === activeAtRead), activeAtRead);
       const newerActive = this.activeTurns.get(threadId);
       if (newerActive && newerActive !== activeAtRead) {

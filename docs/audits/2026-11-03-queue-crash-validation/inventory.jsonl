@@ -1,0 +1,17 @@
+{"path": "src/bridge/inbound-receipts.ts", "kind": "text", "sha256": "31577bcae429714f07151b82f828ce189b380d4cc347c025d2002decca0eb945", "lines": 222, "bytes": 13136, "status": "delta-scope"}
+{"path": "src/bridge/native-queue.ts", "kind": "text", "sha256": "286478200e814b323334d53054b576f2be15be11d5a8648408f8c156d51a8546", "lines": 313, "bytes": 20337, "status": "delta-scope"}
+{"path": "src/bridge/service.ts", "kind": "text", "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5", "lines": 3833, "bytes": 223070, "status": "delta-scope"}
+{"path": "src/server/account-manager.ts", "kind": "text", "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447", "lines": 2997, "bytes": 156977, "status": "delta-scope"}
+{"path": "src/server/thread-event-hub.ts", "kind": "text", "sha256": "125b976715c88056cd4131b812eff505748b76e57f8b95e1972a33b14fc38724", "lines": 1380, "bytes": 89908, "status": "delta-scope"}
+{"path": "src/codex/app-server-runner.ts", "kind": "text", "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051", "lines": 3100, "bytes": 158295, "status": "delta-scope"}
+{"path": "test/native-queue-crash-recovery.test.ts", "kind": "text", "sha256": "738cf9c25c84fea4ecbf9a4ab9602a7d3e9f4df0212d021819dbb6e3fcc3e492", "lines": 141, "bytes": 9400, "status": "delta-scope"}
+{"path": "test/fixtures/native-queue-crash-gateway.mjs", "kind": "text", "sha256": "daf183b910345de26e95a11e951f475a64a512114d44c68043d160581227bd35", "lines": 78, "bytes": 4714, "status": "delta-scope"}
+{"path": "test/native-queue-concurrency.test.ts", "kind": "text", "sha256": "f52f6b680a19e0a846d92c7fa77b780eeef6e14b62782f157eaa7a1e7eb8555e", "lines": 60, "bytes": 4264, "status": "delta-scope"}
+{"path": "test/queued-inbound-recovery.test.ts", "kind": "text", "sha256": "fc6b8307fe900db3790bb24e548cd83c785c11793d837d120b522b2033dfa27f", "lines": 65, "bytes": 4322, "status": "delta-scope"}
+{"path": "test/queue-result-recovery.test.ts", "kind": "text", "sha256": "208411baea02e23dfd9b88e6bbc66a4753b829db0f9d0fa308cd50417e61fae3", "lines": 63, "bytes": 4698, "status": "delta-scope"}
+{"path": "test/follow-snapshot-coherence.test.ts", "kind": "text", "sha256": "c4183b3b0db00f00a19c973bc906546933f612b2f078ca0f99b3e86f67905b46", "lines": 40, "bytes": 3558, "status": "delta-scope"}
+{"path": "test/native-snapshot-completion.test.ts", "kind": "text", "sha256": "b8fdc8093fd557ae2fe263c76fca3daa9c625780680c32a99e0b67fc91478738", "lines": 90, "bytes": 5860, "status": "delta-scope"}
+{"path": "test/native-queue.test.ts", "kind": "text", "sha256": "a40b9fe2a2b2f2bf9127c160d293e4d9cd023d6851cb2ab1a5aac3fc9598bc73", "lines": 347, "bytes": 22251, "status": "delta-scope"}
+{"path": "test/late-queue-presentation.test.ts", "kind": "text", "sha256": "7e8f0c92b52e654be66f46c9bf59762af7164512b5778182a338f18b2650a7cf", "lines": 109, "bytes": 8172, "status": "delta-scope"}
+{"path": "docs/architecture/modules/inbound-forwarding.md", "kind": "text", "sha256": "85b53b3a58a5a0a9b75534b83217c10f25b9885bba3ad6a42580feea0517c1aa", "lines": 104, "bytes": 13575, "status": "delta-scope"}
+{"path": "docs/architecture/modules/input-controls.md", "kind": "text", "sha256": "1e2ccb6fb1442f6947529d9170909ccdd3cccb01e3b4223e7718d7392f6713bb", "lines": 33, "bytes": 6381, "status": "delta-scope"}

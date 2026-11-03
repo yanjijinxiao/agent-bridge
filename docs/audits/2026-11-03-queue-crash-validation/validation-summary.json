@@ -1,0 +1,88 @@
+{
+  "date": "2026-11-03",
+  "baseline": "c9662db",
+  "newTests": 31,
+  "rootRegression": {
+    "tests": 3064,
+    "passed": 3063,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "Windows-only"
+  },
+  "typecheck": "passed",
+  "build": "passed",
+  "targetedEndReceiptAndCrash": {
+    "tests": 22,
+    "passed": 22
+  },
+  "testDeployment": {
+    "release": "queue-crash-verified",
+    "artifactSha256": "1fe5369b61712cc0553e6948f95463dd402c6ff7f2fb9c1462e303f6bd5c5463",
+    "services": [
+      "tantan Gateway",
+      "Linux Connector",
+      "Mac Connector"
+    ],
+    "sourceSha256": {
+      "src/bridge/inbound-receipts.ts": "31577bcae429714f07151b82f828ce189b380d4cc347c025d2002decca0eb945",
+      "src/bridge/native-queue.ts": "286478200e814b323334d53054b576f2be15be11d5a8648408f8c156d51a8546",
+      "src/bridge/service.ts": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5",
+      "src/server/account-manager.ts": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447",
+      "src/server/thread-event-hub.ts": "125b976715c88056cd4131b812eff505748b76e57f8b95e1972a33b14fc38724",
+      "src/codex/app-server-runner.ts": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+    },
+    "macSourceMatches": true,
+    "productionGatewayRestarted": false,
+    "nativeCoreRestarted": false
+  },
+  "realFault": {
+    "signals": "SIGKILL test Gateway and Linux Connector during a 65-second shell task",
+    "sameCorePids": true,
+    "businessInputs": 1,
+    "startEvents": 1,
+    "completeEvents": 1,
+    "startFileLines": 1,
+    "doneFileLines": 1,
+    "matchingInboxRows": 0,
+    "originalTurnDelivered": true,
+    "dingtalkFileAndFinalMessages": 2,
+    "macCatalogRead": "passed",
+    "originalLinuxBinding": "restored",
+    "notClaimed": [
+      "phone rendering",
+      "client attachment download hash",
+      "power-loss fsync guarantees"
+    ]
+  },
+  "coverage": {
+    "cases": 378,
+    "verifiedNarrowBoundaries": 273,
+    "partial": 105
+  },
+  "priorFailures": [
+    "Inbox source remained after delivered queued result",
+    "Result actions raced missing queue turn identity",
+    "Active owner/history mismatch finalized too early",
+    "Idle metadata certified older terminal history without an end receipt",
+    "Queue marked delivered before Hub acknowledged result",
+    "One old private test fixture lacked new delivery callback",
+    "One initialize timeout under overlapping extra native stress; no product timeout relaxation"
+  ],
+  "evidenceHashes": {
+    "full-end-receipt.log": "632070330953fa54c651632befcb99c881ac5e2eb3ec9fb9b76865ff889e2207",
+    "test-results-end-receipt.jsonl": "bdcdfb9aa88a4eba82ec909a958ed6733cf56081b272e68617d350290dd0abc3",
+    "end-receipt.log": "451f49090030173761b3e174d6f92aaf9fc37d0103bdbff30cf5277fc0c198aa",
+    "typecheck-final.log": "569495d981c843453331093c461cecbfbef7fb91d51076fc679973fd1262a400",
+    "build-final.log": "f60551e59236c69abd9233b04fec3c4ec269986c84cc5a02e9d5770f5e92e9e6",
+    "deploy-verified.log": "f436d56263ca23560a96be3eb0832e973a7a01d7b22ba73ef296c096b70845ef",
+    "verified-real-fault.log": "652611ef9e2b44d93610566e2ec4c95b62599200b86dff0ab984abc56344d851",
+    "verified-real/native-proof.json": "2245c1b32e3f2b360f478f8a63f132153196040d9d9f0cc2c1def983e8ed468f",
+    "verified-real/gateway-proof.json": "e2f32e00a5308ac027d230df2b459a33bcdffa193f7e3e81ad3cdbed1b35ca20",
+    "verified-real/message-details.json": "52d4c26806d5c1245462ad1e7ffe06e10c9b832095e80cb1d7837ffe1ebe9562",
+    "verified-real/core-before.txt": "900e36e26e711d2dcfeaacd88260eac67bb0af71540956e7da487c978ded69c9",
+    "verified-real/core-after.txt": "900e36e26e711d2dcfeaacd88260eac67bb0af71540956e7da487c978ded69c9",
+    "verified-real/output-before-crash.txt": "2ab1a3171d3d002b22e8da01d9259a575c4f5a58c166922b401d08d1197f8461",
+    "verified-real/output-after-crash.txt": "f774dbdac28d76a82e08eafb8137151cf2a0a79f0fcea65fb5f24925987a129d",
+    "full-final-verified.log": "5a9e49bbddf28d003a48fdc09f31a8ec6370ba67aa1cd22d6ca3a2e3d5ce763a"
+  }
+}

@@ -342,6 +342,16 @@ export class ThreadEventHub {
         }
         // Reject a mismatched response before any progress or cursor can be updated.
         if (snapshot.state.threadId !== sub.threadId) throw new Error("Backend returned another thread snapshot");
+        if (snapshot.state.runtimeStatus === "active" && !snapshot.turns.some(turn => turn.status === "inProgress"
+          && (!snapshot.state.activeTurnId || turn.id === snapshot.state.activeTurnId))) {
+          // Runtime and paged history are separate reads. Native queue auto-
+          // consumption can advance between them, leaving a transient terminal
+          // history beside an active owner. Reject before reconciliation can
+          // finalize a card or permanently suppress the real result/actions.
+          state.runtime = snapshot.state; state.observedAt = new Date().toISOString();
+          this.failSync(sub, { code: "unconfirmed", message: "后端报告正在执行，但没有可确认的当前轮次；保留原进展，等待一致的原生状态。" }, "unconfirmed");
+          return this.status(sub.key);
+        }
         if (!inputRecoveryFailure) {
           this.requestProvenanceRepair(sub, snapshot);
           await this.repairQueueTerminals(sub);
@@ -420,9 +430,6 @@ export class ThreadEventHub {
           this.failSync(sub, { code: "unconfirmed", message: runtime.runtimeStatus === "notLoaded"
             ? "会话未加载或暂无实时持有者；绑定已保留，跟随继续等待。发送新消息会尝试继续同一会话；同步命令不会启动任务。"
             : "已读取记录，但实际持有者无法确认；绑定已保留，未将其当成空闲或已结束。" }, "unconfirmed");
-        } else if (runtime.runtimeStatus === "active" && !snapshot.turns.some(turn => turn.status === "inProgress"
-          && (!runtime.activeTurnId || turn.id === runtime.activeTurnId))) {
-          this.failSync(sub, { code: "unconfirmed", message: "后端报告正在执行，但没有可确认的当前轮次；未创建占位卡片。" }, "unconfirmed");
         } else if (runtime.runtimeStatus === "active" && runtime.activeTurnId
           && (state.completed.includes(runtime.activeTurnId)
             || state.checkpointTurnId === runtime.activeTurnId && state.checkpoint?.finished)) {
@@ -1089,10 +1096,10 @@ export class ThreadEventHub {
     });
   }
   /** Execution and following use the same acknowledged delivery journal. */
-  async managedCompletion(sub: ThreadSubscription, turnId: string, text: string): Promise<boolean> {
+  async managedCompletion(sub: ThreadSubscription, turnId: string, text: string, outcome?: TurnOutcome): Promise<boolean> {
     return this.queue.run(sub.key, async () => {
       if (!this.isLive(sub)) return false;
-      try { await this.finish(sub, turnId, text); }
+      try { await this.finish(sub, turnId, text, false, { outcome }); }
       catch { /* A failed transport acknowledgement is not an execution failure. */ }
       const state = this.state(sub);
       const delivered = state.completed.includes(turnId);

@@ -179,6 +179,27 @@ export class InboundReceiptJournal {
   receipt(messageId: string): Readonly<Receipt> | undefined {
     const receipt = this.receipts[identity(messageId)]; return receipt && structuredClone(receipt);
   }
+  /** The account's queue coordinator owns the native identity and result duty.
+   * Bridge its confirmed receipt back to the original IM identity after a crash
+   * between the two journals. Never create a second ordinary-result obligation. */
+  recoverQueued(expected: Readonly<Receipt>, proof: {
+    messageId: string; actorId: string; conversationId: string; sessionId: string; hostId: string; threadId: string;
+    queuedSubmissionId?: string; turnId?: string;
+  }): boolean {
+    const key = identity(proof.messageId), current = this.receipts[key];
+    if (!current || this.processing.has(key) || !["submitting", "unconfirmed"].includes(current.phase)
+      || current.nativeInput || JSON.stringify(current) !== JSON.stringify(expected)
+      || current.actorId !== proof.actorId || current.conversationId !== proof.conversationId
+      || current.sessionId !== proof.sessionId || (current.hostId ?? "local") !== proof.hostId || current.threadId !== proof.threadId
+      || !proof.queuedSubmissionId?.trim() && !proof.turnId?.trim()
+      || current.queuedSubmissionId && current.queuedSubmissionId !== proof.queuedSubmissionId
+      || current.turnId && current.turnId !== proof.turnId) return false;
+    this.transition(current, { phase: "accepted", ...(proof.queuedSubmissionId ? { queuedSubmissionId: proof.queuedSubmissionId } : {}),
+      ...(proof.turnId ? { turnId: proof.turnId } : {}) });
+    try { this.options.onAccepted?.(structuredClone(current)); }
+    catch { console.warn("[codex-im-gateway] recovered queue cleanup deferred; durable native receipt retained"); }
+    return true;
+  }
   /** Commit exact, read-only native evidence without claiming or dispatching
    * the saved input. A late read cannot overwrite a live/newer journal fact. */
   recoverAccepted(expected: Readonly<Receipt>, proof: { hostId: string; threadId: string; turnId: string }): boolean {

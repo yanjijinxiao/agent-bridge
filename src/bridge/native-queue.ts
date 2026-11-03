@@ -20,6 +20,7 @@ export type QueueReceipt = QueueOrigin & {
 };
 const unsettled = new Set<QueueReceipt["status"]>(["submitting", "queued", "starting", "running", "uncertain"]);
 const threadKey = (r: QueueOrigin) => JSON.stringify([r.backend, r.hostId, r.threadId]);
+type ObservationScope = { conversationId: string; hostId?: string; threadId?: string };
 
 /** A submission journal, NOT an execution backlog: prompts/order live only in Codex.
  * After an uncertain acknowledgement we query exact ids; we never call add again.
@@ -157,8 +158,8 @@ export class NativeQueueCoordinator {
     } while (cursor);
     return items;
   }
-  reconcile(accountId: string, backend: CodexBridgeBackend, scope?: { conversationId: string }): Promise<void> {
-    const key = JSON.stringify([accountId, scope?.conversationId]);
+  reconcile(accountId: string, backend: CodexBridgeBackend, scope?: ObservationScope): Promise<void> {
+    const key = JSON.stringify([accountId, scope?.conversationId, scope?.hostId, scope?.threadId]);
     const reads = this.reconciling.get(backend) ?? new Map<string, Promise<void>>();
     this.reconciling.set(backend, reads);
     const pending = reads.get(key); if (pending) return pending;
@@ -167,11 +168,12 @@ export class NativeQueueCoordinator {
     });
     reads.set(key, work); return work;
   }
-  private async reconcileScope(accountId: string, backend: CodexBridgeBackend, scope?: { conversationId: string }): Promise<void> {
+  private async reconcileScope(accountId: string, backend: CodexBridgeBackend, scope?: ObservationScope): Promise<void> {
     this.assertAvailable();
     const groups = new Map<string, QueueReceipt[]>();
     for (const r of Object.values(this.receipts)) {
       if (r.accountId !== accountId || scope && r.conversationId !== scope.conversationId || !unsettled.has(r.status)) continue;
+      if (scope?.hostId && r.hostId !== scope.hostId || scope?.threadId && r.threadId !== scope.threadId) continue;
       const key = backend.withSource ? JSON.stringify([threadKey(r), r.accountId, r.conversationId, r.actorId]) : threadKey(r);
       groups.set(key, [...groups.get(key) ?? [], r]);
     }
@@ -232,7 +234,7 @@ export class NativeQueueCoordinator {
     rethrowFailures(results);
   }
   async dispatch(accountId: string, backend: CodexBridgeBackend, execute: (receipt: QueueReceipt,
-    starting: () => void, started: (turnId: string) => void, item?: CodexQueuedSubmission) => Promise<void>): Promise<void> {
+    starting: () => void, started: (turnId: string) => void, item?: CodexQueuedSubmission) => Promise<void | boolean>): Promise<void> {
     this.assertAvailable();
     const groups = new Map<string, QueueReceipt[]>();
     for (const r of Object.values(this.receipts)) {
@@ -257,12 +259,15 @@ export class NativeQueueCoordinator {
         if (terminalObservation && (state.activeTurnId === r.turnId && state.runtimeStatus === "active" || r.lifecycleVersion !== 2)) continue;
         if (!terminalObservation && (state.runtimeStatus === "active" || state.pendingTurnWithoutId
           || state.runtimeStatus === "unknown" || state.runtimeStatus === "systemError" || state.persistence !== "active")) continue;
-        await execute(structuredClone(r), () => {
+        const delivered = await execute(structuredClone(r), () => {
           if (r.status !== "queued") throw new Error("Queued receipt changed before dispatch");
           this.update(r, { status: "starting" });
         },
           turnId => this.update(r, { status: "running", turnId }), items.find(item => item.clientUserMessageId === r.clientUserMessageId));
-        this.update(r, { status: "completed", delivered: true, reason: undefined });
+        // A completed native turn is not a channel delivery acknowledgement.
+        // False retains the terminal observation for a later read-only retry;
+        // it must not become an uncertain execution or another queue/start.
+        this.update(r, { status: "completed", ...(delivered === false ? { lifecycleVersion: 2 as const } : { delivered: true }), reason: undefined });
         }
       } catch (error) {
         // A definite busy rejection leaves the same native queue item pending.

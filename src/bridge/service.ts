@@ -167,7 +167,7 @@ export type BridgeServiceOptions = {
   turnAudience?: TurnAudienceJournal;
   createTextStream?: (session: ManagedSession, acceptedTurnId?: string) => TurnReplyStream | Promise<TurnReplyStream>;
   onAcceptedInput?: (input: AcceptedPresentationInput) => Promise<void>;
-  deliverTurnResult?: (session: ManagedSession, turnId: string, text: string) => Promise<boolean>;
+  deliverTurnResult?: (session: ManagedSession, turnId: string, text: string, outcome?: "failed" | "interrupted") => Promise<boolean>;
   onSubscriptionsChanged?: () => Promise<void>;
   sessionFollow?: SessionFollowPort;
   sessionInteractions?: SessionInteractionPort;
@@ -2227,6 +2227,16 @@ export class BridgeService {
         // An unavailable host/thread must not starve other reconciled receipts.
         this.warnNativeQueueRecovery();
       }
+      this.options.assertRuntimeWritable?.();
+      if (this.audienceSuspended) return;
+      // Native acceptance may have survived a crash before queued() recorded
+      // it in the IM journal. Reconcile that handoff before result delivery;
+      // a queue task retains its own result obligation and must not be replayed.
+      for (const receipt of this.nativeQueue.list(accountId)) {
+        if (!receipt.queuedSubmissionId && !receipt.turnId || receipt.status === "rejected") continue;
+        const expected = this.options.inputReceipts?.receipt(receipt.messageId);
+        if (expected) this.options.inputReceipts?.recoverQueued(expected, receipt);
+      }
       await this.nativeQueue.dispatch(accountId, this.runner, async (receipt, starting, started, item) => {
         return this.restartWork.run(async () => {
         if (!this.hasAccess(receipt.actorId, receipt.conversationId)) {
@@ -2241,9 +2251,12 @@ export class BridgeService {
         if (!session || session.threadId !== receipt.threadId || (this.sessionHostId(session) ?? "local") !== receipt.hostId) {
           throw new Error("Queued session identity changed; native item was not started");
         }
+        let delivered = false;
         await peerPrincipal.run({ accountId, conversationId: receipt.conversationId, actorId: receipt.actorId }, () => this.actor.run(receipt.actorId, () => this.runCodexTurn({
           id: receipt.messageId, senderId: receipt.conversationId, text: "", attachments: [], raw: {}
-        }, item?.input.map(x => x.type === "text" ? x.text ?? "" : "").join("\n") ?? "", [], { receipt, starting, started })));
+        }, item?.input.map(x => x.type === "text" ? x.text ?? "" : "").join("\n") ?? "", [], { receipt, starting, started,
+          onResultDelivery: confirmed => { delivered = confirmed; } })));
+        return delivered;
         });
       });
     } finally { this.recoveringQueue = false; }
@@ -2700,7 +2713,7 @@ export class BridgeService {
   }
 
   private async runCodexTurn(message: ChannelMessage, text: string, attachments: PromptBufferItem[] = [], queued?: {
-    receipt: QueueReceipt; starting: () => void; started: (turnId: string) => void;
+    receipt: QueueReceipt; starting: () => void; started: (turnId: string) => void; onResultDelivery: (confirmed: boolean) => void;
   }, buffered?: { submitting: () => void; accepted: () => void }): Promise<void> {
     const currentSession = this.executionSession(message.senderId);
     if (!queued && !currentSession) {
@@ -2933,6 +2946,7 @@ export class BridgeService {
           if (!stillBound()) break;
           await this.sendLocalMedia(message.senderId, action, this.sessionHostId(session), stillBound, session.threadId);
         }
+        queued?.onResultDelivery(resultDelivered);
         await this.options.onTurnCompleted?.({
           senderId: message.senderId,
           sessionId: session.id,
@@ -2975,10 +2989,19 @@ export class BridgeService {
         await this.options.onSubscriptionsChanged?.();
         throw error;
       }
+      if (queued && error instanceof CodexTurnExecutionError && acceptedTurnId && this.options.deliverTurnResult) {
+        // Failed/interrupted native turns use the same durable delivery receipt
+        // as success, including already acknowledged results after restart.
+        const text = stripBridgeErrorPrefix(userFacingMessageHandlingError(error));
+        if (stillBound()) queued.onResultDelivery(await this.options.deliverTurnResult(session, acceptedTurnId, text, error.status));
+        await this.options.onTurnCompleted?.({ senderId: message.senderId, sessionId: session.id, text, success: false, turnId: acceptedTurnId });
+        return;
+      }
       let failureWasReported = !stillBound() || (await replyStream?.fail(
         stripBridgeErrorPrefix(userFacingMessageHandlingError(error)),
         error instanceof CodexTurnExecutionError && error.status === "interrupted" ? "interrupted" : "failed"
       ) ?? false);
+      if (queued && error instanceof CodexTurnExecutionError) queued.onResultDelivery(failureWasReported && stillBound());
       if (!failureWasReported && replyStream && (replyStream.supported || replyStream.checkpoint().terminalPages?.length)) {
         try { failureWasReported = await replyStream.reportTerminalFailure(); }
         catch { console.warn("[codex-im-gateway] terminal delivery-error notice failed"); }

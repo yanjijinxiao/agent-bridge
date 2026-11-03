@@ -42,3 +42,49 @@ for (const mode of ["completed", "failed", "interrupted", "system-error", "unloa
     await runner.close(); await pending;
   });
 }
+
+for (const first of ["idle", "active"] as const)
+  test(`CTRL-03.5: snapshot rechecks native owner after queue history advances (${first})`, async t => {
+    const runner = new AppServerCodexRunner({ requestTimeoutMs: 1000 });
+    t.after(() => runner.close());
+    const calls: string[] = []; let inspected = 0;
+    runner.inspectThread = async () => {
+      calls.push("owner"); inspected++;
+      return { threadId: "thread", persistence: "active", runtimeStatus: inspected === 1 ? first : "active", activeFlags: [],
+        ...(inspected > 1 ? { activeTurnId: "new" } : first === "active" ? { activeTurnId: "old" } : {}) };
+    };
+    (runner as any).ensureConnected = async () => {};
+    (runner as any).nativeTurns = async () => {
+      calls.push("history"); return { data: [{ id: "new", status: "interrupted", items: [] }] };
+    };
+    const snapshot = await runner.readThreadSnapshot("thread");
+    assert.deepEqual(calls, ["owner", "history", "owner"]);
+    assert.equal(snapshot.state.runtimeStatus, "active"); assert.equal(snapshot.state.activeTurnId, "new");
+    assert.equal(snapshot.turns[0].status, "interrupted", "history remains evidence, not silently fabricated running state");
+  });
+
+for (const status of ["completed", "failed", "interrupted"] as const)
+  test(`CTRL-03.5: idle metadata cannot certify a terminal history without an end receipt (${status})`, async t => {
+    const runner = new AppServerCodexRunner({ requestTimeoutMs: 1000 });
+    t.after(() => runner.close());
+    runner.inspectThread = async () => ({ threadId: "thread", persistence: "active", runtimeStatus: "idle", activeFlags: [] });
+    (runner as any).ensureConnected = async () => {};
+    let completedAt: number | null = null;
+    (runner as any).nativeTurns = async () => ({ data: [{ id: "turn", status, completedAt, items: [] }] });
+    await assert.rejects(runner.readThreadSnapshot("thread"), error => (error as Error).name === "CodexCommunicationError");
+    completedAt = 1793706796;
+    const confirmed = await runner.readThreadSnapshot("thread");
+    assert.equal(confirmed.turns[0].status, status); assert.equal(confirmed.state.runtimeStatus, "idle");
+  });
+
+test("CTRL-03.5: an older incomplete reconstruction cannot hide a newer confirmed result", async t => {
+  const runner = new AppServerCodexRunner({ requestTimeoutMs: 1000 });
+  t.after(() => runner.close());
+  runner.inspectThread = async () => ({ threadId: "thread", persistence: "active", runtimeStatus: "idle", activeFlags: [] });
+  (runner as any).ensureConnected = async () => {};
+  (runner as any).nativeTurns = async () => ({ data: [
+    { id: "new", status: "completed", completedAt: 1793706796, items: [] },
+    { id: "old", status: "interrupted", completedAt: null, items: [] }
+  ] });
+  assert.deepEqual((await runner.readThreadSnapshot("thread")).turns.map(t => t.id), ["new"]);
+});

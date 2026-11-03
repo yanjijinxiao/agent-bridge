@@ -59,6 +59,8 @@ inbox 只对仍活跃的接收前交接保序。已结束但未知的旧记录�
 
 SessionControlJournal 对 accepted 或未知记录均禁止重新调用同一来源。NativeQueueCoordinator 通过原生 clientUserMessageId、queue ID、turn ID 恢复；在队列或历史中“没找到”只得到 uncertain，不得到未执行。旁路历史终态不能覆盖实际执行者仍运行的事实。
 
+队列接收和 IM 来源接收是两份日志，原生 client ID 也不同。2026-11-03 的真实骤停补测发现：原生任务和结果可恢复，但 queue/add 接收之后、IM queued() 落盘之前退出会留下未知 inbox。Bridge 恢复队列后，现在将当前账号下原 message/actor/conversation/session/host/thread 与已确认 queue/turn ID 一起交给 InboundReceiptJournal.recoverQueued。该方法只对相同版本、非活跃、非普通输入的 submitting/unconfirmed 做持久更新，再调用同一 accepted 清理；结果义务仍归 NativeQueueCoordinator/Hub，不创建第二份 recoveredNativeInput。清理失败仍由 inbox tick 重试；停止后的服务不提交迟到更新。
+
 普通输入的真实崩溃恢复由AccountManager.recoverNativeInputs和native-input-recovery共同完成。TurnSubmission在新建thread后、turn/start前持久补上thread ID；恢复只读取原host/thread，完整分页精确clientUserMessageId唯一对应turn后才CAS更新accepted并清理inbox。读取不占转发/重启锁，已停止或替换的账号不接受迟到更新。旧普通来源可补足类型，旧queue/控制或缺thread身份不猜测。
 
 恢复accepted还保存recoveredNativeInput结果义务。Hub在处理结果前核对输入，按同一session/host/thread/conversation排除历史baseline误吞已离线完成的首次结果；不会据此重放无关历史或覆盖新的活动轮。Hub持久保存最终投递后才结算该义务为handled，二次崩溃根据原投递记录继续。结果附件/记忆动作沿用共用动作日志去重。

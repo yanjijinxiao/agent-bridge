@@ -1,0 +1,371 @@
+[
+  {
+    "file": "src/bridge/inbound-receipts.ts",
+    "symbol": "recoverAccepted",
+    "bodyUnchanged": true,
+    "lines": [
+      205,
+      215
+    ]
+  },
+  {
+    "file": "src/bridge/inbound-receipts.ts",
+    "symbol": "recoveredResultDelivered",
+    "bodyUnchanged": true,
+    "lines": [
+      217,
+      221
+    ]
+  },
+  {
+    "file": "src/bridge/inbound-receipts.ts",
+    "symbol": "recoverQueued",
+    "bodyUnchanged": false,
+    "lines": [
+      185,
+      202
+    ]
+  },
+  {
+    "file": "src/bridge/native-queue.ts",
+    "symbol": "reconcileScope",
+    "bodyUnchanged": false,
+    "lines": [
+      171,
+      235
+    ]
+  },
+  {
+    "file": "src/bridge/native-queue.ts",
+    "symbol": "save",
+    "bodyUnchanged": true,
+    "lines": [
+      51,
+      70
+    ]
+  },
+  {
+    "file": "src/bridge/native-queue.ts",
+    "symbol": "reconcile",
+    "bodyUnchanged": false,
+    "lines": [
+      161,
+      170
+    ]
+  },
+  {
+    "file": "src/bridge/native-queue.ts",
+    "symbol": "dispatch",
+    "bodyUnchanged": false,
+    "lines": [
+      236,
+      288
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleCommand",
+    "bodyUnchanged": true,
+    "lines": [
+      573,
+      816
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleSteerCommand",
+    "bodyUnchanged": true,
+    "lines": [
+      1814,
+      1882
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "enqueueNativeMessage",
+    "bodyUnchanged": true,
+    "lines": [
+      2158,
+      2215
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleGoalCommand",
+    "bodyUnchanged": true,
+    "lines": [
+      1338,
+      1400
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleSessionCatalog",
+    "bodyUnchanged": true,
+    "lines": [
+      1519,
+      1698
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "sendLocalMedia",
+    "bodyUnchanged": true,
+    "lines": [
+      3177,
+      3227
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "applyRecoveredAction",
+    "bodyUnchanged": true,
+    "lines": [
+      3056,
+      3066
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "recoverNativeQueue",
+    "bodyUnchanged": false,
+    "lines": [
+      2218,
+      2263
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "runCodexTurn",
+    "bodyUnchanged": false,
+    "lines": [
+      2715,
+      3034
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "taskboardNativeBackend",
+    "bodyUnchanged": true,
+    "lines": [
+      2033,
+      2058
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "closeRunner",
+    "bodyUnchanged": true,
+    "lines": [
+      2060,
+      2070
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "sessionSummary",
+    "bodyUnchanged": true,
+    "lines": [
+      1940,
+      1959
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "recoverNativeInputs",
+    "bodyUnchanged": true,
+    "lines": [
+      1796,
+      1837
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "recoveredInputsFor",
+    "bodyUnchanged": true,
+    "lines": [
+      1839,
+      1846
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "peerRecoverySource",
+    "bodyUnchanged": true,
+    "lines": [
+      1965,
+      1986
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "threadSubscriptions",
+    "bodyUnchanged": true,
+    "lines": [
+      2146,
+      2184
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "applyNativeResult",
+    "bodyUnchanged": false,
+    "lines": [
+      1890,
+      1932
+    ]
+  },
+  {
+    "file": "src/server/thread-event-hub.ts",
+    "symbol": "observe",
+    "bodyUnchanged": false,
+    "lines": [
+      308,
+      483
+    ]
+  },
+  {
+    "file": "src/server/thread-event-hub.ts",
+    "symbol": "reconcile",
+    "bodyUnchanged": true,
+    "lines": [
+      668,
+      826
+    ]
+  },
+  {
+    "file": "src/server/thread-event-hub.ts",
+    "symbol": "finishNow",
+    "bodyUnchanged": true,
+    "lines": [
+      1286,
+      1330
+    ]
+  },
+  {
+    "file": "src/server/thread-event-hub.ts",
+    "symbol": "reconcileActiveProgress",
+    "bodyUnchanged": true,
+    "lines": [
+      827,
+      844
+    ]
+  },
+  {
+    "file": "src/server/thread-event-hub.ts",
+    "symbol": "managedCompletion",
+    "bodyUnchanged": false,
+    "lines": [
+      1099,
+      1109
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "runWithLease",
+    "bodyUnchanged": true,
+    "lines": [
+      270,
+      498
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "resolveProjectId",
+    "bodyUnchanged": true,
+    "lines": [
+      839,
+      893
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "listSkills",
+    "bodyUnchanged": true,
+    "lines": [
+      1488,
+      1512
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "listMcpServers",
+    "bodyUnchanged": true,
+    "lines": [
+      1514,
+      1537
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "readTurnActivities",
+    "bodyUnchanged": true,
+    "lines": [
+      1602,
+      1622
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "observeThreadInteractions",
+    "bodyUnchanged": true,
+    "lines": [
+      1656,
+      1684
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "nativeTurns",
+    "bodyUnchanged": true,
+    "lines": [
+      1156,
+      1168
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "createThread",
+    "bodyUnchanged": true,
+    "lines": [
+      666,
+      700
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "reconcileObservedTerminal",
+    "bodyUnchanged": true,
+    "lines": [
+      1019,
+      1032
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "handleNotification",
+    "bodyUnchanged": true,
+    "lines": [
+      1890,
+      2159
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "adoptQueuedTurn",
+    "bodyUnchanged": true,
+    "lines": [
+      1343,
+      1363
+    ]
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "readThreadSnapshot",
+    "bodyUnchanged": false,
+    "lines": [
+      968,
+      1017
+    ]
+  }
+]

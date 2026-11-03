@@ -103,6 +103,7 @@ test("Bridge terminal queue recovery records identity and result without a live 
   t.after(() => service.suspendUserInputs());
   await service.runCodexTurn({id: "message", senderId: "room", text: "", attachments: [], raw: {}}, "", [], {
     receipt: {accountId: "account", conversationId: "room", actorId: "room", sessionId: session.id, threadId: "thread", status: "completed", turnId: "done"},
-    starting() {assert.fail("no queued start");}, started(id: string) {accepted.push(id);}});
+    starting() {assert.fail("no queued start");}, started(id: string) {accepted.push(id);},
+    onResultDelivery(confirmed: boolean) {assert.equal(confirmed, true);}});
   assert.deepEqual(accepted, ["done"]); assert.deepEqual(results, ["done:ORIGINAL_FINAL"]); assert.deepEqual(activity, []);
 });
