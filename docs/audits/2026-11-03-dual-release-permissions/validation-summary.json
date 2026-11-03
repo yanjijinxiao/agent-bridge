@@ -35,13 +35,49 @@
     ]
   },
   "fixedRelease": {
-    "scope": [
+    "status": "verified",
+    "commit": "e8ac943e6fed6dbe9bfe601a4f6489c06c41d734",
+    "sourceHash": "29c36bf80d4393c73b964b404b7ad6f961e4f6fa758ebf682fe0edfdd246eee0",
+    "services": [
       "头头 Gateway",
       "探探 Gateway",
       "Linux test Connector",
       "Mac test Connector"
     ],
-    "status": "Pending activation after commit and push; final runtime receipts stored separately"
+    "nativeCorePidsPreserved": [
+      1272,
+      11238,
+      9955,
+      10115
+    ],
+    "toutou": {
+      "pid": 64746,
+      "retainedGrants": 14,
+      "authorizationTtlDays": 90,
+      "ideEndpoints": 3,
+      "originalBindingsAndAccess": "preserved"
+    },
+    "tantan": {
+      "running": true,
+      "channelConnection": "connected",
+      "restartAdmission": "open",
+      "originalLinuxBinding": "preserved"
+    },
+    "connectors": {
+      "linux": "permissions-release active, source and compiled runner hashes match",
+      "mac": "permissions-release active, compiled runner hash matches"
+    },
+    "dingtalkSmoke": {
+      "statusReplyReceived": true,
+      "originalLinuxThreadSync": "success",
+      "pairedDevicesReplyReceived": true,
+      "deviceListIncludes": [
+        "Linux CLI Connector",
+        "Mac regression Connector"
+      ],
+      "ordinaryTaskSubmitted": false,
+      "historicalUnconfirmedRecords": "Existing ambiguous/unresolved records remain visible; not replayed or cleared as part of deployment"
+    }
   },
   "coverage": {
     "cases": 378,
@@ -59,7 +95,10 @@
     "native-permissions-final.log": "7c96c46f56b8a0293d08ac5283bc107bed3b8b825ccd9ad998188c673a030698",
     "linux-permissions.log": "9df159d5978b83e6c04e55fac6a23531e275523ed6c980045e8d885f7d0398b1",
     "permissions-typecheck.log": "569495d981c843453331093c461cecbfbef7fb91d51076fc679973fd1262a400",
-    "permissions-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "permissions-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runtime-verification.json": "b4df5b70bbb049e947f6d3b7484c45deb5c89d9db4203aec298ac4895da32af4",
+    "events.ndjson": "8120b44c1ce1a8ae144f270c62938ef3985c4838114bb119dcb44c81502bc4c2",
+    "test-deploy.log": "2b87aae50dc4da75e136ee1adb9c032aca0d81bb4d0c1c189ae8e39450b74f67"
   },
   "notClaimed": [
     "Phone rendering",
