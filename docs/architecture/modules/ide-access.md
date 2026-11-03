@@ -21,3 +21,6 @@ TLS 配置文件只接受有界的普通文件。证书及私钥路径误指向 
 IDE-03.2实际启动并关闭测试自有IDE helper；随后用真实测试canary模拟旧ChildProcess数值PID被复用。保留旧对象的exitCode/signalCode事实，再次stop不得发signal，canary保持存活。此证据证明按自有进程对象及退出证据清理，未声称操作系统实际回收了该PID。
 
 IDE-03.4沿安装器upload到uploadIDEHost验证传输失败资源回收：源读取或stdin写错误立即销毁流、结束自有传输进程并清定时器；成功必须等待流复制完成及进程成功退出。只结束制品传输进程，不操作Codex任务核心。
+
+
+自动安装制品升级到官方4.141.1，支持Linux x64/ARM64、macOS Intel/Apple Silicon四个固定SHA256与长度。Linux仍要求glibc≥2.28，禁止通过修改系统库绕过兼容检查；不支持的平台保留显式已安装binary入口。ARM64选择和撤销前不激活的测试是安装合同验证，不等于Linux ARM64实际机器运行。官方完整制品校验记录见completion审计目录；原版本的运行实例不因修改pin被停止。

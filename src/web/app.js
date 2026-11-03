@@ -337,8 +337,8 @@ async function installUpdate() {
   els.updateNowButton.disabled = true;
   els.updateNowButton.querySelector("span").textContent = "更新中";
   setUpdateProgress(
-    "正在安装更新",
-    `正在连接${updateRegistryName(state.updateInfo.registry)}，微信服务将继续运行`
+    "正在准备更新",
+    `正在连接${updateRegistryName(state.updateInfo.registry)}，消息服务继续运行`
   );
   try {
     const result = await api("/api/update", { method: "POST" });
@@ -346,11 +346,11 @@ async function installUpdate() {
     state.updateInfo = { ...state.updateInfo, latestVersion: targetVersion, registry: result.registry };
     els.updateLatestVersion.textContent = `v${String(targetVersion).replace(/^v/i, "")}`;
     if (!result.restarting) {
-      throw new Error("更新已安装，但自动重启未启动，请手动重启 codex-im-gateway");
+      throw new Error("新版已准备，但尚未启动切换；当前服务继续运行，请重试更新");
     }
     setUpdateProgress(
       "正在重启服务",
-      `已通过${updateRegistryName(result.registry)}完成安装，正在恢复微信连接`
+      `已通过${updateRegistryName(result.registry)}准备新版，正在切换并核验服务`
     );
     await waitForUpdatedService(targetVersion, previousToken);
     setUpdateProgress("更新完成", "新版本已启动，正在刷新页面");
@@ -388,7 +388,7 @@ async function waitForUpdatedService(targetVersion, previousToken) {
     }
     await delay(900);
   }
-  throw new Error("新版本已安装，但服务未能自动恢复，请手动重启 codex-im-gateway");
+  throw new Error("尚未确认新版服务恢复；请刷新查看当前版本，更新失败时可能已回退旧版");
 }
 
 function resetUpdateDialog() {

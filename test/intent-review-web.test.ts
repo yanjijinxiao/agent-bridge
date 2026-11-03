@@ -149,3 +149,27 @@ for (const mode of ["refresh", "coalescing"] as const) test(`IDE activity read o
   assert.match(field("#ideEndpoints").innerHTML, /new\.example/);
   assert.doesNotMatch(field("#ideEndpoints").innerHTML, /old\.example/);
 });
+
+for (const change of ["reorder", "remove", "other-account"] as const) test(`KB-01.3: knowledge deletion keeps the clicked identity after ${change}`, async () => {
+  const pending = Promise.withResolvers<unknown>(), writes: string[] = [], inspections = new Map();
+  const original = { accountId: "account/a", id: "kb one", name: "Original" };
+  const other = { accountId: "account-b", id: "kb one", name: "Other account" };
+  const state = { knowledgeBases: [original, other] };
+  const button = { dataset: { knowledgeAction: "delete", accountId: original.accountId, knowledgeId: original.id }, disabled: false };
+  const context = vm.createContext({ state, window: { confirm: () => true }, document: { addEventListener() {} },
+    api: (url: string, options: { method: string }) => { assert.equal(options.method, "DELETE"); writes.push(url); return pending.promise; },
+    refreshData: async () => {}, toast() {}, knowledgeBaseInspections: inspections });
+  vm.runInContext(fs.readFileSync(new URL("../src/web/knowledge-bases.js", import.meta.url), "utf8"), context);
+  if (change === "reorder") state.knowledgeBases.reverse();
+  if (change === "remove") state.knowledgeBases = [other];
+  if (change === "other-account") button.dataset.accountId = other.accountId;
+  const work = context.handleKnowledgeBaseAction({ target: { closest: () => button } });
+  if (change === "remove") assert.equal(writes.length, 0, "stale removed row cannot target the remaining same-ID account");
+  else {
+    assert.deepEqual(writes, [`/api/knowledge-bases/${encodeURIComponent(change === "other-account" ? other.accountId : original.accountId)}/kb%20one`]);
+    state.knowledgeBases = [{ accountId: "new-account", id: "kb one", name: "New" }];
+  }
+  pending.resolve({}); await work;
+  assert.equal(button.disabled, false);
+  assert.equal(writes.length, change === "remove" ? 0 : 1);
+});

@@ -1,0 +1,128 @@
+[
+  {
+    "file": "src/channels/wecom.ts",
+    "symbol": "monitor",
+    "lines": [
+      44,
+      98
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/channels/wecom.ts",
+    "symbol": "sendMedia",
+    "lines": [
+      40,
+      42
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/web/app.js",
+    "symbol": "saveSettings",
+    "lines": [
+      2436,
+      2484
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/web/app.js",
+    "symbol": "waitForUpdatedService",
+    "lines": [
+      367,
+      392
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/channels/wecom-inbound.ts",
+    "symbol": "decodeWeComContent",
+    "lines": [
+      11,
+      37
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/channels/wecom-inbound.ts",
+    "symbol": "resolveWeComAttachments",
+    "lines": [
+      54,
+      93
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/codex/inbound-files.ts",
+    "symbol": "stageRemoteFiles",
+    "lines": [
+      47,
+      96
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/server/npm-release.ts",
+    "symbol": "activateNpmRelease",
+    "lines": [
+      74,
+      98
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/server/npm-release.ts",
+    "symbol": "rollbackNpmRelease",
+    "lines": [
+      108,
+      124
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/server/npm-release.ts",
+    "symbol": "readNpmRelease",
+    "lines": [
+      59,
+      70
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/server/restart-helper.ts",
+    "symbol": "waitForVersion",
+    "lines": [
+      64,
+      80
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/server/update-manager.ts",
+    "symbol": "installCurrentRuntimeVersion",
+    "lines": [
+      364,
+      447
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/server/restart.ts",
+    "symbol": "launchRestartHelper",
+    "lines": [
+      15,
+      64
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/web/app.js",
+    "symbol": "installUpdate",
+    "lines": [
+      332,
+      365
+    ],
+    "bodyUnchanged": false
+  }
+]

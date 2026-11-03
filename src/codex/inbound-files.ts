@@ -21,7 +21,16 @@ process.stdin.on('end',()=>{try{
  if(!/^[a-f0-9]{64}$/.test(h.scope)||!/^[a-f0-9]{64}$/.test(h.hash)||body.length!==h.size
  ||crypto.createHash('sha256').update(body).digest('hex')!==h.hash)throw Error();
  if(typeof h.name!=='string'||!/^\w[\w.-]{0,150}$/.test(h.name))throw Error();
- const home=fs.realpathSync(os.homedir());let dir=home;
+ // A remote node command may run through a container wrapper with HOME=/
+ // and an ephemeral /tmp. Use the selected SSH account's shell home, passed
+ // as data in argv, so staging stays in its persistent filesystem. Never
+ // guess another account or report success for a disposable temp directory.
+ const homeArg=process.argv[1]??os.homedir();
+ if(!path.isAbsolute(homeArg))throw Error();
+ const home=fs.realpathSync(homeArg),homeStat=fs.statSync(home);
+ if(home===path.parse(home).root||!homeStat.isDirectory()
+   ||(process.getuid&&homeStat.uid!==process.getuid())||(homeStat.mode&0o002)!==0)throw Error();
+ let dir=home;
  for(const name of ['.codex-im-gateway','inbound',h.scope]){
    dir=path.join(dir,name);if(!fs.existsSync(dir))fs.mkdirSync(dir,{mode:0o700});
    if(fs.lstatSync(dir).isSymbolicLink()||!fs.statSync(dir).isDirectory()||fs.realpathSync(dir)!==dir)throw Error();
@@ -42,7 +51,7 @@ export async function stageRemoteFiles(files: CodexInboundFile[], scope: string,
   if (transport.mode !== "remote-daemon" || !transport.args?.length
     || !/(?:^|\/)ssh$/.test(transport.command)) throw new Error("Remote backend has no attachment staging transport");
   const encoded = Buffer.from(INBOUND_FILE_RECEIVER).toString("base64");
-  const args = [...transport.args.slice(0, -1), `exec node -e "eval(Buffer.from('${encoded}','base64').toString())"`];
+  const args = [...transport.args.slice(0, -1), `exec node -e "eval(Buffer.from('${encoded}','base64').toString())" -- "$HOME"`];
   const output: CodexInboundFile[] = [];
   for (const file of files) {
     // Opening a FIFO can block before fstat or the SSH timeout runs. Match the

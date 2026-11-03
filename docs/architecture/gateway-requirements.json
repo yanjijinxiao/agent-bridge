@@ -213,11 +213,19 @@
         {
           "id": "NATIVE-01.3",
           "scenario": "旧 auto/exec 配置迁移后只实例化原生适配器",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/config.test.ts",
               "name": "legacy executor selectors migrate to one native adapter without changing permissions or bindings"
+            },
+            {
+              "file": "test/native-config-construction.test.ts",
+              "name": "NATIVE-01.3: migrated auto constructs one native adapter for writes and read views"
+            },
+            {
+              "file": "test/native-config-construction.test.ts",
+              "name": "NATIVE-01.3: migrated exec constructs one native adapter for writes and read views"
             }
           ],
           "implementation": [
@@ -228,14 +236,19 @@
             {
               "file": "src/codex/app-server-gateway.ts",
               "sha256": "99ad8216cb83ad4904c53cd3bb21a7c7f19798b424c6f32b50f661cbac6c9ed3"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
-          "verifiedBoundary": "旧配置输入均规范为app-server，未触碰权限/绑定；构造只一个adapter仍需实际构造场景，故不以配置断言代替。",
+          "verifiedBoundary": "实际loadConfig→公共Gateway构造（无backend注入）→原生stdio核心；auto/exec两旧配置，活跃读写同一连接，生命周期内最大1并发stdio；空闲退休后允许重新连接，权限/准入不变。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
-          }
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          },
+          "remainingBoundary": "仅以上有明确断言的边界；不外推所有原生版本、设备或任意时序。"
         },
         {
           "id": "NATIVE-01.4",
@@ -327,15 +340,22 @@
         {
           "id": "NATIVE-02.1",
           "scenario": "两个客户端继续同一线程并看到同一活动轮次",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/shared-app-server-integration.test.ts",
               "name": "one native core provides creation, unloaded continuation, goals, lifecycle, catalog and queue for both peers"
+            },
+            {
+              "file": "test/native-concurrent-control.test.ts",
+              "name": "NATIVE-02.1: concurrent peers steer the same native turn once (reconnect=false)"
+            },
+            {
+              "file": "test/native-concurrent-control.test.ts",
+              "name": "NATIVE-02.1: concurrent peers steer the same native turn once (reconnect=true)"
             }
           ],
-          "testGap": "所映射主测试是顺序续聊，不包含两个写客户端同时继续同一活动轮次的竞争；不能仅凭both peers标题宣称并发写和双观察者时序均已验证。",
-          "verifiedBoundary": "真实原生核心的diagnostics PID与Gateway serverIdentity相同；peer创建线程后Gateway顺序续聊、归档/解档再续聊，queue与历史断言输入只出现一次。",
+          "verifiedBoundary": "真实0.166核心：两个peer同时steer原活动轮次，有/无重连；同core/turn，每条clientUserMessageId一次，未另起turn。",
           "boundaryReview": {
             "date": "2026-11-02",
             "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
@@ -353,6 +373,23 @@
                 ]
               }
             ]
+          },
+          "previousTestGap": "所映射主测试是顺序续聊，不包含两个写客户端同时继续同一活动轮次的竞争；不能仅凭both peers标题宣称并发写和双观察者时序均已验证。",
+          "remainingBoundary": "仅以上有明确断言的边界；不外推所有原生版本、设备或任意时序。",
+          "implementation": [
+            {
+              "file": "src/codex/app-server-gateway.ts",
+              "sha256": "99ad8216cb83ad4904c53cd3bb21a7c7f19798b424c6f32b50f661cbac6c9ed3"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
+            }
+          ],
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -2597,6 +2634,14 @@
             {
               "file": "test/inbound-references.test.ts",
               "name": "Bridge checks actor ACL before reference reads/downloads and stages quoted files for the selected remote backend"
+            },
+            {
+              "file": "test/real-ssh-files.test.ts",
+              "name": "IN-06: real SSH binary round trip and failure isolation (tantan-linux29)"
+            },
+            {
+              "file": "test/real-ssh-files.test.ts",
+              "name": "IN-06: real SSH binary round trip and failure isolation (connector-linux12)"
             }
           ],
           "implementation": [
@@ -2609,7 +2654,7 @@
               "sha256": "ab3eea30de2b680c0dee58c456b1228c5559b36bd64cb5f1e3849f37281bc42e"
             }
           ],
-          "verifiedBoundary": "实际Bridge准备远端转存路径，远端存储与runner为替身；未在真实SSH主机读取。",
+          "verifiedBoundary": "实际Bridge准备远端转存路径，远端存储与runner为替身；未在真实SSH主机读取。 追加两台真实Linux SSH主机：image/file/video/audio完整字节与SHA、0600、重复内容地址、超限/缺失拒绝及自有目录清理；Node容器包装器与下一条SSH命令共享可读持久路径。真实供应商投递与传输中撤权组合仍未由此证明。",
           "implementationRecheck": {
             "date": "2026-11-03",
             "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
@@ -2675,6 +2720,14 @@
             {
               "file": "test/full-review-output-ownership.test.ts",
               "name": "remote media uses downloaded bytes and rechecks binding after download (changed=true)"
+            },
+            {
+              "file": "test/real-ssh-files.test.ts",
+              "name": "IN-06: real SSH binary round trip and failure isolation (tantan-linux29)"
+            },
+            {
+              "file": "test/real-ssh-files.test.ts",
+              "name": "IN-06: real SSH binary round trip and failure isolation (connector-linux12)"
             }
           ],
           "implementation": [
@@ -2699,7 +2752,7 @@
               "sha256": "5f0dd2adc5b6e3ec6be72a10e43326e24214acc74d9146c288db17e123a2d4de"
             }
           ],
-          "verifiedBoundary": "实际只读发送脚本与下载器保留文件名/完整二进制、大小与SHA256校验、超时/坏摘要拒绝及0600临时文件清理；真实Bridge在异步下载后复核线程绑定。SSH进程为隔离本机替身，渠道发送为替身；没有真实远程主机、供应商IM或手机实机验收，故仍partial。",
+          "verifiedBoundary": "实际只读发送脚本与下载器保留文件名/完整二进制、大小与SHA256校验、超时/坏摘要拒绝及0600临时文件清理；真实Bridge在异步下载后复核线程绑定。SSH进程为隔离本机替身，渠道发送为替身；没有真实远程主机、供应商IM或手机实机验收，故仍partial。 追加两台真实Linux SSH主机：image/file/video/audio完整字节与SHA、0600、重复内容地址、超限/缺失拒绝及自有目录清理；Node容器包装器与下一条SSH命令共享可读持久路径。真实供应商投递与传输中撤权组合仍未由此证明。",
           "implementationRecheck": {
             "date": "2026-11-03",
             "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
@@ -2745,14 +2798,74 @@
           "implementation": [
             {
               "file": "src/codex/inbound-files.ts",
-              "sha256": "99c5aea2033b6188fb29285f0f96d02ef77644827fb1f4f028948658815f4a7f"
+              "sha256": "694d7a1072475be6f69fbe8e562b17622ba95dc20319ad421e2e87759902382e"
             }
           ],
           "verifiedBoundary": "真实mkfifo和独立进程超时边界；没有访问真实远端。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮全文/调用边界审读后隔离验证，未宣称模块所有组合完成",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          }
+        },
+        {
+          "id": "IN-06.6",
+          "scenario": "SSH附件暂存使用当前SSH账户持久home，不受Node容器包装器HOME=/或临时文件系统影响。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/real-ssh-files.test.ts",
+              "name": "IN-06: real SSH binary round trip and failure isolation (tantan-linux29)"
+            },
+            {
+              "file": "test/real-ssh-files.test.ts",
+              "name": "IN-06: real SSH binary round trip and failure isolation (connector-linux12)"
+            },
+            {
+              "file": "test/inbound-files.test.ts",
+              "name": "remote receiver preserves bytes, reuses the same digest and rejects traversal/symlink destinations"
+            },
+            {
+              "file": "test/inbound-files.test.ts",
+              "name": "remote staging refuses non-SSH transports instead of guessing another host"
+            },
+            {
+              "file": "test/inbound-files.test.ts",
+              "name": "SSH receiver validates the explicit persistent home: owned"
+            },
+            {
+              "file": "test/inbound-files.test.ts",
+              "name": "SSH receiver validates the explicit persistent home: root"
+            },
+            {
+              "file": "test/inbound-files.test.ts",
+              "name": "SSH receiver validates the explicit persistent home: public"
+            },
+            {
+              "file": "test/inbound-files.test.ts",
+              "name": "SSH receiver validates the explicit persistent home: relative"
+            },
+            {
+              "file": "test/inbound-files.test.ts",
+              "name": "remote staging rejects a FIFO without blocking the Gateway event loop"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/inbound-files.ts",
+              "sha256": "694d7a1072475be6f69fbe8e562b17622ba95dc20319ad421e2e87759902382e"
+            },
+            {
+              "file": "src/codex/output-files.ts",
+              "sha256": "9265e49da3319ea0e5e7ff91b199ee23c2eca8c9d2d4e10d8274ddda9af75b22"
+            }
+          ],
+          "verifiedBoundary": "两真实SSH主机及本机receiver反例：显式home须绝对/非根/当前属主/非全局可写，内容地址可下一条SSH读取，往返字节一致。",
+          "remainingBoundary": "不涵盖所有远端部署、任意断线或所有系统用户映射。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         }
       ]
@@ -3753,14 +3866,14 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
           "verifiedBoundary": "真实Web脚本VM DOM替身按精确组合筛选，非真实浏览器布局验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -3776,14 +3889,14 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
           "verifiedBoundary": "Web handler只导航，重复原生ID仍按account+managed record；非手机导航验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -4813,6 +4926,14 @@
             {
               "file": "test/transparent-forwarding.test.ts",
               "name": "ordinary IM rechecks access after attachment preparation"
+            },
+            {
+              "file": "test/native-concurrent-control.test.ts",
+              "name": "CTRL-01.3: steer checks revoked source after native connection preparation"
+            },
+            {
+              "file": "test/native-concurrent-control.test.ts",
+              "name": "CTRL-01.3: interrupt checks revoked source after native connection preparation"
             }
           ],
           "implementation": [
@@ -5407,11 +5528,15 @@
         {
           "id": "CTRL-04.1",
           "scenario": "停止空闲线程不误停另一活动线程",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/execution-owner-routing.test.ts",
               "name": "ordinary active input, strict steering and stops preserve their native identity and source guard"
+            },
+            {
+              "file": "test/native-concurrent-control.test.ts",
+              "name": "CTRL-04.1: stopping an idle thread does not interrupt a different active native turn"
             }
           ],
           "implementation": [
@@ -5424,12 +5549,13 @@
               "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
-          "verifiedBoundary": "host/thread/turn精确参数与source，空闲另一thread的真实并行stop需独立native反例。",
+          "verifiedBoundary": "真实核心同时有空闲和活动两个线程；stop空闲返回not-active，另一精确turn保持inProgress并正常完成，输入一次。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
-          }
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          },
+          "remainingBoundary": "仅以上有明确断言的边界；不外推所有原生版本、设备或任意时序。"
         },
         {
           "id": "CTRL-04.2",
@@ -5782,7 +5908,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             },
             {
               "file": "src/bridge/service.ts",
@@ -5792,8 +5918,8 @@
           "verifiedBoundary": "首屏和status不挡的各自故障已覆盖；Taskboard挂起时IMstatus的联合场景未专测。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -6020,11 +6146,15 @@
         {
           "id": "AUTH-02.2",
           "scenario": "重复决定/多管理员竞争只生效一次",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/admission.test.ts",
               "name": "a decision is exact to provider, account, request, version and selected actor/group scope; stale and duplicate commands fail closed"
+            },
+            {
+              "file": "test/admission.test.ts",
+              "name": "AUTH-02.2: competing enrolled admins grant one exact admission scope, including reentry during ACL persistence"
             }
           ],
           "implementation": [
@@ -6033,7 +6163,13 @@
               "sha256": "0691cbc353fefafa1cbe421d497bf5c3cf6a6253784310a1ffa246638b1d5b41"
             }
           ],
-          "verifiedBoundary": "version及重复决定已验证；多个管理员真正并发异步竞争尚无独立场景。"
+          "verifiedBoundary": "同一真实AdmissionService上两名明确登记管理员竞争不同授权scope；持久applying后ACL回调重入也拒绝；只授申请人一次，不授整个群，重建不重放。原生工具审批另属INT-04.2。",
+          "remainingBoundary": "仅以上有明确断言的边界；不外推所有原生版本、设备或任意时序。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          }
         },
         {
           "id": "AUTH-02.3",
@@ -6300,7 +6436,7 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "51ebdd3e0172bd80b5ad6f2d85ef40b4ebaa763a084a6d2c3a51ccc46b78c812"
+              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
             },
             {
               "file": "src/bridge/approval.ts",
@@ -6313,8 +6449,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -6436,10 +6572,18 @@
             {
               "file": "test/shared-app-server-integration.test.ts",
               "name": "a shared-core approval survives observer restart with the exact native request id and no synthetic refusal"
+            },
+            {
+              "file": "test/native-approval-receipt.test.ts",
+              "name": "INT-02.3: a real native decision is not replayed after reconnect (lostConfirmation=false)"
+            },
+            {
+              "file": "test/native-approval-receipt.test.ts",
+              "name": "INT-02.3: a real native decision is not replayed after reconnect (lostConfirmation=true)"
             }
           ],
           "testGap": "没有审批决定已写但确认丢失后的再重连，也没有所有typed审批种类/多个决策者竞争或IM实际投递；不能从pending请求重放外推决定未知恢复。",
-          "verifiedBoundary": "真实原生执行产生待审批工具，observer关闭并重建后看到与peer相同typed request ID和thread；等待时没有resolved事件或模型重启，选择原请求拒绝项后恰有一次resolved且结果confirmed。",
+          "verifiedBoundary": "真实原生执行产生待审批工具，observer关闭并重建后看到与peer相同typed request ID和thread；等待时没有resolved事件或模型重启，选择原请求拒绝项后恰有一次resolved且结果confirmed。 追加真实原生命令审批拒绝：正常确认/丢确认两组，原请求决定一次，重连不重放，持久journal不含敏感命令；未验实际供应商自动审核及所有工具种类。",
           "boundaryReview": {
             "date": "2026-11-02",
             "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
@@ -6898,6 +7042,14 @@
             {
               "file": "test/approval-http.test.ts",
               "name": "protected Web API and IM consume the same scoped approval exactly once"
+            },
+            {
+              "file": "test/approval-http.test.ts",
+              "name": "INT-04.2: concurrent two-web-clients consume one approval version once"
+            },
+            {
+              "file": "test/approval-http.test.ts",
+              "name": "INT-04.2: concurrent im-and-web consume one approval version once"
             }
           ],
           "implementation": [
@@ -6907,14 +7059,14 @@
             },
             {
               "file": "src/server/http-server.ts",
-              "sha256": "51ebdd3e0172bd80b5ad6f2d85ef40b4ebaa763a084a6d2c3a51ccc46b78c812"
+              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
             }
           ],
-          "verifiedBoundary": "实际本地HTTP/IM同approvalId version，重复决定失效；问题答案同竞态仍需另例。",
+          "verifiedBoundary": "实际本地HTTP/IM同approvalId version，重复决定失效；问题答案同竞态仍需另例。 补并发两个Web客户端及IM/Web命令审批决定；请求版本只消耗一次，迟到另一方409；问题答案竞态仍未包含。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -7591,14 +7743,14 @@
             },
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
           "verifiedBoundary": "真实hub+管理HTTP+隔离Chrome及IM文案联合：原生完成/idle但投递失败保留pending；渠道回执后显示已接收，不声称手机已显示。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -8946,14 +9098,14 @@
             },
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
           "verifiedBoundary": "copy panel只复制、不决定，原生表单直接提交；所有IM复制按钮原生行为不是本机DOM证据。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -8969,7 +9121,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             },
             {
               "file": "src/ide/copy-controls.ts",
@@ -8979,8 +9131,8 @@
           "verifiedBoundary": "管理UI roots普通展示不复制；模型输出的任意目录树/enum不能仅靠这个表单测试外推。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         }
       ]
@@ -9019,10 +9171,15 @@
             },
             {
               "file": "src/channels/wecom.ts",
-              "sha256": "2f689e9c592f71b9290c3562508276b5e886fb6a5d3d2644f8fb00e6df52b997"
+              "sha256": "086c4385a4e3090346d1d6efe37e041e3ca7395676de547687b6d378a763c1fa"
             }
           ],
-          "verifiedBoundary": "生产adapter输入的业务失败/缺回执被拒绝，不造成功messageId，SDK/fetch替身。"
+          "verifiedBoundary": "生产adapter输入的业务失败/缺回执被拒绝，不造成功messageId，SDK/fetch替身。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          }
         },
         {
           "id": "CHAN-01.2",
@@ -9037,10 +9194,15 @@
           "implementation": [
             {
               "file": "src/channels/wecom.ts",
-              "sha256": "2f689e9c592f71b9290c3562508276b5e886fb6a5d3d2644f8fb00e6df52b997"
+              "sha256": "086c4385a4e3090346d1d6efe37e041e3ca7395676de547687b6d378a763c1fa"
             }
           ],
-          "verifiedBoundary": "actor与群target分离、清listener；完整role升级组合未在adapter内证明。"
+          "verifiedBoundary": "actor与群target分离、清listener；完整role升级组合未在adapter内证明。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          }
         },
         {
           "id": "CHAN-01.3",
@@ -9114,14 +9276,19 @@
           "implementation": [
             {
               "file": "src/channels/wecom.ts",
-              "sha256": "2f689e9c592f71b9290c3562508276b5e886fb6a5d3d2644f8fb00e6df52b997"
+              "sha256": "086c4385a4e3090346d1d6efe37e041e3ca7395676de547687b6d378a763c1fa"
             },
             {
               "file": "src/channels/mentions.ts",
               "sha256": "89d22769bf1b823903cf3209aacd449633df4d3619aa6acf3756f6bd7fea9051"
             }
           ],
-          "verifiedBoundary": "实际adapter monitor接收受控single/group/unknown/缺失字段，以及all、@all、空格/标签、number/null；single回复actor不被多余chatid改目标，group缺少chatid在持久认领前拒绝，未知种类不猜群。仅来源身份，不声称已实现企微原生出站@。"
+          "verifiedBoundary": "实际adapter monitor接收受控single/group/unknown/缺失字段，以及all、@all、空格/标签、number/null；single回复actor不被多余chatid改目标，group缺少chatid在持久认领前拒绝，未知种类不猜群。仅来源身份，不声称已实现企微原生出站@。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          }
         }
       ]
     },
@@ -9654,7 +9821,7 @@
           "implementation": [
             {
               "file": "src/channels/wecom.ts",
-              "sha256": "2f689e9c592f71b9290c3562508276b5e886fb6a5d3d2644f8fb00e6df52b997"
+              "sha256": "086c4385a4e3090346d1d6efe37e041e3ca7395676de547687b6d378a763c1fa"
             },
             {
               "file": "src/channels/wecom-media.ts",
@@ -9669,7 +9836,12 @@
               "sha256": "7e98b1f41702f2e9c5baf340d0e20ae27df46e6afe95c03b85b76685dd2f384a"
             }
           ],
-          "verifiedBoundary": "实际官方WeCom SDK对隔离WebSocket核file两分片原bytes、filename、type、MD5、关联req_id与一次消息；三种媒体的调用参数/拒绝与缺key/缺ACK/未知发送使用受控SDK端口，真实Bridge与动作日志重建确认/未知均不重传。SDK100×512KiB预算精确边界、空/目录拒绝；未连接真实平台，未证明所有类型/格式/企业策略已通过。"
+          "verifiedBoundary": "实际官方WeCom SDK对隔离WebSocket核file两分片原bytes、filename、type、MD5、关联req_id与一次消息；三种媒体的调用参数/拒绝与缺key/缺ACK/未知发送使用受控SDK端口，真实Bridge与动作日志重建确认/未知均不重传。SDK100×512KiB预算精确边界、空/目录拒绝；未连接真实平台，未证明所有类型/格式/企业策略已通过。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          }
         },
         {
           "id": "CHAN-03.9",
@@ -9753,6 +9925,86 @@
             "date": "2026-11-03",
             "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
             "report": "docs/audits/2026-11-03-tantan-regression/README.md"
+          }
+        },
+        {
+          "id": "CHAN-03.10",
+          "scenario": "企微入站文字/语音转写/图片/文件/视频/混排和引用遵守身份、准入后下载、密文字节预算及部分失败清理。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom image decrypts exact binary bytes only after explicit attachment resolution"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom file decrypts exact binary bytes only after explicit attachment resolution"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom video decrypts exact binary bytes only after explicit attachment resolution"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom mixed/voice/quoted input preserves command boundaries and unsupported metadata"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom inbound missing-key never returns partial content or leaks signed credentials"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom inbound insecure-url never returns partial content or leaks signed credentials"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom inbound oversize never returns partial content or leaks signed credentials"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom inbound corrupt never returns partial content or leaks signed credentials"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom inbound http never returns partial content or leaks signed credentials"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom inbound timeout never returns partial content or leaks signed credentials"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom inbound storage never returns partial content or leaks signed credentials"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom inbound partial-write never returns partial content or leaks signed credentials"
+            },
+            {
+              "file": "test/wecom-inbound.test.ts",
+              "name": "WeCom inbound second-file never returns partial content or leaks signed credentials"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/wecom.ts",
+              "sha256": "086c4385a4e3090346d1d6efe37e041e3ca7395676de547687b6d378a763c1fa"
+            },
+            {
+              "file": "src/channels/wecom-inbound.ts",
+              "sha256": "d1baf9dcaa84e1b378dbcad5b294b3f58a810f2e6a78f48d3e793992e8c9d475"
+            },
+            {
+              "file": "src/channels/factory.ts",
+              "sha256": "f39cb2eb02594d514f24465c94da63541a25dbcdc3b29a8cdf92dfe4391ffa85"
+            }
+          ],
+          "verifiedBoundary": "真实官方SDK AES解密+受控下载/事件，精确二进制与0600、凭据移除、缺密钥/HTTP/超限/总超时/坏密文/磁盘部分写入/第二文件失败均不提交部分内容。",
+          "remainingBoundary": "没有真实企业微信账号及手机验收；语音只有转写，不声称提供原音频；原生@合同未确认。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         }
       ]
@@ -10739,15 +10991,32 @@
             {
               "file": "test/ide-installer.test.ts",
               "name": "unsupported platform, old libc, revoked permission and custom binaries fail without system changes"
+            },
+            {
+              "file": "test/ide-installer.test.ts",
+              "name": "Linux ARM64 installation uses its own pinned asset and ABI boundary (2.17)"
+            },
+            {
+              "file": "test/ide-installer.test.ts",
+              "name": "Linux ARM64 installation uses its own pinned asset and ABI boundary (2.28)"
+            },
+            {
+              "file": "test/ide-installer.test.ts",
+              "name": "Linux ARM64 installation uses its own pinned asset and ABI boundary (2.39)"
             }
           ],
           "implementation": [
             {
               "file": "src/ide/installer.ts",
-              "sha256": "e658f1d2794181ff9203de46c6650ba9a6bb57228dd1bd71e59d57efd8279b7c"
+              "sha256": "777adf8c33ac5b9ebecf437af566eb0dd7dc93879e15bfac2ba09251a53c5ac7"
             }
           ],
-          "verifiedBoundary": "平台/制品选择、激活前撤销保旧版；下载fixture，真实平台安装/hash独立核验仍不足。"
+          "verifiedBoundary": "平台/制品选择、激活前撤销保旧版；下载fixture，真实平台安装/hash独立核验仍不足。 增加Linux ARM64 pin、glibc 2.17拒绝/2.28与2.39成功替身；四种官方4.141.1摘要/HEAD大小核对，实际制品下载另留记录，ARM64 Linux ABI未实机运行。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          }
         },
         {
           "id": "IDE-08.2",
@@ -11105,7 +11374,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             },
             {
               "file": "src/web/knowledge-bases.js",
@@ -11116,8 +11385,8 @@
           "testGap": "实际Web脚本VM与DOM替身逐handler核对归属；Taskboard iframe内部App的来源与提交另由TB-09记录，不由本组VM场景证明。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -11141,7 +11410,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             },
             {
               "file": "src/web/knowledge-bases.js",
@@ -11151,8 +11420,8 @@
           "verifiedBoundary": "知识绑定焦点/保存及QR代次保护；全部脏表单组合不由三个例子外推。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -11169,18 +11438,18 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "51ebdd3e0172bd80b5ad6f2d85ef40b4ebaa763a084a6d2c3a51ccc46b78c812"
+              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
             },
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
           "verifiedBoundary": "生产HTML/JS+真实HTTP服务重启+隔离Chrome旧DOM：失效token明确未提交才握手重做一次；服务已提交后模拟响应丢失，不重做。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -11291,7 +11560,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             },
             {
               "file": "src/web/knowledge-bases.js",
@@ -11300,8 +11569,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -11311,7 +11580,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
           "tests": [
@@ -11323,8 +11592,8 @@
           "verifiedBoundary": "实际页面函数VM；候选生成和明确选择，非375px视觉验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -11390,14 +11659,14 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
           "verifiedBoundary": "VM生产handler默认值验证，不执行真实平台发消息。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -11425,14 +11694,14 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
           "verifiedBoundary": "生产JS VM及生产HTML/CSS/HTTP的独立Chrome，临时Gateway数据；不是手机实机。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -11517,14 +11786,14 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
           "verifiedBoundary": "真实bootstrap/refresh/settings处理器VM场景，Taskboard无限等待不挡核心展示和反馈。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -11541,7 +11810,7 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "51ebdd3e0172bd80b5ad6f2d85ef40b4ebaa763a084a6d2c3a51ccc46b78c812"
+              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
             },
             {
               "file": "src/taskboard/lifecycle.ts",
@@ -11549,14 +11818,14 @@
             },
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
           "verifiedBoundary": "生产管理页原生启用按钮→HTTP→同一TaskboardLifecycle→真实嵌入服务；禁用无iframe src，启用一次且Gateway PID不变。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -11573,7 +11842,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             },
             {
               "file": "src/web/styles.css",
@@ -11588,8 +11857,8 @@
           "testGap": "实际生产管理页375px Chrome及全部表单已补；真实手机浏览器/键盘/字体环境仍未验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -11613,7 +11882,7 @@
             },
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             },
             {
               "file": "src/web/ide.js",
@@ -11623,8 +11892,8 @@
           "verifiedBoundary": "隔离Chrome加载实际管理页及CSS，检查显示状态及可恢复性；不等同手机实机。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         }
       ]
@@ -12149,7 +12418,7 @@
         {
           "id": "KB-01.3",
           "scenario": "旧列表删除按稳定ID、保存迟到不改新窗口",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/intent-review-web.test.ts",
@@ -12158,6 +12427,18 @@
             {
               "file": "test/intent-review-web.test.ts",
               "name": "a retired knowledge save cannot close or overwrite a newer dialog: failure"
+            },
+            {
+              "file": "test/intent-review-web.test.ts",
+              "name": "KB-01.3: knowledge deletion keeps the clicked identity after reorder"
+            },
+            {
+              "file": "test/intent-review-web.test.ts",
+              "name": "KB-01.3: knowledge deletion keeps the clicked identity after remove"
+            },
+            {
+              "file": "test/intent-review-web.test.ts",
+              "name": "KB-01.3: knowledge deletion keeps the clicked identity after other-account"
             }
           ],
           "implementation": [
@@ -12166,12 +12447,13 @@
               "sha256": "d63dcaac4778dd139ed6bcd8d60e26402c2ac3ab81f4a1ecba539b72c111d001"
             }
           ],
-          "verifiedBoundary": "迟到保存归属由实际VMhandler验证；列表删除的稳定ID/重排场景尚缺。",
+          "verifiedBoundary": "实际生产VM handler：点击后列表重排/删除/同ID另一账号，删除URL仍是原account+ID；迟到保存不关闭或改写新窗口。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
-          }
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          },
+          "remainingBoundary": "仅以上有明确断言的边界；不外推所有原生版本、设备或任意时序。"
         },
         {
           "id": "KB-01.4",
@@ -12263,7 +12545,7 @@
             },
             {
               "file": "src/server/restart.ts",
-              "sha256": "570560ce16ced8fe328f5327c324cf6d0319e5dca88e46b8fb7f1535b792d800"
+              "sha256": "83bc1c6d2560f0b37981b117ada87a227461e985f3e17101e74cbaa1cd289795"
             },
             {
               "file": "src/bridge/service.ts",
@@ -12273,8 +12555,8 @@
           "verifiedBoundary": "真实Web/Bridge业务计数分界，native通过fixture接收；accept落盘失败的整个release组合还需联动。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -12763,13 +13045,18 @@
           "implementation": [
             {
               "file": "src/server/update-manager.ts",
-              "sha256": "54a0c8fb6d82d1fc42b5ab9d21238ce384410631a44187242b8e2340c5230d35"
+              "sha256": "8bcf5915f5715fd1451e503ca76a90efa9be4ccb6f2465a42966c4d23b1b6dec"
             },
             {
               "file": "src/channels/network-request.ts",
               "sha256": "1b94f2539390a4629fc0267ee69cac6733b0e67e136187bf32961d1f9e445844"
             }
-          ]
+          ],
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          }
         },
         {
           "id": "REL-02.5",
@@ -12816,18 +13103,18 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "51ebdd3e0172bd80b5ad6f2d85ef40b4ebaa763a084a6d2c3a51ccc46b78c812"
+              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
             },
             {
               "file": "src/server/index.ts",
-              "sha256": "f276761afe2dbe6bd089db0cfd762d564809da0e45845499ac6b2a967e932239"
+              "sha256": "28b47b0af5b68b990755fc2a33823ed4f84501125eb3a8e25f35a46685ce67cd"
             }
           ],
           "verifiedBoundary": "独立子进程内真实AccountManager及HTTP，注入重启回调结果；index实际helper启动失败仅代码审读，不是生产重启验证。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮全文/调用边界审读后隔离验证，未宣称模块所有组合完成",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -12901,10 +13188,103 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "de36500d3c5769d9e7754eab66d24c0d6e1387254eea0794673e90e89ceebb36"
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
             }
           ],
-          "verifiedBoundary": "生产轮询函数VM+真实隔离本地HTTP停滞；未执行安装或服务重启，当前源码模式不走npm更新。"
+          "verifiedBoundary": "生产轮询函数VM+真实隔离本地HTTP停滞；未执行安装或服务重启，当前源码模式不走npm更新。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          }
+        },
+        {
+          "id": "REL-02.9",
+          "scenario": "npm更新隔离准备，旧Gateway退出后替换程序，新版健康确认失败恢复旧程序，不回滚业务状态。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/npm-release.test.ts",
+              "name": "npm release prepares isolated dependencies, activates, confirms and rolls back program bytes only"
+            },
+            {
+              "file": "test/npm-release.test.ts",
+              "name": "npm release recovers the rename before its phase receipt (backup)"
+            },
+            {
+              "file": "test/npm-release.test.ts",
+              "name": "npm release recovers the rename before its phase receipt (activation)"
+            },
+            {
+              "file": "test/npm-release.test.ts",
+              "name": "npm release refuses changed candidate before replacing the original"
+            },
+            {
+              "file": "test/npm-release.test.ts",
+              "name": "npm release refuses changed live before replacing the original"
+            },
+            {
+              "file": "test/npm-release.test.ts",
+              "name": "npm release refuses changed external-link before replacing the original"
+            },
+            {
+              "file": "test/npm-release.test.ts",
+              "name": "npm activation failure restores the original without deleting the prepared candidate"
+            },
+            {
+              "file": "test/npm-release.test.ts",
+              "name": "real npm restart helper activates or restores the runtime after health confirmation (true)"
+            },
+            {
+              "file": "test/npm-release.test.ts",
+              "name": "real npm restart helper activates or restores the runtime after health confirmation (false)"
+            },
+            {
+              "file": "test/update-restart-failure.test.ts",
+              "name": "npm preparation keeps admission open until a concrete release is ready"
+            },
+            {
+              "file": "test/release-admission.test.ts",
+              "name": "web updater prepares separately but refuses activation during a local handoff and leaves admission open on preparation failure"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/npm-release.ts",
+              "sha256": "ae17dcc16c95c4d870416c26a4b17f6903a4becd3c9018e91500c66d4da1fa86"
+            },
+            {
+              "file": "src/server/update-manager.ts",
+              "sha256": "8bcf5915f5715fd1451e503ca76a90efa9be4ccb6f2465a42966c4d23b1b6dec"
+            },
+            {
+              "file": "src/server/restart-helper.ts",
+              "sha256": "3e5bd3325a3a7f38f6abb636b7e5bb85439c614abec6fba0f49eeb33653a7ee3"
+            },
+            {
+              "file": "src/server/restart.ts",
+              "sha256": "83bc1c6d2560f0b37981b117ada87a227461e985f3e17101e74cbaa1cd289795"
+            },
+            {
+              "file": "src/server/http-server.ts",
+              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
+            },
+            {
+              "file": "src/server/index.ts",
+              "sha256": "28b47b0af5b68b990755fc2a33823ed4f84501125eb3a8e25f35a46685ce67cd"
+            },
+            {
+              "file": "src/web/app.js",
+              "sha256": "aa99c64edb8bf671143ed6e80e8543de82c314f40febbce17cd8a2ef08de8968"
+            }
+          ],
+          "verifiedBoundary": "真实测试子进程成功/启动失败回退，目录rename丢阶段确认/EBUSY、候选变更/外链拒绝、原状态保持、准备期间消息准入开放、交接忙拒绝激活。",
+          "remainingBoundary": "npm CLI隔离制品为测试fixture，未声称真实registry发布/Windows实机/断电或helper死亡后服务管理器自动恢复；源码部署继续原release-local。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
+          }
         }
       ]
     },
@@ -13407,13 +13787,13 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "51ebdd3e0172bd80b5ad6f2d85ef40b4ebaa763a084a6d2c3a51ccc46b78c812"
+              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         },
         {
@@ -13430,13 +13810,13 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "51ebdd3e0172bd80b5ad6f2d85ef40b4ebaa763a084a6d2c3a51ccc46b78c812"
+              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
+            "report": "docs/audits/2026-11-03-completion/README.md"
           }
         }
       ]
@@ -15618,13 +15998,13 @@
     }
   },
   "currentSummary": {
-    "audit": "2026-11-03-full-four-layer",
+    "audit": "2026-11-03-completion",
     "requirements": 86,
-    "cases": 374,
-    "mappedCases": 374,
-    "recordedNarrowVerified": 268,
-    "partialCases": 106,
-    "selectedFunctionContracts": 174,
-    "note": "Current exact test names and implementation hashes reconciled against completed isolated regressions. 106 partial cases retain their limits; no production or physical-device acceptance inferred."
+    "cases": 381,
+    "mappedCases": 381,
+    "recordedNarrowVerified": 281,
+    "partialCases": 100,
+    "selectedFunctionContracts": 198,
+    "note": "增量复核及同版本回归；历史partial保留边界，不将缺失设备/账号或33kind执行器冒充完成。"
   }
 }

@@ -197,15 +197,20 @@ test("replacement verification refreshes process credentials and refuses a chang
   await finishRuntimeRelease(origin, id, 222, request); assert.equal(cancellations, 1);
 });
 
-test("web updater refuses active work before installation and clears its admission on install failure", async t => {
-  const f = fixture(t); let installs = 0;
+test("web updater prepares separately but refuses activation during a local handoff and leaves admission open on preparation failure", async t => {
+  const f = fixture(t); let installs = 0, failPreparation = false;
   const server = await startLocalHttpServer({ paths: f.paths, port: 0, accountManager: f.manager,
-    updateService: { async check() { return {} as never; }, async installLatest() { installs++; throw Error("injected install failure"); } } });
+    updateService: { async check() { return {} as never; }, async installLatest() {
+      installs++; if (failPreparation) throw Error("injected install failure");
+      return { version: "1.2.3", registry: "npm" } as never;
+    } } });
   t.after(() => server.close());
   const request = () => fetch(`${server.url}/api/update`, { method: "POST", headers: { Origin: server.url, "X-Codex-Im-Gateway-Token": server.requestToken } });
   f.internal.respondingSessions.set("running", 1);
-  assert.equal((await request()).status, 409); assert.equal(installs, 0);
+  assert.equal((await request()).status, 409); assert.equal(installs, 1);
+  assert.doesNotThrow(() => f.internal.assertRuntimeWritable());
   f.internal.respondingSessions.clear();
-  assert.equal((await request()).status, 500); assert.equal(installs, 1);
+  failPreparation = true;
+  assert.equal((await request()).status, 500); assert.equal(installs, 2);
   assert.doesNotThrow(() => f.internal.assertRuntimeWritable());
 });

@@ -46,3 +46,10 @@ Bridge仍以显式send动作触发；TurnResultActions在外部I/O前持久认�
 ## 微信二维码回执
 
 创建/轮询 QR 的显式非零 ret 先于状态字段检查；错误响应中的旧二维码、connected 或 redirect_host 不得发布账号或改变轮询目的地。旧成功 GET 响应缺省 ret 仍兼容。失败只展示安全数字码，不把原始 errmsg 输出给用户；QR 自身到期仍优先终止轮询。CHAN-04.5 验证真实登录类与替身 HTTP 回执，不代表实际扫码验收。
+
+
+## 企微入站内容
+
+WeComChannelAdapter订阅SDK的text/image/mixed/file/video/voice事件；统一核验消息ID、操作者和群ID，引用保存为独立资料。voice只包含平台转写，不能伪装成已下载音频。factory透传现有inboundDir/大小配置；Bridge通过原准入链路后才调用resolveAttachments。
+
+wecom-inbound使用有总时限与密文字节上限的fetchWithBudget，再调用官方SDK的AES解密；验证明文大小、保存0600随机私有文件，解析安全文件名。下载凭据从已解析附件移除，不进入错误日志；第二个附件失败或磁盘部分写入失败会清理本次创建的文件，整条输入失败，不能只提交剩余文字。CHAN-03.10为官方解密+受控传输/事件的精确用例。原生@仍未确认长连接接口合同，不以webhook参数或普通@文字代替；实际企微账号/手机另验。

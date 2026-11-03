@@ -1,0 +1,85 @@
+{
+  "date": "2026-11-03",
+  "baseline": "e9ea62f",
+  "rootRegression": {
+    "tests": 3119,
+    "passed": 3117,
+    "failed": 0,
+    "skipped": 2,
+    "skips": [
+      "Windows-only",
+      "real SSH opt-in; separately ran 2 actual hosts successfully"
+    ]
+  },
+  "targetedAfterRoot": [
+    "approval case title correction: 3 passed",
+    "WeCom whitespace-only final file: 13 passed"
+  ],
+  "realSSH": {
+    "hosts": 2,
+    "passed": 2,
+    "scope": "four attachment kinds, full bytes/hash/0600/idempotent path and owned cleanup"
+  },
+  "typecheckAndIsolatedBuild": "passed",
+  "previousTaskboardEvidence": "unchanged sources/tests retain prior exact-SHA results; no new Taskboard runtime or UI changes",
+  "readScope": "previous full ledger plus specifically listed delta ranges; no blanket new all-lines assertion",
+  "evidence": [
+    {
+      "name": "completion-root-full.log",
+      "sha256": "9e4374814954761051d125e75bdee002c827b49094e93700b79518085bbc93c0",
+      "bytes": 662683
+    },
+    {
+      "name": "completion-root-final.log",
+      "sha256": "85e001b11a80569c2cdb4595df50498440bcb8b410ed35b36630432d67bce7cb",
+      "bytes": 666482
+    },
+    {
+      "name": "completion-root-verified.log",
+      "sha256": "e53bfb8e19b6a019e1b537d33809bc7c7d06889f51cef7a953f8d0a59a328b66",
+      "bytes": 664797
+    },
+    {
+      "name": "completion-ssh-verified.log",
+      "sha256": "751dc852d8d749c23fd66adebb810b64f2fad329fa182a4f6d412e2931514208",
+      "bytes": 304
+    },
+    {
+      "name": "completion-approval-final.log",
+      "sha256": "a58ee5914e05feeb78d12cfc03d982a72faa3a00d5bae7c82043e0ebffb65015",
+      "bytes": 375
+    },
+    {
+      "name": "completion-wecom-sealed.log",
+      "sha256": "ae779c65d3e1979283ca7bd13cf436a02ad4e33bb171f9928e38dcab8991d62e",
+      "bytes": 1401
+    },
+    {
+      "name": "completion-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "name": "completion-real-ssh.log",
+      "sha256": "f82a6357f5814f5520f6d6a734a854fd062d99527f57569326da31df9a515053",
+      "bytes": 1316
+    },
+    {
+      "name": "completion-real-ssh-fixed.log",
+      "sha256": "a9d9854572d9635d9a5e5e0783389ece4ff1309dae5d98378c83611019d1b26f",
+      "bytes": 1388
+    }
+  ],
+  "deployment": "pending",
+  "remaining": [
+    "100 partial requirements retain environment and combination limits",
+    "WeCom native mentions contract and real account",
+    "Workflow 33-kind executor not implemented",
+    "physical phone, Windows, Linux ARM64 ABI"
+  ],
+  "buildPreparationIncident": {
+    "temporaryWebCopyToOldRuntime": true,
+    "restoredTreeHash": "8564ba2c9d346c3b1acb4b712b733ca6b376c8abdf05258d6900a9d50ab2f81b",
+    "gatewayOrCoreRestarted": false
+  }
+}

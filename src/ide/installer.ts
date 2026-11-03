@@ -7,18 +7,19 @@ import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import { runIDEHost, uploadIDEHost } from "./host-command.js";
 
 const exec = promisify(execFile);
-export const CODE_SERVER_VERSION = "4.141.0";
+export const CODE_SERVER_VERSION = "4.141.1";
 export type IDEAsset = { version: string; name: string; directory: string; sha256: string; size: number; url: string };
 // Pinned official GitHub release asset digest; unsupported platforms fail closed.
 // Add a platform only together with its independently verified release checksum.
 const ASSET_PINS: Record<string, { suffix: string; size: number; sha256: string }> = {
-  "linux-x64": { suffix: "linux-amd64", size: 239_926_515, sha256: "65bcd20b524d03eb1b5adb7f360244599ef0e5b74089a46a982d32c074b97a29" },
-  "darwin-x64": { suffix: "macos-amd64", size: 231_091_669, sha256: "b133e002c2a1a4f22b2ec42c5f233147f342b592e2eadcacc51703a86f447f77" },
-  "darwin-arm64": { suffix: "macos-arm64", size: 210_608_428, sha256: "ab45ad960725bdcdfb92998ef54feb2f479079224315ce44a4f49c54093453c9" }
+  "linux-x64": { suffix: "linux-amd64", size: 240_102_020, sha256: "45fd3cfbff9fd0c36fe37105859b0f4f7a0544341ca4e322657f5b3caeca1cbe" },
+  "linux-arm64": { suffix: "linux-arm64", size: 234_750_384, sha256: "898903adc4d28dc23b9147073afe36fcafdb49e6ada8e1007bfc62a330ff9315" },
+  "darwin-x64": { suffix: "macos-amd64", size: 231_229_260, sha256: "1e738afeacab655ca063d34c9b651f38a3328002a14a3bf0aa8fe16d41dd19ca" },
+  "darwin-arm64": { suffix: "macos-arm64", size: 210_751_651, sha256: "49535c4c908a499814cc32774bdbb7f23ae42fa301384ab9cf81434915f4279d" }
 };
 export function codeServerAsset(platform: string, arch: string): IDEAsset {
   const pin = ASSET_PINS[`${platform}-${arch}`];
-  if (!pin) throw new Error("自动安装暂支持 Linux x64、macOS Intel / Apple Silicon；其他平台请配置已安装的 code-server 绝对路径");
+  if (!pin) throw new Error("自动安装暂支持 Linux x64 / ARM64、macOS Intel / Apple Silicon；其他平台请配置已安装的 code-server 绝对路径");
   const directory = `code-server-${CODE_SERVER_VERSION}-${pin.suffix}`, name = `${directory}.tar.gz`;
   return { version: CODE_SERVER_VERSION, directory, name, size: pin.size, sha256: pin.sha256,
     url: `https://github.com/coder/code-server/releases/download/v${CODE_SERVER_VERSION}/${name}` };

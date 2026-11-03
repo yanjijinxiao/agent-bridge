@@ -1,0 +1,19 @@
+{
+  "status": "in-progress",
+  "errors": [],
+  "summary": {
+    "baselineFiles": 939,
+    "addedFiles": 0,
+    "fullyRead": 809,
+    "artifactsInspected": 105,
+    "partiallyRead": 16,
+    "unread": 9,
+    "cases": 381,
+    "casesWithTests": 381,
+    "verifiedCases": 281
+  },
+  "functionContracts": {
+    "recorded": 198,
+    "scope": "Selected manually reviewed functions only; not all-repository function coverage."
+  }
+}

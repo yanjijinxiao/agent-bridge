@@ -8,7 +8,7 @@ AccountManager 的同一 release lease 只保护 Gateway 尚在提交的原生�
 
 Taskboard 借用同一个根原生端口并参与同一 release participant；freeze 同步阻止新输入/明确停止/答案提交，取消发布恢复。停止 Gateway 退休观察和本地资源，不 interrupt 原生任务、不重发已接收或回执未知输入。显式私有 stdio 仍是宿主生命周期，不能承诺 daemon 的隔离保证。
 
-网页 npm 更新入口也遵守同一归属：安装后异步启动重启助手必须把成功/失败回传给持有 release lease 的 HTTP 层。启动失败应释放本次 lease，保留当前 Gateway 服务；不能只在后台打印错误并永久冻结输入。HTTP 返回的 restarting 表示已安排重启，实际上线仍需运行版本验收。
+网页 npm 更新入口也遵守同一归属：独立目录准备制品后异步启动重启助手必须把成功/失败回传给持有 release lease 的 HTTP 层。启动失败应释放本次 lease，保留当前 Gateway 服务；不能只在后台打印错误并永久冻结输入。HTTP 返回的 restarting 表示已安排重启，实际上线仍需运行版本验收。
 
 ## 上线验收
 
@@ -25,3 +25,12 @@ REL-02.3直接运行release-local命令，对成功、回滚、变更owner、旧
 安装前置版本与清单统一为Node 22.x的22.13+，或23.4+（无实验开关的node:sqlite，且满足锁定Vite）。REL-02.7只验证安装器前置拒绝和当前运行时正常路径，不冒充多Node版本整套兼容性测试。
 
 旧 npm 安装兼容模式的管理页更新（REL-02.8）经 installUpdate → POST /api/update → waitForUpdatedService 观察恢复。每个 bootstrap 请求的响应头与体都须受剩余90秒期限约束，且每次最多5秒；只有目标版本和不同的运行token共同匹配才刷新页面。超时保留旧页面token并明确恢复未确认。当前Git源码部署由 UpdateManager.sourceOnly 拒绝 npm 安装，不会到达这条轮询；不因本修复开启自动更新。
+
+
+## npm 独立制品与程序回退
+
+UpdateManager只向同文件系统的私有准备prefix安装，依赖保留在候选package内，不让npm覆写正在运行的目录。版本、入口、整个候选树字节/权限/内部链接摘要写入release.json；外部符号链接拒绝。下载期间不持发布lease，准备完成后才由HTTP请求短期交接；交接忙时旧服务继续运行。
+
+restart-helper先等待原Gateway退出，按持久阶段把原package移入备份、候选移到原路径，再启动新版；/api/build必须匹配产品、版本和新子进程PID才能确认。启动失败或健康确认失败时只停止自己启动的子进程，恢复旧程序并再次核验。账号、ACL、浏览器grant和消息/原生回执从不随程序回滚。备份和失败候选保留，rename与阶段写之间的丢确认可识别重试；不创建轮询所有Codex任务的切换进程。
+
+REL-02.9验证实际测试子进程成功/失败回退、目录EBUSY、rename丢确认、候选变更、外部链接、准备期准入和短期交接拒绝。尚未证明Windows实机、真实registry发布或整个主机断电后服务管理器自动恢复。此npm兼容功能不启用源码部署的更新按钮，不改源码发布流程。UI分别显示准备与版本确认，未确认时不声称已安装成功。

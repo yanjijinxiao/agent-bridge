@@ -69,6 +69,28 @@ test("expiry, denial, revocation, provider replacement and account deletion inva
   f.service.forgetAccount("account"); assert.equal(new AdmissionService(f.options).isAdmin(owner), false);
 });
 
+test("AUTH-02.2: competing enrolled admins grant one exact admission scope, including reentry during ACL persistence", async t => {
+  const f = fixture(t); f.enroll();
+  const other = { ...owner, actorId: "second-admin" }, candidate = f.service.observe(other, "dm-second", "direct");
+  f.service.setAdmin(candidate.id, candidate.version);
+  const r = f.applicant(), allow = f.options.allow;
+  let nestedRejected = false;
+  f.options.allow = (account, target) => {
+    // The persisted applying claim must reject even a callback reentering
+    // before the original ACL writer returns and records dismissed.
+    assert.throws(() => f.service.decideRemote(other, r.id, r.version, "conversation"), /已处理/);
+    nestedRejected = true; allow(account, target);
+  };
+  const results = await Promise.allSettled([
+    Promise.resolve().then(() => f.service.decideRemote(owner, r.id, r.version, "actor")),
+    Promise.resolve().then(() => f.service.decideRemote(other, r.id, r.version, "conversation"))
+  ]);
+  assert.deepEqual(results.map(x => x.status), ["fulfilled", "rejected"]);
+  assert.equal(nestedRejected, true); assert.deepEqual(f.grants, [["account", "applicant"]]);
+  assert.equal(f.allowed.has("account:room"), false);
+  assert.throws(() => new AdmissionService(f.options).decideRemote(other, r.id, r.version, "conversation"), /已处理/);
+});
+
 test("durable unconfirmed grants are not retried after failure/restart; corrupt state preserves evidence and disables remote decisions", t => {
   const f = fixture(t); f.enroll(); const r = f.applicant(); f.fail();
   assert.throws(() => f.service.decideRemote(owner, r.id, r.version, "actor"), /结果未确认/);

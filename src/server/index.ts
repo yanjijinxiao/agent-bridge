@@ -46,7 +46,7 @@ async function main(): Promise<void> {
     console.error(`[codex-im-gateway] shutdown failed: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   });
-  const scheduleRestart = async (version: string): Promise<void> => {
+  const scheduleRestart = async (version: string, releasePlan?: string): Promise<void> => {
     if (restartScheduled) return;
     restartScheduled = true;
     try {
@@ -54,7 +54,8 @@ async function main(): Promise<void> {
         parentPid: process.pid,
         entryPath: fileURLToPath(import.meta.url),
         stateDir: paths.root,
-        port
+        port,
+        releasePlan
       });
     } catch (error) {
       restartScheduled = false;

@@ -200,7 +200,7 @@ export type LocalHttpServerOptions = {
   directoryPicker?: (defaultPath?: string) => Promise<string | undefined>;
   updateService?: UpdateService;
   /** Resolves after the restart helper starts; rejects before shutdown on failure. */
-  onUpdateInstalled?: (version: string) => void | Promise<void>;
+  onUpdateInstalled?: (version: string, releasePlan?: string) => void | Promise<void>;
   onTaskboardConfig?: (config: CodexImGatewayConfig) => Promise<void>;
 };
 
@@ -412,7 +412,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
     sendJson(response, 404, { error: "Not found" }); return;
   }
   if (method === "GET" && url.pathname === "/api/build") {
-    sendJson(response, 200, { product: "codex-im-gateway", version: context.productVersion, build: readBuildInfo() }); return;
+    sendJson(response, 200, { product: "codex-im-gateway", version: context.productVersion, pid: process.pid, build: readBuildInfo() }); return;
   }
   if (method === "GET" && url.pathname === "/api/bootstrap") {
     const config = loadConfig(context.paths);
@@ -453,15 +453,15 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
     return;
   }
   if (method === "POST" && url.pathname === "/api/update") {
+    // Installation only prepares a separate release. Keep admission open until
+    // those potentially slow downloads have finished and activation is ready.
+    const result = await context.updateService.installLatest();
     const lease = context.accountManager.prepareRelease(crypto.randomUUID());
-    let result;
-    try { result = await context.updateService.installLatest(); }
-    catch (error) { context.accountManager.cancelRelease(lease.id); throw error; }
-    sendJson(response, 200, { ok: true, ...result, restarting: Boolean(context.onUpdateInstalled) });
+    sendJson(response, 200, { ok: true, version: result.version, registry: result.registry, restarting: Boolean(context.onUpdateInstalled) });
     if (context.onUpdateInstalled) {
       const timer = setTimeout(async () => {
         try {
-          await context.onUpdateInstalled?.(result.version);
+          await context.onUpdateInstalled?.(result.version, result.releasePlan);
         } catch (error) {
           try { context.accountManager.cancelRelease(lease.id); }
           catch { console.error("[codex-im-gateway] failed to release this update lease; inspect release status before retrying"); }

@@ -17,7 +17,7 @@ export const createChannelAdapter: ChannelAdapterFactory = (account, options) =>
     case "weixin": return new WeixinChannelAdapter(account as WeixinAccount, options);
     case "dingtalk": return new DingTalkChannelAdapter(account as DingTalkAccount, options);
     case "feishu": return new FeishuChannelAdapter(account as FeishuAccount, options);
-    case "wecom": return new WeComChannelAdapter(account as WeComAccount);
+    case "wecom": return new WeComChannelAdapter(account as WeComAccount, options);
   }
 };
 

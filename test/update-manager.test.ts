@@ -267,7 +267,7 @@ test("installs through an absolute npm CLI when PATH has no npm", async (t) => {
     'const prefix = args[args.indexOf("--prefix") + 1];',
     'const spec = args.find((arg) => arg.startsWith("codex-im-gateway@"));',
     'const version = spec.slice("codex-im-gateway@".length);',
-    'const root = path.join(prefix, "node_modules", "codex-im-gateway");',
+    'const root = path.join(prefix, "lib", "node_modules", "codex-im-gateway");',
     'fs.mkdirSync(path.join(root, "dist", "server"), { recursive: true });',
     'fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ version }));',
     'fs.writeFileSync(path.join(root, "dist", "server", "index.js"), "export {};\\n");'
@@ -282,8 +282,12 @@ test("installs through an absolute npm CLI when PATH has no npm", async (t) => {
     fetch: async () => new Response(JSON.stringify({ version: "1.2.4" }), { status: 200 })
   });
 
-  assert.deepEqual(await manager.installLatest(), { version: "1.2.4", registry: "official" });
-  assert.equal(JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8")).version, "1.2.4");
+  const result = await manager.installLatest();
+  assert.equal(result.version, "1.2.4"); assert.equal(result.registry, "official"); assert.ok(result.releasePlan);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8")).version, "1.2.3", "preparation never mutates the running runtime");
+  const plan = JSON.parse(fs.readFileSync(result.releasePlan, "utf8"));
+  assert.equal(plan.phase, "prepared");
+  assert.equal(JSON.parse(fs.readFileSync(path.join(plan.candidate, "package.json"), "utf8")).version, "1.2.4");
 });
 
 test("resolves global and isolated npm install targets on macOS and Windows", () => {

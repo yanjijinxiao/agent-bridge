@@ -4,6 +4,7 @@ import path from "node:path";
 import type { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { fetchWithBudget } from "../channels/network-request.js";
+import { createNpmReleaseDirectory, npmCandidateRoot, sealNpmRelease } from "./npm-release.js";
 
 const UPDATE_REGISTRY_URLS = {
   official: "https://registry.npmjs.org",
@@ -34,6 +35,8 @@ const SOURCE_UPDATE_MESSAGE = "当前通过 Git 源码部署；请更新源码�
 export type UpdateInstallResult = {
   version: string;
   registry: UpdateRegistryId;
+  /** Internal prepared artifact; never returned as a management UI field. */
+  releasePlan?: string;
 };
 
 export type UpdateService = {
@@ -62,7 +65,7 @@ export type NpmInstallTarget = {
 
 export class UpdateManager implements UpdateService {
   private readonly fetchImpl: typeof globalThis.fetch;
-  private readonly installImpl: (version: string, registry: UpdateRegistryId) => Promise<void>;
+  private readonly installImpl: (version: string, registry: UpdateRegistryId) => Promise<void | string>;
   private readonly now: () => number;
   private readonly cacheTtlMs: number;
   private readonly checkTimeoutMs: number;
@@ -122,8 +125,8 @@ export class UpdateManager implements UpdateService {
         throw new Error("Unable to select an npm Registry");
       }
       const version = requireStableVersion(status.latestVersion);
-      await this.installImpl(version, status.registry);
-      return { version, registry: status.registry };
+      const releasePlan = await this.installImpl(version, status.registry);
+      return { version, registry: status.registry, ...(releasePlan ? { releasePlan } : {}) };
     } finally {
       this.installing = false;
     }
@@ -367,15 +370,12 @@ async function installCurrentRuntimeVersion(
     env: NodeJS.ProcessEnv;
     nodePath: string;
   }
-): Promise<void> {
+): Promise<string> {
   if (!options.installTarget) {
     throw new Error("仅支持本地源码更新：请更新 Git 源码、执行 npm ci 和 npm run build，再用 node dist/server/index.js 重启");
   }
   const target = options.installTarget;
-  releaseRuntimeDirectoryLock(target.installPrefix, {
-    packageRoot: target.packageRoot,
-    platform: options.platform
-  });
+  const releaseDirectory = createNpmReleaseDirectory(target.packageRoot);
   const npmPath = resolveNpmPath({
     installPrefix: target.installPrefix,
     platform: options.platform,
@@ -383,16 +383,16 @@ async function installCurrentRuntimeVersion(
     nodePath: options.nodePath
   });
   const command = buildNpmInstallCommand(version, registry, {
-    installPrefix: target.installPrefix,
-    global: target.global,
+    installPrefix: releaseDirectory,
+    global: true,
     platform: options.platform,
     env: options.env,
     nodePath: options.nodePath,
     npmPath
   });
-  await new Promise<void>((resolve, reject) => {
+  try { await new Promise<void>((resolve, reject) => {
     const child = spawn(command.command, command.args, {
-      cwd: target.installPrefix,
+      cwd: releaseDirectory,
       env: options.env,
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
@@ -400,6 +400,8 @@ async function installCurrentRuntimeVersion(
     });
     let output = "";
     let settled = false;
+    let timedOut = false;
+    let killTimer: NodeJS.Timeout | undefined;
     const appendOutput = (chunk: Buffer) => {
       output = `${output}${chunk.toString("utf8")}`.slice(-MAX_INSTALL_OUTPUT_BYTES);
     };
@@ -407,21 +409,25 @@ async function installCurrentRuntimeVersion(
     child.stderr.on("data", appendOutput);
     const timer = setTimeout(() => {
       if (settled) return;
-      settled = true;
+      timedOut = true;
       child.kill();
-      reject(new Error("npm update timed out"));
+      // Do not remove a candidate while npm is still writing it.
+      killTimer = setTimeout(() => child.kill("SIGKILL"), 2_000);
     }, 5 * 60 * 1000);
     child.once("error", (error) => finishInstall(child, timer, () => {
       if (settled) return;
       settled = true;
+      clearTimeout(killTimer);
       reject(new Error(`Unable to start npm: ${error.message}`));
     }));
     child.once("exit", (code) => finishInstall(child, timer, () => {
       if (settled) return;
       settled = true;
+      clearTimeout(killTimer);
+      if (timedOut) { reject(new Error("npm update timed out")); return; }
       if (code === 0) {
         try {
-          verifyInstalledRuntime(target.packageRoot, version);
+          verifyInstalledRuntime(npmCandidateRoot(releaseDirectory, options.platform), version);
           resolve();
         } catch (error) {
           reject(error);
@@ -431,6 +437,13 @@ async function installCurrentRuntimeVersion(
       reject(new Error(describeInstallFailure(code, output, options.platform)));
     }));
   });
+    return sealNpmRelease(releaseDirectory, target.packageRoot, version, options.platform);
+  } catch (error) {
+    // This directory is test/preparation-owned; the active runtime was never
+    // npm's install destination and must not be cleaned up on failure.
+    await fs.promises.rm(releaseDirectory, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 export function describeInstallFailure(code: number | null, output: string, platform: NodeJS.Platform): string {

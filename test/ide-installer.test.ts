@@ -35,9 +35,9 @@ test("an existing compatible managed binary is reused without downloads", async 
 
 for (const arch of ["x64", "arm64"]) test(`macOS ${arch} selects the pinned native package without a Linux libc requirement`, async t => {
   const asset = codeServerAsset("darwin", arch);
-  assert.equal(asset.directory, `code-server-4.141.0-macos-${arch === "x64" ? "amd64" : "arm64"}`);
-  assert.equal(asset.size, arch === "x64" ? 231_091_669 : 210_608_428);
-  assert.equal(asset.sha256, arch === "x64" ? "b133e002c2a1a4f22b2ec42c5f233147f342b592e2eadcacc51703a86f447f77" : "ab45ad960725bdcdfb92998ef54feb2f479079224315ce44a4f49c54093453c9");
+  assert.equal(asset.directory, `code-server-4.141.1-macos-${arch === "x64" ? "amd64" : "arm64"}`);
+  assert.equal(asset.size, arch === "x64" ? 231_229_260 : 210_751_651);
+  assert.equal(asset.sha256, arch === "x64" ? "1e738afeacab655ca063d34c9b651f38a3328002a14a3bf0aa8fe16d41dd19ca" : "49535c4c908a499814cc32774bdbb7f23ae42fa301384ab9cf81434915f4279d");
   let received;
   const f = fixture(t, { probe: async () => ({ platform: "darwin", arch }),
     remoteDownload: async (_host, _stage, value) => { received = value; } });
@@ -46,7 +46,7 @@ for (const arch of ["x64", "arm64"]) test(`macOS ${arch} selects the pinned nati
 });
 
 test("unsupported platform, old libc, revoked permission and custom binaries fail without system changes", async t => {
-  assert.throws(() => codeServerAsset("linux", "arm64"), /暂支持/);
+  assert.throws(() => codeServerAsset("linux", "riscv64"), /暂支持/);
   const f = fixture(t, { probe: async () => ({ platform: "linux", arch: "x64", glibc: "2.17" }) });
   f.installer.begin("remote"); const state = await f.installer.wait("remote");
   assert.match(state!.error!, /glibc/); assert.deepEqual(f.calls, []);
@@ -84,4 +84,17 @@ test("host-scoped installation cancellation leaves the other host running and ab
   assert.equal((await f.installer.wait("b"))?.phase, "error");
   probes.get("a")!.release(); assert.equal((await f.installer.wait("a"))?.phase, "ready");
   assert.equal(f.calls.filter(call => call === "activate").length, 1);
+});
+
+for (const glibc of ["2.17", "2.28", "2.39"]) test(`Linux ARM64 installation uses its own pinned asset and ABI boundary (${glibc})`, async t => {
+  const asset = codeServerAsset("linux", "arm64");
+  assert.equal(asset.size, 234750384);
+  assert.equal(asset.sha256, "898903adc4d28dc23b9147073afe36fcafdb49e6ada8e1007bfc62a330ff9315");
+  assert.match(asset.name, /linux-arm64/);
+  let downloaded;
+  const f = fixture(t, { probe: async () => ({ platform: "linux", arch: "arm64", glibc }),
+    remoteDownload: async (_host, _stage, value) => { downloaded = value; } });
+  f.installer.begin("linux-arm64"); const state = await f.installer.wait("linux-arm64");
+  if (glibc === "2.17") { assert.equal(state?.phase, "error"); assert.equal(downloaded, undefined); assert.deepEqual(f.calls, []); }
+  else { assert.equal(state?.phase, "ready"); assert.deepEqual(downloaded, asset); assert.deepEqual(f.calls, ["prepare", "activate"]); }
 });

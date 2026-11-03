@@ -24,7 +24,7 @@ for (const phase of ["headers", "body"] as const) test(`update reconnect ${phase
   try {
     const result = await Promise.race([f.run().then(() => "resolved", (error: Error) => error.message),
       new Promise<string>(resolve => { timer = setTimeout(() => resolve("still waiting"), 700); })]);
-    assert.match(result, /服务未能自动恢复/);
+    assert.match(result, /尚未确认新版服务恢复/);
     assert.deepEqual(f.state, { requestToken: "previous", version: "old" });
   } finally { clearTimeout(timer); }
 });

@@ -2,12 +2,14 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readNpmRelease } from "./npm-release.js";
 
 export type RestartHelperOptions = {
   parentPid: number;
   entryPath: string;
   stateDir: string;
   port: number;
+  releasePlan?: string;
 };
 
 export async function launchRestartHelper(options: RestartHelperOptions): Promise<void> {
@@ -24,12 +26,18 @@ export async function launchRestartHelper(options: RestartHelperOptions): Promis
   if (!fs.existsSync(helperPath) || !fs.existsSync(options.entryPath)) {
     throw new Error("Updated service entry point is unavailable");
   }
+  if (options.releasePlan) {
+    const plan = readNpmRelease(options.releasePlan);
+    if (fs.realpathSync(options.entryPath) !== path.join(plan.target, "dist", "server", "index.js") || plan.phase !== "prepared")
+      throw new Error("Prepared update does not belong to the current runtime");
+  }
   const logPath = path.join(options.stateDir, "service-restart.log");
   const logFd = fs.openSync(logPath, "a");
   let child;
   try {
-    child = spawn(process.execPath, [helperPath, String(options.parentPid), options.entryPath, logPath], {
-      cwd: path.dirname(options.entryPath),
+    child = spawn(process.execPath, [helperPath, String(options.parentPid), options.entryPath, logPath,
+      ...(options.releasePlan ? [options.releasePlan, String(options.port)] : [])], {
+      cwd: options.stateDir,
       detached: true,
       env: {
         ...process.env,
