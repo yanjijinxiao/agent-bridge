@@ -2416,7 +2416,7 @@ export class AccountManager {
     accountId: string,
     session: ManagedSession,
     request: CodexApprovalRequest
-  ): Promise<CodexApprovalDecision> {
+  ): Promise<CodexApprovalDecision | undefined> {
     const entry = this.entries.get(accountId);
     if (!entry?.service || (entry.status !== "running" && entry.status !== "starting"))
       return Promise.reject(new CodexCommunicationError("observation", "interaction/unavailable", request.threadId, request.turnId));

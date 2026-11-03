@@ -26,3 +26,5 @@ IDE-03.4沿安装器upload到uploadIDEHost验证传输失败资源回收：源�
 自动安装制品升级到官方4.141.1，支持Linux x64/ARM64、macOS Intel/Apple Silicon四个固定SHA256与长度。Linux仍要求glibc≥2.28，禁止通过修改系统库绕过兼容检查；不支持的平台保留显式已安装binary入口。ARM64选择和撤销前不激活的测试是安装合同验证，不等于Linux ARM64实际机器运行。官方完整制品校验记录见completion审计目录；原版本的运行实例不因修改pin被停止。
 
 IDE-03.5：官方 code-server 在处理 `--version` 前仍读取并可能创建 YAML 配置。版本/ABI 探测使用本次自有临时目录、0600 空配置及其中的数据/扩展目录，精确比较版本 token，成功和失败都清理；不能把用户配置损坏或默认目录不可写误报为二进制不兼容，也不能为只读探测创建用户密码。四个平台完整 archive 摘要通过；Linux x64 与 Mac ARM64 已实际运行探测和 HTTP 工作台，未把无浏览器心跳的 health=expired 当作完整浏览器会话验收。
+
+本轮实际浏览器验收路径：测试专属项目的两个 Git 根 → WorkspaceIDEManager 生成工作区并启动官方 code-server → IDEAccessServer 签发该测试项目授权 → 独立 Chrome 打开同一固定入口。以工作台 DOM、Git 根列表、编辑器字体和实际终端写出的 cwd 为证据；再次打开及撤权检查原授权与实例。浏览器模拟尺寸不记作手机实机，测试项目与线上 IDE 授权隔离。

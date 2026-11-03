@@ -1,0 +1,342 @@
+[
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleCommand",
+    "lines": [
+      585,
+      828
+    ],
+    "bodyUnchanged": true,
+    "review": "等待附件后换绑保留received；本地设置已写而reply丢失保留unconfirmed。不能按异常类型全局重置命令。 本轮重核当前实现、调用者及持久边界，范围以新行号为准；新HTTP/native合同另列。 当前审批通知/确认变更后复核调用边界；本函数本体保持原合同。 本轮目录展示修改，本函数逐行相同，仅更新位移；目录和卡片能力另列合同。 2026-11-03 Connector复核：比对origin/main f108f81的函数差异及调用边界；Connector路由/来源守卫/媒体scope增量见merge-completion.md，既有语义仍沿用原case，不宣称新增全函数覆盖。 2026-11-03 queue-context：AST 比对 a069427 本方法体未变，仅重定位当前行号和文件 SHA。"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleSteerCommand",
+    "lines": [
+      1826,
+      1894
+    ],
+    "bodyUnchanged": true,
+    "review": "steer-inspect反例在Bridge替身层复现，后端另有assertCurrent；附件转存拒绝不伪称已尝试。 本轮重核当前实现、调用者及持久边界，范围以新行号为准；新HTTP/native合同另列。 当前审批通知/确认变更后复核调用边界；本函数本体保持原合同。 本轮目录展示修改，本函数逐行相同，仅更新位移；目录和卡片能力另列合同。 2026-11-03 Connector复核：比对origin/main f108f81的函数差异及调用边界；Connector路由/来源守卫/媒体scope增量见merge-completion.md，既有语义仍沿用原case，不宣称新增全函数覆盖。 2026-11-03 queue-context：AST 比对 a069427 本方法体未变，仅重定位当前行号和文件 SHA。"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "enqueueNativeMessage",
+    "lines": [
+      2170,
+      2227
+    ],
+    "bodyUnchanged": true,
+    "review": "queue-download/staging零后端写入仍received；真正未知queue/add禁止重放。 本轮重核当前实现、调用者及持久边界，范围以新行号为准；新HTTP/native合同另列。 当前审批通知/确认变更后复核调用边界；本函数本体保持原合同。 本轮目录展示修改，本函数逐行相同，仅更新位移；目录和卡片能力另列合同。 2026-11-03 Connector复核：比对origin/main f108f81的函数差异及调用边界；Connector路由/来源守卫/媒体scope增量见merge-completion.md，既有语义仍沿用原case，不宣称新增全函数覆盖。 2026-11-03 queue-context：实际 Bridge→原生模型验证规则、单输入和原权限；queue/add 无独立 context，完整前缀只随同一原生 input 保存，恢复不重写。"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleGoalCommand",
+    "lines": [
+      1350,
+      1412
+    ],
+    "bodyUnchanged": true,
+    "review": "get/set/clear成功后复核原来源；过期只抑制展示，正常结束来源回执，不把成功修改报未提交；24来源/正常场景与旧版19失败保留。 本轮重核当前实现、调用者及持久边界，范围以新行号为准；新HTTP/native合同另列。 当前审批通知/确认变更后复核调用边界；本函数本体保持原合同。 本轮目录展示修改，本函数逐行相同，仅更新位移；目录和卡片能力另列合同。 2026-11-03 Connector复核：该函数与origin/main f108f81逐字一致；仅重定位行号和所属文件SHA，继承原窄场景记录。 2026-11-03 queue-context：AST 比对 a069427 本方法体未变，仅重定位当前行号和文件 SHA。"
+  },
+  {
+    "file": "src/codex/interaction-fanout.ts",
+    "symbol": "add",
+    "lines": [
+      31,
+      42
+    ],
+    "bodyUnchanged": false,
+    "review": "替换时删除旧offer身份，包括已选择答案后直接替换；重连同对象remove/add也不继承确认。"
+  },
+  {
+    "file": "src/codex/interaction-fanout.ts",
+    "symbol": "remove",
+    "lines": [
+      44,
+      52
+    ],
+    "bodyUnchanged": false,
+    "review": "删除consumer和其offer；仅未获选且无等待者时退休未答请求，不代答。"
+  },
+  {
+    "file": "src/codex/interaction-fanout.ts",
+    "symbol": "offer",
+    "lines": [
+      76,
+      87
+    ],
+    "bodyUnchanged": false,
+    "review": "明确答案首次获选后记录exact offer，晚promise、错误及undefined不竞争；消费者替换检查身份。"
+  },
+  {
+    "file": "src/codex/interaction-fanout.ts",
+    "symbol": "request",
+    "lines": [
+      64,
+      74
+    ],
+    "bodyUnchanged": true,
+    "review": "一个原生订阅的多个consumer；只接受仍有效的明确答案，缺路线/错误不代答，替换/退休/edited结束旧promise。"
+  },
+  {
+    "file": "src/codex/interaction-fanout.ts",
+    "symbol": "finish",
+    "lines": [
+      96,
+      106
+    ],
+    "bodyUnchanged": false,
+    "review": "仅获选的原offer获得确认，其他入口withdrawn；failed保留身份等待迟到确认，不重答。"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "taskboardNativeBackend",
+    "lines": [
+      2033,
+      2058
+    ],
+    "bodyUnchanged": true,
+    "review": "借出同一个选定adapter的受限端口，真实外部写前核root freeze；borrow.close不拥有核心。 2026-11-03 Connector复核：该函数与origin/main f108f81逐字一致；仅重定位行号和所属文件SHA，继承原窄场景记录。 2026-11-03修复复核：该函数正文逐字相同，仅按变更调整行号，沿用原阅读证据。"
+  },
+  {
+    "file": "src/bridge/approval.ts",
+    "symbol": "request",
+    "lines": [
+      72,
+      116
+    ],
+    "bodyUnchanged": false,
+    "review": "初始通知失败不合成拒绝；记录来源scope与确切原卡ACK；晚ACK仍关闭该卡。关闭后返回undefined。"
+  },
+  {
+    "file": "src/bridge/approval.ts",
+    "symbol": "reportResult",
+    "lines": [
+      156,
+      194
+    ],
+    "bodyUnchanged": false,
+    "review": "原生决定与通知状态同次提交，已确认不降级；只有显式grant确认才产生续接卡边界；通知失败不删除恢复上下文。"
+  },
+  {
+    "file": "src/bridge/approval.ts",
+    "symbol": "acceptedPresentationInputs",
+    "lines": [
+      196,
+      198
+    ],
+    "bodyUnchanged": true,
+    "review": "公开已确认的展示投影供跟随重连去重，不包含可执行审批答案。"
+  },
+  {
+    "file": "src/bridge/approval-journal.ts",
+    "symbol": "commit",
+    "lines": [
+      61,
+      80
+    ],
+    "bodyUnchanged": false,
+    "review": "v1严格原行保留；可选顶层通知投影与原生阶段原子替换；截断1000行时同步清理投影，旧读取器忽略新顶层字段。"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleSessionCatalog",
+    "lines": [
+      1531,
+      1710
+    ],
+    "bodyUnchanged": true,
+    "review": "按原生身份生成会话/空项目展示快照；R编号仅真实会话，详情/翻页不重取，过滤与不可用目录不误归属。 实际Bridge/Client/DingTalk夹具与既有渠道回归核对，手机端显示另验。 2026-11-03 Connector复核：比对origin/main f108f81的函数差异及调用边界；Connector路由/来源守卫/媒体scope增量见merge-completion.md，既有语义仍沿用原case，不宣称新增全函数覆盖。 2026-11-03 queue-context：AST 比对 a069427 本方法体未变，仅重定位当前行号和文件 SHA。"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "closeRunner",
+    "lines": [
+      2060,
+      2070
+    ],
+    "bodyUnchanged": true,
+    "review": "先清共享receipt扫描及expiry/队列timer，再脱离并close runner；独立清理失败汇总，不发interrupt。"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "sessionSummary",
+    "lines": [
+      1940,
+      1959
+    ],
+    "bodyUnchanged": true,
+    "review": "从同一ThreadEventHub.status取得followStatus；仅当前active且有thread的会话公开此状态，不把responding/idle推断为已送达，浏览器经真实HTTP验证。 2026-11-03 Connector复核：该函数与origin/main f108f81逐字一致；仅重定位行号和所属文件SHA，继承原窄场景记录。 2026-11-03修复复核：该函数正文逐字相同，仅按变更调整行号，沿用原阅读证据。"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "sendLocalMedia",
+    "lines": [
+      3189,
+      3239
+    ],
+    "bodyUnchanged": true,
+    "review": "下载后再核对绑定/服务状态；不读本机同名路径；已确认发送不被观察/临时清理异常变成失败。 2026-11-03 Connector复核：比对origin/main f108f81的函数差异及调用边界；Connector路由/来源守卫/媒体scope增量见merge-completion.md，既有语义仍沿用原case，不宣称新增全函数覆盖。 2026-11-03 queue-context：AST 比对 a069427 本方法体未变，仅重定位当前行号和文件 SHA。"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "applyRecoveredAction",
+    "lines": [
+      3068,
+      3078
+    ],
+    "bodyUnchanged": true,
+    "review": "保留原binding lease穿过下载等待；失败媒体动作不宣称done，未知投递仍不重发。 2026-11-03 Connector复核：比对origin/main f108f81的函数差异及调用边界；Connector路由/来源守卫/媒体scope增量见merge-completion.md，既有语义仍沿用原case，不宣称新增全函数覆盖。 2026-11-03 queue-context：AST 比对 a069427 本方法体未变，仅重定位当前行号和文件 SHA。"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "recoverNativeInputs",
+    "lines": [
+      1796,
+      1837
+    ],
+    "bodyUnchanged": true,
+    "review": "复用原owner的长只读扫描；Gateway发布/停止退休后不写结果；peer读取仍带原account/conversation/actor，CAS未确认不得应用结果动作。"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "recoveredInputsFor",
+    "lines": [
+      1839,
+      1846
+    ],
+    "bodyUnchanged": true,
+    "review": "限定session/host/thread/conversation与活账号；其他历史及已handled记录不授权越过baseline。 2026-11-03 Connector复核：该函数与origin/main f108f81逐字一致；仅重定位行号和所属文件SHA，继承原窄场景记录。 2026-11-03修复复核：该函数正文逐字相同，仅按变更调整行号，沿用原阅读证据。"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "peerRecoverySource",
+    "lines": [
+      1965,
+      1986
+    ],
+    "bodyUnchanged": true,
+    "review": "2026-11-03 逐项核对本轮调用链、来源/返回语义和相应反例；实际测试边界见merge-completion.md。 2026-11-03修复复核：该函数正文逐字相同，仅按变更调整行号，沿用原阅读证据。"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "threadSubscriptions",
+    "lines": [
+      2146,
+      2184
+    ],
+    "bodyUnchanged": true,
+    "review": "本轮逐行检查所列范围，反例和正常对照纳入默认测试；边界见对应case。"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "recoverNativeQueue",
+    "lines": [
+      2230,
+      2275
+    ],
+    "bodyUnchanged": true,
+    "review": "恢复后复核服务未退休，衔接来源回执；dispatch明确取得结果投递布尔回执，不以原生完成代替渠道送达。"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "applyNativeResult",
+    "lines": [
+      1890,
+      1932
+    ],
+    "bodyUnchanged": true,
+    "review": "缺turn的同源队列先按account/conversation/host/thread只读恢复；读取失败暂缓，错turn无动作，等待后账号/绑定复核，原动作日志去重。"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "runCodexTurn",
+    "lines": [
+      2727,
+      3046
+    ],
+    "bodyUnchanged": true,
+    "review": "复核2715起的完整方法；队列成功和失败/中断均回传共享Hub的真实投递回执；普通轮次、批准/附件、绑定保护保留，终态不会因false投递回执变回执行未知。"
+  },
+  {
+    "file": "src/bridge/approval-notice-delivery.ts",
+    "symbol": "deliver",
+    "lines": [
+      40,
+      87
+    ],
+    "bodyUnchanged": false,
+    "review": "确认与投递独立；只重试已知原卡更新；对照本轮恢复、晚回执、关闭和正常对照断言。"
+  },
+  {
+    "file": "src/bridge/approval-notice-delivery.ts",
+    "symbol": "schedule",
+    "lines": [
+      88,
+      108
+    ],
+    "bodyUnchanged": false,
+    "review": "有限次数退避，不等待Codex执行，不对磁盘失败零延迟忙重试；对照本轮恢复、晚回执、关闭和正常对照断言。"
+  },
+  {
+    "file": "src/bridge/approval-notice-delivery.ts",
+    "symbol": "rememberCard",
+    "lines": [
+      31,
+      39
+    ],
+    "bodyUnchanged": false,
+    "review": "迟到初始ACK仅更新确切原卡，退休控制器不回写；对照本轮恢复、晚回执、关闭和正常对照断言。"
+  },
+  {
+    "file": "src/bridge/approval-notice-delivery.ts",
+    "symbol": "close",
+    "lines": [
+      110,
+      110
+    ],
+    "bodyUnchanged": false,
+    "review": "只停止通知观察和定时器，不改变原生决定；对照本轮恢复、晚回执、关闭和正常对照断言。"
+  },
+  {
+    "file": "src/bridge/approval.ts",
+    "symbol": "close",
+    "lines": [
+      207,
+      212
+    ],
+    "bodyUnchanged": false,
+    "review": "服务退休释放观察promise为undefined，不编造拒绝；对照本轮恢复、晚回执、关闭和正常对照断言。"
+  },
+  {
+    "file": "src/bridge/approval-journal.ts",
+    "symbol": "update",
+    "lines": [
+      42,
+      47
+    ],
+    "bodyUnchanged": false,
+    "review": "原生结果与展示通知同一原子提交；对照本轮恢复、晚回执、关闭和正常对照断言。"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "requestApproval",
+    "lines": [
+      3506,
+      3522
+    ],
+    "bodyUnchanged": false,
+    "review": "保留项目通知路由，绑定任务审批按精确来源失效；对照本轮恢复、晚回执、关闭和正常对照断言。"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "suspendUserInputs",
+    "lines": [
+      3598,
+      3598
+    ],
+    "bodyUnchanged": false,
+    "review": "关闭问题及审批观察，保留原生任务；对照本轮恢复、晚回执、关闭和正常对照断言。"
+  }
+]

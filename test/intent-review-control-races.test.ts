@@ -32,7 +32,7 @@ for (const change of ["rebind", "revoke"] as const) test(`policy setting needs n
   assert.equal(store.getSession(second.id)?.activeMessagePolicy, undefined);
 });
 
-for (const change of ["rebind", "revoke"] as const) test(`late model lookup cannot change settings after ${change}`, async t => {
+for (const setting of ["model", "effort"] as const) for (const change of ["rebind", "revoke", "binding-aba", "mode-aba", "role"] as const) test(`NATIVE-03.3: late ${setting} lookup cannot change settings after ${change}`, async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-control-race-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new RuntimeStateStore(resolveStatePaths(root));
@@ -40,20 +40,24 @@ for (const change of ["rebind", "revoke"] as const) test(`late model lookup cann
   const project = store.createProject("Project", root);
   const first = store.createSession("chat", root, "First", project.id);
   const second = store.createSession("chat", root, "Second", project.id);
-  store.activateSession(first.id);
+  store.activateSession(first.id); store.setRole("chat", "actor", "controller");
   const gate = Promise.withResolvers<any[]>();
   const service = new BridgeService({ config: defaultConfig(root), stateStore: store,
     channel: createChannelClient("generic", TEXT_CAPABILITIES, { async sendText() { return { messageId: "ack" }; } }),
-    listCodexModels: () => gate.promise, runner: { async getRuntimeInfo() { return {}; } } as never });
+    listCodexModels: () => gate.promise, runner: { async getRuntimeInfo() { return {model:"new-model"}; } } as never });
   t.after(() => service.suspendUserInputs());
-  const work = service.handleMessage({ id: "synthetic", senderId: "actor", replyTargetId: "chat", text: "/model new-model", attachments: [], raw: {} });
+  const work = service.handleMessage({ id: "synthetic", senderId: "actor", replyTargetId: "chat", text: setting === "model" ? "/model new-model" : "/effort high", attachments: [], raw: {} });
   const result = work.then(() => undefined, error => error);
   await tick();
-  if (change === "rebind") store.activateSession(second.id); else store.setPairedSenderIds([]);
-  gate.resolve([{ model: "new-model", displayName: "New", supportedEfforts: [] }]);
+  if (change === "rebind") store.activateSession(second.id);
+  else if (change === "binding-aba") { store.activateSession(second.id); store.activateSession(first.id); }
+  else if (change === "mode-aba") { store.setInteractionMode("chat", "qa"); store.setInteractionMode("chat", "session"); }
+  else if (change === "role") store.setRole("chat", "actor", "viewer");
+  else store.setPairedSenderIds([]);
+  gate.resolve([{ model: "new-model", displayName: "New", supportedEfforts: [{effort:"high",description:"High"}] }]);
   const error = await result;
-  assert.equal(store.getSession(first.id)?.model, undefined);
-  assert.equal(store.getSession(second.id)?.model, undefined);
+  assert.equal(store.getSession(first.id)?.[setting], undefined);
+  assert.equal(store.getSession(second.id)?.[setting], undefined);
   assert.ok(error, "retired control operation must report that it was not applied");
 });
 

@@ -8,7 +8,9 @@ import {
 import { createChoiceCard, type ChannelActionCard } from "../channels/action-card.js";
 import { copyBlock } from "../channels/copyable.js";
 import { ApprovalJournal } from "./approval-journal.js";
-import type { ChannelMention } from "../channels/types.js";
+import type { ChannelMention, ChannelReceipt } from "../channels/types.js";
+import { ChannelPartialDeliveryError } from "../channels/errors.js";
+import { ApprovalNoticeDelivery } from "./approval-notice-delivery.js";
 import { isDirectedMentionId } from "../channels/mentions.js";
 import type { AcceptedPresentationInput } from "./input-presentation.js";
 
@@ -17,10 +19,10 @@ const DEFAULT_APPROVAL_TIMEOUT_MS = 10 * 60_000;
 type PendingApproval = {
   id: string;
   senderId: string;
-  resolve: (decision: CodexApprovalDecision) => void;
+  resolve: (decision: CodexApprovalDecision | undefined) => void;
   timer: NodeJS.Timeout;
   request: CodexApprovalRequest;
-  promise: Promise<CodexApprovalDecision>;
+  promise: Promise<CodexApprovalDecision | undefined>;
   version: string;
   createdAt: number;
   expiresAt: number;
@@ -43,19 +45,32 @@ export class ChannelApprovalController {
   private readonly notices = new WeakMap<CodexApprovalRequest, { id: string; senderId: string; mentions?: readonly ChannelMention[] }>();
   private readonly journal: ApprovalJournal;
   private noticeTransfers = 0;
+  private readonly resolutionDelivery: ApprovalNoticeDelivery;
+  private closed = false;
 
   constructor(
-    private readonly send: (senderId: string, notice: ChannelApprovalNotice) => Promise<void>,
+    private readonly send: (senderId: string, notice: ChannelApprovalNotice) => Promise<ChannelReceipt | void>,
     private readonly timeoutMs = DEFAULT_APPROVAL_TIMEOUT_MS,
     private readonly allocateId?: () => string,
     journalFile?: string,
     private readonly options: {
       resolveMentions?: (senderId: string, request: CodexApprovalRequest) => readonly ChannelMention[] | undefined;
       onAcceptedInput?: (input: AcceptedPresentationInput) => Promise<void>;
+      updateCard?: (messageId: string, card: ChannelActionCard) => Promise<void>;
+      noticeSourceKey?: (senderId: string) => string;
+      validateNotice?: (scope: { recipientId: string; hostId: string; threadId: string; sourceKey?: string }) => boolean;
+      noticeRetryDelayMs?: number;
     } = {}
-  ) { this.journal = new ApprovalJournal(journalFile); }
+  ) {
+    this.journal = new ApprovalJournal(journalFile);
+    this.resolutionDelivery = new ApprovalNoticeDelivery(this.journal, {
+      send: (senderId, notice) => this.sendNotice(senderId, notice), updateCard: options.updateCard,
+      validate: options.validateNotice, retryDelayMs: options.noticeRetryDelayMs,
+    });
+  }
 
-  request(senderId: string, request: CodexApprovalRequest): Promise<CodexApprovalDecision> {
+  request(senderId: string, request: CodexApprovalRequest): Promise<CodexApprovalDecision | undefined> {
+    if (this.closed) return Promise.resolve(undefined);
     const snapshot = structuredClone(request);
     const version = crypto.createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
     const existing = snapshot.nativeKey && [...this.pending.values()].find(p => p.senderId === senderId && p.request.nativeKey === snapshot.nativeKey);
@@ -72,10 +87,11 @@ export class ChannelApprovalController {
     const notice = { id, senderId, mentions };
     this.notices.set(request, notice);
     this.notices.set(snapshot, notice);
-    let resolve!: (value: CodexApprovalDecision) => void;
-    const promise = new Promise<CodexApprovalDecision>(done => { resolve = done; });
+    let resolve!: (value: CodexApprovalDecision | undefined) => void;
+    const promise = new Promise<CodexApprovalDecision | undefined>(done => { resolve = done; });
     const createdAt = Date.now(), expiresAt = createdAt + this.timeoutMs;
     this.journal.add({ id, recipientId: senderId, threadId: snapshot.threadId, hostId: snapshot.hostId ?? "local", version, createdAt });
+    this.journal.updateNotice(id, { delivery: "ready", attempts: 0, sourceKey: this.options.noticeSourceKey?.(senderId) });
     {
       const timer = setTimeout(() => {
         if (!this.settle(senderId, id, denial(snapshot))) return;
@@ -85,10 +101,16 @@ export class ChannelApprovalController {
       }, this.timeoutMs);
       this.pending.set(this.key(senderId, id), { id, senderId, resolve, timer, request: snapshot,
         promise, version, createdAt, expiresAt });
-      this.sendNotice(senderId, { ...approvalNotice(id, snapshot, this.timeoutMs), mentions }).catch((error: unknown) => {
-        console.warn(`Unable to send approval ${id}: ${errorDetail(error)}`);
-        this.settle(senderId, id, denial(snapshot));
-      });
+      void this.sendNotice(senderId, { ...approvalNotice(id, snapshot, this.timeoutMs), mentions }).then(receipt => {
+        if (receipt?.messageId) this.resolutionDelivery.rememberCard(id, receipt.messageId);
+      }).catch((error: unknown) => {
+        // Missing IM delivery is not a user decision. Keep the native request
+        // and its Web/IM identifier pending instead of manufacturing a denial.
+        if (error instanceof ChannelPartialDeliveryError && error.delivered[0]?.messageId && this.options.updateCard) {
+          this.resolutionDelivery.rememberCard(id, error.delivered[0].messageId);
+        }
+        console.warn(`[codex-im-gateway] approval ${id} notice unconfirmed; native request retained`);
+      }).catch(() => console.warn("[codex-im-gateway] approval card receipt persistence unavailable"));
     }
     return promise;
   }
@@ -116,14 +138,14 @@ export class ChannelApprovalController {
       options: approvalOptions(p.request).map(({ id, label, description }) => ({ id, label, description })) }));
   }
 
-  private sendNotice(senderId: string, notice: ChannelApprovalNotice): Promise<void> {
+  private sendNotice(senderId: string, notice: ChannelApprovalNotice): Promise<ChannelReceipt | void> {
     this.noticeTransfers++;
-    let sent: Promise<void>;
+    let sent: Promise<ChannelReceipt | void>;
     try { sent = Promise.resolve(this.send(senderId, notice)); }
     catch (error) { sent = Promise.reject(error); }
     return sent.finally(() => { this.noticeTransfers--; });
   }
-  hasRestartBlockingWork(): boolean { return this.noticeTransfers > 0; }
+  hasRestartBlockingWork(): boolean { return this.noticeTransfers > 0 || this.resolutionDelivery.hasRestartBlockingWork(); }
   decideCurrent(senderId: string, id: string, choice: string, version: string): string {
     const pending = this.pending.get(this.key(senderId, id));
     if (!pending || pending.version !== version || Date.now() >= pending.expiresAt) throw new ApprovalDecisionConflictError("审批已处理、已过期或范围发生变化，请刷新。");
@@ -132,10 +154,13 @@ export class ChannelApprovalController {
   }
 
   async reportResult(senderId: string, request: CodexApprovalRequest, result: ApprovalDeliveryResult): Promise<void> {
+    if (this.closed) return;
     const notice = this.notices.get(request);
     if (!notice || notice.senderId !== senderId) return;
     const recorded = this.journal.snapshot().find(record => record.id === notice.id);
-    if (recorded?.phase === "confirmed") { this.notices.delete(request); return; }
+    if (recorded?.phase === "confirmed" || recorded?.phase === result) {
+      await this.resolutionDelivery.deliver(notice.id); return;
+    }
     // An approval handled in Desktop (or removed by a task switch) must no
     // longer be actionable from a stale IM notice.
     if (result === "withdrawn" || result === "failed") {
@@ -156,18 +181,16 @@ export class ChannelApprovalController {
         hostId: request.hostId ?? "local", threadId: request.threadId, turnId: request.turnId,
         kind: "approval" as const, acceptedAt: Date.now(),
       } : undefined;
-    this.journal.update(notice.id, { phase: result, ...(presentation ? { presentation } : {}) });
-    this.notices.delete(request);
+    this.journal.update(notice.id, { phase: result, ...(presentation ? { presentation } : {}), notice: {
+      sourceKey: this.journal.notice(notice.id)?.sourceKey,
+      messageId: this.journal.notice(notice.id)?.messageId,
+      mentions: notice.mentions?.map(mention => ({ ...mention })), outcome: result, delivery: "ready", attempts: 0,
+    } });
     if (presentation) {
       try { await this.options.onAcceptedInput?.(presentation); }
       catch { console.warn("[codex-im-gateway] confirmed approval presentation pending"); }
     }
-    const text = result === "confirmed"
-      ? `Codex 已确认审批 ${notice.id} 请求结束；实际权限以原生工具当前状态为准。`
-      : result === "withdrawn"
-        ? `审批 ${notice.id} 已失效或已在 Codex 中处理，请以 Codex 当前状态为准。`
-        : `审批 ${notice.id} 的决定未获 Codex 确认，不能确认已生效。请在 Codex 中检查；不要重复批准其他请求。`;
-    await this.sendNotice(senderId, { text, mentions: notice.mentions, presentation });
+    await this.resolutionDelivery.deliver(notice.id);
   }
 
   acceptedPresentationInputs(): AcceptedPresentationInput[] {
@@ -178,6 +201,14 @@ export class ChannelApprovalController {
     for (const pending of this.pending.values()) {
       if (pending.senderId === senderId) this.settle(senderId, pending.id, denial(pending.request));
     }
+  }
+
+  /** Retire this observer without answering any native request. */
+  close(): void {
+    if (this.closed) return;
+    this.closed = true; this.resolutionDelivery.close();
+    for (const pending of this.pending.values()) { clearTimeout(pending.timer); pending.resolve(undefined); }
+    this.pending.clear();
   }
 
   hasPending(senderId: string): boolean {

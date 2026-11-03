@@ -287,6 +287,7 @@ export class BridgeService {
             ...(notice.mentions?.length ? { mentions: notice.mentions } : {}),
             contextToken: options.stateStore.getContextToken(senderId) });
           this.reportCardDelivery(senderId, sent, notice.card.fallbackText);
+          return this.channel.capabilities.actions === "available" ? sent : undefined;
         } else if (notice.mentions?.length) {
           const sent = await this.channel.sendMentionNotification({ toUserId: senderId, text: notice.text,
             mentions: notice.mentions, contextToken: options.stateStore.getContextToken(senderId) });
@@ -306,6 +307,17 @@ export class BridgeService {
             conversationId: senderId, hostId: request.hostId ?? "local", threadId: request.threadId, turnId: request.turnId });
         },
         onAcceptedInput: input => this.presentAcceptedInput(input),
+        ...(this.channel.capabilities.cardUpdates === "available" ? {
+          updateCard: (messageId: string, card: ChannelActionCard) => this.channel.updateActionCard({ messageId, card })
+        } : {}),
+        noticeSourceKey: senderId => this.promptBufferScope(senderId),
+        validateNotice: scope => {
+          if (this.audienceSuspended) return false;
+          this.options.stateStore.refresh();
+          if (scope.sourceKey !== undefined) return this.promptBufferScope(scope.recipientId) === scope.sourceKey;
+          const session = this.executionSession(scope.recipientId);
+          return session?.threadId === scope.threadId && (this.sessionHostId(session) ?? "local") === scope.hostId;
+        },
       }
     );
     this.runner = options.runner ?? new CodexAppServerGateway({
@@ -3491,7 +3503,7 @@ export class BridgeService {
     return this.access.listPairedSenderIds();
   }
 
-  async requestApproval(senderId: string, request: CodexApprovalRequest): Promise<CodexApprovalDecision> {
+  async requestApproval(senderId: string, request: CodexApprovalRequest): Promise<CodexApprovalDecision | undefined> {
     const session = this.executionSession(senderId);
     // Project notification routes may legitimately have no matching session.
     // A bound task's question, however, cannot outlive its source binding while
@@ -3583,7 +3595,7 @@ export class BridgeService {
     return this.userInputs.hasRequest(senderId, request);
   }
 
-  suspendUserInputs(): void { this.audienceSuspended = true; this.userInputs.close(); }
+  suspendUserInputs(): void { this.audienceSuspended = true; this.userInputs.close(); this.approvals.close(); }
   hasBindingWork(senderId: string): boolean {
     return this.conversationWork.has(senderId) || this.approvals.hasPending(senderId) || this.userInputs.hasUnsettled(senderId);
   }

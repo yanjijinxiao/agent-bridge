@@ -1,0 +1,1333 @@
+{
+  "baseline": "f5bf6d0",
+  "scope": "继续完成原99项；保持具体缺口，不以改标签替代开发和验收",
+  "items": [
+    {
+      "id": "NATIVE-01.1",
+      "scenario": "无桌面注册表也可新建、继续、跟随、交互、排队、目标和历史",
+      "originalBoundary": "该映射没有完整验证无Desktop部署的交互、持续跟随、网络重连和全部方法组合；本机假模型不等于真实服务商或远程CLI部署验收。",
+      "state": "pending"
+    },
+    {
+      "id": "NATIVE-02.2",
+      "scenario": "有无审批回调均不重置已有工作区可写和自动审核",
+      "originalBoundary": "真实0.166 macOS及0.163 Linux均补有/无审批回调×连接重建×默认/显式8组合。旧配置所有迁移格式、实际自动审核器的执行行为与供应商审批投递未由本矩阵证明，仍partial。",
+      "state": "pending"
+    },
+    {
+      "id": "NATIVE-02.3",
+      "scenario": "Gateway 断连重连不抢锁、不改变 core/线程/输入次数",
+      "originalBoundary": "这是连接/适配器重建，不是真实Gateway进程在接收与fsync任意间隙被杀；未断言Desktop写锁、私有stdio或所有远程断线时序。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/shared-app-server-integration.test.ts",
+          "name": "Gateway disconnect after acceptance does not interrupt a peer-visible native turn or repeat its input"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":false,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":true,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":true}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
+        }
+      ],
+      "currentBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。"
+    },
+    {
+      "id": "NATIVE-03.1",
+      "scenario": "本地远程同 threadId 不串状态、模型和额度",
+      "originalBoundary": "未在真实SSH核心上制造相同threadId，未以同组场景证明运行态、模型和额度全部隔离；getRuntimeInfo在此为替身。",
+      "state": "pending"
+    },
+    {
+      "id": "NATIVE-03.2",
+      "scenario": "远程目录/模型读取失败不改为本机结果",
+      "originalBoundary": "测试替身未提供远端项目/session目录失败分支，也没有真实SSH掉线；模型/额度失败不能外推所有目录API不回退。",
+      "state": "pending"
+    },
+    {
+      "id": "NATIVE-03.3",
+      "scenario": "等待期间换绑后原查询不改新会话设置",
+      "originalBoundary": "该映射未包含effort/全部元数据命令、A→B→A和真实远程连接等待组合；其他case有相关对照，尚未逐一归并。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/intent-review-control-races.test.ts",
+          "name": "NATIVE-03.3: late model lookup cannot change settings after rebind"
+        },
+        {
+          "file": "test/intent-review-control-races.test.ts",
+          "name": "NATIVE-03.3: late model lookup cannot change settings after revoke"
+        },
+        {
+          "file": "test/intent-review-control-races.test.ts",
+          "name": "NATIVE-03.3: late model lookup cannot change settings after binding-aba"
+        },
+        {
+          "file": "test/intent-review-control-races.test.ts",
+          "name": "NATIVE-03.3: late model lookup cannot change settings after mode-aba"
+        },
+        {
+          "file": "test/intent-review-control-races.test.ts",
+          "name": "NATIVE-03.3: late model lookup cannot change settings after role"
+        },
+        {
+          "file": "test/intent-review-control-races.test.ts",
+          "name": "NATIVE-03.3: late effort lookup cannot change settings after rebind"
+        },
+        {
+          "file": "test/intent-review-control-races.test.ts",
+          "name": "NATIVE-03.3: late effort lookup cannot change settings after revoke"
+        },
+        {
+          "file": "test/intent-review-control-races.test.ts",
+          "name": "NATIVE-03.3: late effort lookup cannot change settings after binding-aba"
+        },
+        {
+          "file": "test/intent-review-control-races.test.ts",
+          "name": "NATIVE-03.3: late effort lookup cannot change settings after mode-aba"
+        },
+        {
+          "file": "test/intent-review-control-races.test.ts",
+          "name": "NATIVE-03.3: late effort lookup cannot change settings after role"
+        }
+      ],
+      "currentBoundary": "model/effort等待目录返回时分别换绑、撤权、绑定ABA、模式ABA、降权，共10个受控真实Bridge状态场景，旧查询不写新设置。"
+    },
+    {
+      "id": "NATIVE-05.2",
+      "scenario": "旁路历史 interrupted 不结束原生仍 active 的卡",
+      "originalBoundary": "原生队列恢复不按旁路interrupted结束原生轮，非所有rollout→hub交错。",
+      "state": "pending"
+    },
+    {
+      "id": "NATIVE-06.3",
+      "scenario": "通信恢复沿原 turn 继续，不重放输入",
+      "originalBoundary": "持久binding、只读sync恢复、同handle的notice跨重启和新进展已验证；本case的真实外部连接断开后重连原运行turn仍需独立场景。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/session-owner-recovery.test.ts",
+          "name": "dingtalk: a persisted unloaded binding survives sync and ordinary messages continue the same session"
+        },
+        {
+          "file": "test/session-owner-recovery.test.ts",
+          "name": "weixin: a persisted unloaded binding survives sync and ordinary messages continue the same session"
+        },
+        {
+          "file": "test/session-owner-recovery.test.ts",
+          "name": "feishu: a persisted unloaded binding survives sync and ordinary messages continue the same session"
+        },
+        {
+          "file": "test/codex-turn-recovery.test.ts",
+          "name": "retry notice survives restart on the same handle and clears on real progress"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":false,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":true,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":true}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
+        }
+      ],
+      "currentBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。"
+    },
+    {
+      "id": "IN-01.2",
+      "scenario": "引用里的 /stop 或 /approve 不是新命令",
+      "originalBoundary": "引用审批和当前命令分离已有实际适配/Bridge断言；引用/stop全部消息类型尚无同组精确场景。",
+      "state": "pending"
+    },
+    {
+      "id": "IN-01.3",
+      "scenario": "四种渠道共用分发语义，任务/知识扩展仅在明确模式内生效",
+      "originalBoundary": "四渠道普通消息及显式help覆盖；所有任务/QA扩展组合未完整核验。",
+      "state": "pending"
+    },
+    {
+      "id": "IN-02.1",
+      "scenario": "提交前崩溃后平台重投或恢复只执行一次",
+      "originalBoundary": "真实隔离子进程骤停和durable inbox恢复，派发后端替身；不证明供应商全部重投窗口。",
+      "state": "pending"
+    },
+    {
+      "id": "IN-02.2",
+      "scenario": "原生接收后回执落盘前崩溃，按原生精确身份恢复接收及结果投递；证据不足保留未知，不重发",
+      "originalBoundary": "不涵盖任意CPU指令间隙、主机断电、真实SSH/供应商回执/手机显示、原生队列及workflow交接全部交错。缺原thread ID、client ID缺失、重复或分页超预算的旧记录保持未知，不自动重放。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/forwarding-inbox.test.ts",
+          "name": "accepted input is never resubmitted after a transport failure and restart"
+        },
+        {
+          "file": "test/forwarding-inbox.test.ts",
+          "name": "ambiguous input is never resubmitted after a transport failure and restart"
+        },
+        {
+          "file": "test/forwarding-inbox.test.ts",
+          "name": "a crash with a submitting receipt becomes visibly unconfirmed and never authorizes replay"
+        },
+        {
+          "file": "test/forwarding-inbox.test.ts",
+          "name": "failed acceptance persistence cannot erase the saved body or make in-memory acceptance stronger than disk"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":false,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":true,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":true}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "acceptance observation uses exact client IDs across complete pages on the original host/thread"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "same text, missing IDs/turns and cross-turn duplicate IDs do not confirm acceptance"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "an early matching page cannot confirm before a later error, repeated cursor or scan limit"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "bounded receipt reads retire without confirming a late native response"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "recovered acceptance is durable before cleanup and never reopens a claim"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "recovery rejects wrong scope, live handoffs and stale journal versions"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "recovery fsync failure retains the unknown receipt and saved source, then safely retries"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "recovered output obligations survive restart and settle only for their exact durable receipt"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "new-thread identity must be durable before turn/start can submit any native input"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "a retired account cannot commit a late native receipt and readonly recovery does not block release"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "legacy ordinary inbox sources recover but legacy queue/control messages remain unknown"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "a changed binding never becomes the native receipt lookup target"
+        },
+        {
+          "file": "test/native-input-recovery.test.ts",
+          "name": "a recovered old result waits for the current turn without replaying unrelated history or replacing active progress"
+        }
+      ],
+      "currentBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。"
+    },
+    {
+      "id": "IN-04.2",
+      "scenario": "普通正文中的人名和 @ 不任意删除",
+      "originalBoundary": "适配器text/richText矩阵保正文中@和引用、inline code，不把人名随意删掉；其他渠道别名矩阵未同组覆盖。",
+      "state": "pending"
+    },
+    {
+      "id": "IN-05.1",
+      "scenario": "纯图、混排、普通文件及引用文件保留原语义",
+      "originalBoundary": "真实解析和共享引用缓存；各渠道纯图/混排全组合与手机原始事件尚未穷尽。",
+      "state": "pending"
+    },
+    {
+      "id": "IN-05.2",
+      "scenario": "只有文件名或引用ID时明确缺内容",
+      "originalBoundary": "钉钉引用只有名称/无下载凭据明确标缺内容，正常直接文件/链接仍解析；其他渠道另需场景。",
+      "state": "pending"
+    },
+    {
+      "id": "IN-05.3",
+      "scenario": "下载超限、超时、存储失败不静默丢消息",
+      "originalBoundary": "无长度读流限额及Bridge明确下载失败不启动空轮；各渠道存储失败/总时限组合未全覆盖。",
+      "state": "pending"
+    },
+    {
+      "id": "IN-06.1",
+      "scenario": "远程 Codex 收到远端可读附件路径",
+      "originalBoundary": "实际Bridge准备远端转存路径，远端存储与runner为替身；未在真实SSH主机读取。 追加两台真实Linux SSH主机：image/file/video/audio完整字节与SHA、0600、重复内容地址、超限/缺失拒绝及自有目录清理；Node容器包装器与下一条SSH命令共享可读持久路径。真实供应商投递与传输中撤权组合仍未由此证明。",
+      "state": "pending"
+    },
+    {
+      "id": "IN-06.2",
+      "scenario": "转存中途换绑/撤权后不提交",
+      "originalBoundary": "附件准备结束后线程/角色/准入复核；远端实际SSH转存中撤权的独立场景仍需补。",
+      "state": "pending"
+    },
+    {
+      "id": "IN-06.3",
+      "scenario": "远程输出按原执行主机端口回传并校验字节；缺端口时明确失败，不误读本地同名文件。",
+      "originalBoundary": "实际只读发送脚本与下载器保留文件名/完整二进制、大小与SHA256校验、超时/坏摘要拒绝及0600临时文件清理；真实Bridge在异步下载后复核线程绑定。SSH进程为隔离本机替身，渠道发送为替身；没有真实远程主机、供应商IM或手机实机验收，故仍partial。 追加两台真实Linux SSH主机：image/file/video/audio完整字节与SHA、0600、重复内容地址、超限/缺失拒绝及自有目录清理；Node容器包装器与下一条SSH命令共享可读持久路径。真实供应商投递与传输中撤权组合仍未由此证明。",
+      "state": "pending"
+    },
+    {
+      "id": "STATE-01.3",
+      "scenario": "损坏关键文件拒绝加载并保留原件，不当空表覆盖",
+      "originalBoundary": "关键inbox/journal坏文件保原件，不外推RuntimeState所有迁移map均已验证。",
+      "state": "pending"
+    },
+    {
+      "id": "STATE-02.1",
+      "scenario": "停止再启动只有一个状态写者和发送客户端",
+      "originalBoundary": "实际账号启动/刷新及独立停止，但monitor/runner替身，不证明所有并发清理异常。",
+      "state": "pending"
+    },
+    {
+      "id": "STATE-02.2",
+      "scenario": "旧连接回执不能写入新连接或新机器人",
+      "originalBoundary": "已覆盖退休入站claim和机器人IDE身份；其他旧连接异步回执仍需逐条核对。",
+      "state": "pending"
+    },
+    {
+      "id": "STATE-03.2",
+      "scenario": "迁移不扩大权限、不清空授权、不重发任务",
+      "originalBoundary": "配置和receipt迁移保既有权限和去重；全部旧IDE/账号/JSON状态格式尚无统一迁移矩阵。",
+      "state": "pending"
+    },
+    {
+      "id": "STATE-03.3",
+      "scenario": "日志及管理响应不输出 Secret/Token/ticket",
+      "originalBoundary": "账号API和webhook投影不输出原token/key；全仓错误日志泄密边界尚未穷尽。",
+      "state": "pending"
+    },
+    {
+      "id": "BIND-01.2",
+      "scenario": "重启、模式切换不接回旧 session",
+      "originalBoundary": "detach持久、模式槽位与显式新建不复活旧关系；Gateway真实进程重启另需端到端。",
+      "state": "pending"
+    },
+    {
+      "id": "BIND-01.3",
+      "scenario": "解绑一群不删除线程、不停止任务、不取消原生队列、不影响别群",
+      "originalBoundary": "真实关系事务和订阅集合，不调用runner；原生任务/queue持续执行用替身零调用证明，非真实执行中重启。",
+      "state": "pending"
+    },
+    {
+      "id": "BIND-02.1",
+      "scenario": "独立 session 残留旧项目仍可正常续聊",
+      "originalBoundary": "旧项目漂移保独立绑定，四渠道项目命令不覆盖；普通真实native续聊权限另证。",
+      "state": "pending"
+    },
+    {
+      "id": "BIND-02.2",
+      "scenario": "换项目/模式使原输入租约失效",
+      "originalBoundary": "真实scope generation，模式session切换ABA不复活；其他任意项目变更由来源测试另核。",
+      "state": "pending"
+    },
+    {
+      "id": "BIND-03.1",
+      "scenario": "新旧绑定不串进度/最终结果/附件",
+      "originalBoundary": "hub旧绑定结果/卡关闭；附件及全部handler路径未在该测试。",
+      "state": "pending"
+    },
+    {
+      "id": "BIND-03.2",
+      "scenario": "归档暂停跟随而非伪造失败答复",
+      "originalBoundary": "archive不造final已断言；archive之后全部订阅资源暂停不由此单例证明。",
+      "state": "pending"
+    },
+    {
+      "id": "BIND-03.3",
+      "scenario": "准备附件或等待后端时变化在原生写入前再拒绝",
+      "originalBoundary": "实际显式queue/steer准备后来源守卫，全部降权/停账号组合仍待。",
+      "state": "pending"
+    },
+    {
+      "id": "BIND-04.3",
+      "scenario": "恢复路由后新读原题仍有效才发，不重放旧答案",
+      "originalBoundary": "旧Desktop兼容monitor路径的鲜活snapshot重路由，不是当前标准AppServerRequestMonitor入口全验证。",
+      "state": "pending"
+    },
+    {
+      "id": "CAT-02.2",
+      "scenario": "旧卡/过期快照不把编号解释成另一项目",
+      "originalBoundary": "旧项目按钮不按新下标改投；15分钟过期与R所有别名场景另需测试。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/intent-review-choice-identity.test.ts",
+          "name": "a project button from an earlier list cannot silently target the new row at the same index"
+        },
+        {
+          "file": "test/catalog-checklist.test.ts",
+          "name": "CAT-02.2: expired snapshot rejects /session R1 before inspection or rebinding"
+        },
+        {
+          "file": "test/catalog-checklist.test.ts",
+          "name": "CAT-02.2: expired snapshot rejects /sessions r1 before inspection or rebinding"
+        },
+        {
+          "file": "test/catalog-checklist.test.ts",
+          "name": "CAT-02.2: expired snapshot rejects /sessions detail R1 before inspection or rebinding"
+        },
+        {
+          "file": "test/catalog-checklist.test.ts",
+          "name": "CAT-02.2: expired snapshot rejects /sessions next before inspection or rebinding"
+        },
+        {
+          "file": "test/catalog-checklist.test.ts",
+          "name": "CAT-02.2: expired snapshot rejects /sessions more before inspection or rebinding"
+        },
+        {
+          "file": "test/catalog-checklist.test.ts",
+          "name": "CAT-02.2: expired snapshot rejects /sessions page 2 before inspection or rebinding"
+        },
+        {
+          "file": "test/catalog-checklist.test.ts",
+          "name": "CAT-02.2: versioned project button expires even without a newer list"
+        }
+      ],
+      "currentBoundary": "15分钟过期覆盖R编号绑定、详情及分页别名，检查先于inspect或换绑；旧项目按钮没有新列表时仍过期，重新查询恢复正常。"
+    },
+    {
+      "id": "CAT-02.3",
+      "scenario": "同主机同路径不同项目、跨主机同名均区分",
+      "originalBoundary": "跨host同名/同projectID分组隔离；同host同roots多个native身份创建仍是独立未决项。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/session-catalog-order.test.ts",
+          "name": "duplicate names and identical project IDs on different hosts remain separate contiguous groups"
+        },
+        {
+          "file": "test/session-catalog.test.ts",
+          "name": "native project membership, remote host isolation, and unavailable-host warnings survive selection"
+        },
+        {
+          "file": "test/catalog-checklist.test.ts",
+          "name": "CAT-02.3: same host, name and roots retain two exact native project identities through IM selection and reload"
+        }
+      ],
+      "currentBoundary": "同host、同name、同roots但不同原生projectID经实际IM选择与状态重载仍各自独立，裸同名不改变当前项目；既有测试验证跨host分组。"
+    },
+    {
+      "id": "CAT-03.1",
+      "scenario": "无当前项目不自动选第一个",
+      "originalBoundary": "实际fresh账号无项目普通消息/new不暗选第一项；task/qa/mode精确新反例另见CAT-03.5。",
+      "state": "pending"
+    },
+    {
+      "id": "CAT-04.3",
+      "scenario": "最近历史和翻页都保留正文/引用但不触发附件发送",
+      "originalBoundary": "展示引用/字面附件不发送，全部历史分页API及native格式组合仍待映射。",
+      "state": "pending"
+    },
+    {
+      "id": "CTRL-01.1",
+      "scenario": "expectedTurnId必带且回执thread/turn均精确",
+      "originalBoundary": "真实JSONL预期turn比较和Bridge默认steer，ACK中的全部thread/turn反例未在这组穷尽。",
+      "state": "pending"
+    },
+    {
+      "id": "CTRL-01.2",
+      "scenario": "超时不重发、不称已接收",
+      "originalBoundary": "未知写不重复派发/不切卡，具体transport timeout消息文字另需组合。",
+      "state": "pending"
+    },
+    {
+      "id": "CTRL-01.3",
+      "scenario": "等待期间换绑/降权后不再写入",
+      "originalBoundary": "普通消息写前来源复核，原生steer连接等待后原角色/个人准入仍需另一末次lease场景。",
+      "state": "pending"
+    },
+    {
+      "id": "CTRL-02.2",
+      "scenario": "入队立即自动消费只执行一次",
+      "originalBoundary": "实际native正常自动消费+协调器FIFO单次；所有接收/消费竞态仍受那一次未明idle失败限制。",
+      "state": "pending"
+    },
+    {
+      "id": "CTRL-03.1",
+      "scenario": "重启待项/已消费/未知三种分开恢复",
+      "originalBoundary": "真实进程骤停已有六种，但任意CPU指令间隙、主机断电、无原身份旧记录和供应商全丢ACK窗口未穷尽。远程探探另验证执行期间杀Gateway/Connector，不声称精确命中远程fsync边界。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/native-queue.test.ts",
+          "name": "lost add acknowledgement recovers exact client id, never adds again"
+        },
+        {
+          "file": "test/native-queue.test.ts",
+          "name": "absence in queue/history is uncertain, not permission to replay"
+        },
+        {
+          "file": "test/native-queue.test.ts",
+          "name": "a consumed item is reconciled against older history by id, not similar text"
+        },
+        {
+          "file": "test/native-queue-crash-recovery.test.ts",
+          "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"pending\"}"
+        },
+        {
+          "file": "test/native-queue-crash-recovery.test.ts",
+          "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"running\"}"
+        },
+        {
+          "file": "test/native-queue-crash-recovery.test.ts",
+          "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"completed-offline\"}"
+        },
+        {
+          "file": "test/native-queue-crash-recovery.test.ts",
+          "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"after\",\"state\":\"pending\"}"
+        },
+        {
+          "file": "test/native-queue-crash-recovery.test.ts",
+          "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"after\",\"state\":\"completed-offline\"}"
+        },
+        {
+          "file": "test/native-queue-crash-recovery.test.ts",
+          "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"running\",\"crashRecovery\":true}"
+        },
+        {
+          "file": "test/queued-inbound-recovery.test.ts",
+          "name": "CTRL-03.1: queue recovery settles the IM handoff with queuedSubmissionId and no duplicate result duty"
+        },
+        {
+          "file": "test/queued-inbound-recovery.test.ts",
+          "name": "CTRL-03.1: queue recovery settles the IM handoff with turnId and no duplicate result duty"
+        },
+        {
+          "file": "test/queued-inbound-recovery.test.ts",
+          "name": "CTRL-03.1: queue proof cannot cross source, actor, conversation, session, host, thread or receipt version"
+        },
+        {
+          "file": "test/queued-inbound-recovery.test.ts",
+          "name": "CTRL-03.1: queue recovery cannot retire a live handoff or reclassify ordinary input"
+        },
+        {
+          "file": "test/queued-inbound-recovery.test.ts",
+          "name": "CTRL-03.1: failed queue source durability retains unknown and permits exact recovery after restart"
+        }
+      ],
+      "currentBoundary": "真实原生queue接收与Gateway落盘前后6种SIGKILL：pending/running/离线completed及恢复再次骤停。原queue/client/turn、core PID、输入/结果/记忆各一次，原inbox结清；身份不足保持未知由既有精确client与分页反例验证。"
+    },
+    {
+      "id": "CTRL-03.3",
+      "scenario": "已送达完成项迟到onAccepted不建新卡",
+      "originalBoundary": "真实queue接收/rename骤停已经覆盖；实际供应商发送ACK丢失全部时序及手机原生AI卡渲染仍未验证。真实核心骤停用TEXT传输，原卡/新卡组合仍是渠道替身，不能互相外推。",
+      "state": "pending"
+    },
+    {
+      "id": "CTRL-05.2",
+      "scenario": "帮助包含实际支持new/unbind/queue/answer/ide等",
+      "originalBoundary": "help主表及unbind已断言，但answer/ide全部帮助分支须逐条映射，不把标题every当完整证据。",
+      "state": "pending"
+    },
+    {
+      "id": "CTRL-05.3",
+      "scenario": "可选Taskboard挂起不阻塞状态或首屏",
+      "originalBoundary": "首屏和status不挡的各自故障已覆盖；Taskboard挂起时IMstatus的联合场景未专测。",
+      "state": "pending"
+    },
+    {
+      "id": "AUTH-01.1",
+      "scenario": "群ID不当actor，未经准入不下载或提交",
+      "originalBoundary": "ACL在下载前；IDE group不等个人授权，所有IM平台个人/群身份仍需分渠道核对。",
+      "state": "pending"
+    },
+    {
+      "id": "AUTH-01.2",
+      "scenario": "viewer只读、participant不能停止/审批/授角色",
+      "originalBoundary": "viewer/participant控制限制与审批原群controller；授角色全部组合仍需独立场景。",
+      "state": "pending"
+    },
+    {
+      "id": "INT-02.3",
+      "scenario": "断线重连原typed请求ID不变且不重发决定",
+      "originalBoundary": "没有审批决定已写但确认丢失后的再重连，也没有所有typed审批种类/多个决策者竞争或IM实际投递；不能从pending请求重放外推决定未知恢复。",
+      "state": "pending"
+    },
+    {
+      "id": "INT-03.3",
+      "scenario": "MCP枚举/数值/布尔按schema回传，未知约束明确提示",
+      "originalBoundary": "当前主要是parser/typed response单元边界，未知schema的通知、四渠道表单呈现和原生完整往返没有同组覆盖；不声称所有JSON Schema均已支持。",
+      "state": "pending"
+    },
+    {
+      "id": "INT-04.2",
+      "scenario": "IM/Web竞争一方成功另一方失效",
+      "originalBoundary": "实际本地HTTP/IM同approvalId version，重复决定失效；问题答案同竞态仍需另例。 补并发两个Web客户端及IM/Web命令审批决定；请求版本只消耗一次，迟到另一方409；问题答案竞态仍未包含。",
+      "state": "verified-listed-boundary",
+      "evidence": [
+        {
+          "file": "test/approval-http.test.ts",
+          "name": "protected Web API and IM consume the same scoped approval exactly once"
+        },
+        {
+          "file": "test/approval-http.test.ts",
+          "name": "INT-04.2: concurrent two-web-clients consume one approval version once"
+        },
+        {
+          "file": "test/approval-http.test.ts",
+          "name": "INT-04.2: concurrent im-and-web consume one approval version once"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "late native consumers observe the same pending approval and exactly one explicit answer wins"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "retired or replaced consumers cannot answer a native request through a late promise"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "missing routes, consumer errors and detach leave the native request unanswered"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "native question fanout follows the same ownership and does not invent an answer"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "an edited native question retires its old answer even when the request id is reused"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: approval lost receipt retains its chosen consumer across none"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: approval lost receipt retains its chosen consumer across replace"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: approval lost receipt retains its chosen consumer across remove"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: approval lost receipt retains its chosen consumer across same-object"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: input lost receipt retains its chosen consumer across none"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: input lost receipt retains its chosen consumer across replace"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: input lost receipt retains its chosen consumer across remove"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: input lost receipt retains its chosen consumer across same-object"
+        },
+        {
+          "file": "test/native-question-race.test.ts",
+          "name": "INT-04.2: real native question accepts one im answer and retires the other surface"
+        },
+        {
+          "file": "test/native-question-race.test.ts",
+          "name": "INT-04.2: real native question accepts one ui answer and retires the other surface"
+        },
+        {
+          "file": "test/question-surface-race.test.ts",
+          "name": "INT-04.2: im wins the IM and actual Web HTTP question race without confirming the losing answer"
+        },
+        {
+          "file": "test/question-surface-race.test.ts",
+          "name": "INT-04.2: web wins the IM and actual Web HTTP question race without confirming the losing answer"
+        }
+      ],
+      "currentBoundary": "真实本地Taskboard HTTP + IM Bridge问题竞答两个顺序；实际Codex核心原请求两种先答顺序，各只有一次原生答案和一次任务，未获选入口withdrawn而非confirmed；审批/问题失确认后保留获选者，移除/替换/相同对象重挂不把旧确认交给新消费者。",
+      "acceptanceEvidence": [
+        {
+          "file": "test/approval-http.test.ts",
+          "name": "protected Web API and IM consume the same scoped approval exactly once"
+        },
+        {
+          "file": "test/approval-http.test.ts",
+          "name": "INT-04.2: concurrent two-web-clients consume one approval version once"
+        },
+        {
+          "file": "test/approval-http.test.ts",
+          "name": "INT-04.2: concurrent im-and-web consume one approval version once"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "late native consumers observe the same pending approval and exactly one explicit answer wins"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "retired or replaced consumers cannot answer a native request through a late promise"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "missing routes, consumer errors and detach leave the native request unanswered"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "native question fanout follows the same ownership and does not invent an answer"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "an edited native question retires its old answer even when the request id is reused"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: approval lost receipt retains its chosen consumer across none"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: approval lost receipt retains its chosen consumer across replace"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: approval lost receipt retains its chosen consumer across remove"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: approval lost receipt retains its chosen consumer across same-object"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: input lost receipt retains its chosen consumer across none"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: input lost receipt retains its chosen consumer across replace"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: input lost receipt retains its chosen consumer across remove"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: input lost receipt retains its chosen consumer across same-object"
+        },
+        {
+          "file": "test/native-question-race.test.ts",
+          "name": "INT-04.2: real native question accepts one im answer and retires the other surface"
+        },
+        {
+          "file": "test/native-question-race.test.ts",
+          "name": "INT-04.2: real native question accepts one ui answer and retires the other surface"
+        },
+        {
+          "file": "test/question-surface-race.test.ts",
+          "name": "INT-04.2: im wins the IM and actual Web HTTP question race without confirming the losing answer"
+        },
+        {
+          "file": "test/question-surface-race.test.ts",
+          "name": "INT-04.2: web wins the IM and actual Web HTTP question race without confirming the losing answer"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: approval lost receipt retains its chosen consumer across replace-direct"
+        },
+        {
+          "file": "test/interaction-fanout.test.ts",
+          "name": "INT-04.2: input lost receipt retains its chosen consumer across replace-direct"
+        }
+      ]
+    },
+    {
+      "id": "INT-04.3",
+      "scenario": "投递确认通知失败只重试原通知，不重交答案",
+      "originalBoundary": "已覆盖问题答案的原卡可重试/文字unknown不重发；完整审批决定通知的相同闭环待映射。",
+      "state": "verified-listed-boundary",
+      "evidence": [
+        {
+          "file": "test/user-input.test.ts",
+          "name": "native acceptance survives acknowledgement-card failure and retries only the same question card"
+        },
+        {
+          "file": "test/user-input.test.ts",
+          "name": "restart restores an unsent confirmation-card update without replaying the native answer"
+        },
+        {
+          "file": "test/user-input.test.ts",
+          "name": "failed plain acknowledgement is recorded as uncertain, not resent after restart"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: failed initial IM notice retains the original approval and close invents no decision"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: confirmed approval retries only its acknowledged card (restart=false)"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: confirmed approval retries only its acknowledged card (restart=true)"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: a missing plain-message ACK stays unknown across duplicate callbacks and restart"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: card notice retry respects rebound"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: card notice retry respects closed"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: card notice retry respects permanent"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: card notice retry respects budget"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: late initial card ACK and partial mention failure still close the exact old card"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: stopping during a card update prevents a late old-controller commit"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: an unavailable audit disk cannot spin retries or alter the confirmed native decision"
+        }
+      ],
+      "currentBoundary": "审批初始通知失败保留原请求；确认后只更新原有ACK卡，原生决定与通知投递分别持久化。覆盖通知失败重试、对象重建、发送前后晚ACK、已投卡但@失败、文字ACK未知不重发、永久错误/三次上限、换绑/关闭、晚旧写与磁盘失败不忙循环。已有问题通知用例保留。",
+      "acceptanceEvidence": [
+        {
+          "file": "test/user-input.test.ts",
+          "name": "native acceptance survives acknowledgement-card failure and retries only the same question card"
+        },
+        {
+          "file": "test/user-input.test.ts",
+          "name": "restart restores an unsent confirmation-card update without replaying the native answer"
+        },
+        {
+          "file": "test/user-input.test.ts",
+          "name": "failed plain acknowledgement is recorded as uncertain, not resent after restart"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: failed initial IM notice retains the original approval and close invents no decision"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: confirmed approval retries only its acknowledged card (restart=false)"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: confirmed approval retries only its acknowledged card (restart=true)"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: a missing plain-message ACK stays unknown across duplicate callbacks and restart"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: card notice retry respects rebound"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: card notice retry respects closed"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: card notice retry respects permanent"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: card notice retry respects budget"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: late initial card ACK and partial mention failure still close the exact old card"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: stopping during a card update prevents a late old-controller commit"
+        },
+        {
+          "file": "test/approval-notice-recovery.test.ts",
+          "name": "INT-04.3: an unavailable audit disk cannot spin retries or alter the confirmed native decision"
+        }
+      ]
+    },
+    {
+      "id": "INT-05.3",
+      "scenario": "断连保留未知决定，不自动跳过/重发",
+      "originalBoundary": "typed sync/async问题答案unknown保留不重放已覆盖；审批决定同边界仍须实际native路线补核。",
+      "state": "pending"
+    },
+    {
+      "id": "REC-01.2",
+      "scenario": "archive后断连/重启须恢复active且保留历史和项目",
+      "originalBoundary": "已验证write-ahead/未知archive回执/补偿中断、重启无原绑定仍恢复active。项目归属字段迁移和真实中途进程崩溃尚无独立断言。",
+      "state": "pending"
+    },
+    {
+      "id": "REC-02.2",
+      "scenario": "队列/人工输入优先，恢复前最后校验",
+      "originalBoundary": "现有JSONL queue优先和coordinator新输入/解绑取消覆盖；最后原生写前执行代次、角色及并发新queue仍需逐分支反例。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-01.1",
+      "scenario": "HTTP200空对象/业务错误不是成功",
+      "originalBoundary": "钉钉create/deliver/update/sessionWebhook业务回执精确；其余渠道另需映射。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-01.2",
+      "scenario": "投递失败不改Codex终态",
+      "originalBoundary": "结果投递失败保原终态payload，不发替代答案；native executor终态在更下层fixture。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-02.2",
+      "scenario": "投递部分成功不当全部拒绝重试",
+      "originalBoundary": "phase/subresult事实分开，原实例恢复；真实多人目标部分成功需供应商响应实际验收。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-03.1",
+      "scenario": "DNS/白名单暂错恢复原卡不刷屏",
+      "originalBoundary": "真实stream调度+fake传输/时间，保原卡/有界probe，非真实DNS/白名单恢复。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-04.2",
+      "scenario": "重启/force sync不批量发送未知历史",
+      "originalBoundary": "无界历史不能由未知ID冒充新任务；该测试只用有限历史fixture，force-sync/1000轮另需场景。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-05.3",
+      "scenario": "分段和重启不丢参与者/原turn身份",
+      "originalBoundary": "原turn名单/accepted来源跨重启保留；旋转同时多群/崩溃矩阵未穷尽。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-06.3",
+      "scenario": "创建名单/卡内标签/投递名单均保留，失败不丢旧正文",
+      "originalBoundary": "真实adapter+SDK/HTTPS传输替身，@metadata与正文保全，失败不清旧正文；实际钉钉标签和通知可见性另验。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-07.3",
+      "scenario": "@与IDE页脚计算后仍满足容量",
+      "originalBoundary": "自动化容量联合边界已补；真实手机钉钉当前版本渲染仍未验。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-08.1",
+      "scenario": "等待审批/提问、恢复执行、完成的正文与圆环同步",
+      "originalBoundary": "生产adapter传输payload状态/圆环参数，实际客户端渲染仍需验收。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-08.2",
+      "scenario": "累计进度、重复压缩、多次compaction不重复或停旧状态",
+      "originalBoundary": "包含真实多次compaction phase进入同卡，不仅去重单一文本；真实客户端圆环/排版未验。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-08.4",
+      "scenario": "同轮次历史截图出现普通最终答案后新空卡/额外小结，按真实新输入、分段回执和最终提醒所有权区分；原生客户端截图验收独立于API成功，不把旧截图算当前验收。",
+      "originalBoundary": "分段/最终@/页脚的自动化所有权已补；当前真实钉钉端同轮分段显示和历史截图故障的现版对照仍未验。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-09.3",
+      "scenario": "连续更新无重复控制区、摘要不消失、大空白有明确界限",
+      "originalBoundary": "连续协议投影和空白预算已补；真实手机模板最终视觉空白和原生控件显示仍未验。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-09.4",
+      "scenario": "Desktop专用code-comment等展示指令投影为可读结果，不裸露属性串/重复正文；围栏、引用与行内代码中的字面示例保持。覆盖进度、最终、原生@、纯文本及历史，不执行展示指令。历史图片记录2717为实际故障依据，仍需逐路径映射。",
+      "originalBoundary": "这三条映射不直接断言批注正文/位置完整、无重复，也未逐一串起进度/最终/原生@/历史入口和真实客户端；原历史截图故障不能以换行测试替代。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-10.2",
+      "scenario": "复制不提交/执行/批准/选择且失败可手动复制",
+      "originalBoundary": "copy panel只复制、不决定，原生表单直接提交；所有IM复制按钮原生行为不是本机DOM证据。",
+      "state": "pending"
+    },
+    {
+      "id": "DEL-10.3",
+      "scenario": "目录树/内部enum/参考路径不自动加复制框",
+      "originalBoundary": "管理UI roots普通展示不复制；模型输出的任意目录树/enum不能仅靠这个表单测试外推。",
+      "state": "pending"
+    },
+    {
+      "id": "CHAN-01.2",
+      "scenario": "企业微信群身份不借群ID提升角色",
+      "originalBoundary": "actor与群target分离、清listener；完整role升级组合未在adapter内证明。",
+      "state": "pending"
+    },
+    {
+      "id": "CHAN-01.3",
+      "scenario": "连接/reconnecting/停止反映真实阶段、回调异常到统一错误处理",
+      "originalBoundary": "真实readiness/cleanup边界，所有provider重连状态全排列仍须实际平台验收。",
+      "state": "pending"
+    },
+    {
+      "id": "CHAN-04.1",
+      "scenario": "某条未处理崩溃后不被游标跳过",
+      "originalBoundary": "真实monitor替身API验证批次失败范围游标，不是真实进程在任意指令间骤停。",
+      "state": "pending"
+    },
+    {
+      "id": "CHAN-04.3",
+      "scenario": "停止/迟到登录/过期二维码不启动新账号",
+      "originalBoundary": "过期二维码等待响应后不能确认；其他停止/迟到账号启动路径未同组覆盖。",
+      "state": "pending"
+    },
+    {
+      "id": "IDE-02.1",
+      "scenario": "两个仓库同窗独立Git且终端默认session目录",
+      "originalBoundary": "实际完整roots/私有workspace/默认cwd，假code-server；两个真实Git UI及终端打开行为未实测。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/ide.test.ts",
+          "name": "same project entry opens both roots only after explicit expanded approval and persists exact trust"
+        },
+        {
+          "file": "test/ide.test.ts",
+          "name": "managed project metadata exposes all same-host IDE roots without changing session cwd or binding"
+        },
+        {
+          "file": "test/ide.test.ts",
+          "name": "real host helper generates a private multi-root workspace without writing config into repositories"
+        },
+        {
+          "file": "test/ide-real-browser.test.ts",
+          "name": "IDE-02.1: actual workbench opens both Git roots and its terminal starts in the selected root"
+        }
+      ],
+      "currentBoundary": "官方Mac ARM64 code-server在真实隔离Chrome中显示alpha、beta两个独立Git仓库；集成终端执行pwd，其结果为选定session根。 环境为独立headless Chrome，未冒充手机。"
+    },
+    {
+      "id": "IDE-02.3",
+      "scenario": "根次序/显示改名不失权，实际目录/host变更须重新核验",
+      "originalBoundary": "别名移除/完整scope及approval中变化，根次序所有组合未单独验证。",
+      "state": "pending"
+    },
+    {
+      "id": "IDE-03.3",
+      "scenario": "IDE故障不改绑定/提交输入/停止Codex",
+      "originalBoundary": "可选IDE构造/ingress失败隔离，不借输入；所有运行异常/绑定不变仍需组合。",
+      "state": "pending"
+    },
+    {
+      "id": "IDE-06.1",
+      "scenario": "跨站点入有效grant无3秒等待授权闪烁",
+      "originalBoundary": "真实本地HTTP静默同源页和后续进入，未跑外部手机跨站及实际加载时延。",
+      "state": "pending"
+    },
+    {
+      "id": "IDE-06.2",
+      "scenario": "同源再次打开复用实例且无新申请",
+      "originalBoundary": "manager复用独立验证，完整浏览器重复打开不新增申请的联合路径仍需实机。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/ide.test.ts",
+          "name": "canonical host/owner/profile instance reuse, concurrent opens and fresh target validation"
+        },
+        {
+          "file": "test/ide-real-browser.test.ts",
+          "name": "IDE-06.2: browser reopen reuses the instance and existing grant without another request"
+        }
+      ],
+      "currentBoundary": "真实浏览器离开并重新打开入口，沿用原实例ID和HttpOnly授权，无新申请。 环境为独立headless Chrome，未冒充手机。"
+    },
+    {
+      "id": "IDE-06.3",
+      "scenario": "撤销/过期时真正回授权页，不能降低Cookie策略",
+      "originalBoundary": "本地HTTP/WS拒绝旧凭据及跨域、Cookie仍Strict；真实手机回授权页未验。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/ide.test.ts",
+          "name": "local browser authentication guards HTTP/WS, strips credentials, denies foreign origins and revokes sockets"
+        },
+        {
+          "file": "test/ide.test.ts",
+          "name": "personal browser authentication guards HTTP/WS, strips credentials, denies foreign origins and revokes sockets"
+        },
+        {
+          "file": "test/ide-real-browser.test.ts",
+          "name": "IDE-06.3: a revoked browser returns to authorization instead of reopening its editor"
+        }
+      ],
+      "currentBoundary": "真实浏览器已获grant进入工作台后撤销，再开入口回授权页且没有工作台；过期/Cookie/WS拒绝由既有HTTP测试覆盖。 环境为独立headless Chrome，未冒充手机。"
+    },
+    {
+      "id": "IDE-08.1",
+      "scenario": "Linux/mac双架构选对，失败不破坏旧版",
+      "originalBoundary": "平台/制品选择、激活前撤销保旧版；下载fixture，真实平台安装/hash独立核验仍不足。 增加Linux ARM64 pin、glibc 2.17拒绝/2.28与2.39成功替身；四种官方4.141.1摘要/HEAD大小核对，实际制品下载另留记录，ARM64 Linux ABI未实机运行。 四个平台完整官方archive的长度和SHA256全部通过；Linux x64与Mac ARM64实际--version探测及工作台HTTP 200，不把health=expired（无浏览器心跳）称为浏览器会话完成。",
+      "state": "pending"
+    },
+    {
+      "id": "IDE-08.3",
+      "scenario": "Dark2026/Seti/Menlo12/行高18/Chat默认收起/Emacs实际键位",
+      "originalBoundary": "实际JSONC和扩展helper验证配置/缺失才安装；code-server实际主题/键位视觉操作未验。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/ide-profile.test.ts",
+          "name": "Chat defaults are additive, JSONC-safe and never clobber explicit preferences"
+        },
+        {
+          "file": "test/ide-profile.test.ts",
+          "name": "appearance defaults match the desktop appearance and preserve explicit editor overrides"
+        },
+        {
+          "file": "test/ide-profile.test.ts",
+          "name": "first open verifies Emacs, installs only missing, isolates trust profiles, and deduplicates opens"
+        },
+        {
+          "file": "test/ide-real-browser.test.ts",
+          "name": "IDE-08.3: actual editor applies visual defaults, hides Chat and activates Emacs"
+        }
+      ],
+      "currentBoundary": "实际编辑器Menlo12/18、暗色主题、Chat隐藏、Emacs已安装；执行C-a并写入/保存后文件保留原余文。 环境为独立headless Chrome，未冒充手机。"
+    },
+    {
+      "id": "IDE-09.3",
+      "scenario": "SSH断线残socket安全判定后重连，原授权同origin不变",
+      "originalBoundary": "实际本机Unix socket模拟SSH lifecycle，owned inode安全清理；非真实SSH断线环境。",
+      "state": "pending"
+    },
+    {
+      "id": "WEB-01.1",
+      "scenario": "旧保存不关闭新窗口，不覆盖新任务详情",
+      "originalBoundary": "实际Web脚本VM与DOM替身逐handler核对归属；Taskboard iframe内部App的来源与提交另由TB-09记录，不由本组VM场景证明。",
+      "state": "pending"
+    },
+    {
+      "id": "WEB-01.2",
+      "scenario": "刷新不替换聚焦/脏表单或二维码",
+      "originalBoundary": "知识绑定焦点/保存及QR代次保护；全部脏表单组合不由三个例子外推。",
+      "state": "pending"
+    },
+    {
+      "id": "WEB-02.3",
+      "scenario": "标题、长ID、IDE按钮窄屏可换行无溢出",
+      "originalBoundary": "实际生产管理页375px Chrome及全部表单已补；真实手机浏览器/键盘/字体环境仍未验。",
+      "state": "pending"
+    },
+    {
+      "id": "TB-01.2",
+      "scenario": "状态表单原生保存不需复制enum",
+      "originalBoundary": "真实Bridge表单handler，原生payload不需用户复制enum；手机/各平台原生控件另验。",
+      "state": "pending"
+    },
+    {
+      "id": "TB-01.3",
+      "scenario": "可选服务关闭/失败正确展示并清理，现有任务不误删",
+      "originalBoundary": "真实独立临时服务启停，不删既有数据；Web切开关失败全部联动仍需核对。",
+      "state": "pending"
+    },
+    {
+      "id": "KB-01.1",
+      "scenario": "远程项目不读本地同路径知识",
+      "originalBoundary": "远程项目不能作为本地目录QA默认值；已绑定QA所有动态tool读取同host仍需执行路径证明。",
+      "state": "pending"
+    },
+    {
+      "id": "REL-01.1",
+      "scenario": "接收前拒绝与接收落盘后放行分界准确",
+      "originalBoundary": "真实Web/Bridge业务计数分界，native通过fixture接收；accept落盘失败的整个release组合还需联动。",
+      "state": "pending"
+    },
+    {
+      "id": "REL-01.2",
+      "scenario": "Gateway退出不stop原生服务，重连同turn输入一次",
+      "originalBoundary": "没有在此用例执行launchd实际重启或接收/fsync窗口骤停，私有stdio不具有这一独立保证；线上重启保留core的记录是部署验收，不替代所有崩溃组合。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/shared-app-server-integration.test.ts",
+          "name": "Gateway disconnect after acceptance does not interrupt a peer-visible native turn or repeat its input"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":false,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":true,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":false}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":true}"
+        },
+        {
+          "file": "test/native-input-crash-recovery.test.ts",
+          "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
+        }
+      ],
+      "currentBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。"
+    },
+    {
+      "id": "REL-01.3",
+      "scenario": "旧未确认问答记录/只读轮询/退避计划不无限拦重启",
+      "originalBoundary": "已修复问答等待不锁重启；recovery只读checking/pending大范围仍是已记录候选，不宣称全部放行正确。",
+      "state": "pending"
+    },
+    {
+      "id": "REL-02.2",
+      "scenario": "发布并发互斥、失败回退不扩大任务中断",
+      "originalBoundary": "真实临时lock竞态和错误cleanup；全发布崩溃/各平台回滚尚不完整。",
+      "state": "pending"
+    },
+    {
+      "id": "REL-02.3",
+      "scenario": "上线后构建号/绑定/准入/浏览器grant/IDE全核对，不称push即上线",
+      "originalBoundary": "隔离发布全链路反例已补，每次上线仍必须独立核对真实构建/状态；手机入口可达性及渲染不由此认证。",
+      "state": "pending"
+    },
+    {
+      "id": "AUDIT-01.1",
+      "scenario": "每需求有具体可执行case和结果而非只列测试文件",
+      "originalBoundary": "当前374case均已有精确测试映射；106项仍部分覆盖，映射齐全不能替代全部行为、设备及真实供应商验收。",
+      "state": "pending"
+    },
+    {
+      "id": "AUDIT-01.4",
+      "scenario": "历史图片逐张本机查看并记录可恢复/缺失范围；图片中引用的其他仓库任务、旧命令和秘密不转成新执行指令或功能要求；仅公开历史进入需求来源。",
+      "originalBoundary": "引用命令惰性及manifest边界有自动化；原先92张逐张观看属手工记录，5张缺失仍不能重读，自动化不冒充视觉阅读。",
+      "state": "pending"
+    },
+    {
+      "id": "TB-02.3",
+      "scenario": "FileReader异步准备期间换项目或新建会话，迟到附件不能追加到新草稿；原来草稿的文件与失败反馈有正确归属。来自实际代码职责推演，需真实组件反例。",
+      "originalBoundary": "已验证原草稿正常与读取期间新建对话；换项目、切历史会话及迟到错误尚须独立场景。",
+      "state": "pending"
+    },
+    {
+      "id": "TB-02.4",
+      "scenario": "原生start或创建线程失败时保留原草稿及附件，不用重新创建任务掩盖未知接收；开始提交后新编辑不能被旧回执清空。来自实际代码职责推演，需正常/明确未接收/未知对照。",
+      "originalBoundary": "真实Chrome已验证HTTP400明确拒绝创建/turn后文字、Skill、附件保留，显式重试正常；pending POST重复Enter只发一次；旧接收回执不清改动草稿，旧create/turn不抢回已切换的会话。未知接收后的重试/幂等归属尚未验证，不能宣称完整原生协议统一。",
+      "state": "pending"
+    },
+    {
+      "id": "TB-09.3",
+      "scenario": "评论提交中用户编辑新草稿，旧成功不能清空新内容；TaskDetail已用task.id key，父级回调仍需反例。",
+      "originalBoundary": "真实Chrome同任务提交等待中编辑不被清空；正常原草稿被清理、原评论body只发一次。父App切项目回调、部分上传、未知接收仍未覆盖。",
+      "state": "pending"
+    },
+    {
+      "id": "TB-09.6",
+      "scenario": "创建并开始时，Taskboard业务回执与Codex执行交接分开；未知原生交接不自动重新创建/启动，不阻塞别的表单。",
+      "originalBoundary": "持久journal恢复后同请求的workflow阶段保持未知，异载荷拒绝、另一来源可独立预留；未做真实原生交接中骤停后自动只读匹配turn的端到端场景。当前仅明确提示核对原会话，不自动重发未知执行。",
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/taskboard-im-receipts.test.ts",
+          "name": "IM journal retains uncertain native starts and rejects identity reuse after restart"
+        },
+        {
+          "file": "test/taskboard-im-receipts.test.ts",
+          "name": "IM journal retries a definitively unsubmitted native start with the same task identity"
+        },
+        {
+          "file": "test/taskboard-native-crash.test.ts",
+          "name": "TB-09.6: real SIGKILL before native acceptance commit, completedOffline=false"
+        },
+        {
+          "file": "test/taskboard-native-crash.test.ts",
+          "name": "TB-09.6: real SIGKILL before native acceptance commit, completedOffline=true"
+        },
+        {
+          "file": "test/taskboard-native-crash.test.ts",
+          "name": "TB-09.6: real SIGKILL after native acceptance commit, completedOffline=false"
+        },
+        {
+          "file": "test/taskboard-native-crash.test.ts",
+          "name": "TB-09.6: real SIGKILL after native acceptance commit, completedOffline=true"
+        }
+      ],
+      "currentBoundary": "真实Taskboard子进程与独立原生核心：accepted写SQLite前/后×任务运行中/离线完成4次SIGKILL。原业务run、submission及native turn精确恢复，两次重启后用户输入/最终输出/模型执行各一次。"
+    },
+    {
+      "id": "TB-10.3",
+      "scenario": "各palette kind逐一对照实际执行支持/必填字段/授权来源，动态Skill与MCP失败不能伪造可用选项。",
+      "originalBoundary": "33kind的编辑配置合同已补；当前工作流服务只版本化保存文档，没有按各kind执行、凭据授权和运行回执的统一执行器。不能宣称33种节点可执行；不为此开放隐藏入口或禁用已有功能。",
+      "state": "pending"
+    }
+  ]
+}

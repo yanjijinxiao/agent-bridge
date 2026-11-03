@@ -11,13 +11,13 @@ const input: NativeUserInput = { hostId: "local", requestId: "question", method:
 test("late native consumers observe the same pending approval and exactly one explicit answer wins", async () => {
   const fanout = new NativeInteractionFanout(), ui = Promise.withResolvers<"accept">(), im = Promise.withResolvers<"cancel">();
   const observed: unknown[] = [], confirmed: string[] = [];
-  fanout.add("ui", { async onApproval(request) { observed.push(request); return ui.promise; }, onResult() { confirmed.push("ui"); } });
+  fanout.add("ui", { async onApproval(request) { observed.push(request); return ui.promise; }, onResult(_input, result) { confirmed.push(`ui:${result}`); } });
   const answer = fanout.observer.onApproval(approval);
   await Promise.resolve();
-  fanout.add("im", { async onApproval(request) { observed.push(request); return im.promise; }, onResult() { confirmed.push("im"); } });
+  fanout.add("im", { async onApproval(request) { observed.push(request); return im.promise; }, onResult(_input, result) { confirmed.push(`im:${result}`); } });
   im.resolve("cancel"); assert.equal(await answer, "cancel");
   ui.resolve("accept"); await fanout.observer.onResult?.(approval, "confirmed");
-  assert.deepEqual(observed, [approval, approval]); assert.deepEqual(confirmed.sort(), ["im", "ui"]);
+  assert.deepEqual(observed, [approval, approval]); assert.deepEqual(confirmed.sort(), ["im:confirmed", "ui:withdrawn"]);
   fanout.close();
 });
 
@@ -62,3 +62,29 @@ test("an edited native question retires its old answer even when the request id 
   old.resolve({ old: { answers: ["stale"] } }); edited.resolve({ new: { answers: ["current"] } });
   assert.deepEqual(await second, { new: { answers: ["current"] } }); fanout.close();
 });
+
+for (const kind of ["approval", "input"] as const) for (const change of ["none", "replace", "replace-direct", "remove", "same-object"] as const) {
+  test(`INT-04.2: ${kind} lost receipt retains its chosen consumer across ${change}`, async () => {
+    const fanout = new NativeInteractionFanout(), chosen = Promise.withResolvers<any>(), late = Promise.withResolvers<any>();
+    const results: string[] = [];
+    const make = (label: string, value: Promise<any>) => ({ onApproval: () => value, onUserInput: () => value,
+      onResult: (_request: unknown, result: string) => { results.push(`${label}:${result}`); },
+      onUserInputResult: (_request: unknown, result: string) => { results.push(`${label}:${result}`); } });
+    const original = make("chosen", chosen.promise);
+    fanout.add("chosen", original); fanout.add("late", make("late", late.promise));
+    const answer = kind === "approval" ? fanout.observer.onApproval(approval) : fanout.observer.onUserInput!(input);
+    chosen.resolve(kind === "approval" ? "decline" : { question: { answers: ["chosen"] } }); await answer;
+    const result = (value: "failed" | "confirmed") => kind === "approval"
+      ? fanout.observer.onResult!(approval, value) : fanout.observer.onUserInputResult!(input, value);
+    await result("failed"); assert.deepEqual(results, ["chosen:failed", "late:withdrawn"]);
+    if (change !== "none") {
+      if (change !== "replace-direct") fanout.remove("chosen");
+      if (change !== "remove") fanout.add("chosen", change === "same-object" ? original : make("replacement", Promise.resolve("accept")));
+    }
+    late.resolve(kind === "approval" ? "accept" : { question: { answers: ["late"] } });
+    results.length = 0; await result("confirmed");
+    assert.equal(results.includes("chosen:confirmed"), change === "none");
+    assert.ok(!results.includes("late:confirmed") && !results.includes("replacement:confirmed"));
+    fanout.close();
+  });
+}

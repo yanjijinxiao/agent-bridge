@@ -1,0 +1,101 @@
+{
+  "newRanges": 249,
+  "unavailable": [
+    {
+      "file": "docs/architecture/gateway-case-coverage.md",
+      "unavailableHistoricalHashes": [
+        "b11b68c9b383962f5b0d570f8a694e965f47b58317b8d3b576268a74f97b419a",
+        "96507f58c2fcdd593a96a4cecef65af1c80ff42ee6c935d9ad255f3a56123933"
+      ]
+    },
+    {
+      "file": "docs/architecture/modules/audit-method.md",
+      "unavailableHistoricalHashes": [
+        "43b96171fac6da1c6d2b6a507aa615c8d27eab8d49f76a474f06a24794ceecf8"
+      ]
+    },
+    {
+      "file": "docs/architecture/modules/catalog-history.md",
+      "unavailableHistoricalHashes": [
+        "cdae588e9b2957558f7c35b5f2afff886313bc540a0265ce9b9f3704313aedc4"
+      ]
+    },
+    {
+      "file": "docs/architecture/modules/ide-access.md",
+      "unavailableHistoricalHashes": [
+        "5ca58851d28e7ed9020cca85f5e888f303c6acd886768e75541b42987181b36e"
+      ]
+    },
+    {
+      "file": "docs/architecture/modules/knowledge-qa.md",
+      "unavailableHistoricalHashes": [
+        "b30274c2c41d52d9593567ba2af17f6597ddd72bc261a86af16948537fe53432"
+      ]
+    },
+    {
+      "file": "docs/architecture/modules/management-ui.md",
+      "unavailableHistoricalHashes": [
+        "cfb1f19cd16ab53e9fec0d44c7ec360e43e935bedae9ab7c1027c0f8d5c1aa6a"
+      ]
+    },
+    {
+      "file": "docs/architecture/modules/native-protocol.md",
+      "unavailableHistoricalHashes": [
+        "a454f983613e29ce30cc67a94f79ef555f0d2ef58430ef49a710ad42dbe23f05"
+      ]
+    },
+    {
+      "file": "docs/architecture/modules/taskboard-native-execution.md",
+      "unavailableHistoricalHashes": [
+        "064600a9b8e69dab53fae4ccaf54d55a838f21ad40b957324aedcb346e4b6751"
+      ]
+    },
+    {
+      "file": "docs/architecture/remaining-work.md",
+      "unavailableHistoricalHashes": [
+        "9664c4c07f893e24abe753312977977f734d000a43dd3d3a93ce485d3a4d1e5e",
+        "088283a1185ab6215e8ad1e4a1d19fb607a40cb8ab745d8986c15ed5cebeff39",
+        "f927f535efa597970b6fd96401f7cd3a331cbfb0280e2c89976cb86ad3d16da6"
+      ]
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "unavailableHistoricalHashes": [
+        "c3d6fc31b44c6ba88f13ae6b6bb2a6351f0b0f57eff4a3f9b9f601b132c445a2"
+      ]
+    },
+    {
+      "file": "src/web/app.js",
+      "unavailableHistoricalHashes": [
+        "59303264972a0fc5f21026dd6c59d125549f176a5000ed40b4c1194e0bbfb74c"
+      ]
+    },
+    {
+      "file": "taskboard/scripts/codex-injector.mjs",
+      "unavailableHistoricalHashes": [
+        "cbedbf47f137fe8866e4cf0ff2464ec47b248c4db98f8711e4eef9dfe8e5e3df"
+      ]
+    },
+    {
+      "file": "taskboard/server/app.mjs",
+      "unavailableHistoricalHashes": [
+        "aaf56e65d1434325ecbf3dd8ca2910f0bfdf81e2da554cd8f8f00ed6c858240f"
+      ]
+    },
+    {
+      "file": "taskboard/test/helpers/ai-chat-browser/main.tsx",
+      "unavailableHistoricalHashes": [
+        "46ef77b5b91f816e440ac25ae264f7fbaf83a8e659c043f1dbe61f465b5a313a",
+        "14e86e77beb05736c9e5778ffb2d6af6a872ede442d4a965523ad3d9d6146b9b",
+        "e8423df4391ced3c2edc0a8f53cd95d3ce0324083567dfb170084d9ef92d96d2"
+      ]
+    },
+    {
+      "file": "taskboard/web/src/components/TaskDetail.tsx",
+      "unavailableHistoricalHashes": [
+        "42278d7f19120c08ef354634a6cefef3135bba73caaa1f791518bbcdba68e1b4"
+      ]
+    }
+  ],
+  "method": "git blob SHA plus SequenceMatcher exact equal line blocks intersected with historical read ranges"
+}

@@ -6,6 +6,8 @@ AppServerRequestMonitor/Runner 观察原请求；InteractionRouting 选择仍有
 
 NativeInteractionFanout 每个 host/thread 保留一个底层观察者，按 gateway/taskboard 等消费者分发当前未决请求。晚订阅能获得原 pending 请求；第一份仍有效的明确答案才可提交。替换或移除消费者使其旧 promise 失效，不能注销另一个消费者。更新后的同 ID 请求不复用旧已解析答案。
 
+并发回执按实际获选的消费者分配。原生 confirmed 只确认被提交的那份答案，其他入口得到 withdrawn，不能把 Web 的拒绝算作 IM 的允许已生效。failed 是确认未知，保留已选消费者身份直到原生 confirmed/withdrawn 或观察者退休；不重放答案。消费者被替换后，旧获选者的回执也不能确认新消费者的同 ID 答案。
+
 Taskboard 通过观察消费者接入，不在 run 上安装抢占 IM 的 active handler。原请求回到表单后才允许再次选择；答案 flush 未知先观察，不自动再送旧决定。NativeAsyncQuestions 的通知微任务和最终写前均核来源；撤回、peer 已答、编辑、断连和 end 退休旧内容。
 
 ## 审批提醒与确认后换卡
@@ -17,6 +19,12 @@ Taskboard 通过观察消费者接入，不在 run 上安装抢占 IM 的 active
 边界 ID 和确认事实在审批日志同一次原子保存中提交，再通知展示。可选 presentations 位于 v1 文件顶层，严格的原 v1 审批记录字段不变，旧版本回滚读取仍可忽略该投影。重启读取已确认展示事实，沿用现有 stream acceptedInputs 去重；不是保存权限或自动重新批准。实际 Bridge→原生 JSONL→明确审批命令→确认→两张执行卡的直接用例，同时核对只有一次任务执行和正确 @。
 
 ## 展示和秘密
+
+### 审批通知投递与原生决定分离（本轮修复契约）
+
+实际入口是 BridgeService.requestApproval → ChannelApprovalController → 渠道独立审批卡；用户决定交给原生后，reportApprovalResult 收到原生确认。当前缺口是确认事实写入后先删除通知上下文，投递失败便无法恢复。修复保留严格 v1 审批记录，在顶层增加可选的通知投影：原卡 ID、结果和投递状态。只重试更新已获回执的同一张审批卡；新文字通知回执不明时不能盲发第二条。通知失败不撤销已确认的原生决定，也不再次提交决定或启动任务。
+
+初始审批卡发送失败保留原生待办，不把渠道故障变成拒绝决定。账号停止时退休通知重试和本地等待，不伪造允许或拒绝。恢复时核对原收件会话/host/thread，已换绑的通知不能送到新任务；重启只恢复原卡更新，继续执行卡仍由持久展示边界去重。
 
 原生表单字段、dropdown 和按钮直接工作，不为内部枚举另造复制块。纯 IM 回复才给完整有效命令，各值独立。secret 字段用 password，提交后清空，不进 SQLite 事件或浏览器 storage。提交表示正在交接；原生确认之后才表示已答。没有请求身份不能拼一个“批准所有”替代原生选项。
 

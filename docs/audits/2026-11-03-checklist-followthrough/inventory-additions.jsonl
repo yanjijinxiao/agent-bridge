@@ -1,0 +1,8 @@
+{"path": "src/bridge/approval-notice-delivery.ts", "kind": "text", "sha256": "e3026c9d5df30dc3b1f99c6e421b59a690e46080f736e9c7a9fab975d47d716f", "lines": 111, "auditCategory": "source"}
+{"path": "test/approval-notice-recovery.test.ts", "kind": "text", "sha256": "659154e7bb0b3834abccd3f2a88b7e51d2008066afc047272a6c55b5484b2cb2", "lines": 154, "auditCategory": "test"}
+{"path": "test/catalog-checklist.test.ts", "kind": "text", "sha256": "e858444abde145e677eb8d49fd234ded88d51ec6575eb3d0a4c7644e347044fa", "lines": 58, "auditCategory": "test"}
+{"path": "test/fixtures/taskboard-crash-native.mjs", "kind": "text", "sha256": "0f88da4418d9955474f56eb2444a21fad36952b5ce502d6dd5d9aaca4d8f71e6", "lines": 43, "auditCategory": "test"}
+{"path": "test/ide-real-browser.test.ts", "kind": "text", "sha256": "c25ab1938534065921628070344333f976732a83266a9d9078b4122336ecb946", "lines": 134, "auditCategory": "test"}
+{"path": "test/native-question-race.test.ts", "kind": "text", "sha256": "f76980954e332db9921cd7f13f56e0701effcf97f2d623fd4cb8ba287c4f4321", "lines": 61, "auditCategory": "test"}
+{"path": "test/question-surface-race.test.ts", "kind": "text", "sha256": "15e2259f89dcbf8fb92156a723fe0ceaf2f1100346f1a8c51a3440bba3fd5968", "lines": 82, "auditCategory": "test"}
+{"path": "test/taskboard-native-crash.test.ts", "kind": "text", "sha256": "99259b0c50c89dc936ed04495af4ea1edd3bfad372d8c90ff26365f6fe1e2268", "lines": 88, "auditCategory": "test"}

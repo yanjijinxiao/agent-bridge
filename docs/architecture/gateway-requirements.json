@@ -468,15 +468,38 @@
         {
           "id": "NATIVE-02.3",
           "scenario": "Gateway 断连重连不抢锁、不改变 core/线程/输入次数",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/shared-app-server-integration.test.ts",
               "name": "Gateway disconnect after acceptance does not interrupt a peer-visible native turn or repeat its input"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":false,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":true,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":true}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
             }
           ],
-          "testGap": "这是连接/适配器重建，不是真实Gateway进程在接收与fsync任意间隙被杀；未断言Desktop写锁、私有stdio或所有远程断线时序。",
-          "verifiedBoundary": "真实原生第二轮已接收且模型受控阻塞时退休Gateway独立观察并close，重建适配器仍有同一core身份和activeTurnId；释放后原turn完成、clientUserMessageId仅一次、模型共两次调用。",
+          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。",
           "boundaryReview": {
             "date": "2026-11-02",
             "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
@@ -494,7 +517,24 @@
                 ]
               }
             ]
-          }
+          },
+          "previousTestGap": "这是连接/适配器重建，不是真实Gateway进程在接收与fsync任意间隙被杀；未断言Desktop写锁、私有stdio或所有远程断线时序。",
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          },
+          "implementation": [
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+            }
+          ]
         },
         {
           "id": "NATIVE-02.4",
@@ -703,7 +743,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/native-queue.ts",
@@ -726,8 +766,8 @@
           "remainingBoundary": "修复只作用于新入队项；已接收的旧项不重写或重发。原生 queue 无独立 context 字段，Codex 原始历史可见前缀。未覆盖全部渠道的真实平台与全部供应商；手机视觉、Peer IDE 等不包含在此窄场景 verified。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           },
           "previousTestGap": "原测试直接在 runQueuedSubmission 观察阶段给 developerInstructions；queue/add 已自动执行，注入过晚。新测试经实际 Bridge /queue 入口并检查模型请求；旧实现同用例失败，修复后通过。"
         }
@@ -853,19 +893,50 @@
         {
           "id": "NATIVE-03.3",
           "scenario": "等待期间换绑后原查询不改新会话设置",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/intent-review-control-races.test.ts",
-              "name": "late model lookup cannot change settings after rebind"
+              "name": "NATIVE-03.3: late model lookup cannot change settings after rebind"
             },
             {
               "file": "test/intent-review-control-races.test.ts",
-              "name": "late model lookup cannot change settings after revoke"
+              "name": "NATIVE-03.3: late model lookup cannot change settings after revoke"
+            },
+            {
+              "file": "test/intent-review-control-races.test.ts",
+              "name": "NATIVE-03.3: late model lookup cannot change settings after binding-aba"
+            },
+            {
+              "file": "test/intent-review-control-races.test.ts",
+              "name": "NATIVE-03.3: late model lookup cannot change settings after mode-aba"
+            },
+            {
+              "file": "test/intent-review-control-races.test.ts",
+              "name": "NATIVE-03.3: late model lookup cannot change settings after role"
+            },
+            {
+              "file": "test/intent-review-control-races.test.ts",
+              "name": "NATIVE-03.3: late effort lookup cannot change settings after rebind"
+            },
+            {
+              "file": "test/intent-review-control-races.test.ts",
+              "name": "NATIVE-03.3: late effort lookup cannot change settings after revoke"
+            },
+            {
+              "file": "test/intent-review-control-races.test.ts",
+              "name": "NATIVE-03.3: late effort lookup cannot change settings after binding-aba"
+            },
+            {
+              "file": "test/intent-review-control-races.test.ts",
+              "name": "NATIVE-03.3: late effort lookup cannot change settings after mode-aba"
+            },
+            {
+              "file": "test/intent-review-control-races.test.ts",
+              "name": "NATIVE-03.3: late effort lookup cannot change settings after role"
             }
           ],
-          "testGap": "该映射未包含effort/全部元数据命令、A→B→A和真实远程连接等待组合；其他case有相关对照，尚未逐一归并。",
-          "verifiedBoundary": "真实Bridge/RuntimeStateStore在/model new-model等待受控目录promise时切换会话或撤销个人准入；迟到响应后两个会话model都未改变，操作返回失效错误。",
+          "verifiedBoundary": "model/effort等待目录返回时分别换绑、撤权、绑定ABA、模式ABA、降权，共10个受控真实Bridge状态场景，旧查询不写新设置。",
           "boundaryReview": {
             "date": "2026-11-02",
             "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
@@ -883,7 +954,24 @@
                 ]
               }
             ]
-          }
+          },
+          "previousTestGap": "该映射未包含effort/全部元数据命令、A→B→A和真实远程连接等待组合；其他case有相关对照，尚未逐一归并。",
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          },
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+            }
+          ]
         },
         {
           "id": "NATIVE-03.4",
@@ -910,11 +998,11 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/codex/backend.ts",
@@ -931,8 +1019,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -968,7 +1056,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -981,8 +1069,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -1150,7 +1238,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -1168,8 +1256,8 @@
           "verifiedBoundary": "实际manager构造和同对象借用；显式stdio属于宿主，不冒充daemon跨宿主退出。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -1512,7 +1600,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -1521,14 +1609,14 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
           "id": "NATIVE-06.3",
           "scenario": "通信恢复沿原 turn 继续，不重放输入",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/session-owner-recovery.test.ts",
@@ -1545,6 +1633,30 @@
             {
               "file": "test/codex-turn-recovery.test.ts",
               "name": "retry notice survives restart on the same handle and clears on real progress"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":false,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":true,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":true}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
             }
           ],
           "implementation": [
@@ -1561,12 +1673,13 @@
               "sha256": "f38b68a54f878cafb5e54d86aef864c3574d5cfc74f64e12a9cb97dfa8d7d23d"
             }
           ],
-          "verifiedBoundary": "持久binding、只读sync恢复、同handle的notice跨重启和新进展已验证；本case的真实外部连接断开后重连原运行turn仍需独立场景。",
+          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
-          }
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          },
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
         }
       ]
     },
@@ -1608,14 +1721,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "实际Bridge四渠道替身：自然语言完整进入原线程，零AI控制分类；非真实IM网络。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -1635,7 +1748,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/channels/dingtalk.ts",
@@ -1645,8 +1758,8 @@
           "verifiedBoundary": "引用审批和当前命令分离已有实际适配/Bridge断言；引用/stop全部消息类型尚无同组精确场景。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -1674,14 +1787,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "四渠道普通消息及显式help覆盖；所有任务/QA扩展组合未完整核验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -1713,13 +1826,13 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -1771,7 +1884,7 @@
         {
           "id": "IN-02.2",
           "scenario": "原生接收后回执落盘前崩溃，按原生精确身份恢复接收及结果投递；证据不足保留未知，不重发",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/forwarding-inbox.test.ts",
@@ -1885,15 +1998,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/server/thread-event-hub.ts",
               "sha256": "125b976715c88056cd4131b812eff505748b76e57f8b95e1972a33b14fc38724"
             }
           ],
-          "verifiedBoundary": "真实原生0.166.0核心、本机受控模型、Gateway独立子进程及确认回执IM替身：已有/新线程×执行中/离线完成4种，恢复accepted写前及写后Hub接管前再次SIGKILL共6种；核心PID、原client/thread/turn不变，真实输入、最终结果和记忆各一次，再次重连不重复。13个边界测试覆盖分页/身份/错误/落盘/退休/换绑/新轮次并存。",
-          "testGap": "不涵盖任意CPU指令间隙、主机断电、真实SSH/供应商回执/手机显示、原生队列及workflow交接全部交错。缺原thread ID、client ID缺失、重复或分页超预算的旧记录保持未知，不自动重放。",
+          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。",
           "crashRecoveryReview": {
             "date": "2026-11-02",
             "report": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md",
@@ -1904,9 +2016,11 @@
           },
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
-          }
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          },
+          "previousTestGap": "不涵盖任意CPU指令间隙、主机断电、真实SSH/供应商回执/手机显示、原生队列及workflow交接全部交错。缺原thread ID、client ID缺失、重复或分页超预算的旧记录保持未知，不自动重放。",
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
         },
         {
           "id": "IN-02.3",
@@ -2001,13 +2115,13 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -2095,7 +2209,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/inbound-receipts.ts",
@@ -2105,8 +2219,8 @@
           "verifiedBoundary": "实际 Bridge/RuntimeStateStore/InboundReceiptJournal，9种等待路径各有换绑反例与正常对照，重开真实文件核验phase和claim；另核本地设置持久化及回复丢失。原生接口为替身；不证明真实 App Server 全部断连组合，未提交不代表自动转向新绑定。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -2338,14 +2452,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "真实Bridge/RuntimeStateStore：卡住第一条最终结果发送，第二条同session输入仍执行并完成投递；旧发送仍持实际交接保护，释放后全部完成、输入各一次、无残留门禁。原生与渠道传输为替身。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           },
           "previousTestGap": "证明已接收执行等待不占交接；专门卡住最终投递而非执行的组合未在此测试。",
           "remainingBoundary": "不外推供应商ACK丢失、手机显示或所有并发时序。"
@@ -2425,7 +2539,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/channel-commands.ts",
@@ -2435,8 +2549,8 @@
           "verifiedBoundary": "实际Bridge compact中文命令及可信mention归一化，native queue写替身恰好一次。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -2591,7 +2705,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/weixin/media.ts",
@@ -2601,8 +2715,8 @@
           "verifiedBoundary": "无长度读流限额及Bridge明确下载失败不启动空轮；各渠道存储失败/总时限组合未全覆盖。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -2657,7 +2771,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/channels/client.ts",
@@ -2667,8 +2781,8 @@
           "verifiedBoundary": "实际Bridge准备远端转存路径，远端存储与runner为替身；未在真实SSH主机读取。 追加两台真实Linux SSH主机：image/file/video/audio完整字节与SHA、0600、重复内容地址、超限/缺失拒绝及自有目录清理；Node容器包装器与下一条SSH命令共享可读持久路径。真实供应商投递与传输中撤权组合仍未由此证明。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -2692,14 +2806,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "附件准备结束后线程/角色/准入复核；远端实际SSH转存中撤权的独立场景仍需补。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -2743,7 +2857,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/codex/output-files.ts",
@@ -2765,8 +2879,8 @@
           "verifiedBoundary": "实际只读发送脚本与下载器保留文件名/完整二进制、大小与SHA256校验、超时/坏摘要拒绝及0600临时文件清理；真实Bridge在异步下载后复核线程绑定。SSH进程为隔离本机替身，渠道发送为替身；没有真实远程主机、供应商IM或手机实机验收，故仍partial。 追加两台真实Linux SSH主机：image/file/video/audio完整字节与SHA、0600、重复内容地址、超限/缺失拒绝及自有目录清理；Node容器包装器与下一条SSH命令共享可读持久路径。真实供应商投递与传输中撤权组合仍未由此证明。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -2907,7 +3021,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -2917,8 +3031,8 @@
           "verifiedBoundary": "真实AccountManager长轮期间改名/解绑，完成后唯一live store与重新读盘均保留新管理状态。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3052,14 +3166,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "实际账号启动/刷新及独立停止，但monitor/runner替身，不证明所有并发清理异常。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3079,7 +3193,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/ide/approval-service.ts",
@@ -3089,8 +3203,8 @@
           "verifiedBoundary": "已覆盖退休入站claim和机器人IDE身份；其他旧连接异步回执仍需逐条核对。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3135,14 +3249,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "逐一注入8种独立资源stop/close失败，均尝试其余资源并终止自有入口，最后汇总错误。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3270,14 +3384,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "账号API和webhook投影不输出原token/key；全仓错误日志泄密边界尚未穷尽。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -3318,7 +3432,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -3328,8 +3442,8 @@
           "verifiedBoundary": "四渠道实际Bridge无绑定给指引，不建线程/会话。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3357,14 +3471,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "detach持久、模式槽位与显式新建不复活旧关系；Gateway真实进程重启另需端到端。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3384,7 +3498,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -3394,8 +3508,8 @@
           "verifiedBoundary": "真实关系事务和订阅集合，不调用runner；原生任务/queue持续执行用替身零调用证明，非真实执行中重启。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -3445,14 +3559,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "旧项目漂移保独立绑定，四渠道项目命令不覆盖；普通真实native续聊权限另证。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3472,14 +3586,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "真实scope generation，模式session切换ABA不复活；其他任意项目变更由来源测试另核。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3499,7 +3613,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -3509,8 +3623,8 @@
           "verifiedBoundary": "实际Bridge/RuntimeState/磁盘重开与同cwd无关项目；IDE仍由其原生fresh scope校验，不外推设备端验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3571,14 +3685,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "真实Bridge及Connector RPC临时连接，原生后端替身；正常、换绑、ABA及降权零执行对照。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -3658,14 +3772,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "实际显式queue/steer准备后来源守卫，全部降权/停账号组合仍待。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3750,13 +3864,13 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -3813,7 +3927,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/bridge/interaction-routing.ts",
@@ -3823,8 +3937,8 @@
           "verifiedBoundary": "真实管理层来源选择+持久去重；IM传输替身，确认零题目正文泄露。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -3926,7 +4040,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -3936,8 +4050,8 @@
           "verifiedBoundary": "Web精确原绑定比较，旧页面不能解绑替代记录。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -4030,7 +4144,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/codex/desktop-session-catalog.ts",
@@ -4040,8 +4154,8 @@
           "verifiedBoundary": "目录失败保已知来源/警告，不混成本机成功。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -4295,47 +4409,76 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "完整快照稳定R身份，翻页/resize不重排，原生pin与metadata时间分开。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
           "id": "CAT-02.2",
           "scenario": "旧卡/过期快照不把编号解释成另一项目",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/intent-review-choice-identity.test.ts",
               "name": "a project button from an earlier list cannot silently target the new row at the same index"
+            },
+            {
+              "file": "test/catalog-checklist.test.ts",
+              "name": "CAT-02.2: expired snapshot rejects /session R1 before inspection or rebinding"
+            },
+            {
+              "file": "test/catalog-checklist.test.ts",
+              "name": "CAT-02.2: expired snapshot rejects /sessions r1 before inspection or rebinding"
+            },
+            {
+              "file": "test/catalog-checklist.test.ts",
+              "name": "CAT-02.2: expired snapshot rejects /sessions detail R1 before inspection or rebinding"
+            },
+            {
+              "file": "test/catalog-checklist.test.ts",
+              "name": "CAT-02.2: expired snapshot rejects /sessions next before inspection or rebinding"
+            },
+            {
+              "file": "test/catalog-checklist.test.ts",
+              "name": "CAT-02.2: expired snapshot rejects /sessions more before inspection or rebinding"
+            },
+            {
+              "file": "test/catalog-checklist.test.ts",
+              "name": "CAT-02.2: expired snapshot rejects /sessions page 2 before inspection or rebinding"
+            },
+            {
+              "file": "test/catalog-checklist.test.ts",
+              "name": "CAT-02.2: versioned project button expires even without a newer list"
             }
           ],
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/channels/action-card.ts",
               "sha256": "92be509f297f40b9540d6d64d55700a5478cd16aba9514fd9854779742c7bb32"
             }
           ],
-          "verifiedBoundary": "旧项目按钮不按新下标改投；15分钟过期与R所有别名场景另需测试。",
+          "verifiedBoundary": "15分钟过期覆盖R编号绑定、详情及分页别名，检查先于inspect或换绑；旧项目按钮没有新列表时仍过期，重新查询恢复正常。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
-          }
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          },
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
         },
         {
           "id": "CAT-02.3",
           "scenario": "同主机同路径不同项目、跨主机同名均区分",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/session-catalog-order.test.ts",
@@ -4344,6 +4487,10 @@
             {
               "file": "test/session-catalog.test.ts",
               "name": "native project membership, remote host isolation, and unavailable-host warnings survive selection"
+            },
+            {
+              "file": "test/catalog-checklist.test.ts",
+              "name": "CAT-02.3: same host, name and roots retain two exact native project identities through IM selection and reload"
             }
           ],
           "implementation": [
@@ -4353,15 +4500,16 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
-          "verifiedBoundary": "跨host同名/同projectID分组隔离；同host同roots多个native身份创建仍是独立未决项。",
+          "verifiedBoundary": "同host、同name、同roots但不同原生projectID经实际IM选择与状态重载仍各自独立，裸同名不改变当前项目；既有测试验证跨host分组。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
-          }
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          },
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
         },
         {
           "id": "CAT-02.4",
@@ -4409,7 +4557,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/session-catalog-view.ts",
@@ -4431,8 +4579,8 @@
           "verifiedBoundary": "实际 Bridge 命令/原生目录夹具和 DingTalk Markdown 转换断言；原版 e32322f 的真实 Bridge 同例失败。仅本机展示/分页/精确身份边界，未做手机钉钉实机验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -4464,7 +4612,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/new-session.ts",
@@ -4474,8 +4622,8 @@
           "verifiedBoundary": "实际fresh账号无项目普通消息/new不暗选第一项；task/qa/mode精确新反例另见CAT-03.5。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -4539,7 +4687,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -4549,8 +4697,8 @@
           "verifiedBoundary": "真实Bridge新建经隔离原生核心，在模型结果释放前读到持久thread ID，原生标题保持干净。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -4612,13 +4760,13 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -4740,14 +4888,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "展示引用/字面附件不发送，全部历史分页API及native格式组合仍待映射。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -4875,14 +5023,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "真实JSONL预期turn比较和Bridge默认steer，ACK中的全部thread/turn反例未在这组穷尽。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -4949,14 +5097,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "普通消息写前来源复核，原生steer连接等待后原角色/个人准入仍需另一末次lease场景。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -5155,7 +5303,7 @@
         {
           "id": "CTRL-03.1",
           "scenario": "重启待项/已消费/未知三种分开恢复",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/native-queue.test.ts",
@@ -5214,8 +5362,7 @@
               "name": "CTRL-03.1: failed queue source durability retains unknown and permits exact recovery after restart"
             }
           ],
-          "testGap": "真实进程骤停已有六种，但任意CPU指令间隙、主机断电、无原身份旧记录和供应商全丢ACK窗口未穷尽。远程探探另验证执行期间杀Gateway/Connector，不声称精确命中远程fsync边界。",
-          "verifiedBoundary": "真实文件journal重建配合后端替身：add丢ACK按client ID找回queued，已消费项跨历史分页按ID转running/completed，只有相似正文但无ID匹配则uncertain；add总数不增加，未知项不dispatch。 追加真实0.166.0核心+实际Gateway子进程六种queue接收/rename前后/恢复再次SIGKILL：核心PID、原client/thread/turn、单次输入、最终结果与记忆、来源inbox清理均联合断言；原生/IM两份日志恢复衔接的身份/CAS/落盘/活交接独立检查。",
+          "verifiedBoundary": "真实原生queue接收与Gateway落盘前后6种SIGKILL：pending/running/离线completed及恢复再次骤停。原queue/client/turn、core PID、输入/结果/记忆各一次，原inbox结清；身份不足保持未知由既有精确client与分页反例验证。",
           "boundaryReview": {
             "date": "2026-11-02",
             "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
@@ -5245,7 +5392,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/inbound-receipts.ts",
@@ -5258,9 +5405,11 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
-          }
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          },
+          "previousTestGap": "真实进程骤停已有六种，但任意CPU指令间隙、主机断电、无原身份旧记录和供应商全丢ACK窗口未穷尽。远程探探另验证执行期间杀Gateway/Connector，不声称精确命中远程fsync边界。",
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
         },
         {
           "id": "CTRL-03.2",
@@ -5381,7 +5530,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -5389,7 +5538,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/server/thread-event-hub.ts",
@@ -5407,8 +5556,8 @@
           },
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -5585,14 +5734,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "pause/clear纯文本各一次，通过真实IM命令路径核对原host/thread的goal set payload。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -5620,7 +5769,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -5630,8 +5779,8 @@
           "verifiedBoundary": "原生控件携带值身份不靠目录位置，值为1/default也与斜杠语法分开。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -5739,14 +5888,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "真实Bridge、绑定/角色状态和来源journal，原生接口/渠道替身，4种操作×6种来源共24项；先完成原生动作再挂起返回，旧结果零发送、原host/thread恰好一次、重开journal handled不重放。viewer只读降权仍允许。真实远端及发送已进入供应商后的撤权窗口另验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -5806,14 +5955,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "实际Bridge+RuntimeStateStore，2种设置×6种来源结果；原10反例失败及2正常对照。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -5852,7 +6001,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -5862,8 +6011,8 @@
           "verifiedBoundary": "本地故意挂起依赖，状态/queue列表在规定预算返回；不证明供应商真实网络时延。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -5883,7 +6032,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/channel-commands.ts",
@@ -5893,8 +6042,8 @@
           "verifiedBoundary": "help主表及unbind已断言，但answer/ide全部帮助分支须逐条映射，不把标题every当完整证据。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -5922,14 +6071,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "首屏和status不挡的各自故障已覆盖；Taskboard挂起时IMstatus的联合场景未专测。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -5949,7 +6098,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/peer/execution-service.ts",
@@ -5959,8 +6108,8 @@
           "verifiedBoundary": "真实Bridge指令经Connector严格DTO，设备后端替身；连接预算传递另由peer-complete-contract.test验证。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -5984,14 +6133,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "实际AccountManager与可控后端，分别验证本机默认、远端成功及远端不可用。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -6026,7 +6175,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/access.ts",
@@ -6036,8 +6185,8 @@
           "verifiedBoundary": "ACL在下载前；IDE group不等个人授权，所有IM平台个人/群身份仍需分渠道核对。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -6057,7 +6206,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/access.ts",
@@ -6067,8 +6216,8 @@
           "verifiedBoundary": "viewer/participant控制限制与审批原群controller；授角色全部组合仍需独立场景。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -6089,7 +6238,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -6099,8 +6248,8 @@
           "verifiedBoundary": "ACL原子rename失败的停止/运行账号两种状态；磁盘、manager、Bridge均不放行陌生个人。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -6143,14 +6292,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "真实准入服务和Bridge，actor/group范围、原任务不重放，管理者必须显式登记。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -6243,13 +6392,13 @@
             },
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
+              "sha256": "1b91b48d9128c9c7c59ca3a88bc1dc81dc01e5389d35b23f38fc6f7ac7f89fe0"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -6326,7 +6475,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -6335,8 +6484,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -6399,7 +6548,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -6412,8 +6561,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -6450,7 +6599,7 @@
             },
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
+              "sha256": "1b91b48d9128c9c7c59ca3a88bc1dc81dc01e5389d35b23f38fc6f7ac7f89fe0"
             },
             {
               "file": "src/web/approvals.js",
@@ -6459,8 +6608,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -6471,11 +6620,11 @@
           "implementation": [
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
+              "sha256": "1b91b48d9128c9c7c59ca3a88bc1dc81dc01e5389d35b23f38fc6f7ac7f89fe0"
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "tests": [
@@ -6499,8 +6648,8 @@
           "verifiedBoundary": "真实Bridge→原生JSONL夹具→渠道driver，核实际mentions参数、原接收群，名单去重/@all排除；不是手机实机可见验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -6681,14 +6830,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "真实Bridge任务和审批控制器，内存渠道及原生替身；不代替钉钉手机客户端视觉验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -6938,7 +7087,7 @@
           "implementation": [
             {
               "file": "src/codex/interaction-fanout.ts",
-              "sha256": "2dde57086297f092dacfba7227e8c5777edfbb16ccdbe5157c13cc77a864e813"
+              "sha256": "e8097ba977c962ad8499e7bfa0a1daaa1413a8b77626bb493076f914d7139d52"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -6982,8 +7131,8 @@
           "verifiedBoundary": "fanout直接矩阵及实际原生核心/UI与晚IM两场景；缺路线不代答。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -7031,7 +7180,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -7040,14 +7189,14 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
           "id": "INT-04.2",
           "scenario": "IM/Web竞争一方成功另一方失效",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/approval-http.test.ts",
@@ -7060,29 +7209,115 @@
             {
               "file": "test/approval-http.test.ts",
               "name": "INT-04.2: concurrent im-and-web consume one approval version once"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "late native consumers observe the same pending approval and exactly one explicit answer wins"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "retired or replaced consumers cannot answer a native request through a late promise"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "missing routes, consumer errors and detach leave the native request unanswered"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "native question fanout follows the same ownership and does not invent an answer"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "an edited native question retires its old answer even when the request id is reused"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "INT-04.2: approval lost receipt retains its chosen consumer across none"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "INT-04.2: approval lost receipt retains its chosen consumer across replace"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "INT-04.2: approval lost receipt retains its chosen consumer across remove"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "INT-04.2: approval lost receipt retains its chosen consumer across same-object"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "INT-04.2: input lost receipt retains its chosen consumer across none"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "INT-04.2: input lost receipt retains its chosen consumer across replace"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "INT-04.2: input lost receipt retains its chosen consumer across remove"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "INT-04.2: input lost receipt retains its chosen consumer across same-object"
+            },
+            {
+              "file": "test/native-question-race.test.ts",
+              "name": "INT-04.2: real native question accepts one im answer and retires the other surface"
+            },
+            {
+              "file": "test/native-question-race.test.ts",
+              "name": "INT-04.2: real native question accepts one ui answer and retires the other surface"
+            },
+            {
+              "file": "test/question-surface-race.test.ts",
+              "name": "INT-04.2: im wins the IM and actual Web HTTP question race without confirming the losing answer"
+            },
+            {
+              "file": "test/question-surface-race.test.ts",
+              "name": "INT-04.2: web wins the IM and actual Web HTTP question race without confirming the losing answer"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "INT-04.2: approval lost receipt retains its chosen consumer across replace-direct"
+            },
+            {
+              "file": "test/interaction-fanout.test.ts",
+              "name": "INT-04.2: input lost receipt retains its chosen consumer across replace-direct"
             }
           ],
           "implementation": [
             {
-              "file": "src/bridge/approval.ts",
-              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
+              "file": "src/codex/interaction-fanout.ts",
+              "sha256": "e8097ba977c962ad8499e7bfa0a1daaa1413a8b77626bb493076f914d7139d52"
             },
             {
-              "file": "src/server/http-server.ts",
-              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
+              "file": "src/bridge/user-input-controller.ts",
+              "sha256": "efd9c5397e28cca4d52d1c01458cd7bc5b79f8f95b0a1a8fb1038606477c189d"
+            },
+            {
+              "file": "src/bridge/approval.ts",
+              "sha256": "1b91b48d9128c9c7c59ca3a88bc1dc81dc01e5389d35b23f38fc6f7ac7f89fe0"
+            },
+            {
+              "file": "taskboard/server/ai-chat.mjs",
+              "sha256": "c262d26e32504a7f521f986e9267d0e0446644231a1435b46fd75099adb3a044"
             }
           ],
-          "verifiedBoundary": "实际本地HTTP/IM同approvalId version，重复决定失效；问题答案同竞态仍需另例。 补并发两个Web客户端及IM/Web命令审批决定；请求版本只消耗一次，迟到另一方409；问题答案竞态仍未包含。",
+          "verifiedBoundary": "真实本地Taskboard HTTP + IM Bridge问题竞答两个顺序；实际Codex核心原请求两种先答顺序，各只有一次原生答案和一次任务，未获选入口withdrawn而非confirmed；审批/问题失确认后保留获选者，移除/替换/相同对象重挂不把旧确认交给新消费者。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
-          }
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+          },
+          "previousBoundary": "实际本地HTTP/IM同approvalId version，重复决定失效；问题答案同竞态仍需另例。 补并发两个Web客户端及IM/Web命令审批决定；请求版本只消耗一次，迟到另一方409；问题答案竞态仍未包含。",
+          "remainingBoundary": "以上有限边界；真实供应商投递/手机视觉和整机断电不从隔离测试推定。"
         },
         {
           "id": "INT-04.3",
           "scenario": "投递确认通知失败只重试原通知，不重交答案",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/user-input.test.ts",
@@ -7095,15 +7330,78 @@
             {
               "file": "test/user-input.test.ts",
               "name": "failed plain acknowledgement is recorded as uncertain, not resent after restart"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: failed initial IM notice retains the original approval and close invents no decision"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: confirmed approval retries only its acknowledged card (restart=false)"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: confirmed approval retries only its acknowledged card (restart=true)"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: a missing plain-message ACK stays unknown across duplicate callbacks and restart"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: card notice retry respects rebound"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: card notice retry respects closed"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: card notice retry respects permanent"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: card notice retry respects budget"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: late initial card ACK and partial mention failure still close the exact old card"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: stopping during a card update prevents a late old-controller commit"
+            },
+            {
+              "file": "test/approval-notice-recovery.test.ts",
+              "name": "INT-04.3: an unavailable audit disk cannot spin retries or alter the confirmed native decision"
             }
           ],
           "implementation": [
             {
-              "file": "src/bridge/user-input-controller.ts",
-              "sha256": "efd9c5397e28cca4d52d1c01458cd7bc5b79f8f95b0a1a8fb1038606477c189d"
+              "file": "src/bridge/approval-notice-delivery.ts",
+              "sha256": "e3026c9d5df30dc3b1f99c6e421b59a690e46080f736e9c7a9fab975d47d716f"
+            },
+            {
+              "file": "src/bridge/approval-journal.ts",
+              "sha256": "1a1236749ce836803f183f833f8413a0223a828d3f5917de386fbbdf1d63e23e"
+            },
+            {
+              "file": "src/bridge/approval.ts",
+              "sha256": "1b91b48d9128c9c7c59ca3a88bc1dc81dc01e5389d35b23f38fc6f7ac7f89fe0"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
-          "verifiedBoundary": "已覆盖问题答案的原卡可重试/文字unknown不重发；完整审批决定通知的相同闭环待映射。"
+          "verifiedBoundary": "审批初始通知失败保留原请求；确认后只更新原有ACK卡，原生决定与通知投递分别持久化。覆盖通知失败重试、对象重建、发送前后晚ACK、已投卡但@失败、文字ACK未知不重发、永久错误/三次上限、换绑/关闭、晚旧写与磁盘失败不忙循环。已有问题通知用例保留。",
+          "previousBoundary": "已覆盖问题答案的原卡可重试/文字unknown不重发；完整审批决定通知的相同闭环待映射。",
+          "remainingBoundary": "以上有限边界；真实供应商投递/手机视觉和整机断电不从隔离测试推定。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+          }
         },
         {
           "id": "INT-04.4",
@@ -7113,11 +7411,11 @@
           "implementation": [
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
+              "sha256": "1b91b48d9128c9c7c59ca3a88bc1dc81dc01e5389d35b23f38fc6f7ac7f89fe0"
             },
             {
               "file": "src/bridge/approval-journal.ts",
-              "sha256": "58fbe5819835f4115d808d254340501495a9c9cef3be3fe63776ad10f9112119"
+              "sha256": "1a1236749ce836803f183f833f8413a0223a828d3f5917de386fbbdf1d63e23e"
             },
             {
               "file": "src/bridge/input-presentation.ts",
@@ -7125,7 +7423,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/channels/turn-presentation.ts",
@@ -7189,8 +7487,8 @@
           "verifiedBoundary": "同一native任务run计数1、执行卡2；重复回调仅一边界；记录重开保同ID，沿用stream按ID去重；v1严格audit row不变，展示投影同文件原子保存。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -7244,10 +7542,15 @@
             },
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
+              "sha256": "1b91b48d9128c9c7c59ca3a88bc1dc81dc01e5389d35b23f38fc6f7ac7f89fe0"
             }
           ],
-          "verifiedBoundary": "沿用原生question期限与已接管approval timeout策略，结果通知等待native确认，未把未发送/失联当人工已拒绝。"
+          "verifiedBoundary": "沿用原生question期限与已接管approval timeout策略，结果通知等待native确认，未把未发送/失联当人工已拒绝。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+          }
         },
         {
           "id": "INT-05.3",
@@ -7713,14 +8016,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "结果投递失败保原终态payload，不发替代答案；native executor终态在更下层fixture。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -7749,7 +8052,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/web/app.js",
@@ -7759,8 +8062,8 @@
           "verifiedBoundary": "真实hub+管理HTTP+隔离Chrome及IM文案联合：原生完成/idle但投递失败保留pending；渠道回执后显示已接收，不声称手机已显示。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -7863,7 +8166,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/channels/client.ts",
@@ -7895,8 +8198,8 @@
           "verifiedBoundary": "实际Bridge入口/原生卡片driver替身，四旧版反例；不把异常当未提交。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -8127,14 +8430,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "永久错单次非答案提示，终态仍只更新原handle，重启不替代答案。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -8396,7 +8699,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/turn-audience.ts",
@@ -8405,8 +8708,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -8612,14 +8915,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "包含真实多次compaction phase进入同卡，不仅去重单一文本；真实客户端圆环/排版未验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -9235,7 +9538,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/channels/feishu.ts",
@@ -9249,8 +9552,8 @@
           "verifiedBoundary": "真实readiness/cleanup边界，所有provider重连状态全排列仍须实际平台验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -9446,7 +9749,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/format.ts",
@@ -9456,8 +9759,8 @@
           "verifiedBoundary": "四渠道格式路径保源码行号引用且零上传；exec枚举是测试输入，不是生产支持第二执行器的证明。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -9608,7 +9911,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/turn-result-actions.ts",
@@ -9617,8 +9920,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -9634,14 +9937,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "真实临时文件stat和历史读取；Windows保留内容/归属但不假测POSIX mode。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -10117,14 +10420,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "真实AccountManager/ThreadEventHub及monitor回调，渠道发送夹具；不等于钉钉手机呈现或生产网络故障实测。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -10203,7 +10506,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/ide/project-identity.ts",
@@ -10216,8 +10519,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -10233,7 +10536,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/ide/manager.ts",
@@ -10242,8 +10545,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -10326,7 +10629,7 @@
         {
           "id": "IDE-02.1",
           "scenario": "两个仓库同窗独立Git且终端默认session目录",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/ide.test.ts",
@@ -10339,6 +10642,10 @@
             {
               "file": "test/ide.test.ts",
               "name": "real host helper generates a private multi-root workspace without writing config into repositories"
+            },
+            {
+              "file": "test/ide-real-browser.test.ts",
+              "name": "IDE-02.1: actual workbench opens both Git roots and its terminal starts in the selected root"
             }
           ],
           "implementation": [
@@ -10351,7 +10658,13 @@
               "sha256": "28f9841ec1c7c6064f6bde3971cd67411ef778ec71fdc2b0c0f1659377b3f715"
             }
           ],
-          "verifiedBoundary": "实际完整roots/私有workspace/默认cwd，假code-server；两个真实Git UI及终端打开行为未实测。"
+          "verifiedBoundary": "官方Mac ARM64 code-server在真实隔离Chrome中显示alpha、beta两个独立Git仓库；集成终端执行pwd，其结果为选定session根。 环境为独立headless Chrome，未冒充手机。",
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          }
         },
         {
           "id": "IDE-02.2",
@@ -10486,14 +10799,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "可选IDE构造/ingress失败隔离，不借输入；所有运行异常/绑定不变仍需组合。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -10590,14 +10903,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "个人准入唯一权威；群准入不自动授权，停账号/重启保持，不新建额外名单或密码。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -10625,14 +10938,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "持久epoch fencing覆盖重新允许旧grant失效；本地HTTP/WS试验，不是手机端。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -10840,11 +11153,15 @@
         {
           "id": "IDE-06.2",
           "scenario": "同源再次打开复用实例且无新申请",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/ide.test.ts",
               "name": "canonical host/owner/profile instance reuse, concurrent opens and fresh target validation"
+            },
+            {
+              "file": "test/ide-real-browser.test.ts",
+              "name": "IDE-06.2: browser reopen reuses the instance and existing grant without another request"
             }
           ],
           "implementation": [
@@ -10857,12 +11174,18 @@
               "sha256": "8ea40e5d0ad79fc8ee5cd1794e8d1ccf514451c3cdc420c1b8de772e322907dc"
             }
           ],
-          "verifiedBoundary": "manager复用独立验证，完整浏览器重复打开不新增申请的联合路径仍需实机。"
+          "verifiedBoundary": "真实浏览器离开并重新打开入口，沿用原实例ID和HttpOnly授权，无新申请。 环境为独立headless Chrome，未冒充手机。",
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          }
         },
         {
           "id": "IDE-06.3",
           "scenario": "撤销/过期时真正回授权页，不能降低Cookie策略",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/ide.test.ts",
@@ -10871,6 +11194,10 @@
             {
               "file": "test/ide.test.ts",
               "name": "personal browser authentication guards HTTP/WS, strips credentials, denies foreign origins and revokes sockets"
+            },
+            {
+              "file": "test/ide-real-browser.test.ts",
+              "name": "IDE-06.3: a revoked browser returns to authorization instead of reopening its editor"
             }
           ],
           "implementation": [
@@ -10883,12 +11210,13 @@
               "sha256": "44691259223af525b7c29c3879d9361da4d474704b8dbbec938f2a13541fae78"
             }
           ],
-          "verifiedBoundary": "本地HTTP/WS拒绝旧凭据及跨域、Cookie仍Strict；真实手机回授权页未验。",
+          "verifiedBoundary": "真实浏览器已获grant进入工作台后撤销，再开入口回授权页且没有工作台；过期/Cookie/WS拒绝由既有HTTP测试覆盖。 环境为独立headless Chrome，未冒充手机。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
-          }
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          },
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
         }
       ]
     },
@@ -11087,7 +11415,7 @@
         {
           "id": "IDE-08.3",
           "scenario": "Dark2026/Seti/Menlo12/行高18/Chat默认收起/Emacs实际键位",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/ide-profile.test.ts",
@@ -11100,6 +11428,10 @@
             {
               "file": "test/ide-profile.test.ts",
               "name": "first open verifies Emacs, installs only missing, isolates trust profiles, and deduplicates opens"
+            },
+            {
+              "file": "test/ide-real-browser.test.ts",
+              "name": "IDE-08.3: actual editor applies visual defaults, hides Chat and activates Emacs"
             }
           ],
           "implementation": [
@@ -11108,7 +11440,13 @@
               "sha256": "7becfa0f5995c9882beade69de12a8200f4bfb9bc2f5d8ad30c2bdcc8210acfc"
             }
           ],
-          "verifiedBoundary": "实际JSONC和扩展helper验证配置/缺失才安装；code-server实际主题/键位视觉操作未验。"
+          "verifiedBoundary": "实际编辑器Menlo12/18、暗色主题、Chat隐藏、Emacs已安装；执行C-a并写入/保存后文件保留原余文。 环境为独立headless Chrome，未冒充手机。",
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          }
         }
       ]
     },
@@ -11242,14 +11580,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "原版反例失败，实际Bridge/EndpointManager/ChannelTurnPresentation隔离夹具通过；远程网络恢复及手机实际显示不在本机窄边界验收内。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -12112,7 +12450,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/taskboard-channel-controller.ts",
@@ -12134,8 +12472,8 @@
           "verifiedBoundary": "真实Bridge/TaskboardClient/state+fetch替身与临时文件；21个给定组合，不证明真实服务事务接收未知时的幂等、部分附件补偿或workflow运行全程权限。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -12419,14 +12757,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "远程项目不能作为本地目录QA默认值；已绑定QA所有动态tool读取同host仍需执行路径证明。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -12578,7 +12916,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/server/restart.ts",
@@ -12586,28 +12924,51 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "真实Web/Bridge业务计数分界，native通过fixture接收；accept落盘失败的整个release组合还需联动。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
           "id": "REL-01.2",
           "scenario": "Gateway退出不stop原生服务，重连同turn输入一次",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/shared-app-server-integration.test.ts",
               "name": "Gateway disconnect after acceptance does not interrupt a peer-visible native turn or repeat its input"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":false,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":true,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":true}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
             }
           ],
-          "testGap": "没有在此用例执行launchd实际重启或接收/fsync窗口骤停，私有stdio不具有这一独立保证；线上重启保留core的记录是部署验收，不替代所有崩溃组合。",
-          "verifiedBoundary": "与NATIVE-02.3共用真实原生断连测试：accepted后hasRestartBlockingWork为false，Gateway适配器关闭重建后core/activeTurn未变，原turn完成且输入一次。",
+          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。",
           "boundaryReview": {
             "date": "2026-11-02",
             "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
@@ -12625,7 +12986,24 @@
                 ]
               }
             ]
-          }
+          },
+          "previousTestGap": "没有在此用例执行launchd实际重启或接收/fsync窗口骤停，私有stdio不具有这一独立保证；线上重启保留core的记录是部署验收，不替代所有崩溃组合。",
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          },
+          "implementation": [
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+            }
+          ]
         },
         {
           "id": "REL-01.3",
@@ -12648,10 +13026,15 @@
             },
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
+              "sha256": "1b91b48d9128c9c7c59ca3a88bc1dc81dc01e5389d35b23f38fc6f7ac7f89fe0"
             }
           ],
-          "verifiedBoundary": "已修复问答等待不锁重启；recovery只读checking/pending大范围仍是已记录候选，不宣称全部放行正确。"
+          "verifiedBoundary": "已修复问答等待不锁重启；recovery只读checking/pending大范围仍是已记录候选，不宣称全部放行正确。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+          }
         },
         {
           "id": "REL-01.4",
@@ -12682,7 +13065,7 @@
             },
             {
               "file": "src/bridge/approval.ts",
-              "sha256": "e5a2c66351fed368aace44473419b8687bd5179c71396229cd293310ae9a877e"
+              "sha256": "1b91b48d9128c9c7c59ca3a88bc1dc81dc01e5389d35b23f38fc6f7ac7f89fe0"
             },
             {
               "file": "src/bridge/user-input-controller.ts",
@@ -12690,13 +13073,13 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -12764,13 +13147,13 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -12790,13 +13173,13 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -12915,11 +13298,11 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/bridge/channel-write-leases.ts",
@@ -12929,8 +13312,8 @@
           "verifiedBoundary": "实际Bridge两原版反例；11个channel写方法、3个非消息方法及异常释放。平台为替身，不替代实际上线重启。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -13450,15 +13833,15 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "历史manifest明确92可读/5丢失且不是当前客户端验收；实际Bridge把引用/围栏中的stop/allow/queue与附件示例当本轮分析数据，无控制写入。",
           "testGap": "引用命令惰性及manifest边界有自动化；原先92张逐张观看属手工记录，5张缺失仍不能重读，自动化不冒充视觉阅读。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         }
       ]
@@ -14212,7 +14595,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -14222,8 +14605,8 @@
           "verifiedBoundary": "真实安装0.166.0/临时Home/假模型/SQLite，原生审批和双消费者；独立stdio限制明确，真实IM/手机另验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -14822,7 +15205,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/bridge/taskboard-channel-dedup.ts",
@@ -14869,14 +15252,14 @@
           "verifiedBoundary": "原失败反例保留在confirmedFailure作为历史。现以真实Bridge/Controller/Client→隔离HTTP/SQLite，在服务端提交后丢响应；同表单重试及Gateway/Taskboard双重启后均仅1次创建POST、1条Task。SQLite/D1直接覆盖并发创建/评论/状态事务去重、异载荷与异actor拒绝、失败CAS无回执、实体删除后保留接受证据；注入回执INSERT失败验证业务回滚，导出/导入D1保留原回执。未连接真实IM/真实云或模拟真实电源掉电。 只有明确HTTP409/VERSION_CONFLICT反馈旧卡片未执行；丢失已接受状态响应后不误报冲突，重试只读恢复且证据评论一次。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
           "id": "TB-09.6",
           "scenario": "创建并开始时，Taskboard业务回执与Codex执行交接分开；未知原生交接不自动重新创建/启动，不阻塞别的表单。",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/taskboard-im-receipts.test.ts",
@@ -14885,19 +15268,45 @@
             {
               "file": "test/taskboard-im-receipts.test.ts",
               "name": "IM journal retries a definitively unsubmitted native start with the same task identity"
+            },
+            {
+              "file": "test/taskboard-native-crash.test.ts",
+              "name": "TB-09.6: real SIGKILL before native acceptance commit, completedOffline=false"
+            },
+            {
+              "file": "test/taskboard-native-crash.test.ts",
+              "name": "TB-09.6: real SIGKILL before native acceptance commit, completedOffline=true"
+            },
+            {
+              "file": "test/taskboard-native-crash.test.ts",
+              "name": "TB-09.6: real SIGKILL after native acceptance commit, completedOffline=false"
+            },
+            {
+              "file": "test/taskboard-native-crash.test.ts",
+              "name": "TB-09.6: real SIGKILL after native acceptance commit, completedOffline=true"
             }
           ],
           "implementation": [
             {
-              "file": "src/bridge/taskboard-channel-controller.ts",
-              "sha256": "788410f7b7750043d109d955e1511b374814b3bc8951fe3be806b4eb44eddb31"
+              "file": "taskboard/server/ai-chat.mjs",
+              "sha256": "c262d26e32504a7f521f986e9267d0e0446644231a1435b46fd75099adb3a044"
             },
             {
-              "file": "src/bridge/taskboard-channel-dedup.ts",
-              "sha256": "5a091cfa67fe40a1ef8edac658856744a4994105d84294cbaf381b442e63a801"
+              "file": "taskboard/server/database.mjs",
+              "sha256": "d8aa50bc411b5fbacc118b1d3bc1b7e67d5d7cff918c3ccacbd2b1731dcc6a73"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
-          "verifiedBoundary": "持久journal恢复后同请求的workflow阶段保持未知，异载荷拒绝、另一来源可独立预留；未做真实原生交接中骤停后自动只读匹配turn的端到端场景。当前仅明确提示核对原会话，不自动重发未知执行。"
+          "verifiedBoundary": "真实Taskboard子进程与独立原生核心：accepted写SQLite前/后×任务运行中/离线完成4次SIGKILL。原业务run、submission及native turn精确恢复，两次重启后用户输入/最终输出/模型执行各一次。",
+          "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
+            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          }
         },
         {
           "id": "TB-09.7",
@@ -15554,7 +15963,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/peer/registry.ts",
@@ -15568,8 +15977,8 @@
           "verifiedBoundary": "真实WS与Bridge/渠道夹具，所有者、委托范围、主分支role复用；不替代当前版本手机UI验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },
@@ -15709,15 +16118,15 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "d33ba0246fec1e44a90df9bc8f3f7cc6af59838bf53d78ea8e3b74826eab3447"
+              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
             }
           ],
           "verifiedBoundary": "持久补偿对象重建、exact来源守卫、容量随机client ID还原；不声称已验证所有远端进程骤停窗口。",
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           }
         },
         {
@@ -15796,14 +16205,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             }
           ],
           "verifiedBoundary": "实际临时文件与WS；不等于真实平台附件展示或code-server终端/Git验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },
@@ -15828,7 +16237,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
+              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -15846,8 +16255,8 @@
           "verifiedBoundary": "当前候选不新增/session rename、archive、restore、/sessions archived；拆分分支单独评审。 Connector私有投影的明确别名与创建/归属一致；未包装底层目录及错误home保持原生ID。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
+            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },
@@ -16066,13 +16475,13 @@
     }
   },
   "currentSummary": {
-    "audit": "2026-11-03-completion",
+    "audit": "2026-11-03-checklist-followthrough",
     "requirements": 86,
     "cases": 383,
     "mappedCases": 383,
-    "recordedNarrowVerified": 284,
-    "partialCases": 99,
-    "selectedFunctionContracts": 200,
-    "note": "增量复核及同版本回归；历史partial保留边界，不将缺失设备/账号或33kind执行器冒充完成。"
+    "recordedNarrowVerified": 299,
+    "partialCases": 84,
+    "selectedFunctionContracts": 208,
+    "note": "逐项验收边界，不等于所有平台和任意时序；历史证据与本轮运行分别保存。"
   }
 }
