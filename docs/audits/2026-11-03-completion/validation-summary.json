@@ -127,8 +127,15 @@
     }
   ],
   "deployment": {
-    "initialBatch": "ecf09445e89201fea990ca38624b3dac65da66a4 live on both Gateways and both Connectors",
-    "followupIDEProbe": "tested; release verification follows"
+    "status": "verified",
+    "runtimeCommit": "f39f5f2dac16883c90e0264e4a8226641660b759",
+    "services": [
+      "头头 Gateway",
+      "探探 Gateway",
+      "Linux Connector",
+      "Mac Connector"
+    ],
+    "receipt": "deployment-verification.json"
   },
   "remaining": [
     "99 partial requirements retain environment and combination limits",
@@ -184,6 +191,7 @@
     "newPerProbeMaxMs": 15000,
     "overallVerificationMs": 45000,
     "outerTimeoutInterruptedRollbackCleanup": true,
-    "restoredOriginalArtifactAndOwnAdmission": true
+    "restoredOriginalArtifactAndOwnAdmission": true,
+    "finalCutover": "verified with all original grant/binding/endpoint checks"
   }
 }

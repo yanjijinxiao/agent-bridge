@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-03",
+  "runtimeCommit": "f39f5f2dac16883c90e0264e4a8226641660b759",
+  "sourceHash": "3fbcb287e7328b5317da0efbb5c22e87e1ce042c4e1850b2845d3edd005ca2ea",
+  "services": [
+    "头头 Gateway",
+    "探探 Gateway",
+    "Linux Connector",
+    "Mac Connector"
+  ],
+  "modifiedRuntimeFilesCompared": 12,
+  "allRuntimeBytesMatch": true,
+  "independentCorePidsPreserved": true,
+  "browserGrantsRetained": 14,
+  "browserAuthorizationDays": 90,
+  "ideEndpointsRetained": 3,
+  "bindingAndPermissionFingerprintsPreserved": true,
+  "releaseAdmissionReopened": true,
+  "realDingTalk": [
+    "status: original Linux session synced idle",
+    "connect: Linux and Mac regression connectors visible"
+  ],
+  "oldUnconfirmedReceipts": "preserved; not replayed or erased",
+  "evidence": [
+    {
+      "name": "runtime-verification.json",
+      "sha256": "7c33b4a6ce37cb5246420b0b6f7ab0eadbf702932b4b2be70df66b3e7e364b96"
+    },
+    {
+      "name": "changed-runtime-hashes.json",
+      "sha256": "1d7b1028f56d2b3aab6fda78e16d8689eec473a500217401482a00c216f4cf0f"
+    },
+    {
+      "name": "events.ndjson",
+      "sha256": "e62d6d13b908ae7f2dc9eb0815c2a01edf89a90bfd3b1ca337067ae4ed64f7dd"
+    }
+  ],
+  "notes": [
+    "7ccf234 first head cutover rolled back; f39f5f2 final cutover verified",
+    "A separate final documentation commit records these receipts; no runtime source changes after this commit."
+  ]
+}
