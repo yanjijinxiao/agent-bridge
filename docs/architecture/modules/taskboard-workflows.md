@@ -1,6 +1,6 @@
 # Taskboard 工作流编辑与保存
 
-WorkflowBoard 负责项目流程文档的编辑和持久化；shared/workflow-control-flow.mjs 负责结构合法性、树操作和布局；server/cloud 的 workflow-workspace 接口负责版本化存储。画布节点存在并不证明该 kind 已具备执行器。2026-11-03 用户要求逐节点执行后，App 节点模式入口已开放；保存与运行保持独立，执行职责见 workflow-node-execution.md。
+WorkflowBoard 负责项目流程文档的编辑和持久化；shared/workflow-control-flow.mjs 负责结构合法性、树操作和布局；server/cloud 的 workflow-workspace 接口负责版本化存储。画布节点存在并不证明该 kind 已具备执行器。此前按逐节点执行理解开发后，App 节点模式入口已开放；保存与运行保持独立，执行职责见 workflow-node-execution.md。
 
 ## 结构权威
 
