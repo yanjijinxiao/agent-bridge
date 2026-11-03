@@ -1,0 +1,4 @@
+{"file":"src/codex/app-server-runner.ts","sha256":"89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52","lines":[223,512],"review":"按显式设置与默认继承职责复核；完整run/runWithLease及更新断言/真实矩阵/模块文档，未列源码范围不声称重读。"}
+{"file":"test/native-explicit-settings.test.ts","sha256":"0e41f8c0e337d52529cfdbc0a9d0799b27c327ea4ae803e2e6886910fcb4da8a","lines":[1,31],"review":"按显式设置与默认继承职责复核；完整run/runWithLease及更新断言/真实矩阵/模块文档，未列源码范围不声称重读。"}
+{"file":"test/native-permission-inheritance.test.ts","sha256":"efcc9fb7bb1672cf9a7a9d940b24616c598e329867fd0777da025637d26a0a47","lines":[1,92],"review":"按显式设置与默认继承职责复核；完整run/runWithLease及更新断言/真实矩阵/模块文档，未列源码范围不声称重读。"}
+{"file":"docs/architecture/modules/native-protocol.md","sha256":"f273a6963a906b59867cc2a4e561f218de195a166d292ebd015a608d3efb23bf","lines":[1,37],"review":"按显式设置与默认继承职责复核；完整run/runWithLease及更新断言/真实矩阵/模块文档，未列源码范围不声称重读。"}

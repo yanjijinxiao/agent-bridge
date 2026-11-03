@@ -1,0 +1,110 @@
+[
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "runWithLease",
+    "lines": [
+      270,
+      508
+    ],
+    "bodyUnchanged": false
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "resolveProjectId",
+    "lines": [
+      849,
+      903
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "listSkills",
+    "lines": [
+      1498,
+      1522
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "listMcpServers",
+    "lines": [
+      1524,
+      1547
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "readTurnActivities",
+    "lines": [
+      1612,
+      1632
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "observeThreadInteractions",
+    "lines": [
+      1666,
+      1694
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "nativeTurns",
+    "lines": [
+      1166,
+      1178
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "createThread",
+    "lines": [
+      676,
+      710
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "reconcileObservedTerminal",
+    "lines": [
+      1029,
+      1042
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "handleNotification",
+    "lines": [
+      1900,
+      2169
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "adoptQueuedTurn",
+    "lines": [
+      1353,
+      1373
+    ],
+    "bodyUnchanged": true
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "symbol": "readThreadSnapshot",
+    "lines": [
+      978,
+      1027
+    ],
+    "bodyUnchanged": true
+  }
+]

@@ -15,7 +15,9 @@ for(const existing of [false,true])for(const explicit of [false,true])test(`nati
  assert.equal(start.params.cwd,!existing||explicit?'/selected':undefined);
  for(const name of ['sandbox','approvalPolicy','approvalsReviewer','runtimeWorkspaceRoots'])assert.deepEqual(start.params[name],explicit?(settings as any)[name]:undefined);
  const turn=calls.find(c=>c.method==='turn/start')!;
- assert.equal(turn.params.sandboxPolicy,undefined,'thread native settings are inherited by the turn without reconstructing an incomplete sandbox policy');
+ assert.deepEqual(turn.params.sandboxPolicy,explicit?{type:'workspaceWrite',writableRoots:settings.runtimeWorkspaceRoots}:undefined,'explicit settings are applied with the turn even when resume attaches a loaded owner');
+ for(const name of ['approvalPolicy','approvalsReviewer','runtimeWorkspaceRoots'])assert.deepEqual(turn.params[name],explicit?(settings as any)[name]:undefined);
+ assert.equal(turn.params.cwd,!existing||explicit?'/selected':undefined);
  assert.deepEqual(turn.params.input,[{type:'text',text:'Selected original input',text_elements:[]},...(explicit?[{type:'localImage',path:'/tmp/selected.png'}]:[])]);
 });
 

@@ -33,3 +33,5 @@ NATIVE-03.7：关闭退休整个 Gateway 分派器；晚到的只读查询不能
 native-bridge-instructions 使用真实安装的原生核心和隔离假模型，检查模型请求而非仅检查 RPC 参数：覆盖新建、同客户端空线程、另一客户端空线程及另一客户端已有历史四种路径，并再次续聊验证规则更新与旧原生规则保留。2026-11-03 的探探实测曾两次生成错误文件动作；旧 JSONL 夹具把 resume 参数当成已经生效，不能作为此契约的验收。实机记录见 audits/2026-11-03-tantan-regression。
 
 已确认剩余缺陷 NATIVE-02.7：空线程首条输入直接 queue/add 自动消费时，runQueuedSubmission 的 developerInstructions 不会进入模型。queue/add/start 的当前原生字段没有 application context；不能把普通 turn/start 的规则修复外推到这条路径。独立真实原生失败 case 保存在探探审计 evidence/pending-queue-context.test.ts，尚未修复。
+
+显式UI设置在已加载线程上必须同时由 turn/start 应用 sandboxPolicy、approvalPolicy、approvalsReviewer、cwd 和 runtimeWorkspaceRoots；仅 thread/resume 携带这些设置可能只是重新订阅，不能证明已生效。workspace-write 的显式可写根来自完整选定runtime roots；原生返回会把隐式可写cwd从额外writableRoots中去重，核对时须结合cwd与runtimeWorkspaceRoots。普通续接和容量恢复省略这些覆盖，不因有审批回调而写入。真实Mac 0.166/Linux 0.163矩阵均验证了变更及下一轮继承。

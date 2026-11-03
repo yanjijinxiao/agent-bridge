@@ -1,0 +1,4 @@
+{"path":"src/codex/app-server-runner.ts","kind":"text","sha256":"89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52","lines":3110,"bytes":159112,"status":"delta-scope"}
+{"path":"test/native-explicit-settings.test.ts","kind":"text","sha256":"0e41f8c0e337d52529cfdbc0a9d0799b27c327ea4ae803e2e6886910fcb4da8a","lines":31,"bytes":2870,"status":"delta-scope"}
+{"path":"test/native-permission-inheritance.test.ts","kind":"text","sha256":"efcc9fb7bb1672cf9a7a9d940b24616c598e329867fd0777da025637d26a0a47","lines":92,"bytes":7015,"status":"delta-scope"}
+{"path":"docs/architecture/modules/native-protocol.md","kind":"text","sha256":"f273a6963a906b59867cc2a4e561f218de195a166d292ebd015a608d3efb23bf","lines":37,"bytes":6419,"status":"delta-scope"}

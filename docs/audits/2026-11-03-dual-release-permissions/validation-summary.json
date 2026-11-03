@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-03",
+  "baseline": "9580b21",
+  "newTests": 9,
+  "rootRegression": {
+    "tests": 3073,
+    "passed": 3072,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "Windows-only"
+  },
+  "typecheck": "passed",
+  "isolatedBuild": "passed",
+  "realNative": {
+    "Mac 0.166.0-alpha.5.1": {
+      "tests": 9,
+      "passed": 9
+    },
+    "Linux 0.163.0": {
+      "tests": 9,
+      "passed": 9
+    },
+    "testedBoundary": "Permission inheritance, explicit loaded-thread policy/cwd/roots changes, transport callback and reconnect combinations; text-only local model"
+  },
+  "initialProductionRelease": {
+    "commit": "9580b21",
+    "previousPid": 70562,
+    "pid": 25444,
+    "retainedGrants": 14,
+    "ttlDays": 90,
+    "ideEndpoints": 3,
+    "nativeCorePidsPreserved": [
+      1272,
+      11238
+    ]
+  },
+  "fixedRelease": {
+    "scope": [
+      "头头 Gateway",
+      "探探 Gateway",
+      "Linux test Connector",
+      "Mac test Connector"
+    ],
+    "status": "Pending activation after commit and push; final runtime receipts stored separately"
+  },
+  "coverage": {
+    "cases": 378,
+    "verifiedNarrowBoundaries": 273,
+    "partial": 105
+  },
+  "priorFailures": [
+    "Four explicit changes failed on loaded native thread before product fix",
+    "Ninth test initially assumed sandbox.writableRoots repeated implicit cwd; corrected assertion after inspecting actual native normalization"
+  ],
+  "evidenceHashes": {
+    "permissions-full-final.log": "8f5efb8801e86c2268b1f7e9caec6bc2fe0c50d05912e2e08bea8ab23dfc0940",
+    "permissions-full-final.jsonl": "cbcaa0a46bc03ede6e4a36669620b8503660cdbd1c295883d117e56cbec8c14a",
+    "native-permissions-9580b21.log": "58c8ff7a49d5839c538c5443c17afb8c42c0f72e4291e6b648c6431d67f6d653",
+    "native-permissions-final.log": "7c96c46f56b8a0293d08ac5283bc107bed3b8b825ccd9ad998188c673a030698",
+    "linux-permissions.log": "9df159d5978b83e6c04e55fac6a23531e275523ed6c980045e8d885f7d0398b1",
+    "permissions-typecheck.log": "569495d981c843453331093c461cecbfbef7fb91d51076fc679973fd1262a400",
+    "permissions-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "notClaimed": [
+    "Phone rendering",
+    "Actual provider auto-review decision and approval delivery",
+    "Complete historical migration field coverage",
+    "All-repository new line-by-line inspection"
+  ]
+}

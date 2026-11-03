@@ -200,14 +200,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "facade三阶段失败和JSONL异常不进入exec/Desktop follower；Taskboard统一执行由TB-04.2补充，不把此窄case外推。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -250,13 +250,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -300,13 +300,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         }
       ]
@@ -363,10 +363,42 @@
             {
               "file": "test/shared-app-server-integration.test.ts",
               "name": "Gateway continuation inherits the peer's permissions and reviewer instead of deriving them from callback presence"
+            },
+            {
+              "file": "test/native-permission-inheritance.test.ts",
+              "name": "NATIVE-02.2: native permission inheritance {\"callback\":false,\"reconnect\":false,\"explicit\":false}"
+            },
+            {
+              "file": "test/native-permission-inheritance.test.ts",
+              "name": "NATIVE-02.2: native permission inheritance {\"callback\":false,\"reconnect\":false,\"explicit\":true}"
+            },
+            {
+              "file": "test/native-permission-inheritance.test.ts",
+              "name": "NATIVE-02.2: native permission inheritance {\"callback\":false,\"reconnect\":true,\"explicit\":false}"
+            },
+            {
+              "file": "test/native-permission-inheritance.test.ts",
+              "name": "NATIVE-02.2: native permission inheritance {\"callback\":false,\"reconnect\":true,\"explicit\":true}"
+            },
+            {
+              "file": "test/native-permission-inheritance.test.ts",
+              "name": "NATIVE-02.2: native permission inheritance {\"callback\":true,\"reconnect\":false,\"explicit\":false}"
+            },
+            {
+              "file": "test/native-permission-inheritance.test.ts",
+              "name": "NATIVE-02.2: native permission inheritance {\"callback\":true,\"reconnect\":false,\"explicit\":true}"
+            },
+            {
+              "file": "test/native-permission-inheritance.test.ts",
+              "name": "NATIVE-02.2: native permission inheritance {\"callback\":true,\"reconnect\":true,\"explicit\":false}"
+            },
+            {
+              "file": "test/native-permission-inheritance.test.ts",
+              "name": "NATIVE-02.2: native permission inheritance {\"callback\":true,\"reconnect\":true,\"explicit\":true}"
             }
           ],
-          "testGap": "此映射只直接断言带审批回调的续聊；无回调、显式UI覆盖、旧配置迁移与重启的组合不由这一测试证明。",
-          "verifiedBoundary": "真实peer以never/auto_review/workspace-write创建线程；Gateway默认配置read-only但续聊未传nativeSettings且带onApproval回调，peer再次resume仍返回原审批策略、审核者和可写sandbox。",
+          "testGap": "真实0.166 macOS及0.163 Linux均补有/无审批回调×连接重建×默认/显式8组合。旧配置所有迁移格式、实际自动审核器的执行行为与供应商审批投递未由本矩阵证明，仍partial。",
+          "verifiedBoundary": "真实peer以never/auto_review/workspace-write创建线程；Gateway默认配置read-only但续聊未传nativeSettings且带onApproval回调，peer再次resume仍返回原审批策略、审核者和可写sandbox。 追加真实核心8组合：同一PID/线程、精确输入一次、原生读取三项权限及实际adapter写参数；默认不降权，只有明确UI选择改变已加载线程权限。",
           "boundaryReview": {
             "date": "2026-11-02",
             "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
@@ -384,7 +416,17 @@
                 ]
               }
             ]
-          }
+          },
+          "implementation": [
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
+            },
+            {
+              "file": "src/codex/app-server-gateway.ts",
+              "sha256": "99ad8216cb83ad4904c53cd3bb21a7c7f19798b424c6f32b50f661cbac6c9ed3"
+            }
+          ]
         },
         {
           "id": "NATIVE-02.3",
@@ -442,13 +484,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -458,7 +500,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/codex/public-item.ts",
@@ -545,13 +587,17 @@
             {
               "file": "test/native-public-item.test.ts",
               "name": "public items received before the start acknowledgement are delivered after accepted identity"
+            },
+            {
+              "file": "test/native-permission-inheritance.test.ts",
+              "name": "NATIVE-02.5: an explicit writable workspace change reaches the loaded owner and remains inherited"
             }
           ],
-          "verifiedBoundary": "实际原生schema/临时Home与协议fixture；公开mapper不含私有推理或secret command，完整敏感串检查后裁剪。",
+          "verifiedBoundary": "实际原生schema/临时Home与协议fixture；公开mapper不含私有推理或secret command，完整敏感串检查后裁剪。 新增实际已加载只读→工作区可写，cwd/完整runtime roots/隐式cwd+额外writableRoots/网络默认及下一轮继承；8组权限矩阵揭示并修复resume接收但不生效，旧同值设置测试不能证明真正变更。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -579,15 +625,15 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "previousTestGap": "旧 fake-codex 夹具将 thread/resume.developerInstructions 视为已进入模型。探探实际续接已有线程两次缺规则并输出错误文件动作；原生加载线程不会更新该参数，已订阅路径又直接 thread/read。",
           "verifiedBoundary": "安装的 macOS 原生 0.166.0 核心、临时 Home 和本机假模型；断言模型请求正文及原规则保留。Linux 0.163.0 schema 支持同一 additionalContext 字段，真实 IM 验证另见审计记录，不把 schema 当执行证明。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -628,7 +674,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -643,8 +689,8 @@
           "remainingBoundary": "修复只作用于新入队项；已接收的旧项不重写或重发。原生 queue 无独立 context 字段，Codex 原始历史可见前缀。未覆盖全部渠道的真实平台与全部供应商；手机视觉、Peer IDE 等不包含在此窄场景 verified。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           },
           "previousTestGap": "原测试直接在 runQueuedSubmission 观察阶段给 developerInstructions；queue/add 已自动执行，注入过晚。新测试经实际 Bridge /queue 入口并检查模型请求；旧实现同用例失败，修复后通过。"
         }
@@ -843,13 +889,13 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -1040,14 +1086,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "真实隔离原生服务中退休/重建轻读连接，核对同一服务PID、accepted turn、模型调用数及仅一条用户输入。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -1133,7 +1179,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/codex/backend.ts",
@@ -1142,8 +1188,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -1190,13 +1236,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -1224,13 +1270,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -1293,14 +1339,14 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "真实JSONL子进程；六种无效状态与稍后有效失败，不代替原生服务畸形数据的恢复验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -1352,7 +1398,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "test/fixtures/snapshot-completion.mjs",
@@ -1362,8 +1408,8 @@
           "verifiedBoundary": "真实JSONL子进程到生产适配器，隔离原生响应；无模型请求、无用户会话改动。原生服务产品实机验收仍独立。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         }
       ]
@@ -1398,14 +1444,14 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "真实JSONL假模型以100ms RPC预算和260ms静默终态验证接收后无整轮定时器；不是等待数小时的实机验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -1425,7 +1471,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/bridge/service.ts",
@@ -1438,8 +1484,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -4016,13 +4062,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -4076,7 +4122,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "test/fixtures/snapshot-completion.mjs",
@@ -4086,8 +4132,8 @@
           "verifiedBoundary": "真实JSONL子进程到生产适配器，隔离原生响应；无模型请求、无用户会话改动。原生服务产品实机验收仍独立。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         }
       ]
@@ -4334,7 +4380,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/codex/desktop-session-membership.ts",
@@ -4352,8 +4398,8 @@
           "verifiedBoundary": "真实临时Desktop registry及原生线协议fixture；完整远端主机路由已有独立HOST例，未改原生产IDE身份。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -4374,14 +4420,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "真实Bridge新建经隔离原生核心，在模型结果释放前读到持久thread ID，原生标题保持干净。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -4409,13 +4455,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -4516,7 +4562,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/server/codex-projects.ts",
@@ -4530,8 +4576,8 @@
           "verifiedBoundary": "rollout/标准原生history/IM目录联合过滤完整内部信封、developer、guardian和子线程；普通用户引用保留。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -4702,7 +4748,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/bridge/service.ts",
@@ -4712,8 +4758,8 @@
           "verifiedBoundary": "真实JSONL预期turn比较和Bridge默认steer，ACK中的全部thread/turn反例未在这组穷尽。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -4853,7 +4899,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -4863,8 +4909,8 @@
           "verifiedBoundary": "真实0.166.0隔离原生核心、两客户端各并发append两项；正常/断开两个写入端/断开执行与写入端三组合，真实模型请求按queue/list顺序消费四项且原输入各一次，PID不变。边界限并发append，不代表同时steer竞争、主机断电或所有原生版本。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -4884,7 +4930,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/bridge/native-queue.ts",
@@ -4894,8 +4940,8 @@
           "verifiedBoundary": "实际native正常自动消费+协调器FIFO单次；所有接收/消费竞态仍受那一次未明idle失败限制。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -5333,15 +5379,15 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "previousTestGap": "旧 idle queue 测试偶发 queue/observe 断连未捕获精确时序。本轮实际 RPC 证明历史和运行态不同步；两个确定性反例修复前均失败。",
           "verifiedBoundary": "JSONL 受控早到终态/晚到最终通知，实际 runner 只 add 一次且没有 start/interrupt。真实隔离核心重复 40 次通过；诊断启动预算 15 秒，不能据此外推 5 秒启动限额或所有并发消费/落盘交错。 真实queue骤停新增捕获Hub在不一致active/终态快照中先结束后报未知的问题；六种有无active ID×三种历史终态直接断言无终态投递/无动作/无completed标记，后续真实进展与最终原始动作只处理一次。 追加状态-历史-状态三读及显式completedAt=null的终态拒绝；真正带结束时间的成功/失败/中断仍可确认，较旧无结束回执不遮蔽新的真实结果。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         }
       ]
@@ -5375,14 +5421,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "host/thread/turn精确参数与source，空闲另一thread的真实并行stop需独立native反例。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -6103,14 +6149,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "真实隔离共享core观察者重启保原native request和人工待审，不合成deny；真实钉钉投递另验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -6138,13 +6184,13 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -6164,13 +6210,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -6344,14 +6390,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "JSONL协议子进程首次丢审批重放，真实AppServerRequestMonitor补订阅原host/thread，不发输入或审批答案。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -6368,7 +6414,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/codex/native-async-questions.ts",
@@ -6378,8 +6424,8 @@
           "verifiedBoundary": "原生协议完整可信空items清理已消失问题；非法summary和无关增量不清待办。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -6447,7 +6493,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/channels/turn-progress-card.ts",
@@ -6460,8 +6506,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -6722,13 +6768,13 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -7095,14 +7141,14 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "真实隔离0.166.0 binary的持续WS服务和两个client：实际systemError→idle、完整turns相等且无模型请求；只证明该已复现原因，不代表所有systemError都可复位。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -7130,7 +7176,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/server/system-error-recovery.ts",
@@ -7140,8 +7186,8 @@
           "verifiedBoundary": "已验证write-ahead/未知archive回执/补偿中断、重启无原绑定仍恢复active。项目归属字段迁移和真实中途进程崩溃尚无独立断言。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -7205,7 +7251,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/codex/backend.ts",
@@ -7214,8 +7260,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -7329,14 +7375,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "现有JSONL queue优先和coordinator新输入/解绑取消覆盖；最后原生写前执行代次、角色及并发新queue仍需逐分支反例。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -7428,14 +7474,14 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "verifiedBoundary": "真实生产函数与隔离子进程/本机socket/临时SQLite或JSON目录；不操作真实远端、生产任务和安装制品。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         }
       ]
@@ -7588,13 +7634,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -9887,7 +9933,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -9908,8 +9954,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -12313,7 +12359,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/bridge/approval.ts",
@@ -12330,8 +12376,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -12379,7 +12425,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/codex/backend.ts",
@@ -12404,8 +12450,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -13260,15 +13306,15 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             }
           ],
           "confirmedFailure": "发布前真实隔离原生接续出现一次超时；单独复跑通过。另用首次runQueuedSubmission断连且无UI轮询稳定复现持续running，原实现4秒超时失败。",
           "verifiedBoundary": "确定性断连由共享native fixture注入，第二次只观察同thread/turn且模型输入仍一次；暂停/关闭停止后续观察。真实隔离原生核心的重启场景另有直接测试。未完整捕获发布前那次真实超时的所有触发时序，不外推所有断连组合。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
         },
         {
@@ -15338,7 +15384,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "9d6b79e805623d0dc06f1c514b45b6f5a924d1790f60755f307f101cf190f051"
+              "sha256": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52"
             },
             {
               "file": "src/peer/project-catalog.ts",
@@ -15352,8 +15398,8 @@
           "verifiedBoundary": "当前候选不新增/session rename、archive、restore、/sessions archived；拆分分支单独评审。 Connector私有投影的明确别名与创建/归属一致；未包装底层目录及错误home保持原生ID。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
-            "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
+            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
+            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },

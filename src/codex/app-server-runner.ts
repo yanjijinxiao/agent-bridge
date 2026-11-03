@@ -374,8 +374,18 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         additionalContext: { "codex-im-gateway": { kind: "application", value: input.developerInstructions } }
       } : {}),
       ...(resume ? { clientUserMessageId: resume.clientUserMessageId, turnTrigger: "capacity_retry_automatic" } : {}),
-      cwd: input.threadId ? undefined : input.cwd,
-      sandboxPolicy: resume || input.nativeSettings ? undefined : appServerSandboxPolicy(input.sandbox ?? (input.threadId ? undefined : this.options.sandbox)),
+      // Resuming an already loaded thread only attaches a subscriber; its
+      // existing execution settings can survive the resume options. Apply an
+      // explicit UI choice atomically with the new turn as the native protocol
+      // specifies. Ordinary continuation/capacity retry sends no overrides.
+      cwd: resume || input.threadId && !input.nativeSettings ? undefined : input.cwd,
+      sandboxPolicy: resume ? undefined : input.nativeSettings
+        ? { ...appServerSandboxPolicy(input.nativeSettings.sandbox),
+          ...(input.nativeSettings.sandbox === "workspace-write" ? { writableRoots: [...input.nativeSettings.runtimeWorkspaceRoots] } : {}) }
+        : appServerSandboxPolicy(input.sandbox ?? (input.threadId ? undefined : this.options.sandbox)),
+      ...(!resume && input.nativeSettings ? { approvalPolicy: input.nativeSettings.approvalPolicy,
+        approvalsReviewer: input.nativeSettings.approvalsReviewer,
+        runtimeWorkspaceRoots: [...input.nativeSettings.runtimeWorkspaceRoots] } : {}),
       model: input.model,
       effort: input.effort,
       outputSchema: input.outputSchema,

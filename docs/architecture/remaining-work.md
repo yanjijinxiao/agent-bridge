@@ -54,7 +54,7 @@
 
 ## 部分覆盖的逐项入口
 
-以下107项均保留partial。每项列出尚缺的验证范围，已有独立已测说明的条目同时列明；不能按标题或映射数量将其改为完整验收。13项详细来源见校准记录，其余精确名称与散列见需求JSON。
+以下105项均保留partial。每项列出尚缺的验证范围，已有独立已测说明的条目同时列明；不能按标题或映射数量将其改为完整验收。13项详细来源见校准记录，其余精确名称与散列见需求JSON。
 
 ### NATIVE-01 · 一套完整原生接口
 
@@ -64,7 +64,7 @@
 ### NATIVE-02 · 同一原生核心与权限继承
 
 - NATIVE-02.1：已测：真实原生核心的diagnostics PID与Gateway serverIdentity相同；peer创建线程后Gateway顺序续聊、归档/解档再续聊，queue与历史断言输入只出现一次。 仍缺：所映射主测试是顺序续聊，不包含两个写客户端同时继续同一活动轮次的竞争；不能仅凭both peers标题宣称并发写和双观察者时序均已验证。
-- NATIVE-02.2：已测：真实peer以never/auto_review/workspace-write创建线程；Gateway默认配置read-only但续聊未传nativeSettings且带onApproval回调，peer再次resume仍返回原审批策略、审核者和可写sandbox。 仍缺：此映射只直接断言带审批回调的续聊；无回调、显式UI覆盖、旧配置迁移与重启的组合不由这一测试证明。
+- NATIVE-02.2：已测：真实peer以never/auto_review/workspace-write创建线程；Gateway默认配置read-only但续聊未传nativeSettings且带onApproval回调，peer再次resume仍返回原审批策略、审核者和可写sandbox。 仍缺：本轮追加真实Mac 0.166/Linux 0.163的有无回调、重建连接、默认继承/显式变更8组合；仍未穷尽旧配置迁移与实际审核器/渠道投递。
 - NATIVE-02.3：已测：真实原生第二轮已接收且模型受控阻塞时退休Gateway独立观察并close，重建适配器仍有同一core身份和activeTurnId；释放后原turn完成、clientUserMessageId仅一次、模型共两次调用。 仍缺：这是连接/适配器重建，不是真实Gateway进程在接收与fsync任意间隙被杀；未断言Desktop写锁、私有stdio或所有远程断线时序。
 
 ### NATIVE-03 · 全部控制按主机路由
@@ -362,3 +362,5 @@
 - NATIVE-02.7 已在后续修复：入队前把共享渠道规则、知识与 Peer 文件约束随同一原生 input 保存。四渠道真实核心、Connector 断线恢复及探探首条队列文件回复通过；不重发旧项，不改变原权限。当前 378 项中 272 项窄边界 verified、106 项 partial。证据与剩余边界见 [队列规则修复](../audits/2026-11-03-queue-context-fix/README.md)。
 
 - CTRL-02.1 追加双客户端并发 append 与三种断连的真实核心证据；queue 接收/rename 前后等六种 SIGKILL 中修复来源 inbox、动作恢复时序、无结束回执的假终态和提前 delivered。新增31项，完整根回归3063通过、1项Windows跳过；探探及双Connector测试制品已验证，生产头头未切换。当前273项窄边界verified、105项partial，详见[追加验证](../audits/2026-11-03-queue-crash-validation/README.md)。
+
+- NATIVE-02.2/5 追加权限继承矩阵：发现已加载线程的显式设置仅传resume时不生效，改为随原生turn/start应用；Mac/Linux各9项验证，包括多根目录和下一轮继承。NATIVE-02.2仍partial，详见[双端上线与权限验证](../audits/2026-11-03-dual-release-permissions/README.md)。
