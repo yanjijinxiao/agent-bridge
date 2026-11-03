@@ -6,6 +6,9 @@ import { PeerExecutionService } from "../src/peer/execution-service.js";
 import { PeerRegistry } from "../src/peer/registry.js";
 import { withPeerBackend } from "../src/peer/backend.js";
 import { GatewayPeerClient, GatewayPeerServer } from "../src/peer/transport.js";
+import { parsePrompt, PEER_FILE_DELIVERY_INSTRUCTIONS } from "../src/bridge/format.js";
+import { prepareTurnSubmission } from "../src/bridge/turn-submission.js";
+import { defaultConfig } from "../src/state/config.js";
 import { peerPrincipal } from "../src/peer/context.js";
 // @ts-expect-error JS fixture owns a real installed native daemon and local model.
 import { sharedNativeCore, message, until } from "./fixtures/shared-native-core.mjs";
@@ -34,9 +37,19 @@ test("real native Connector preserves queued source receipts across disconnect w
   const input = { hostId: ticket.hostId, threadId: created.threadId, cwd: core.root, prompt: "first", clientUserMessageId: "first", assertCurrent() {} };
   const running = as(() => facade.run(input)); void running.catch(() => {});
   await Promise.race([until(() => core.calls.length === 1), running.then(() => { throw Error("Turn ended before model request"); })]);
-  const queued = await as(() => facade.addQueuedSubmission!({ threadId: created.threadId, prompt: "second", clientUserMessageId: "queue-original", assertCurrent() {} }, ticket.hostId));
+  // queue/add admits the complete immutable application input before the
+  // native core consumes it; recovery must not supply a different context.
+  const prepared = await prepareTurnSubmission({ runner: facade, config: defaultConfig(core.root),
+    session: { id: "source-session", senderId: principal.conversationId, title: "Queue source", workspace: core.root,
+      threadId: created.threadId, hostId: ticket.hostId, createdAt: "", updatedAt: "" },
+    accountId: principal.accountId, conversationId: principal.conversationId,
+    text: "second", items: [], source: "DingTalk", knowledge: [] });
+  const queuedPrompt = [prepared.developerInstructions, prepared.prompt].filter(Boolean).join("\n\n").trim();
+  const queued = await as(() => facade.addQueuedSubmission!({ threadId: created.threadId, prompt: queuedPrompt, clientUserMessageId: "queue-original", assertCurrent() {} }, ticket.hostId));
   assert.equal(queued.clientUserMessageId, "queue-original");
   assert.equal((await as(() => facade.listQueuedSubmissions!(created.threadId, undefined, ticket.hostId))).data[0].clientUserMessageId, "queue-original");
+  const pending = (await as(() => facade.listQueuedSubmissions!(created.threadId, undefined, ticket.hostId))).data[0];
+  assert.ok(JSON.stringify(pending).includes("DingTalk bridge rule:"));
   connected = Promise.withResolvers(); service = await PeerExecutionService.create(serviceOptions);
   registry.close(); await connected.promise; await assert.rejects(running);
   release.resolve();
@@ -58,4 +71,11 @@ test("real native Connector preserves queued source receipts across disconnect w
   }
   assert.equal(completed, true, "the native owner confirms the queued turn finished");
   assert.equal(core.calls.length, 2, "the queued prompt was consumed exactly once");
+  const modelInput = JSON.stringify(core.calls[1]);
+  assert.ok(modelInput.includes("DingTalk bridge rule:"));
+  assert.ok(modelInput.includes(PEER_FILE_DELIVERY_INSTRUCTIONS));
+  const finalHistory = await as(() => facade.getHistoryPage(created.threadId, { limit: 100 }, ticket.hostId));
+  const nativeInputs = finalHistory.messages.filter(m => m.clientUserMessageId === "queue-original");
+  assert.equal(nativeInputs.length, 1);
+  assert.equal(parsePrompt(nativeInputs[0].text).text, "second");
 });

@@ -32,6 +32,8 @@
 
 真实群聊多人 @、手机呈现/点击、Windows、其他供应商和所有并发/断线排列没有在本轮实测。Peer 完整 code-server/Taskboard 与手机可达入口仍有缺口；只读/未知交接不通过猜测改成成功，不重发原输入。
 
-## 本轮确认仍未修复
+## 本轮结束时未修复（后续已修）
+
+后续状态：该问题已由 [队列规则修复](../2026-11-03-queue-context-fix/README.md) 修复并补齐实际 Bridge 入口用例；以下保留 a069427 时的历史结论和失败证据。
 
 NATIVE-02.7：空会话第一条输入直接 `/queue`，渠道规则未进入实际模型。已保存独立失败反例 `evidence/pending-queue-context.test.ts` 和 `known-failure-results.jsonl`。根回归通过不包含这条已知失败，不能据此说当前代码没有剩余 bug。原生 queue/add/start 没有 application context 字段，自动消费先于 Gateway dispatch；需要单独设计和验证上下文交接，不能重发输入或以禁用队列代替。

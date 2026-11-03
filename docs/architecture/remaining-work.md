@@ -360,4 +360,4 @@
 
 本轮结合本 session 和用户提供的历史文档逐项建立故障矩阵，新装 Mac Connector 并对探探 Gateway、Linux Connector 做真实 IM/原生审批/进程骤停回归。修复 NATIVE-02.6（续接渠道规则未进入模型）、CHAN-03.9（重启后文件回复上下文丢失）和 CTRL-03.5（队列历史与运行态交错误报）。功能清单 378 项、271 项窄边界 verified、107 项 partial；实际证据和仍未测范围见 [历史与实测记录](../audits/2026-11-03-tantan-regression/README.md)。Peer 完整 code-server/Taskboard 与手机入口仍是实际缺口，没有因本轮文件回传通过而改成完成。
 
-- NATIVE-02.7（本轮新确认未修复）：空线程第一条消息直接排原生队列时 Bridge 规则缺失；已提交真实原生失败反例。普通 turn/start 的 application context 修复不覆盖自动消费；优先补同一原生队列的上下文交接，并验证消费/断线/落盘组合。
+- NATIVE-02.7 已在后续修复：入队前把共享渠道规则、知识与 Peer 文件约束随同一原生 input 保存。四渠道真实核心、Connector 断线恢复及探探首条队列文件回复通过；不重发旧项，不改变原权限。当前 378 项中 272 项窄边界 verified、106 项 partial。证据与剩余边界见 [队列规则修复](../audits/2026-11-03-queue-context-fix/README.md)。

@@ -1,0 +1,168 @@
+{
+  "baseline": "a069427094081593f380a55989ad8841ece1e5ae",
+  "case": "NATIVE-02.7",
+  "rootRegression": {
+    "tests": 3033,
+    "passed": 3032,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "Windows-only on macOS",
+    "nativeAndChromeEnabled": true
+  },
+  "finalTargetedRegression": {
+    "tests": 5,
+    "passed": 5,
+    "description": "shared preparation in Connector test and admitted knowledge snapshot assertions strengthened after full suite"
+  },
+  "taskboard": {
+    "inheritedPassed": 563,
+    "rerunThisPass": false
+  },
+  "beforeAfter": {
+    "before": "same actual Bridge entry regression fails at actual model request missing channel rules",
+    "after": "four channel model requests contain their rules, knowledge and single accepted input"
+  },
+  "artifact": {
+    "filename": "tantan-queue-context-fix.tgz",
+    "sha256": "c9fda00d1d402499449edd643bed5d9e96976b35aa5bc39a1549e02bcc841843",
+    "bytes": 2089554,
+    "gatewayAndLinuxHashesMatch": true,
+    "macSourceMatches": true
+  },
+  "deployment": {
+    "gateway": "running 107532 /home/admin/codex-gateway-tantan/releases/queue-context-fix",
+    "linuxConnector": "running 113895 /home/admin/gateway-connector-linux-test/releases/queue-context-fix\n   PID COMMAND\n  9955 codex\n 10115 codex",
+    "macConnector": {
+      "workingDirectory": "/Users/xking/.codex-channel-bridge/test-connectors/tantan-mac",
+      "state": "running",
+      "pid": 77223,
+      "sourceSha256": "ec9303a6513f31e71335c75a6ac7c317a7c82499b5c6bdfafb2e8089eedffa96",
+      "entrypoint": "/Users/xking/.codex-channel-bridge/test-connectors/tantan-mac/releases/queue-context-fix/dist/peer/index.js"
+    },
+    "productionGatewayPIDUnchanged": 70562,
+    "productionNativePIDsUnchanged": [
+      11238,
+      1272
+    ]
+  },
+  "realNative": {
+    "threadId": "01a1a117-90dd-75a3-a2a0-1b442a602b9f",
+    "userRoleRecords": 2,
+    "environmentRecords": 1,
+    "businessInputCount": 1,
+    "markerOccurrences": 1,
+    "bridgeRules": true,
+    "peerFileRules": true,
+    "startedTurns": [
+      "01a1a118-4256-7450-90ba-6d98f86db8ba"
+    ],
+    "completedTurns": [
+      "01a1a118-4256-7450-90ba-6d98f86db8ba"
+    ],
+    "actionResponses": 1,
+    "nativePermissions": [
+      {
+        "approval_policy": "on-request",
+        "sandbox_policy": {
+          "type": "workspace-write",
+          "network_access": false,
+          "exclude_tmpdir_env_var": false,
+          "exclude_slash_tmp": false
+        }
+      }
+    ],
+    "rolloutSha256": "33a13ef3d2b309473ed7b998fa7c2ac64713cf725e3b6e562c9be69cbac6fb15"
+  },
+  "realQueueReceipt": [
+    {
+      "status": "completed",
+      "delivered": true,
+      "turnId": "01a1a118-4256-7450-90ba-6d98f86db8ba",
+      "queuedSubmissionId": "01a1a118-4255-7e50-ae93-20ba74802ce1",
+      "lifecycleVersion": 2
+    }
+  ],
+  "rawEvidence": [
+    {
+      "name": "before-confirmed.log",
+      "sha256": "33cc39bdd3e49a822192a5fd6633bae4cb95182158b37c6977c7d12902f8717e",
+      "bytes": 1249,
+      "storage": "private local evidence; no raw account data committed"
+    },
+    {
+      "name": "full.log",
+      "sha256": "0a6dc12a77487ea276fd24694d5df79c094ae0dee019fd141440d036393f26de",
+      "bytes": 652113,
+      "storage": "private local evidence; no raw account data committed"
+    },
+    {
+      "name": "peer-final.log",
+      "sha256": "15414d5a7ea1bf5098469149243f10eac6b8fc50dd2e93e3cc7f617c30852f22",
+      "bytes": 224,
+      "storage": "private local evidence; no raw account data committed"
+    },
+    {
+      "name": "queue-final.log",
+      "sha256": "b27360e34636ab02f64448f201d4e52b9e2bdec3765d0098670ee552d74aa1c1",
+      "bytes": 2052,
+      "storage": "private local evidence; no raw account data committed"
+    },
+    {
+      "name": "typecheck-final.log",
+      "sha256": "569495d981c843453331093c461cecbfbef7fb91d51076fc679973fd1262a400",
+      "bytes": 52,
+      "storage": "private local evidence; no raw account data committed"
+    },
+    {
+      "name": "build.log",
+      "sha256": "3f4b7e8dd4a507a52acb782c801ae0fa75251651408e27305af0045fe9266fcb",
+      "bytes": 188,
+      "storage": "private local evidence; no raw account data committed"
+    },
+    {
+      "name": "deploy.log",
+      "sha256": "8dbd4259c58aa374e94bafd9e9199905e61ac977a6491b8c9e584b9dc6254a47",
+      "bytes": 217,
+      "storage": "private local evidence; no raw account data committed"
+    },
+    {
+      "name": "real-file-receipts.json",
+      "sha256": "af014576a6d82d5fe26e8f1054fe79b7d9f5592e7748e0976c303e43349c468f",
+      "bytes": 1036,
+      "storage": "private local evidence; no raw account data committed"
+    },
+    {
+      "name": "real-native-proof.json",
+      "sha256": "d632851e2798316574123e645ccca3e2db968dcf2b8040e9215482aed3b6530f",
+      "bytes": 609,
+      "storage": "private local evidence; no raw account data committed"
+    },
+    {
+      "name": "real-queue-receipt.json",
+      "sha256": "83c810a362e9dbed606a6dc4b7deb277b87b684f968547d59384cc57a4d856f8",
+      "bytes": 171,
+      "storage": "private local evidence; no raw account data committed"
+    },
+    {
+      "name": "method-comparison.json",
+      "sha256": "e71edf685a62d76a3554cdc56251885ef93347ba916c1ef1410c2138d501777a",
+      "bytes": 6011,
+      "storage": "private local evidence; no raw account data committed"
+    }
+  ],
+  "evidenceCheck": {
+    "status": "in-progress",
+    "summary": {
+      "baselineFiles": 8,
+      "addedFiles": 0,
+      "fullyRead": 4,
+      "artifactsInspected": 0,
+      "partiallyRead": 4,
+      "unread": 0,
+      "cases": 378,
+      "casesWithTests": 378,
+      "verifiedCases": 272
+    },
+    "errors": []
+  }
+}

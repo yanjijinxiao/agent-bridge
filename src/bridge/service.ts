@@ -2172,7 +2172,15 @@ export class BridgeService {
     }
     const preview = buildPromptPreview(text, items) ?? text;
     const knowledge = this.options.stateStore.relevantKnowledge(preview, session.projectId);
-    const { prompt } = buildPromptParts(text, await this.stagePromptItems(items, session, message), channelPromptSource(this.channel.channel), knowledge);
+    const prepared = await prepareTurnSubmission({ runner: this.runner, session,
+      project: session.projectId ? this.options.stateStore.getProject(session.projectId) : undefined,
+      config: this.options.config, accountId: this.options.accountId, conversationId: message.senderId,
+      text, items, source: channelPromptSource(this.channel.channel), knowledge });
+    // Native queue/add can consume immediately and has no additionalContext
+    // field. Persist the same application rules with this one native item,
+    // using the existing prompt format that parsePrompt removes from history.
+    // Dispatch/recovery only observes that item; it cannot supply rules later.
+    const prompt = [prepared.developerInstructions, prepared.prompt].filter(Boolean).join("\n\n").trim();
     const assertCurrent = () => {
       this.options.assertRuntimeWritable?.();
       const current = this.executionSession(message.senderId);

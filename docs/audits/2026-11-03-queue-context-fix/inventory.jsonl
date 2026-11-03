@@ -1,0 +1,8 @@
+{"path": "src/bridge/service.ts", "kind": "text", "sha256": "ec9303a6513f31e71335c75a6ac7c317a7c82499b5c6bdfafb2e8089eedffa96", "lines": 3810, "bytes": 221357, "status": "delta-scope"}
+{"path": "src/bridge/turn-submission.ts", "kind": "text", "sha256": "2c9722df7b6c1265c811395f4ce6914ebbda37d301761b4ca280a58c68539ad8", "lines": 103, "bytes": 6952, "status": "delta-scope"}
+{"path": "src/bridge/native-queue.ts", "kind": "text", "sha256": "bf598e96a1aedfa8cd8a98ea2796cd825ebdc1910dea790bf3467bcd6cb30462", "lines": 308, "bytes": 19793, "status": "delta-scope"}
+{"path": "src/bridge/format.ts", "kind": "text", "sha256": "d56aade711f2a73f4c6c9ddf1df65550645f2c9793b98200ededebbb7c6e6468", "lines": 213, "bytes": 11835, "status": "delta-scope"}
+{"path": "src/codex/app-server-gateway.ts", "kind": "text", "sha256": "99ad8216cb83ad4904c53cd3bb21a7c7f19798b424c6f32b50f661cbac6c9ed3", "lines": 316, "bytes": 25015, "status": "delta-scope"}
+{"path": "test/queued-bridge-context.test.ts", "kind": "text", "sha256": "d5151cb4e63013869bdde17c08ab777d01a5ce1138db72959677bd225690d846", "lines": 69, "bytes": 5209, "status": "delta-scope"}
+{"path": "test/peer-real-native.test.ts", "kind": "text", "sha256": "af3080b16f478cbbb44f9630d66aa49c7c709830408b85b8904a31619afac5f8", "lines": 81, "bytes": 6424, "status": "delta-scope"}
+{"path": "docs/architecture/modules/input-controls.md", "kind": "text", "sha256": "ad7ef0b2a57c5125d26a73430493c36865ce50b2be5a0c93bbe84379a0846148", "lines": 21, "bytes": 3285, "status": "delta-scope"}

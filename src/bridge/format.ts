@@ -48,6 +48,8 @@ export function buildPrompt(
  * Keeps Bridge-only policy and private knowledge out of the user message sent
  * to app-server. Besides producing cleaner Codex history, this prevents the
  * automatic thread preview/title from becoming the Bridge policy block.
+ * Native queue/add has no separate context field: its admission path composes
+ * both parts once, and parsePrompt keeps Gateway history/preview clean.
  */
 export function buildPromptParts(
   text: string,

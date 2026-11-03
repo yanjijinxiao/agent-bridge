@@ -6,6 +6,12 @@ BridgeService 只把显式斜杠命令送入控制分发。自然语言、引用
 
 prepareTurnSubmission 形成单一应用输入，远端附件先转存，TurnSubmission 捕获来源日志并分别保存 submitting/accepted。连接、下载、目录读取之后到最终请求之前继续检查 assertCurrent。明确未提交的准备拒绝可重试；已经尝试但回执未知的输入不自动再发。显式消息合并区另存 collecting/preparing/submitting，done 不是再次授权重放未知旧内容。
 
+### 原生队列的规则交接（NATIVE-02.7）
+
+queue/add 可以立即自动消费；queue/start/恢复观察不能补充已经执行的规则。当前原生 queue/add 只接受 input，没有 turn/start 的 additionalContext。因此 Bridge 在入队前复用 prepareTurnSubmission，连同渠道规则、入队时的知识和 Peer 文件目录约束，把完整输入一次提交到原生持久队列。原生队列是这份输入的唯一持久执行来源，Gateway 的 queue journal 仍只保存来源和回执。
+
+这是原生字段限制下的明确兼容方式：队列 input 采用已有 buildPrompt/parsePrompt 的规则前缀格式，Gateway 历史和预览剥离规则，只显示用户内容；Codex 原始历史可能保留该前缀。普通 turn/start 继续使用独立 application context。规则没有原生 sandbox/approval 配置写入，不使用 thread/injectItems，不新建占位轮次，也不在未知提交后重复 add 或补发任务。恢复时使用已入队的原内容，不按当前渠道、知识或配置重写旧输入；已消费的历史旧项无法追补，不伪称修复。
+
 模型/effort 的 default 先保存继承意图，再只读查询当前原生值。查询后来源退休不撤销已保存设置。目标 get/set/clear 和表单见 goal-controls；原生目标状态不创建新执行器。停止、队列删除、答案及审批均保留明确身份，不把“最新轮次”代替用户原来的精确目标。
 
 ## case 和失败归属
