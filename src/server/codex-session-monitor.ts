@@ -359,8 +359,11 @@ export class CodexSessionCompletionMonitor {
     await this.emitTask(cursor, status, timestamp);
     const success = status === "completed";
     const failureCode = status === "failed" ? codexFailureCode(error) : undefined;
-    const text = success && typeof payload.last_agent_message === "string"
-      ? payload.last_agent_message
+    // Explicit native completion is independent of optional final text.
+    // Missing text must not turn a successful lifecycle receipt into "aborted".
+    const text = success
+      ? (typeof payload.last_agent_message === "string" && payload.last_agent_message.trim()
+        ? payload.last_agent_message : "Codex 任务已完成，未返回最终文字答复。")
       : status === "failed"
         ? codexFailureSummary(failureCode!)
         : `Codex 任务已中断${typeof payload.reason === "string" ? `：${payload.reason}` : ""}`;
@@ -601,8 +604,10 @@ async function readInitialSessionContext(
           context.recoveredCompletion = {
             sessionId: context.sessionId, workspace: context.workspace,
             turnId: tailPayload.turn_id, taskTitle: context.taskTitle ?? "Codex 客户端会话",
-            text: success && typeof tailPayload.last_agent_message === "string"
-              ? tailPayload.last_agent_message : failureCode ? codexFailureSummary(failureCode) : "Codex 任务已停止或执行失败。",
+            text: success
+              ? (typeof tailPayload.last_agent_message === "string" && tailPayload.last_agent_message.trim()
+                ? tailPayload.last_agent_message : "Codex 任务已完成，未返回最终文字答复。")
+              : failureCode ? codexFailureSummary(failureCode) : "Codex 任务已停止或执行失败。",
             ...(failureCode ? { failureCode } : {}),
             success, outcome: tailPayload.type === "turn_aborted" ? "interrupted" : success ? "completed" : "failed", completedAt: eventTimestamp(tailEvent!)
           };

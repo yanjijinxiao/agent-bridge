@@ -41,22 +41,41 @@ type Receipt = { status: "sending" | "accepted" | "uncertain"; result?: CodexInp
 export class SessionControlJournal {
   readonly queue = new SessionControlQueue();
   private state: { receipts: Record<string, Receipt>; choices: Record<string, PendingIntervention> };
+  private persistenceUnavailable = false;
   constructor(private readonly filePath: string) {
-    const data = readJsonFile<unknown>(filePath, { receipts: {}, choices: {} });
+    this.state = this.readState();
+  }
+  private readState(): typeof this.state {
+    const data = readJsonFile<unknown>(this.filePath, { receipts: {}, choices: {} });
     if (!record(data) || !record(data.receipts) || !record(data.choices)
       || Object.values(data.receipts).some(value => !record(value) || !["sending", "accepted", "uncertain"].includes(String(value.status)))
       || Object.values(data.choices).some(value => !record(value) || !["pending", "submitted", "cancelled"].includes(String(value.status))
         || typeof value.id !== "string" || typeof value.expiresAt !== "number"))
       throw new Error("Invalid session control journal; original file preserved");
-    this.state = data as typeof this.state;
+    return data as typeof this.state;
   }
-  private save(): void { writeJsonFile(this.filePath, this.state, { durable: true }); }
+  private assertAvailable(): void {
+    if (this.persistenceUnavailable) throw Error("Session control journal persistence is unconfirmed; restart recovery required");
+  }
+  private save(): void {
+    this.assertAvailable();
+    try { writeJsonFile(this.filePath, this.state, { durable: true }); }
+    catch (error) {
+      // Atomic rename may have succeeded before directory fsync failed. Read
+      // the actual file instead of blindly restoring an older memory snapshot
+      // or treating an accepted control as an unattempted input.
+      try { this.state = this.readState(); }
+      catch { this.persistenceUnavailable = true; }
+      throw error;
+    }
+  }
 
   steer(key: string, messageId: string, action: () => Promise<CodexInputReceipt>, hostId?: string, origin?: TurnParticipantOrigin): Promise<CodexInputReceipt> {
     return this.submit(key, messageId, action, hostId, origin);
   }
 
   acceptedPresentationInputs(): AcceptedPresentationInput[] {
+    this.assertAvailable();
     return Object.values(this.state.receipts).flatMap(receipt => receipt.status === "accepted" && receipt.presentation
       && receipt.result?.threadId === receipt.presentation.threadId && receipt.result.turnId === receipt.presentation.turnId
       ? [receipt.presentation] : []);
@@ -65,6 +84,7 @@ export class SessionControlJournal {
   async submit(key: string, messageId: string, action: () => Promise<CodexInputReceipt>, presentationHostId?: string, origin?: TurnParticipantOrigin): Promise<CodexInputReceipt> {
     const receiptId = crypto.createHash("sha256").update(JSON.stringify([key, messageId])).digest("hex");
     return this.queue.run(key, async () => {
+      this.assertAvailable();
       const receipt = this.state.receipts[receiptId];
       if (receipt?.status === "accepted" && receipt.result) return receipt.result;
       if (receipt) throw new CodexInterventionError(`该条消息已尝试提交，但结果尚未确认；请先核对历史，避免重复执行。\n\n${copyBlock("/history")}`);
@@ -81,6 +101,10 @@ export class SessionControlJournal {
         this.save();
         return result;
       } catch (error) {
+        this.assertAvailable();
+        // A failed post-rename durability check may still leave the exact
+        // acceptance in the file. Never overwrite that stronger native fact.
+        if (this.state.receipts[receiptId]?.status === "accepted") throw error;
         if (error instanceof CodexCommunicationError && error.submission === "not-submitted") delete this.state.receipts[receiptId];
         else this.state.receipts[receiptId] = { status: "uncertain" };
         this.save();
@@ -90,6 +114,7 @@ export class SessionControlJournal {
   }
 
   createChoice(input: Omit<PendingIntervention, "id" | "expiresAt" | "status">): PendingIntervention {
+    this.assertAvailable();
     const choice: PendingIntervention = {
       ...input, id: crypto.randomUUID(), status: "pending", expiresAt: Date.now() + 24 * 60 * 60_000
     };
@@ -102,6 +127,7 @@ export class SessionControlJournal {
   }
 
   claimChoice(id: string, actorId: string, conversationId: string, cancel: boolean): PendingIntervention {
+    this.assertAvailable();
     const item = this.state.choices[id];
     if (!item || item.actorId !== actorId || item.conversationId !== conversationId) {
       throw new CodexInterventionError("这条待处理消息不属于当前用户和聊天。");

@@ -10,7 +10,7 @@ server/native-backend.mjs 只管理一个选定的 CodexAppServerGateway 实例�
 
 ## 原生目录与权限
 
-模型来自 model/list；Skill 来自精确 cwd 的 skills/list；MCP 来自 mcpServerStatus/list。目录不是执行授权。模型和 effort 在创建会话及最终提交前重新验证；项目来源必须仍匹配会话创建时冻结的 workspace。当前项目的全部有效 realpath 根提供 runtimeWorkspaceRoots，不提供其他项目的设备目录。
+模型来自 model/list；Skill 来自精确 cwd 的 skills/list；MCP 来自 mcpServerStatus/list。目录不是执行授权。模型和 effort 在创建会话及最终提交前重新验证；项目来源必须仍匹配会话创建时冻结的 workspace。当前项目的全部有效 realpath 根提供 runtimeWorkspaceRoots，不提供其他项目的设备目录。显式 codexHome 同时决定原生连接与项目 state/process 默认路径，不能一端取显式目录、一端取全局默认；单独指定 state/process 路径仍优先。
 
 Skill 选择身份包含 name 和具体 path，避免不同范围的同名 Skill 相互覆盖。展示标签与 prompt 中的原生 name 分开，不能用包含路径的选择 ID 代替原生 Skill 名。目录格式错误、原生错误或重复分页必须报告，不能编造模型/Skill 选项。
 
@@ -52,7 +52,7 @@ Taskboard 通过同一 AccountManager release lease 参与交接保护。hasRest
 
 原生请求以原 thread/turn/item 和原生请求身份映射成当前运行的表单。选项只能来自该请求。复制标签不提交，读取目录不批准。普通问题支持原生建议和自由填写；受约束的表单按类型/枚举展示，秘密输入使用 password。
 
-答案只有当前 thread/run 和请求身份仍一致时才能提交。答案不保存为事件或 localStorage。提交后等待原生确认；失败时先重新观察原请求。再次出现的原生 pending 请求必须产生新的未决 promise，不能返回已经解析为旧答案的 promise，从而无意重发答案。
+答案只有当前 thread/run 和请求身份仍一致时才能提交。答案不保存为事件或 localStorage。提交后等待原生确认；失败时通过同一个有界恢复定时器重新观察原请求，无需页面轮询触发。暂停或关闭后停止重试，恢复后仍只核对原请求。再次出现的原生 pending 请求必须产生新的未决 promise，不能返回已经解析为旧答案的 promise，从而无意重发答案。
 
 NativeInteractionFanout 按消费者拥有订阅。Taskboard 的审批/提问通过该观察接口接入，避免 active handler 抢走 IM 的路线。晚加入者可看到仍待处理的原请求；第一份仍有效的明确答案提交一次；替换或移除消费者后，其旧 promise 不能再答。移除 UI 只移除 taskboard 消费者，不撤销 IM。待确认答案失败后重新观察，不能返回已解析的旧 promise。实际原生服务测试覆盖晚 IM 加入及 UI 关闭两种情况；其他消费者任意组合仍须按来源合同验证。
 
@@ -78,3 +78,19 @@ Desktop 注入器仍有窗口嵌入、composer 预填和旧 Cron 的只读查询
 已接收原生任务的观察临时失败后，AiChatService以单个非保活定时器调度recover；恢复只携带持久的native thread/turn/client身份，不携带原prompt，不启动替代任务。多个待恢复run合并一次调度，正在观察的run不重复建立观察；暂停/关闭会清理定时器，取消重启后才重新接续。
 
 这一缺口已用确定性反例复现：替换观察连接后第一次runQueuedSubmission故意断连，既有实现只等下一次getThreadSnapshot，纯getRun读取一直running。修复后无UI轮询也能在同一turn完成，模型输入仍只有一次。实际独立原生服务也再次验证了重启接续。发布前那一次实际原生超时的更细触发时序未完整捕获，保留失败记录，不把后续通过当作该次所有时序已解释。
+
+监护器从探活前开始合并同一ensure，停止后退休迟到读取；健康超时不等于owned进程退出，只有确认退出才重新拉起。该监督针对Taskboard HTTP宿主，不创建替代Codex执行任务。额度适配在缺少可用窗口/消费字段且无可用credits时返回unknown；null重置时间保持未知。TB-01.5/TB-04.5记录直接反例。
+
+回执核对按钮与主题使用同一套文本/表面变量；TB-02.11在主题完成重绘后检查实际对比度并保留只读核对语义，不能用刚切换主题时的旧样式采样冒充通过。
+
+桌面预填入口 App.openTaskInThread → taskboard:create-thread → createThreadForTask。明确 workspacePath 交给原生根目录选择；否则明确 codexProjectId 只能选择同 ID 项目，缺失不能退到同名行或快照项目。无 ID 的旧标签必须唯一，找不到选择入口则提示失败，不打开默认项目。TB-01.6 是生产函数 VM 行为验证，不能替代实际桌面兼容性验收。
+
+桌面预填生命周期（TB-01.7）：发起时冻结 operationId、iframe/source/origin；所有项目准备等待后核对同一操作。面板关闭、重新打开、重载、原生导航及可信键盘/指针输入退休当前预填；自己的项目点击和请求首页的导航单独标记，不能误取消正常路径。旧回执只处理原操作，不能清除下一次预填。
+
+宿主 CDP 只轮询当前 renderer 暴露的预填步骤；每步校验原操作、同一可见且连接中的输入框和页面地址。聚焦、选择和插入文本在同一个 renderer 调用内执行，避免分离的 Input.insertText 命令写到随后获得焦点的页面。旧线程路由尚未离开时不认领输入框；已有草稿保留；选择 Skill 后再核对具体路径。任何失败都不点击发送，不重试到别的输入框。已经发出的桌面根目录选择不做无依据回滚。
+
+验证包含四个旧实现反例和隔离 Chrome 的真实输入、菜单夹具、取消/路由/草稿/Skill 路径场景；原生桌面编辑器内部实现及真实窗口兼容性未由该夹具证明。该限制与测试通过分别记录。
+
+开发脚本 `npm run dev` 同时拥有 Node watch 后端和 Vite 前端进程。它的职责是成对启动、成对结束；任一进程退出或启动失败都结束另一个进程并保留退出原因，用户 Ctrl-C/TERM 则是正常退出。前端直接由当前 Node 启动 Vite CLI，避免 npm 包装进程的生命周期与真正前端脱节。它只控制这次开发启动的子进程，不发现或停止其他 Gateway/Codex 实例。
+
+桌面注入器网络等待（TB-01.9）：常驻循环通过 injectAll → codexTargets 读取 CDP /json/list，再由 injectTarget 建立 WebSocket；目标列表的响应头和响应体均须有请求超时，握手失败/提前关闭/超时须退休连接。该边界只让注入器回到错误处理和下一轮观察，不重启桌面任务、不创建替代执行器。隔离 HTTP 和 WebSocket 事件验证不能代替真实桌面版本兼容性。

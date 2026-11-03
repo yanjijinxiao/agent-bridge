@@ -211,12 +211,9 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
 
   async sendText(input: { toUserId: string; text: string }): Promise<{ messageId: string }> {
     if (this.account.cardTemplateId) {
-      try {
-        return await this.createTextCard(this.cardTarget(input.toUserId), input.text, true);
-      } catch (error) {
-        if (error instanceof ChannelProgressError) throw error;
-        console.warn(`[codex-im-gateway] DingTalk AI Card unavailable, falling back to text: ${errorDetail(error)}`);
-      }
+      // Choose capability before I/O. A rejected/unknown card write does not
+      // authorize a second delivery through a different transport.
+      return this.createTextCard(this.cardTarget(input.toUserId), input.text, true);
     }
     return this.sendWebhookText(input);
   }
@@ -322,21 +319,16 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
       // Non-table cards retain their complete document, including reply values
       // supplied outside the body. Rebuilding only title/body can lose them.
       const text = card.table ? [escapeTableMarkdown(card.title), card.body, renderMarkdownTable(card.table), card.note, card.replyInstructions].filter(Boolean).join("\n\n") : card.fallbackText;
+      const pages = resultPages(text, DEFAULT_RESULT_PAGE_BYTES - 1_024), target = this.cardTarget(input.toUserId);
+      if (pages.length === 1) return this.createTextCard(target, pages[0].text, true);
+      const parts: ChannelDeliveryPart[] = [];
       try {
-        const pages = resultPages(text, DEFAULT_RESULT_PAGE_BYTES - 1_024), target = this.cardTarget(input.toUserId);
-        if (pages.length === 1) return await this.createTextCard(target, pages[0].text, true);
-        const parts: ChannelDeliveryPart[] = [];
-        try {
-          for (const page of pages) {
-            const sent = await this.createTextCard(target, page.text, true);
-            parts.push({ messageId: sent.messageId, text: page.text });
-          }
-        } catch (error) { throw new ChannelPartialDeliveryError(parts, error); }
-        return { messageId: parts.at(-1)!.messageId, parts };
-      } catch (error) {
-        if (error instanceof ChannelProgressError || error instanceof ChannelPartialDeliveryError) throw error;
-        console.warn(`[codex-im-gateway] DingTalk command card unavailable, falling back to a compact list: ${errorDetail(error)}`);
-      }
+        for (const page of pages) {
+          const sent = await this.createTextCard(target, page.text, true);
+          parts.push({ messageId: sent.messageId, text: page.text });
+        }
+      } catch (error) { throw new ChannelPartialDeliveryError(parts, error); }
+      return { messageId: parts.at(-1)!.messageId, parts };
     }
     const parts: ChannelDeliveryPart[] = [];
     try {
@@ -728,6 +720,9 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
   private cardTarget(toUserId: string): CardTargetContext {
     const established = this.replyTargets.get(toUserId);
     if (established) {
+      if (established.conversationType !== "1" && established.conversationType !== "2") {
+        throw new ChannelCapabilityError("dingtalk", "cardRoute", "RouteUnconfirmed：群聊/单聊类型尚未确认");
+      }
       if (established.conversationType === "1" && !established.staffId) throw new ChannelCapabilityError("dingtalk", "cardRoute", "单聊员工 ID 尚未确认");
       return established;
     }

@@ -1,0 +1,5 @@
+{"kind":"test","file":"test/remote-codex-host.test.ts","name":"an SSH host or user beginning with an option prefix cannot replace the destination","sha256":"4dd52ce6eac55a804eca8ba3cc07177e4d42d19407f02900b189b98f6f21c6c4","status":"passed"}
+{"kind":"test","file":"test/remote-codex-host.test.ts","name":"resolves a Codex Desktop host id through its managed SSH connection","sha256":"4dd52ce6eac55a804eca8ba3cc07177e4d42d19407f02900b189b98f6f21c6c4","status":"passed"}
+{"kind":"test","file":"test/remote-codex-host.test.ts","name":"retired exec selection fails before resolving any remote host","sha256":"4dd52ce6eac55a804eca8ba3cc07177e4d42d19407f02900b189b98f6f21c6c4","status":"passed"}
+{"kind":"test","file":"test/remote-codex-host.test.ts","name":"routes remote project turns and history to a host-specific app-server transport","sha256":"4dd52ce6eac55a804eca8ba3cc07177e4d42d19407f02900b189b98f6f21c6c4","status":"passed"}
+{"kind":"test","file":"test/remote-codex-host.test.ts","name":"remote relay exits promptly when the control socket closes while Gateway stdin stays open","sha256":"4dd52ce6eac55a804eca8ba3cc07177e4d42d19407f02900b189b98f6f21c6c4","status":"passed"}

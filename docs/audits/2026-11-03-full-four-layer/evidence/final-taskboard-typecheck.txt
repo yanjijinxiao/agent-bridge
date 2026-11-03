@@ -1,0 +1,4 @@
+
+> codex-taskboard@0.1.0 typecheck
+> tsc -p web/tsconfig.json --noEmit
+

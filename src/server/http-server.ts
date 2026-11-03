@@ -199,7 +199,8 @@ export type LocalHttpServerOptions = {
   codexProjectsProvider?: () => readonly CodexProjectCandidate[] | Promise<readonly CodexProjectCandidate[]>;
   directoryPicker?: (defaultPath?: string) => Promise<string | undefined>;
   updateService?: UpdateService;
-  onUpdateInstalled?: (version: string) => void;
+  /** Resolves after the restart helper starts; rejects before shutdown on failure. */
+  onUpdateInstalled?: (version: string) => void | Promise<void>;
   onTaskboardConfig?: (config: CodexImGatewayConfig) => Promise<void>;
 };
 
@@ -458,11 +459,12 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
     catch (error) { context.accountManager.cancelRelease(lease.id); throw error; }
     sendJson(response, 200, { ok: true, ...result, restarting: Boolean(context.onUpdateInstalled) });
     if (context.onUpdateInstalled) {
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
         try {
-          context.onUpdateInstalled?.(result.version);
+          await context.onUpdateInstalled?.(result.version);
         } catch (error) {
-          context.accountManager.cancelRelease(lease.id);
+          try { context.accountManager.cancelRelease(lease.id); }
+          catch { console.error("[codex-im-gateway] failed to release this update lease; inspect release status before retrying"); }
           console.error(`[codex-im-gateway] unable to schedule restart: ${error instanceof Error ? error.message : String(error)}`);
         }
       }, 250);

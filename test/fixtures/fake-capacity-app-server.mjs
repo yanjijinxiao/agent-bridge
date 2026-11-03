@@ -22,7 +22,8 @@ readline.createInterface({ input: process.stdin }).on("line", line => {
     return result({ thread, model: "same-model", approvalPolicy: "on-request", sandbox: "workspace-write", cwd: "/tmp/project" });
   }
   if (m.method === "thread/turns/list") return result({ data: [failed] });
-  if (m.method === "thread/queue/list") return result({ data: process.argv.includes("--queued") ? [{ id: "existing-input" }] : [] });
+  if (m.method === "thread/queue/list") return result({ data: process.argv.includes("--queued") ? [{ id: "existing-input" }] : [],
+    ...(process.argv.includes("--queue-next-page") ? { nextCursor: "unread-page" } : {}) });
   if (m.method === "thread/unsubscribe") return result({});
   if (m.method === "turn/start") {
     const p = m.params;

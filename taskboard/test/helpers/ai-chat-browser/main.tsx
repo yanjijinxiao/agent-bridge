@@ -57,6 +57,12 @@ function seededWorkflow() {
   const flow={version:2,root:{items:[step("trigger"),{type:"condition",nodeId:"condition",branches:{true:{items:[step("yes")]},false:{items:[step("no")]}}},step("plan"),step("after")]}};
   return {version:1,tabs:[{id:"fixture",name:"Fixture workflow"}],activeWorkflowId:"fixture",snapshots:{fixture:{nodes,flow,selectedNodeId:null}}};
 }
+const legacyConflict = new URL(location.href).searchParams.get("legacyConflict");
+if (legacyConflict) {
+  const legacy = seededWorkflow(); legacy.tabs[0].name = "Legacy workspace";
+  localStorage.setItem("taskboard.workflow.workspace.a", JSON.stringify(legacy));
+  audit.conflictWorkflowNext = legacyConflict !== "none";
+}
 audit.workflowRecord = (projectId: string) => workflowRecords.get(projectId);
 const boardTasks = [task, { ...task, id: "task-b", projectId: "b", identifier: "B-1", title: "Project B only" }];
 const boardProjects = ["a", "b"].map(id => ({id, name: `Project ${id.toUpperCase()}`, workspacePath: null,
@@ -93,6 +99,7 @@ window.fetch = async (input: any, init?: RequestInit) => {
       await new Promise<void>(resolve=>{audit.releaseWorkflow=()=>{audit.workflowReleased=true;resolve();};});
     }
     if (method === "PUT") {
+      if (legacyConflict === "twice" && audit.requests.filter((r: any) => r.method === "PUT").length === 2) audit.conflictWorkflowNext = true;
       if (audit.holdWorkflowSave) {audit.holdWorkflowSave=false;await new Promise<void>(resolve=>{audit.releaseWorkflowSave=resolve;});}
       if (audit.conflictWorkflowNext || body.version !== record.version) {
         if (audit.conflictWorkflowNext) {
@@ -107,14 +114,29 @@ window.fetch = async (input: any, init?: RequestInit) => {
     return Response.json({workflow:record});
   }
   if (appView) {
+    if (method === "PATCH" && audit.rejectBoardWrite) {
+      audit.rejectBoardWrite = false;
+      await new Promise<void>(resolve => { audit.releaseBoardWrite = resolve; });
+      return Response.json({error:{message:"Fixture rejected property"}}, {status:400});
+    }
     let result: any;
     if (url.pathname === "/api/projects") result = {projects: boardProjects};
     else if (url.pathname === "/api/meta") result = {mode: "local", manageTaskboardSkillPath:"/isolated/skill.md", capabilities: {localAiChat: false}};
     else if (url.pathname === "/api/device-workspaces") result = {workspaces:{}};
-    else if (url.pathname.endsWith("/workflow-workspace")) result = {workflow:{workspace:null,version:1}};
+    else if (url.pathname.endsWith("/workflow-workspace")) {
+      if (audit.failWorkflowRead) throw new TypeError("Fixture workflow read failed");
+      result = {workflow:{workspace:null,version:1}};
+    }
     else if (url.pathname.endsWith("/development-contexts")) result = {workspacePath:null, contexts:[]};
     else if (url.pathname === "/api/revisions") result = {changed:false,revision:1};
-    else if (url.pathname === "/api/tasks" && method === "GET") result = {tasks: boardTasks.filter(t=>t.projectId===url.searchParams.get("projectId") && !t.archivedAt)};
+    else if (url.pathname === "/api/tasks" && method === "GET") {
+      audit.taskReads = (audit.taskReads ?? 0) + 1;
+      if (new URL(location.href).searchParams.has("taskRefreshRace")) {
+        if (audit.taskReads === 1) await new Promise<void>(resolve => { audit.releaseInitialTasks = resolve; });
+        else if (audit.failQuietRead) throw new TypeError("Fixture quiet task read failed");
+      }
+      result = {tasks: boardTasks.filter(t=>t.projectId===url.searchParams.get("projectId") && !t.archivedAt)};
+    }
     else if (url.pathname === "/api/tasks" && method === "POST") {
       const created = {...task,...body,id:`created-${boardTasks.length}`,identifier:`A-${boardTasks.length}`,version:1};
       boardTasks.push(created); result={task:{...created}};
@@ -126,7 +148,9 @@ window.fetch = async (input: any, init?: RequestInit) => {
       }
       result={attachment:{id:`board-file-${audit.requests.filter((r:any)=>r.body?.filename).length}`,taskId:url.pathname.split("/")[3],
         filename:body.filename,size:body.size,contentType:"application/octet-stream",createdAt:now}};
-    } else if (url.pathname.startsWith("/api/tasks/")) {
+    } else if (url.pathname.endsWith("/comments") && method === "GET") result = {comments};
+    else if (url.pathname.endsWith("/attachments") && method === "GET") result = {attachments:[]};
+    else if (url.pathname.startsWith("/api/tasks/")) {
       const current=boardTasks.find(t=>t.id===url.pathname.split("/")[3]);
       if (!current) throw Error("Fixture unknown task");
       if (url.pathname.endsWith("/archive")) Object.assign(current,{archivedAt:now,version:current.version+1});
@@ -142,7 +166,8 @@ window.fetch = async (input: any, init?: RequestInit) => {
   }
   const writeKind = method === "POST" && url.pathname === "/api/local/ai/threads" ? "create"
     : method === "POST" && url.pathname.endsWith("/turns") ? "turn"
-    : method === "POST" && url.pathname === `/api/tasks/${task.id}/comments` ? "comment" : null;
+    : method === "POST" && url.pathname === `/api/tasks/${task.id}/comments` ? "comment"
+    : method === "PATCH" && /^\/api\/comments\/[^/]+$/.test(url.pathname) ? "comment-edit" : null;
   if (writeKind && audit.holdWrite === writeKind) {
     audit.holdWrite = null;
     await new Promise<void>(resolve => { audit.releaseWrite = resolve; });
@@ -214,12 +239,25 @@ window.fetch = async (input: any, init?: RequestInit) => {
   }
   return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
 };
-class LocalEvents extends EventTarget { constructor(_url: string) { super(); } close() {} }
+audit.localEvents = [];
+audit.unhandled = [];
+window.addEventListener("unhandledrejection", event => { audit.unhandled.push(String(event.reason)); event.preventDefault(); });
+class LocalEvents extends EventTarget {
+  onopen?: () => void;
+  constructor(_url: string) { super(); audit.localEvents.push(this); }
+  close() { audit.localEvents = audit.localEvents.filter((source: LocalEvents) => source !== this); }
+}
 (window as any).EventSource = LocalEvents;
 localStorage.setItem("taskboard.aiChat.lastThreadId", "thread-a");
 if(new URL(location.href).searchParams.has("storageFull")){
   const native=Storage.prototype.setItem; audit.storageFull=true;
   Storage.prototype.setItem=function(key,value){if(audit.storageFull && key.startsWith("taskboard."))throw new DOMException("Fixture full","QuotaExceededError");return native.call(this,key,value);};
+}
+if (new URL(location.href).searchParams.has("storageReadDenied")) {
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    get() { throw new DOMException("Fixture storage denied", "SecurityError"); },
+  });
 }
 function Fixture() {
   const [project, setProject] = useState("a"); audit.project = setProject; audit.currentProject = project;

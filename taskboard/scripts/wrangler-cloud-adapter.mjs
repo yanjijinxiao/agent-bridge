@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   CLOUD_PROJECT_COUNTS_SQL,
+  CLOUD_SUBMISSION_RECEIPTS_SQL,
   createCloudD1ImportSql,
 } from "./migrate-to-cloud.mjs";
 
@@ -131,6 +132,13 @@ export function createWranglerCloudAdapters({
           workflow_workspaces: Number(row.workflow_workspaces),
         },
       ]));
+    },
+    async readTaskSubmissions() {
+      const result = await run([
+        "d1", "execute", database, ...modeArguments,
+        "--command", CLOUD_SUBMISSION_RECEIPTS_SQL, "--json", "--config", resolvedConfig,
+      ]);
+      return parseD1Results(result.stdout);
     },
   };
 

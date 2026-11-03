@@ -1159,7 +1159,7 @@ test("DingTalk does not reinterpret unrelated 403 permission failures as route r
     (error: unknown) => error instanceof ChannelProgressError && !error.retryable && !error.recoveryProbe);
 });
 
-test("DingTalk falls back to the session webhook when AI Card creation fails", async () => {
+test("DingTalk keeps explicit plain progress but does not switch transports after card creation fails", async (t) => {
   let listener: ((message: DWClientDownStream) => void) | undefined;
   let creates = 0;
   const webhookTexts: string[] = [];
@@ -1203,15 +1203,14 @@ test("DingTalk falls back to the session webhook when AI Card creation fails", a
   assert.equal(creates, 0, "plain progress bypasses AI Card creation entirely");
   webhookTexts.length = 0;
 
-  assert.deepEqual(await adapter.sendText({ toUserId: "conversation-123", text: "fallback" }), {
-    messageId: "fallback-text"
-  });
-  assert.deepEqual(webhookTexts, ["fallback"]);
+  t.after(async () => { controller.abort(); await monitoring; });
+  await assert.rejects(adapter.sendText({ toUserId: "conversation-123", text: "answer" }), /template unavailable/);
+  assert.deepEqual(webhookTexts, []);
   const tableCard = createChoiceCard({ title: "会话", body: "", table: { columns: [{ label: "编号" }, { label: "标题" }], rows: [["R1", "test"]] },
     fallbackText: "[R1] test", choices: [] });
-  const receipt = await adapter.client.sendActionCard({ toUserId: "conversation-123", card: tableCard });
-  assert.equal(webhookTexts.at(-1), "[R1] test", "failed table is replaced with readable text, not raw Markdown");
-  assert.deepEqual(receipt.parts, [{ messageId: "fallback-text", text: "[R1] test" }]);
+  await assert.rejects(adapter.client.sendActionCard({ toUserId: "conversation-123", card: tableCard }), /template unavailable/);
+  assert.deepEqual(webhookTexts, []);
+  assert.equal(creates, 2);
   controller.abort();
   await monitoring;
 });

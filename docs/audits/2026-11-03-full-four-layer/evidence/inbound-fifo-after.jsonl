@@ -1,0 +1,3 @@
+{"kind":"test","file":"test/inbound-files.test.ts","name":"remote receiver preserves bytes, reuses the same digest and rejects traversal/symlink destinations","sha256":"a487b123aa5665120c0de35b7d83e2c320762688629b68209ced9fcb8daa8e71","status":"passed"}
+{"kind":"test","file":"test/inbound-files.test.ts","name":"remote staging refuses non-SSH transports instead of guessing another host","sha256":"a487b123aa5665120c0de35b7d83e2c320762688629b68209ced9fcb8daa8e71","status":"passed"}
+{"kind":"test","file":"test/inbound-files.test.ts","name":"remote staging rejects a FIFO without blocking the Gateway event loop","sha256":"a487b123aa5665120c0de35b7d83e2c320762688629b68209ced9fcb8daa8e71","status":"passed"}

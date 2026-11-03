@@ -534,6 +534,7 @@ function ProjectWorkflowBoard({
   const [persistenceError, setPersistenceError] = useState("");
   const [saveState, setSaveState] = useState<"loading" | "dirty" | "saving" | "saved" | "failed" | "conflict">("loading");
   const [saveRetry, setSaveRetry] = useState(0);
+  const [hydrationRetry, setHydrationRetry] = useState(0);
   const [saveConflict, setSaveConflict] = useState<{ version: number; workspace: ReturnType<typeof createInitialWorkflowWorkspace> } | null>(null);
   const conflictRef = useRef<typeof saveConflict>(null);
   const latestSerializedRef = useRef("");
@@ -682,9 +683,12 @@ function ProjectWorkflowBoard({
             record = await getWorkflowWorkspace<WorkflowWorkspace>(projectId);
             const latest = parseWorkflowWorkspace(record.workspace);
             if (!latest) throw error;
-            workspace = legacy ? mergeLegacyWorkspace(latest, legacy) : latest;
+            workspace = latest;
           }
-        } else if (legacy) {
+        }
+        // A concurrent first writer changes the remote version, not the fact
+        // that legacy data still needs a confirmed merged write before removal.
+        if (legacy) {
           const merged = mergeLegacyWorkspace(workspace, legacy);
           const serializedMerged = serializeWorkflowWorkspace(
             merged.tabs,
@@ -708,13 +712,12 @@ function ProjectWorkflowBoard({
         applyWorkspace(workspace);
         setPersistenceError("");
         setSaveState("saved");
+        setHydrated(true);
       } catch {
         if (cancelled) return;
         setPersistenceError("流程暂时无法同步到任务面板服务");
         setSaveState("failed");
         onWorkflowsChange(initialWorkspace.tabs);
-      } finally {
-        if (!cancelled) setHydrated(true);
       }
     }
 
@@ -722,7 +725,7 @@ function ProjectWorkflowBoard({
     return () => {
       cancelled = true;
     };
-  }, [applyWorkspace, initialWorkspace, onWorkflowsChange, projectId]);
+  }, [applyWorkspace, hydrationRetry, initialWorkspace, onWorkflowsChange, projectId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1468,6 +1471,11 @@ function ProjectWorkflowBoard({
               <i aria-hidden="true" />
               {persistenceError || ({ loading: "正在加载流程…", dirty: "尚未保存", saving: "正在保存…", saved: "已自动保存", failed: "保存尚未确认", conflict: "流程版本冲突" } as const)[saveState]}
             </span>
+            {!hydrated && saveState === "failed" && <button type="button" className="button" onClick={() => {
+              setPersistenceError("");
+              setSaveState("loading");
+              setHydrationRetry(value => value + 1);
+            }}>重新加载流程</button>}
           </div>
         </div>
         {saveConflict && <div className="comments-error" role="alert" data-workflow-conflict>

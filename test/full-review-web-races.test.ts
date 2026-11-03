@@ -114,3 +114,19 @@ test("group-channel session pickers do not turn a personal admission id into a c
  const direct={accountId:'wx',channel:'weixin',pairedSenderIds:['direct-person']};
  assert.equal(f.context.authorizedConversationId(direct),'direct-person');
 });
+
+for (const channel of ["dingtalk", "feishu", "wecom", "weixin"]) test(`project notification defaults distinguish personal admission from conversation (${channel})`, () => {
+  const f = fixture();
+  const account = { accountId: "one", channel, pairedSenderIds: ["personal-actor"] };
+  f.state.accounts = [account];
+  f.context.showOwnedDialog = () => {};
+  const project = { accountId: "one", id: "project", name: "Project" };
+  f.context.openProjectNotificationDialog(project);
+  const recipient = f.context.document.querySelector("#notificationRecipientInput");
+  assert.equal(recipient.value, channel === "weixin" ? "personal-actor" : "");
+  Object.assign(account, { lastAuthorizedActorId: "personal-actor", lastAuthorizedSenderId: "verified-room" });
+  f.context.openProjectNotificationDialog(project);
+  assert.equal(recipient.value, "verified-room");
+  f.context.openProjectNotificationDialog({ ...project, notifications: [{ accountId: "one", recipientId: "explicit-room", enabled: true }] });
+  assert.equal(recipient.value, "explicit-room");
+});

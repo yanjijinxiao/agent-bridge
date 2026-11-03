@@ -78,6 +78,9 @@ export class WeixinQrLoginSession {
       throw error;
     }
     if (Date.now() >= this.deadline) return { status: "expired" };
+    // The business receipt must be accepted before any status can redirect
+    // polling or publish credentials. Error responses may contain stale fields.
+    assertQrReceipt(status);
     if (status.status === "scaned_but_redirect" && status.redirect_host?.trim()) {
       this.pollBaseUrl = normalizeRedirectHost(status.redirect_host);
       return { status: "waiting" };
@@ -87,9 +90,6 @@ export class WeixinQrLoginSession {
     }
     if (status.connected || status.status === "connected" || status.status === "confirmed") {
       return { status: "confirmed", account: accountFromStatus(status, this.pollBaseUrl) };
-    }
-    if (status.ret && status.ret !== 0) {
-      throw new Error(`WeChat QR login failed: ${status.errmsg ?? status.ret}`);
     }
     if (status.status === "scaned") {
       return { status: "scanned" };
@@ -106,10 +106,11 @@ export async function createQrLoginSession(options: CreateQrLoginOptions = {}): 
     baseUrl,
     `ilink/bot/get_bot_qrcode?bot_type=${encodeURIComponent("3")}`
   );
+  assertQrReceipt(start);
   const qrToken = start.qrcode;
   const qrContent = start.qrcode_img_content ?? start.qrcode_url ?? start.qr_code ?? start.qrcode;
   if (!qrContent || !qrToken) {
-    throw new Error(`Unable to start WeChat QR login: ${start.errmsg ?? "missing QR response"}`);
+    throw new Error("Unable to start WeChat QR login: missing QR response");
   }
   return new WeixinQrLoginSession(
     qrContent,
@@ -118,6 +119,15 @@ export async function createQrLoginSession(options: CreateQrLoginOptions = {}): 
     fetchImpl,
     Date.now() + (options.timeoutMs ?? 480_000)
   );
+}
+
+function assertQrReceipt(receipt: QrStartResponse | QrStatusResponse): void {
+  // Older successful QR GET responses omit ret. Preserve that shape while
+  // rejecting an explicit error, without echoing the provider's raw errmsg.
+  if (receipt.ret !== undefined && receipt.ret !== 0) {
+    const code = Number.isSafeInteger(receipt.ret) ? ` (${receipt.ret})` : "";
+    throw new Error(`WeChat QR login failed${code}`);
+  }
 }
 
 export async function loginWithQr(options: LoginOptions): Promise<WeixinAccount> {

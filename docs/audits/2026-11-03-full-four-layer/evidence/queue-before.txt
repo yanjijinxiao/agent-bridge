@@ -1,0 +1,65 @@
+✖ native queue journal handles before-submit disk failure without a phantom claim or replay (13.171458ms)
+✖ native queue journal handles after-acceptance disk failure without a phantom claim or replay (21.894333ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 217.469959
+
+✖ failing tests:
+
+test at test/audit-inbox-persistence.test.ts:1:4048
+✖ native queue journal handles before-submit disk failure without a phantom claim or replay (13.171458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   {
+  +     accountId: 'account',
+  +     actorId: 'actor',
+  +     backend: 'app-server',
+  +     clientUserMessageId: 'gateway-6655207bfb0abe4a36c1a02c527358b8203b12cd4dbe0deba5540d4e7173257a',
+  +     conversationId: 'room',
+  +     hostId: 'local',
+  +     id: '6655207bfb0abe4a36c1a02c527358b8203b12cd4dbe0deba5540d4e7173257a',
+  +     messageId: 'message',
+  +     sessionId: 'session',
+  +     status: 'submitting',
+  +     threadId: 'thread',
+  +     updatedAt: '2026-11-03T04:00:40.330Z'
+  +   }
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/audit-inbox-persistence.test.ts:100:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ { accountId: 'account', conversationId: 'room', actorId: 'actor', messageId: 'message', sessionId: 'session', hostId: 'local', backend: 'app-server', threadId: 'thread', id: '6655207bfb0abe4a36c1a02c527358b8203b12cd4dbe0deba5540d4e7173257a', clientUserMessageId: 'gateway-6655207bfb0abe4a36c1a02c527358b8203b12cd4dbe0deba5540d4e7173257a', status: 'submitting', updatedAt: '2026-11-03T04:00:40.330Z' } ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/audit-inbox-persistence.test.ts:1:4048
+✖ native queue journal handles after-acceptance disk failure without a phantom claim or replay (21.894333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'uncertain'
+  - 'queued'
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/audit-inbox-persistence.test.ts:102:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'uncertain',
+    expected: 'queued',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

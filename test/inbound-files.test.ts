@@ -33,3 +33,23 @@ test("remote staging refuses non-SSH transports instead of guessing another host
   await assert.rejects(stageRemoteFiles([], "account/chat", 1000,
     { command: "custom-websocket", args: ["wss://host"], mode: "remote-daemon" }), /no attachment staging transport/);
 });
+
+test("remote staging rejects a FIFO without blocking the Gateway event loop", { skip: process.platform === "win32" }, t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "staging-fifo-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const fifo = path.join(root, "pipe");
+  assert.equal(spawnSync("mkfifo", [fifo]).status, 0);
+  // A separate process bounds the regression: synchronous open on a FIFO can
+  // freeze the real event loop before its ordinary transfer timer even exists.
+  const child = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "--eval", `
+    const { stageRemoteFiles } = await import(process.argv[1]);
+    try {
+      await stageRemoteFiles([{ path: process.argv[2], label: "pipe", kind: "file" }], "test", 100,
+        { command: "/usr/bin/ssh", args: ["unused-host", "unused-command"], mode: "remote-daemon" });
+      process.exitCode = 2;
+    } catch { process.stdout.write("rejected"); }
+  `, new URL("../src/codex/inbound-files.ts", import.meta.url).href, fifo], { timeout: 2000, encoding: "utf8" });
+  assert.equal(child.error, undefined, "non-files must be rejected before a blocking open or SSH process");
+  assert.equal(child.status, 0, child.stderr);
+  assert.equal(child.stdout, "rejected");
+});

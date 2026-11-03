@@ -73,7 +73,7 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
     if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text);
     return result.result?.value;
   };
-  t.afterEach(async()=>{await evaluate("for(const k of Object.keys(localStorage))if(k.startsWith('taskboard.submission:') || k.startsWith('taskboard.comment-draft'))localStorage.removeItem(k)");});
+  t.afterEach(async()=>{await evaluate("try { for(const k of Object.keys(localStorage))if(k.startsWith('taskboard.submission:') || k.startsWith('taskboard.comment-draft'))localStorage.removeItem(k); } catch(error) { if(error.name !== 'SecurityError') throw error; }");});
   const base = `http://127.0.0.1:${server.address().port}`;
   const navigate = async url => {
     const previous = await evaluate("window.audit?.documentId");
@@ -90,6 +90,79 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
   const turns = () => evaluate("audit.requests.filter(r=>r.method==='POST' && r.path.endsWith('/turns')).length");
   const enter = () => call("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
   await call("Emulation.setDeviceMetricsOverride", { width: 1200, height: 800, deviceScaleFactor: 1, mobile: false });
+
+  for (const fault of ["storageReadDenied", "storageFull"]) await t.test(`optional browser preferences cannot crash the board or bypass submission receipts (${fault})`, async () => {
+    await navigate(`${base}/?view=app&project=a&${fault}=1`);
+    await until(() => evaluate("Boolean(document.querySelector('.task-card[data-task-id=\"task-one\"]'))"), "board disappeared because optional preference storage failed");
+    await evaluate("document.querySelector('[aria-label=\"新建议题\"]').click()");
+    if (fault === "storageReadDenied") {
+      await until(() => evaluate("document.querySelector('.error-banner')?.textContent.includes('无法读取浏览器提交记录')"), "unreadable submission receipts must block creating an issue");
+    } else {
+      await until(() => evaluate("Boolean(document.querySelector('.task-dialog[open]'))"), "editor missing");
+      await evaluate("document.querySelector('.composer-title input').focus()");
+      await call("Input.insertText", {text: "Keep my unsubmitted draft"});
+      await evaluate("document.querySelector('.task-dialog button[type=submit]').click()");
+      await until(() => evaluate("document.querySelector('.task-dialog')?.textContent.includes('无法保存议题提交记录')"), "full receipt storage did not retain the draft");
+      assert.equal(await evaluate("document.querySelector('.composer-title input').value"), "Keep my unsubmitted draft");
+    }
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST').length"), 0);
+  });
+
+  for (const failure of [false, true]) await t.test(`a quiet task refresh settles initial loading and retires the older read (failure=${failure})`, async () => {
+    await navigate(`${base}/?view=app&project=a&taskRefreshRace=1`);
+    await until(() => evaluate("Boolean(audit.releaseInitialTasks && audit.localEvents.length && document.querySelector('.loading-board'))"), "initial task read was not held");
+    await evaluate(`audit.failQuietRead=${failure};audit.localEvents.at(-1).dispatchEvent(new MessageEvent('task.updated',{data:JSON.stringify({projectId:'a'})}))`);
+    await until(() => evaluate("audit.taskReads===2"), "event did not refresh tasks");
+    await until(() => evaluate("!document.querySelector('.loading-board')"), "settled quiet request left the board loading forever");
+    if (failure) assert.match(await evaluate("document.querySelector('.error-banner')?.textContent"), /无法连接本地 Taskboard 服务/);
+    else assert.equal(await evaluate("Boolean(document.querySelector('.task-card[data-task-id=task-one]'))"), true);
+    await evaluate("audit.releaseInitialTasks()");
+    await evaluate("new Promise(resolve=>setTimeout(resolve,0))");
+    assert.equal(await evaluate("Boolean(document.querySelector('.task-card[data-task-id=task-one]'))"), !failure, "retired initial request must not overwrite the newer result");
+  });
+
+  await t.test("SSE workflow read failures are contained and later refreshes still work", async () => {
+    await navigate(`${base}/?view=app&project=a`);
+    await until(() => evaluate("Boolean(audit.localEvents.length && document.querySelector('.task-card[data-task-id=task-one]'))"), "board not ready");
+    await evaluate("audit.failWorkflowRead=true;audit.localEvents.at(-1).onopen();audit.localEvents.at(-1).dispatchEvent(new MessageEvent('workflow.updated',{data:JSON.stringify({projectId:'a'})}))");
+    await evaluate("new Promise(resolve=>setTimeout(resolve,20))");
+    assert.deepEqual(await evaluate("audit.unhandled"), [], "optional workflow refresh leaked an unhandled rejection");
+    await evaluate("audit.failWorkflowRead=false;audit.reviseBoard();audit.localEvents.at(-1).dispatchEvent(new MessageEvent('task.updated',{data:JSON.stringify({projectId:'a'})}))");
+    await until(() => evaluate("document.querySelector('.task-card h3')?.textContent==='Later native change'"), "a later task event stopped refreshing");
+  });
+
+  for (const failure of [false, true]) for (const field of ["title", "description"]) await t.test(`property save preserves another field edited while awaiting its receipt (${field}, failure=${failure})`, async () => {
+    await navigate(`${base}/?view=app&project=a`);
+    await until(() => evaluate("Boolean(document.querySelector('.task-card-open'))"), "board not ready");
+    await evaluate("document.querySelector('.task-card-open').click()");
+    await until(() => evaluate("Boolean(document.querySelector('.issue-title-input'))"), "issue detail missing");
+    await evaluate(`audit.${failure ? "rejectBoardWrite" : "holdBoardWrite"}=true;const select=document.querySelector('.issue-properties select');select.value='in_progress';select.dispatchEvent(new Event('change',{bubbles:true}))`);
+    await until(() => evaluate("Boolean(audit.releaseBoardWrite)"), "property save did not wait");
+    const selector = field === "title" ? ".issue-title-input" : ".issue-description-input";
+    if (field === "description") await evaluate("document.querySelector('.issue-description-read').click()");
+    await until(() => evaluate(`Boolean(document.querySelector(${JSON.stringify(selector)}))`), "draft field missing");
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).focus();document.querySelector(${JSON.stringify(selector)}).select()`);
+    await call("Input.insertText", {text:"Keep this unsaved draft"});
+    await evaluate("audit.releaseBoardWrite()");
+    await until(() => evaluate("!document.querySelector('.issue-properties select').disabled"), "property save did not finish");
+    assert.equal(await evaluate(`document.querySelector(${JSON.stringify(selector)}).value`), "Keep this unsaved draft");
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='PATCH').length"), 1, "editing does not silently submit the other field");
+  });
+
+  await t.test("issue creation does not allow silently discarded edits while its write is pending", async () => {
+    await navigate(`${base}/?view=app&project=a`);
+    await until(() => evaluate("Boolean(document.querySelector('.task-card-open'))"), "board not ready");
+    await evaluate("document.querySelector('[aria-label=新建议题]').click()");
+    await until(() => evaluate("Boolean(document.querySelector('.composer-title input'))"), "editor missing");
+    await evaluate("document.querySelector('.composer-title input').focus()");
+    await call("Input.insertText",{text:"Submitted title"});
+    await evaluate("audit.holdBoardWrite=true;document.querySelector('.task-dialog button[type=submit]').click()");
+    await until(() => evaluate("Boolean(audit.releaseBoardWrite)"), "create did not wait");
+    assert.equal(await evaluate("Array.from(document.querySelectorAll('.task-dialog input,.task-dialog textarea,.task-dialog select')).filter(el=>el.type!=='hidden').every(el=>el.matches(':disabled'))"), true, "pending editor accepts changes its success handler will discard");
+    await evaluate("audit.releaseBoardWrite()");
+    await until(() => evaluate("!document.querySelector('.task-dialog')"), "confirmed editor did not close");
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST'&&r.path==='/api/tasks').length"),1);
+  });
 
   await t.test("native approval buttons and question fields submit only explicit actions and clear secret values", async () => {
     await navigate(`${base}/?view=native`);
@@ -140,6 +213,27 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
     await evaluate("document.querySelector('.ai-chat-composer-editor').focus()"); await enter();
     assert.equal(await turns(),1,"retained draft must not become another native execution after a lost receipt");
     assert.equal(await evaluate("Boolean(document.querySelector('.ai-chat-submission-review'))"),true);
+    // Receipt review is a real user action: it must remain readable in both
+    // themes, including when the native turn completed but HTTP lost its ack.
+    for (const theme of ["light", "dark"]) {
+      await evaluate(`document.documentElement.dataset.theme = ${JSON.stringify(theme)}; new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`);
+      const colors = await evaluate(`(() => {
+        const style = getComputedStyle(document.querySelector('.ai-chat-submission-review button'));
+        const luminance = color => {
+          const values = color.match(/[\\d.]+/g).slice(0, 3).map(Number).map(v => {
+            v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
+          });
+          return values[0] * .2126 + values[1] * .7152 + values[2] * .0722;
+        };
+        const foreground = luminance(style.color), background = luminance(style.backgroundColor);
+        return { ratio: (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05),
+          foreground: style.color, background: style.backgroundColor,
+          theme: document.documentElement.dataset.theme, primary: getComputedStyle(document.body).getPropertyValue('--text-primary') };
+      })()`);
+      assert.equal(colors.theme, theme);
+      assert.equal(colors.foreground, theme === 'dark' ? 'rgb(238, 238, 239)' : 'rgb(27, 27, 27)', JSON.stringify(colors));
+      assert.ok(colors.ratio >= 4.5, `${theme} receipt action contrast ${JSON.stringify(colors)} is below 4.5`);
+    }
     await evaluate("audit.submissionUnknown=true;document.querySelector('.ai-chat-submission-review button').click()");
     await until(()=>evaluate("document.querySelector('.ai-chat-error')?.textContent.includes('尚无法确认')"),"unknown status must retain the original receipt");
     assert.equal(await turns(),1);
@@ -438,6 +532,28 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
     assert.equal(await evaluate("Object.keys(localStorage).filter(k=>k.startsWith('taskboard.submission:[\"issue\",\"a\"]:')).length"),0);
     assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST').length"),0);
   });
+  for (const conflict of ["none", "once", "twice"]) await t.test(`legacy workflow migration only retires local data after the merged receipt (${conflict})`, async () => {
+    await navigate(`${base}/?view=workflow&legacyConflict=${conflict}`);
+    await until(() => evaluate("Boolean(document.querySelector('.workflow-tab-add') && (!document.querySelector('.workflow-tab-add').disabled || document.body.textContent.includes('流程暂时无法同步')))"), "migration did not settle");
+    await new Promise(resolve => setTimeout(resolve, 350));
+    const saved = await evaluate("audit.workflowRecord('a').workspace.tabs.map(t=>t.name)");
+    if (conflict === "twice") {
+      assert.ok(await evaluate("localStorage.getItem('taskboard.workflow.workspace.a')"), "unconfirmed migration deleted its source");
+      assert.ok(await evaluate("document.body.textContent.includes('流程暂时无法同步') || document.body.textContent.includes('流程版本冲突')"));
+    } else {
+      assert.ok(saved.some(name => name.startsWith("Legacy workspace")), "legacy data was deleted without being saved remotely");
+      if (conflict === "once") assert.ok(saved.includes("Remote workflow"));
+      assert.equal(await evaluate("localStorage.getItem('taskboard.workflow.workspace.a')"), null);
+    }
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='PUT').length"), conflict === "none" ? 1 : 2);
+    if (conflict === "twice") {
+      assert.equal(await evaluate("document.querySelector('.workflow-canvas').inert"), true);
+      await evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='重新加载流程').click()");
+      await until(() => evaluate("!document.querySelector('.workflow-tab-add').disabled && !localStorage.getItem('taskboard.workflow.workspace.a')"), "explicit retry did not confirm the migration");
+      assert.ok(await evaluate("audit.workflowRecord('a').workspace.tabs.some(t=>t.name.startsWith('Legacy workspace'))"));
+    }
+    await evaluate("localStorage.removeItem('taskboard.workflow.workspace.a')");
+  });
   await t.test("workflow controls wait for hydration and an old project save cannot replace the new workspace", async()=>{
     await navigate(`${base}/?view=workflow&seed=1&holdWorkflow=1`);
     await until(()=>evaluate("Boolean(audit.releaseWorkflow)"),"workspace read not held");
@@ -560,6 +676,37 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
     const editBefore = await appearance(".comment-edit-form textarea");
     await evaluate("document.querySelector('.comment-edit-form textarea').focus()");
     assert.deepEqual(await appearance(".comment-edit-form textarea"), editBefore);
+  });
+  for (const change of ["unchanged", "new-text", "reopened", "shortcut"]) await t.test(`comment edit acknowledgement belongs to its original edit (${change})`, async () => {
+    await issueView("detail");
+    const edit = async () => {
+      await evaluate("document.querySelector('.comment-menu-trigger').click()");
+      await evaluate("document.querySelector('.comment-action-menu button').click()");
+      await until(() => evaluate("Boolean(document.querySelector('.comment-edit-form textarea'))"), "comment editor missing");
+    };
+    const fill = async text => {
+      await evaluate("document.querySelector('.comment-edit-form textarea').focus();document.querySelector('.comment-edit-form textarea').select()");
+      await call("Input.insertText", {text});
+    };
+    await edit(); await fill("Submitted edit");
+    await evaluate("audit.holdWrite='comment-edit';document.querySelector('.comment-edit-form .primary').click()");
+    await until(() => evaluate("typeof audit.releaseWrite==='function'"), "comment edit not held");
+    if (change === "new-text") await fill("Keep later text");
+    if (change === "reopened") {
+      await evaluate("document.querySelector('.comment-edit-form .secondary').click()");
+      await edit(); await fill("Submitted edit"); // Same value, different editing session.
+    }
+    if (change === "shortcut") {
+      await evaluate("document.querySelector('.comment-edit-form textarea').focus()");
+      await call("Input.dispatchKeyEvent", {type:"keyDown",key:"Enter",code:"Enter",modifiers:2,windowsVirtualKeyCode:13});
+    }
+    assert.equal(await evaluate("audit.requests.filter(r=>r.method==='PATCH' && r.path==='/api/comments/comment-one').length"), 1);
+    await evaluate("audit.releaseWrite()");
+    await until(() => evaluate("!document.querySelector('.comment-edit-form .primary')?.disabled"), "save did not settle");
+    if (change === "unchanged" || change === "shortcut") {
+      assert.equal(await evaluate("Boolean(document.querySelector('.comment-edit-form'))"), false);
+      assert.equal(await evaluate("document.querySelector('.comment-body').textContent"), "Submitted edit");
+    } else assert.equal(await evaluate("document.querySelector('.comment-edit-form textarea')?.value"), change === "new-text" ? "Keep later text" : "Submitted edit");
   });
   await t.test("comment files stage in the shared list, upload to that comment, render and delete through the original attachment API", async () => {
     await issueView("detail");

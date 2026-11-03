@@ -7,6 +7,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import { IDETLSManager, loadIDETLS } from "../src/ide/tls.js";
 import { IDEConfigStore } from "../src/ide/config.js";
 import { IDEAccessServer } from "../src/ide/access-server.js";
@@ -29,6 +30,24 @@ function request(url: string, ca?: Buffer, options: { method?: string; headers?:
       const fingerprint = (response.socket as import("node:tls").TLSSocket).getPeerCertificate().fingerprint256;
       response.on("end", () => resolve({ status: response.statusCode!, headers: response.headers, body, fingerprint }));
     }); req.on("error", reject); req.end(options.body);
+  });
+}
+for (const field of ["certFile", "keyFile"] as const) {
+  test(`TLS rejects a FIFO ${field} before blocking the Gateway`, { skip: process.platform === "win32" }, async t => {
+    const root = temporary(t), manager = new IDETLSManager(path.join(root, "tls"));
+    const files = await manager.prepare("127.0.0.1"), fifo = path.join(root, "pipe");
+    assert.equal(spawnSync("mkfifo", [fifo]).status, 0);
+    // Isolate synchronous open: a test-runner timer cannot interrupt a blocked
+    // event loop. No production listener or credentials are used here.
+    const child = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "--eval", `
+      const { loadIDETLS } = await import(process.argv[1]);
+      try { loadIDETLS(JSON.parse(process.argv[2]), "https://127.0.0.1:8790"); process.exitCode = 2; }
+      catch { process.stdout.write("rejected"); }
+    `, new URL("../src/ide/tls.ts", import.meta.url).href, JSON.stringify({ ...files, [field]: fifo })],
+    { timeout: 2000, encoding: "utf8" });
+    assert.equal(child.error, undefined, "TLS input validation must reject non-files without a blocking open");
+    assert.equal(child.status, 0, child.stderr);
+    assert.equal(child.stdout, "rejected");
   });
 }
 test("self-signed CA and native IP certificate persist, renew atomically with the same CA, and enforce key permissions", async t => {

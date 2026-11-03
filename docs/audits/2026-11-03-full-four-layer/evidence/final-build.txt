@@ -1,0 +1,37 @@
+
+> codex-im-gateway@0.4.0 build
+> npm run build:bridge && npm run build:taskboard
+
+
+> codex-im-gateway@0.4.0 build:bridge
+> node scripts/prepare-build.mjs && tsc -p tsconfig.json && npm run copy:web
+
+
+> codex-im-gateway@0.4.0 copy:web
+> node scripts/copy-web-assets.mjs
+
+
+> codex-im-gateway@0.4.0 build:taskboard
+> npm run build:web --workspace=codex-taskboard
+
+
+> codex-taskboard@0.1.0 build:web
+> vite build --config web/vite.config.ts
+
+vite v8.1.5 building client environment for production...
+[2Ktransforming...✓ 475 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/web/index.html                           0.64 kB │ gzip:   0.37 kB
+dist/web/assets/x-logo-black-BIVm9hpF.png   102.32 kB
+dist/web/assets/WorkflowBoard-7hFYUCbs.css   39.30 kB │ gzip:   6.69 kB
+dist/web/assets/index-C4yQCdJS.css          137.22 kB │ gzip:  23.34 kB
+dist/web/assets/WorkflowBoard-DosGlwVC.js   283.14 kB │ gzip:  86.85 kB
+dist/web/assets/index-CQIFSmUJ.js           573.58 kB │ gzip: 173.89 kB
+
+✓ built in 95ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.

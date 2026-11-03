@@ -187,7 +187,14 @@ export class ForwardingInbox {
       if (preparing >= 4 && row.automatic) continue;
       if (this.processing.has(key)) continue;
       const receipt = this.options.receipts.receipt(row.message.id);
-      if (receipt && ["accepted", "handled"].includes(receipt.phase)) { this.remove(key); continue; }
+      if (receipt && ["accepted", "handled"].includes(receipt.phase)) {
+        // Acceptance already forbids replay. A failed housekeeping write must
+        // retain the row for the next tick, not escape the interval and kill
+        // the account owner (or prevent other saved inputs from being handled).
+        try { this.remove(key); }
+        catch { console.warn("[codex-im-gateway] accepted inbox cleanup deferred; durable receipt retained"); }
+        continue;
+      }
       if (receipt && ["submitting", "unconfirmed"].includes(receipt.phase) && this.options.reconcile
         && !this.reconciling.has(key) && (this.nextObservation.get(key) ?? 0) <= this.now()) {
         // Read-only recovery is separate from the admission lane and never

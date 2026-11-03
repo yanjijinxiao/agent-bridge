@@ -1,0 +1,5 @@
+{"kind":"test","file":"test/account-manager.test.ts","name":"reports the effective Codex model and reasoning effort","sha256":"3124d016207c801f25bc019366f97e28ac67d4efe6d64892d3df74012248397f","status":"passed"}
+{"kind":"test","file":"test/account-manager.test.ts","name":"runtime metadata does not substitute Gateway defaults for a peer (local)","sha256":"3124d016207c801f25bc019366f97e28ac67d4efe6d64892d3df74012248397f","status":"passed"}
+{"kind":"test","file":"test/account-manager.test.ts","name":"runtime metadata does not substitute Gateway defaults for a peer (peer:device)","sha256":"3124d016207c801f25bc019366f97e28ac67d4efe6d64892d3df74012248397f","status":"passed"}
+{"kind":"test","file":"test/account-manager.test.ts","name":"runtime metadata does not substitute Gateway defaults for a peer (peer:unavailable)","sha256":"3124d016207c801f25bc019366f97e28ac67d4efe6d64892d3df74012248397f","status":"passed"}
+{"kind":"test","file":"test/account-manager.test.ts","name":"model callbacks keep the remote host, workspace and thread through AccountManager","sha256":"3124d016207c801f25bc019366f97e28ac67d4efe6d64892d3df74012248397f","status":"passed"}

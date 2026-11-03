@@ -44,6 +44,60 @@ test("isolated production Gateway browser gap scenarios", { skip: !process.env.C
   const navigate = async (view: string) => { await call("Page.navigate", { url: `${server.url}/#${view}` });
     await eventually(() => evaluate("typeof state !== 'undefined' && Boolean(state.requestToken && document.querySelector('.session-card'))"), "production management page did not bootstrap"); };
   await navigate("sessions");
+  await t.test("WEB-01.10: knowledge form preserves later edits and updates its acknowledged create", async () => {
+    // The real page/form runs in Chrome; hold the knowledge API boundary so no
+    // llm-wiki engine or user directory is needed for this acknowledgement race.
+    await evaluate("window.knowledgeFetch=window.fetch.bind(window);window.knowledgeWrites=[];window.fetch=async(...args)=>{if(String(args[0]).startsWith('/api/knowledge-bases') && ['POST','PATCH'].includes(args[1]?.method)){knowledgeWrites.push({url:String(args[0]),method:args[1].method,body:JSON.parse(args[1].body)});if(knowledgeWrites.length===1)await new Promise(resolve=>window.releaseKnowledge=resolve);return new Response(JSON.stringify({knowledgeBase:{id:'created-fixture',accountId:'account'}}),{headers:{'Content-Type':'application/json'}})}return knowledgeFetch(...args)};document.querySelector('[data-view=knowledge]').click();openNewKnowledgeBaseDialog()");
+    try {
+      await evaluate("document.querySelector('#knowledgeBaseNameInput').value='First snapshot';document.querySelector('#knowledgeBaseRootInput').value='/fixture/wiki';document.querySelector('#knowledgeBaseForm').requestSubmit()");
+      await eventually(() => evaluate("typeof releaseKnowledge==='function'"), "knowledge save never entered");
+      await evaluate("document.querySelector('#knowledgeBaseNameInput').value='Later draft';document.querySelector('#knowledgeBaseForm').dispatchEvent(new SubmitEvent('submit',{bubbles:true,cancelable:true}));releaseKnowledge()");
+      await eventually(() => evaluate("!document.querySelector('#saveKnowledgeBaseButton').disabled"), "knowledge save did not settle");
+      assert.equal(await evaluate("knowledgeWrites.length"), 1);
+      assert.equal(await evaluate("document.querySelector('#knowledgeBaseDialog').open"), true);
+      assert.equal(await evaluate("document.querySelector('#knowledgeBaseNameInput').value"), "Later draft");
+      assert.equal(await evaluate("document.querySelector('#editingKnowledgeBaseId').value"), "created-fixture");
+      await evaluate("document.querySelector('#knowledgeBaseForm').requestSubmit()");
+      await eventually(() => evaluate("!document.querySelector('#knowledgeBaseDialog').open"), "unchanged draft did not close");
+      const writes = await evaluate<any[]>("knowledgeWrites");
+      assert.deepEqual(writes.map(write => [write.method, write.body.name]), [["POST", "First snapshot"], ["PATCH", "Later draft"]]);
+      assert.equal(writes[1].url, "/api/knowledge-bases/account/created-fixture");
+    } finally {
+      await evaluate("window.releaseKnowledge?.();window.fetch=knowledgeFetch;document.querySelector('#knowledgeBaseDialog').close();document.querySelector('[data-view=sessions]').click()");
+    }
+  });
+  await t.test("WEB-01.9: a real settings form retains edits made after its submitted snapshot", async () => {
+    await evaluate("document.querySelector('[data-view=settings]').click();window.settingsFetch=window.fetch.bind(window);window.settingsWrites=0;window.fetch=async(...args)=>{const response=await settingsFetch(...args);if(String(args[0])==='/api/config' && args[1]?.method==='PUT'){settingsWrites++;await new Promise(resolve=>window.releaseSettings=resolve)}return response};document.querySelector('#settingsForm').requestSubmit()");
+    try {
+      await eventually(() => evaluate("typeof window.releaseSettings === 'function'"), "settings acknowledgement was not held");
+      await evaluate("document.querySelector('#defaultCwdInput').value='/unsaved-after-submit';document.querySelector('#streamRepliesInput').checked=!state.config.streamReplies;document.querySelector('#modelInput').add(new Option('Draft model','draft-model'));document.querySelector('#modelInput').value='draft-model';document.querySelector('#effortInput').add(new Option('Draft effort','high'));document.querySelector('#effortInput').value='high';document.querySelector('#settingsForm').dispatchEvent(new SubmitEvent('submit',{bubbles:true,cancelable:true}));releaseSettings()");
+      await eventually(() => evaluate("!document.querySelector('#settingsForm button[type=submit]').disabled"), "settings save never settled");
+      assert.equal(await evaluate("settingsWrites"), 1);
+      assert.equal(loadConfig(paths).defaultCwd, root);
+      assert.equal(await evaluate("document.querySelector('#defaultCwdInput').value"), "/unsaved-after-submit");
+      assert.equal(await evaluate("document.querySelector('#streamRepliesInput').checked === !state.config.streamReplies"), true);
+      assert.equal(await evaluate("document.querySelector('#modelInput').value"), "draft-model");
+      assert.equal(await evaluate("document.querySelector('#effortInput').value"), "high");
+    } finally {
+      await evaluate("window.releaseSettings?.();window.fetch=settingsFetch;renderSettings();document.querySelector('[data-view=sessions]').click()");
+    }
+  });
+  await t.test("WEB-02.4: hidden controls stay hidden under production styles and return when applicable", async () => {
+    await evaluate("openRemoveAccountDialog({accountId:'account',channel:'dingtalk'})");
+    try {
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.account-removal-choices')).display"), "none", "unsupported history retention must not appear for DingTalk");
+      await evaluate("document.querySelector('#removeAccountDialog').close();openRemoveAccountDialog({accountId:'account',channel:'weixin'})");
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.account-removal-choices')).display"), "grid", "Weixin history retention remains available");
+    } finally { await evaluate("document.querySelector('#removeAccountDialog').close()"); }
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('#updateCheckButton')).display"), "none", "disabled legacy updater must not reappear through button styles");
+    await evaluate("document.querySelector('[data-view=ide]').click();document.querySelector('#idePerHostRouting').checked=true;document.querySelector('#idePerHostRouting').dispatchEvent(new Event('change'));document.querySelector('#ideLocalDirectAuto').checked=false;document.querySelector('#ideLocalDirectAuto').dispatchEvent(new Event('change'))");
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('#ideLocalDirectInterfaceField')).display"), "none");
+    assert.notEqual(await evaluate("getComputedStyle(document.querySelector('#ideLocalDirectAddressField')).display"), "none");
+    await evaluate("document.querySelector('#ideLocalDirectAuto').checked=true;document.querySelector('#ideLocalDirectAuto').dispatchEvent(new Event('change'))");
+    assert.notEqual(await evaluate("getComputedStyle(document.querySelector('#ideLocalDirectInterfaceField')).display"), "none");
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('#ideLocalDirectAddressField')).display"), "none");
+    await evaluate("document.querySelector('[data-view=sessions]').click()");
+  });
   await t.test("DEL-01.3: Web and IM show a completed native turn with pending delivery separately from channel acknowledgement, never device acceptance", async () => {
     const previous = (manager as any).threadEvents; let fail = true;
     const threadId = store.getSession(session.id).threadId;

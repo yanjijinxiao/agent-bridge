@@ -231,6 +231,8 @@ export function TaskDetail({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState("");
   const [savingCommentId, setSavingCommentId] = useState<string | null>(null);
+  const commentEditRevision = useRef(0);
+  const commentEditSaving = useRef(false);
   const [pendingDelete, setPendingDelete] = useState<Comment | null>(null);
   const [deleting, setDeleting] = useState(false);
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -265,8 +267,10 @@ export function TaskDetail({
 
   useEffect(() => {
     setCurrentTask(task);
-    if (document.activeElement !== titleRef.current) setTitle(task.title);
-    if (document.activeElement !== descriptionRef.current) setDescription(task.description);
+    // Server projections may update other properties while a local draft is
+    // still unsaved. Only replace a pristine, unfocused text field.
+    if (document.activeElement !== titleRef.current) setTitle(value => value === currentTask.title ? task.title : value);
+    if (document.activeElement !== descriptionRef.current) setDescription(value => value === currentTask.description ? task.description : value);
   }, [task]);
 
   useEffect(() => {
@@ -362,14 +366,13 @@ export function TaskDetail({
     try {
       const saved = await onUpdate(currentTask, changes);
       setCurrentTask(saved);
-      setTitle(saved.title);
-      setDescription(saved.description);
+      setTitle(value => value === title && (changes.title !== undefined || title === currentTask.title) ? saved.title : value);
+      setDescription(value => value === description && (changes.description !== undefined || description === currentTask.description) ? saved.description : value);
       onAnnounce(`${saved.identifier} 已更新。`);
       return saved;
     } catch (error) {
       onError(messageFor(error));
-      setTitle(currentTask.title);
-      setDescription(currentTask.description);
+      // A rejected property write does not discard either text draft.
       return null;
     } finally {
       setSavingProperty(null);
@@ -532,27 +535,39 @@ export function TaskDetail({
   }
 
   function beginEdit(comment: Comment) {
+    commentEditRevision.current++;
     setEditingId(comment.id);
     setEditingBody(comment.body);
     setActiveMenuId(null);
   }
 
+  function cancelCommentEdit() {
+    commentEditRevision.current++;
+    setEditingId(null);
+  }
+
   async function saveComment(comment: Comment) {
+    // Click and keyboard submission share this synchronous handoff. The
+    // editor remains usable, but an old receipt may only close its own draft.
+    if (commentEditSaving.current) return;
     const body = editingBody.trim();
     if (!body || body === comment.body) {
       if (body === comment.body) setEditingId(null);
       return;
     }
+    const revision = commentEditRevision.current;
+    commentEditSaving.current = true;
     setSavingCommentId(comment.id);
     setCommentsError(null);
     try {
       const updated = await updateComment(comment, body);
       setComments((current) => current.map((item) => item.id === updated.id ? updated : item));
-      setEditingId(null);
+      if (commentEditRevision.current === revision) setEditingId(null);
       onAnnounce("评论已更新。");
     } catch (error) {
-      setCommentsError(messageFor(error));
+      if (commentEditRevision.current === revision) setCommentsError(messageFor(error));
     } finally {
+      commentEditSaving.current = false;
       setSavingCommentId(null);
     }
   }
@@ -894,9 +909,9 @@ export function TaskDetail({
                             value={editingBody}
                             rows={3}
                             aria-label="编辑评论"
-                            onChange={(event) => setEditingBody(event.target.value)}
+                            onChange={(event) => { commentEditRevision.current++; setEditingBody(event.target.value); }}
                             onKeyDown={(event) => {
-                              if (event.key === "Escape") setEditingId(null);
+                              if (event.key === "Escape") cancelCommentEdit();
                               if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
                                 event.preventDefault();
                                 void saveComment(comment);
@@ -904,11 +919,11 @@ export function TaskDetail({
                             }}
                           />
                           <div>
-                            <button className="button secondary" type="button" onClick={() => setEditingId(null)}>取消</button>
+                            <button className="button secondary" type="button" onClick={cancelCommentEdit}>取消</button>
                             <button
                               className="button primary"
                               type="button"
-                              disabled={!editingBody.trim() || savingCommentId === comment.id}
+                              disabled={!editingBody.trim() || savingCommentId !== null}
                               onClick={() => void saveComment(comment)}
                             >
                               {savingCommentId === comment.id ? "保存中…" : "保存"}

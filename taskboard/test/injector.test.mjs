@@ -64,12 +64,9 @@ test("the CDP bridge accepts only service ensure and native Skill composer prefi
   assert.match(runtimeSource, /request\.instruction\.length <= 1_024/);
   assert.match(runtimeSource, /request\.skillPath\.length <= 1_024/);
   assert.match(source, /function prefillTaskComposerViaCdp/);
-  assert.match(source, /cdp\.send\("Input\.insertText", \{ text: "\$" \}\)/);
-  assert.match(source, /data-composer-overlay-floating-ui/);
-  assert.match(source, /button\[data-list-navigation-item="true"\]/);
-  assert.match(source, /\[skill-mention-name\]/);
-  assert.match(source, /skill-mention-path/);
-  assert.match(source, /cdp\.send\("Input\.insertText", \{ text: instruction \}\)/);
+  assert.match(runtimeSource, /typeof request\.operationId === "string"/);
+  assert.match(source, /runtime\.prefillTaskComposerStep/);
+  assert.doesNotMatch(source.slice(source.indexOf("async function prefillTaskComposerViaCdp"), source.indexOf("async function sendHostResponse")), /Input\.insertText/);
   assert.match(source, /Runtime\.bindingCalled/);
   assert.match(runtimeSource, /params\.executionContextId/);
   assert.match(source, /hostResponse/);

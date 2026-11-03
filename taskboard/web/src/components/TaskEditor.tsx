@@ -260,6 +260,9 @@ export function TaskEditor({
           </div>
         </header>
 
+        {/* A confirmed save closes this editor. Freeze its submitted fields
+            until the receipt arrives so later edits cannot disappear on close. */}
+        <fieldset disabled={saving} className="task-editor-fields">
         <div className="form-body">
           <label className="composer-title">
             <span className="sr-only">标题</span>
@@ -423,6 +426,7 @@ export function TaskEditor({
             </div>
           </footer>
         </div>
+        </fieldset>
       </form>
     </dialog>
   );

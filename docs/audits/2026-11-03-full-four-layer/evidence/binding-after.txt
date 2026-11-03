@@ -1,0 +1,276 @@
+[codex-im-gateway] starting Codex turn for actor in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/approval-host-tWke5o
+[codex-im-gateway] sending reply to actor; text=37 chars
+[codex-im-gateway] sent reply to actor
+[codex-im-gateway] Codex turn completed for actor; text=4 chars
+[codex-im-gateway] starting Codex turn for actor in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/approval-host-E6x0l4
+✔ approval progress respects the complete native host identity (local) (98.488792ms)
+[codex-im-gateway] sending reply to actor; text=37 chars
+[codex-im-gateway] sent reply to actor
+[codex-im-gateway] Codex turn completed for actor; text=4 chars
+✔ approval progress respects the complete native host identity (peer:other) (78.881917ms)
+[codex-im-gateway] sending reply to group; text=67 chars
+[codex-im-gateway] sent reply to group
+[codex-im-gateway] sending reply to group; text=67 chars
+[codex-im-gateway] sent reply to group
+[codex-im-gateway] sending reply to group; text=67 chars
+[codex-im-gateway] sent reply to group
+✔ compact Chinese queue syntax has exact boundaries and cannot be shadowed by an extension alias (1.539334ms)
+✔ addressed input enters native queue exactly once: "@头头/queue这是在干啥？" (46.671333ms)
+✔ addressed input enters native queue exactly once: "@头头\n/queue 这是在干啥？" (36.138583ms)
+✔ addressed input enters native queue exactly once: "<@bot>/queue这是在干啥？" (67.841833ms)
+[codex-im-gateway] sending action card "当前工作上下文" to group
+[codex-im-gateway] sent action card "当前工作上下文" to group
+[codex-im-gateway] sending action card "当前工作上下文" to group
+[codex-im-gateway] sent action card "当前工作上下文" to group
+✔ status bypasses stalled skill discovery and uses only bounded, isolated diagnostic reads (1005.037125ms)
+✔ status cannot present a late observation after binding reset (2.39175ms)
+✔ queue admission rejects reset/rebind ABA during preparation (2.125667ms)
+[codex-im-gateway] metadata observation {"timestamp":"2026-11-03T04:19:59.917Z","hostId":"remote","threadId":"thread","operation":"thread/read","status":"reconnecting","code":"timeout"}
+[codex-im-gateway] metadata observation {"timestamp":"2026-11-03T04:19:59.930Z","hostId":"remote","threadId":"thread","operation":"thread/read","status":"failed","code":"timeout"}
+[codex-im-gateway] sending reply to group; text=67 chars
+[codex-im-gateway] sent reply to group
+✔ status reader timeout cannot retire a concurrent membership/authorization reader (25.830042ms)
+[codex-im-gateway] sending reply to group; text=259 chars
+[codex-im-gateway] sent reply to group
+[codex-im-gateway] sending reply to group; text=259 chars
+[codex-im-gateway] sent reply to group
+✔ queue list returns local receipts promptly and coalesces repeated slow checks (1022.836458ms)
+[codex-im-gateway] sending action card "选择新会话的位置" to alice
+[codex-im-gateway] sent action card "选择新会话的位置" to alice
+[codex-im-gateway] sending reply to alice; text=133 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending action card "Codex 项目 · 3 个 · 1/1 页" to alice
+[codex-im-gateway] sent action card "Codex 项目 · 3 个 · 1/1 页" to alice
+[codex-im-gateway] sending reply to alice; text=135 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] starting Codex turn for alice in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-new-69tqhc/second
+[codex-im-gateway] Codex turn completed for alice; text=4 chars
+[codex-im-gateway] sending reply to alice; text=4 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=138 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] starting Codex turn for alice in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-new-69tqhc/third
+[codex-im-gateway] Codex turn completed for alice; text=4 chars
+[codex-im-gateway] sending reply to alice; text=4 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=133 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=67 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=64 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=242 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=242 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=166 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending action card "选择新会话的位置" to alice
+[codex-im-gateway] sent action card "选择新会话的位置" to alice
+[codex-im-gateway] starting Codex turn for alice in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-new-69tqhc/state/workspaces/standalone/session-6zoD4z
+[codex-im-gateway] Codex turn completed for alice; text=4 chars
+[codex-im-gateway] sending reply to alice; text=4 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] starting Codex turn for alice in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-new-69tqhc/state/workspaces/standalone/session-6zoD4z
+[codex-im-gateway] Codex turn completed for alice; text=4 chars
+[codex-im-gateway] sending reply to alice; text=4 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=166 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending action card "选择新会话的位置" to alice
+[codex-im-gateway] sent action card "选择新会话的位置" to alice
+[codex-im-gateway] sending reply to alice; text=133 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending action card "Codex 项目 · 3 个 · 1/1 页" to alice
+[codex-im-gateway] sent action card "Codex 项目 · 3 个 · 1/1 页" to alice
+[codex-im-gateway] sending reply to alice; text=135 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] starting Codex turn for alice in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-new-aAuVDy/second
+[codex-im-gateway] Codex turn completed for alice; text=4 chars
+[codex-im-gateway] sending reply to alice; text=4 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=138 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] starting Codex turn for alice in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-new-aAuVDy/third
+[codex-im-gateway] Codex turn completed for alice; text=4 chars
+[codex-im-gateway] sending reply to alice; text=4 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=133 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=67 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=64 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=242 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=242 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=166 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending action card "选择新会话的位置" to alice
+[codex-im-gateway] sent action card "选择新会话的位置" to alice
+[codex-im-gateway] starting Codex turn for alice in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-new-aAuVDy/state/workspaces/standalone/session-1jlznt
+[codex-im-gateway] Codex turn completed for alice; text=4 chars
+[codex-im-gateway] sending reply to alice; text=4 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] starting Codex turn for alice in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-new-aAuVDy/state/workspaces/standalone/session-1jlznt
+[codex-im-gateway] Codex turn completed for alice; text=4 chars
+[codex-im-gateway] sending reply to alice; text=4 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to alice; text=166 chars
+[codex-im-gateway] sent reply to alice
+[codex-im-gateway] sending reply to chat; text=77 chars
+[codex-im-gateway] sent reply to chat
+[codex-im-gateway] sending action card "Codex 项目 · 3 个 · 1/1 页" to chat
+[codex-im-gateway] sent action card "Codex 项目 · 3 个 · 1/1 页" to chat
+[codex-im-gateway] sending reply to chat; text=33 chars
+[codex-im-gateway] sent reply to chat
+[codex-im-gateway] sending reply to chat; text=34 chars
+[codex-im-gateway] sent reply to chat
+[codex-im-gateway] sending reply to chat; text=46 chars
+[codex-im-gateway] sent reply to chat
+[codex-im-gateway] sending reply to chat; text=133 chars
+[codex-im-gateway] sent reply to chat
+[codex-im-gateway] sending reply to chat; text=46 chars
+[codex-im-gateway] sent reply to chat
+[codex-im-gateway] starting Codex turn for chat in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-new-hosts-lAK7h1
+[codex-im-gateway] Codex turn completed for chat; text=4 chars
+[codex-im-gateway] sending reply to chat; text=4 chars
+[codex-im-gateway] sent reply to chat
+[codex-im-gateway] sending reply to chat; text=166 chars
+[codex-im-gateway] sent reply to chat
+[codex-im-gateway] starting Codex turn for chat in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-new-hosts-lAK7h1/workspaces/standalone/session-WTff2K
+[codex-im-gateway] Codex turn completed for chat; text=4 chars
+[codex-im-gateway] sending reply to chat; text=4 chars
+[codex-im-gateway] sent reply to chat
+[codex-im-gateway] sending action card "此渠道未开放该模式" to chat
+[codex-im-gateway] sent action card "此渠道未开放该模式" to chat
+✔ new target parser and aliases reject mixed/unknown flags (1.421ms)
+✔ exec: /new targets current, selected and durable independent sessions without eager runs (199.915375ms)
+✔ app-server: /new targets current, selected and durable independent sessions without eager runs (112.633208ms)
+✔ /new preserves host routing, rejects ambiguous names and enforces ACL/mode before allocating (88.618125ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=110 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/2 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/2 页" to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 2/2 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 2/2 页" to room-one
+[codex-im-gateway] sending reply to room-one; text=151 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+✔ peer session trees retain empty device projects without changing session numbers across pages (126.017084ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=110 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sending reply to room-one; text=235 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 2 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 2 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sending reply to room-one; text=98 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/another-project
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=88 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/another-project
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+✔ pair the device, choose a session entirely in DingTalk, then switch to another local session (284.262875ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "选择模型" to room-one
+[codex-im-gateway] sent action card "选择模型" to room-one
+[codex-im-gateway] sending action card "当前工作上下文" to room-one
+[codex-im-gateway] sent action card "当前工作上下文" to room-one
+[codex-im-gateway] sending reply to room-one; text=48 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=139 chars
+[codex-im-gateway] sent reply to room-one
+✔ DingTalk-normalized chat pairs and continues the exact existing device session (131.892459ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+✔ a delayed connect keeps its original binding authority (unchanged) (46.886541ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+✔ a delayed connect keeps its original binding authority (binding) (56.923166ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+✔ a delayed connect keeps its original binding authority (aba) (56.144041ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+✔ a delayed connect keeps its original binding authority (role) (37.961584ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+✔ Gateway chat ACL and peer grants both apply even when a group is allowed (67.205584ms)
+[codex-im-gateway] sending action card "Codex 渠道工作台" to remote-chat
+[codex-im-gateway] sent action card "Codex 渠道工作台" to remote-chat
+✔ a remote conversation acts as a real Bridge channel on the accepted endpoint (5.114167ms)
+[codex-im-gateway] sending action card "Codex 渠道工作台" to remote-chat
+[codex-im-gateway] sent action card "Codex 渠道工作台" to remote-chat
+✔ a remote conversation acts as a real Bridge channel on the dialled endpoint (3.472458ms)
+✔ all public backend ports have an explicit peer transport policy (1.145125ms)
+✔ queue callbacks remain live after queue/add returns and retain original request objects (95.4595ms)
+✔ queue admission classification survives RPC and a definitive rejection may be retried (94.3965ms)
+✔ resumeAfterCapacity rechecks the source after native preparation (54.032167ms)
+✔ recoverSystemError rechecks the source after native preparation (44.867042ms)
+✔ background recovery requires a concrete authorized source, not any paired actor (51.774ms)
+✔ device rollback journal survives restart and never grants a new turn (39.322083ms)
+✔ runtime query preserves the metadata observation options (34.416208ms)
+✔ optional native results retain undefined across JSON transport (52.71025ms)
+✔ native queue cancellation releases callbacks without answering pending approval (65.423ms)
+✔ native execution options pass through without inventing a dynamic tool handler (71.865333ms)
+✔ capacity snapshot restores its original source receipt (39.570375ms)
+✔ source translation separates actor queues from the thread capacity coordinator (21.997333ms)
+✔ queue reconciliation preserves each actor source on the same native thread (64.659209ms)
+✔ a queue delete that did not remove the item preserves its later callbacks (71.449416ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4491.793792

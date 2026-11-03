@@ -1,0 +1,267 @@
+[codex-im-gateway] starting Codex turn for actor in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/approval-host-EJPh2E
+[codex-im-gateway] sending reply to actor; text=37 chars
+[codex-im-gateway] sent reply to actor
+[codex-im-gateway] Codex turn completed for actor; text=4 chars
+[codex-im-gateway] starting Codex turn for actor in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/approval-host-zK4Kpo
+✔ approval progress respects the complete native host identity (local) (44.482291ms)
+[codex-im-gateway] sending reply to actor; text=37 chars
+[codex-im-gateway] sent reply to actor
+[codex-im-gateway] Codex turn completed for actor; text=4 chars
+✖ approval progress respects the complete native host identity (peer:other) (28.579541ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=110 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/2 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/2 页" to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 2/2 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 2/2 页" to room-one
+[codex-im-gateway] sending reply to room-one; text=151 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+✔ peer session trees retain empty device projects without changing session numbers across pages (55.563333ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=110 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sending reply to room-one; text=237 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 2 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 2 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sending reply to room-one; text=98 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/another-project
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=88 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/another-project
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+✔ pair the device, choose a session entirely in DingTalk, then switch to another local session (159.0705ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "选择模型" to room-one
+[codex-im-gateway] sent action card "选择模型" to room-one
+[codex-im-gateway] sending action card "当前工作上下文" to room-one
+[codex-im-gateway] sent action card "当前工作上下文" to room-one
+✖ DingTalk-normalized chat pairs and continues the exact existing device session (60.774167ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+✔ a delayed connect keeps its original binding authority (unchanged) (19.957125ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+✖ a delayed connect keeps its original binding authority (binding) (20.539584ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+✖ a delayed connect keeps its original binding authority (aba) (20.589167ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=34 chars
+[codex-im-gateway] sent reply to room-one
+✔ a delayed connect keeps its original binding authority (role) (19.010125ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+✔ Gateway chat ACL and peer grants both apply even when a group is allowed (62.60175ms)
+[codex-im-gateway] sending action card "Codex 渠道工作台" to remote-chat
+[codex-im-gateway] sent action card "Codex 渠道工作台" to remote-chat
+✔ a remote conversation acts as a real Bridge channel on the accepted endpoint (5.46525ms)
+[codex-im-gateway] sending action card "Codex 渠道工作台" to remote-chat
+[codex-im-gateway] sent action card "Codex 渠道工作台" to remote-chat
+✔ a remote conversation acts as a real Bridge channel on the dialled endpoint (3.726958ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 8
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 677.783167
+
+✖ failing tests:
+
+test at test/approval-host-progress.test.ts:1:516
+✖ approval progress respects the complete native host identity (peer:other) (28.579541ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   'waiting-approval'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/approval-host-progress.test.ts:43:14)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'waiting-approval' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/peer-bridge.test.ts:1:5641
+✖ DingTalk-normalized chat pairs and continues the exact existing device session (60.774167ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /model: deepseek-v4\.1-flash-1017/. Input:
+  
+  '当前工作上下文\n' +
+    '\n' +
+    '项目：尚未选择\n' +
+    '\n' +
+    '模式：会话模式\n' +
+    '\n' +
+    '问答知识库：未绑定\n' +
+    '\n' +
+    '任务：尚未绑定 Taskboard Issue\n' +
+    '\n' +
+    '会话：Local existing task\n' +
+    '\n' +
+    '对话状态：普通对话（未附加模式）\n' +
+    '\n' +
+    '工作目录：/device-only/workspace\n' +
+    '\n' +
+    'thread：existing-native\n' +
+    '\n' +
+    '运行状态：空闲（只读快照）\n' +
+    '\n' +
+    '实时跟随：开启\n' +
+    '\n' +
+    'backend：app-server\n' +
+    '\n' +
+    'app-server transport：auto\n' +
+    '\n' +
+    'exec sandbox：Codex 默认\n' +
+    '\n' +
+    'model: gateway-gpt-default\n' +
+    '\n' +
+    'effort: high\n' +
+    '\n' +
+    '部分状态未在查询预算内确认；原任务与绑定未改变。\n' +
+    '\n' +
+    '过程回复：关闭（全局）\n' +
+    '\n' +
+    '发送命令操作（复制不会发送）：\n' +
+    '\n' +
+    '切换模式\n' +
+    '\n' +
+    '```text\n' +
+    '/mode\n' +
+    '```\n' +
+    '\n' +
+    '任务面板\n' +
+    '\n' +
+    '```text\n' +
+    '/task list\n' +
+    '```\n' +
+    '\n' +
+    '会话\n' +
+    '\n' +
+    '```text\n' +
+    '/sessions\n' +
+    '```\n' +
+    '\n' +
+    '目标\n' +
+    '\n' +
+    '```text\n' +
+    '/goal\n' +
+    '```'
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/peer-bridge.test.ts:108:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '当前工作上下文\n\n项目：尚未选择\n\n模式：会话模式\n\n问答知识库：未绑定\n\n任务：尚未绑定 Taskboard Issue\n\n会话：Local existing task\n\n对话状态：普通对话（未附加模式）\n\n工作目录：/device-only/workspace\n\nthread：existing-native\n\n运行状态：空闲（只读快照）\n\n实时跟随：开启\n\nbackend：app-server\n\napp-server transport：auto\n\nexec sandbox：Codex 默认\n\nmodel: gateway-gpt-default\n\neffort: high\n\n部分状态未在查询预算内确认；原任务与绑定未改变。\n\n过程回复：关闭（全局）\n\n发送命令操作（复制不会发送）：\n\n切换模式\n\n```text\n/mode\n```\n\n任务面板\n\n```text\n/task list\n```\n\n会话\n\n```text\n/sessions\n```\n\n目标\n\n```text\n/goal\n```',
+    expected: /model: deepseek-v4\.1-flash-1017/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/peer-bridge.test.ts:1:7932
+✖ a delayed connect keeps its original binding authority (binding) (20.539584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'existing-native'
+  - 'replacement-thread'
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/peer-bridge.test.ts:142:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'existing-native',
+    expected: 'replacement-thread',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/peer-bridge.test.ts:1:7932
+✖ a delayed connect keeps its original binding authority (aba) (20.589167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'existing-native'
+  - 'original-thread'
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/peer-bridge.test.ts:142:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'existing-native',
+    expected: 'original-thread',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

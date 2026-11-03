@@ -355,3 +355,48 @@ test("native observation retry stops while paused or closed and resumes only on 
   await f.service.close(); await new Promise(resolve => setTimeout(resolve, 1100)); assert.equal(observations, 2);
   assert.equal(f.core.calls.length, 1);
 });
+
+for (const kind of ["approval", "user-input"]) {
+  test(`uncertain ${kind} answer refreshes the original request without a page poll or answer replay`, async t => {
+    const decisions = [], refreshed = Promise.withResolvers();
+    let second, refreshCount = 0;
+    const request = { threadId: "", turnId: "", itemId: "original", nativeKey: "original-request", requestId: 9,
+      options: [{ id: "accept", label: "Allow once" }, { id: "decline", label: "Reject" }],
+      questions: [{ id: "value", question: "Choose a value" }] };
+    const f = await createFixture({ async onRun(input, entry) {
+      Object.assign(request, { threadId: entry.threadId, turnId: entry.turnId });
+      decisions.push(await (kind === "approval" ? input.onApproval(request) : input.onUserInput(request)));
+      await (kind === "approval" ? input.onApprovalResult(request, "failed") : input.onUserInputResult(request, "failed"));
+      await refreshed.promise;
+      decisions.push(await second);
+      await (kind === "approval" ? input.onApprovalResult(request, "confirmed") : input.onUserInputResult(request, "confirmed"));
+      return "Done";
+    } });
+    t.after(async () => { refreshed.resolve(); await f.close(); });
+    const observe = f.backend.observeThreadInteractions.bind(f.backend);
+    f.backend.observeThreadInteractions = async (...args) => {
+      await observe(...args);
+      if (decisions.length === 1) {
+        refreshCount++;
+        second = kind === "approval" ? args[2].onApproval({ request }) : args[2].onUserInput({ request });
+        refreshed.resolve();
+      }
+    };
+    const thread = await f.service.createThread({ projectId: "project" });
+    const run = await f.service.startTurn(thread.id, { message: "one original input" });
+    await waitFor(() => f.service.getThreadSnapshot(thread.id).interactions.length);
+    const id = f.service.getThreadSnapshot(thread.id).interactions[0].id;
+    const firstAnswer = kind === "approval" ? "accept" : { value: { answers: ["one"] } };
+    const secondAnswer = kind === "approval" ? "decline" : { value: { answers: ["two"] } };
+    f.service.answerInteraction(thread.id, id, firstAnswer);
+    // Deliberately no getThreadSnapshot/recover: neither a closed page nor an
+    // idle IM consumer should be required to drive native request recovery.
+    await waitFor(() => refreshCount > 0, 2600);
+    assert.deepEqual(decisions, [firstAnswer]);
+    assert.equal(refreshCount, 1);
+    f.service.answerInteraction(thread.id, id, secondAnswer);
+    await waitFor(() => f.service.getRun(run.id).status === "completed");
+    assert.deepEqual(decisions, [firstAnswer, secondAnswer]);
+    assert.equal(f.core.calls.length, 1);
+  });
+}

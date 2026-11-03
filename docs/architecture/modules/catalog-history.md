@@ -27,3 +27,7 @@ codex-projects、native-project-membership、codex-app-server、codex-session-mo
 ## 公开用户消息的共同边界
 
 public-user-message.isInternalUserMessage由原生history、rollout history与Desktop预览共用，只匹配已知完整环境/中断信封及特定审批transcript前缀。普通用户正文引用这些标签不被隐藏。内部thread来源仍由rolloutIdentity单独判断，不能仅靠删正文证明子线程隔离。CAT-04.1/2补齐三种日志格式、UTF8长行、正常引用和两条reader路径。新建提前thread ID与干净标题经真实隔离原生核心验证。
+
+目录展示时间按Date可表示范围验证；有限数字仍可能超出该范围。项目沿原缺省时间策略，session省略无效的可选updatedAt；不删除条目、不修写原生数据库、不改变项目/主机身份。CAT-01.5有正常时间与原文件字节对照。
+
+CAT-01.6 将同一可表示日期边界补到原生 App Server DTO：thread.updatedAt 与 turn.startedAt 的极大有限值不再令读取失败；秒和毫秒仍兼容，原生数据不改写。

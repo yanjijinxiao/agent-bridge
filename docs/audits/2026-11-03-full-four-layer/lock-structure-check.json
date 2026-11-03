@@ -1,0 +1,20 @@
+{
+  "lockfileVersion": 3,
+  "entries": 417,
+  "registryHosts": {
+    "registry.npmjs.org": 363,
+    "registry.npmmirror.com": 51
+  },
+  "integrityAlgorithms": {
+    "sha512": 396,
+    "sha1": 18
+  },
+  "links": [
+    "node_modules/codex-taskboard"
+  ],
+  "engines": {
+    "node": "^22.13.0 || >=23.4.0"
+  },
+  "checks": "JSON and SRI syntax; HTTPS registry/no URL credentials; exact workspace dependency declarations and engines; workspace link target exists. Offline npm ci completed earlier; final builds separately recorded.",
+  "platformLimit": "Optional ia32 sharp and wasm runtime have platform-specific engine ranges; no claim of running Windows/wasm here. Native darwin arm64 runtime verified separately."
+}

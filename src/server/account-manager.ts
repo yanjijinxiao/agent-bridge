@@ -26,7 +26,7 @@ import { SessionControlJournal, SessionControlQueue } from "../bridge/session-co
 import { TurnAudienceJournal } from "../bridge/turn-audience.js";
 import { NativeQueueCoordinator } from "../bridge/native-queue.js";
 import { InboundReceiptJournal } from "../bridge/inbound-receipts.js";
-import { findNativeInputReceipts } from "../bridge/native-input-recovery.js";
+import { NativeInputReceiptObserver } from "../bridge/native-input-recovery.js";
 import { ForwardingInbox, type ForwardingTarget } from "../bridge/forwarding-inbox.js";
 import { ForwardingDeferredError } from "../bridge/forwarding-error.js";
 import { parseCommand } from "../bridge/channel-commands.js";
@@ -328,6 +328,7 @@ export class AccountManager {
   private readonly inputReceipts = new Map<string, InboundReceiptJournal>();
   private readonly forwardingInboxes = new Map<string, ForwardingInbox>();
   private readonly nativeInputRecoveries = new Map<string, { owner: RuntimeEntry; task: Promise<void> }>();
+  private readonly nativeInputReceiptObserver = new NativeInputReceiptObserver();
   private readonly respondingSessions = new Map<string, number>();
   private readonly webRestartWork = new RestartWork();
   private readonly resultRestartWork = new RestartWork();
@@ -1288,7 +1289,9 @@ export class AccountManager {
 
   async getCodexRuntimeInfo(scope?: CodexRuntimeQuery): Promise<CodexRuntimeInfo> {
     const config = this.configProvider();
-    const configured: CodexRuntimeInfo = {
+    // A Connector owns its execution defaults. Gateway-local overrides cannot
+    // describe that runtime, even when its observation is unavailable.
+    const configured: CodexRuntimeInfo = scope?.hostId?.startsWith("peer:") ? {} : {
       ...(config.model ? { model: config.model } : {}),
       ...(config.effort ? { effort: config.effort } : {})
     };
@@ -1816,7 +1819,7 @@ export class AccountManager {
         ? await runner.findNativeInputReceipts({ hostId, threadId }, candidates.map(receipt => ({
           clientUserMessageId: receipt.clientUserMessageId, accountId, conversationId: receipt.conversationId, actorId: receipt.actorId
         })))
-        : await findNativeInputReceipts(runner, { hostId, threadId }, new Set(candidates.map(receipt => receipt.clientUserMessageId)));
+        : await this.nativeInputReceiptObserver.observe(accountId, runner, { hostId, threadId }, new Set(candidates.map(receipt => receipt.clientUserMessageId)));
       // A stopped/replaced owner or release may retire this read while in
       // flight. It holds no restart lease and may not write through retirement.
       if (!live() || this.inputReceipts.get(accountId) !== journal) return;
@@ -2045,6 +2048,7 @@ export class AccountManager {
 
   private async closeRunner(): Promise<void> {
     const errors: unknown[] = [];
+    this.nativeInputReceiptObserver.clear();
     try { this.bindingExpiry.stop(); } catch (error) { errors.push(error); }
     if (this.nativeQueueTimer) clearInterval(this.nativeQueueTimer);
     this.nativeQueueTimer = undefined;

@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import test from "node:test";
-import { findNativeInputReceipts } from "../src/bridge/native-input-recovery.js";
+import { findNativeInputReceipts, NativeInputReceiptObserver } from "../src/bridge/native-input-recovery.js";
 import { InboundReceiptJournal } from "../src/bridge/inbound-receipts.js";
 import { ForwardingInbox } from "../src/bridge/forwarding-inbox.js";
 import { TurnSubmission } from "../src/bridge/turn-submission.js";
@@ -21,6 +21,65 @@ const scope = { hostId: "original-host", threadId: "original-thread" };
 const user = (clientUserMessageId = "exact", turnId = "turn"): CodexHistoryMessage => ({ id: "message", role: "user", text: "same body", clientUserMessageId, turnId });
 const source = { id: "source-id", senderId: "actor", replyTargetId: "room", text: "ordinary input", attachments: [], raw: {} };
 const settle = async () => { for (let n = 0; n < 6; n++) await new Promise<void>(resolve => setImmediate(resolve)); };
+
+test("receipt refreshes share a complete scan beyond the old twenty-page limit without replaying page one", async () => {
+  const observer = new NativeInputReceiptObserver({ replyTimeoutMs: 15, scanTimeoutMs: 1000 });
+  const delayed = Promise.withResolvers<CodexHistoryPage>(), entered = Promise.withResolvers<void>();
+  const reads: number[] = [];
+  const backend = { async getHistoryPage(_thread: string, input?: { cursor?: string }) {
+    const page = Number(input?.cursor ?? 0); reads.push(page);
+    if (page === 0) { entered.resolve(); return delayed.promise; }
+    return { messages: page === 24 ? [user()] : [], ...(page < 24 ? { nextCursor: String(page + 1) } : {}) };
+  } };
+  const first = observer.observe("account", backend, scope, new Set(["exact"]));
+  await entered.promise; await assert.rejects(first, /scan continues/);
+  const next = observer.observe("account", backend, scope, new Set(["exact"]));
+  const concurrent = observer.observe("account", backend, scope, new Set(["exact"]));
+  delayed.resolve({ messages: [], nextCursor: "1" });
+  assert.deepEqual([...(await next)], [["exact", "turn"]]);
+  assert.deepEqual([...(await concurrent)], [["exact", "turn"]]);
+  assert.deepEqual(reads, Array.from({ length: 25 }, (_, n) => n));
+  observer.clear();
+});
+
+test("background receipt scans preserve duplicate detection across refresh timeouts and principal scopes", async () => {
+  const observer = new NativeInputReceiptObserver({ replyTimeoutMs: 10, scanTimeoutMs: 1000 });
+  const last = Promise.withResolvers<CodexHistoryPage>(); let reads = 0;
+  const backend = { async getHistoryPage(_thread: string, input?: { cursor?: string }) {
+    reads++; return input?.cursor ? last.promise : { messages: [user()], nextCursor: 'older' };
+  } };
+  await assert.rejects(observer.observe('alice', backend, scope, new Set(['exact'])), /scan continues/);
+  await assert.rejects(observer.observe('bob', backend, scope, new Set(['exact'])), /scan continues/);
+  assert.equal(reads, 4, 'different principals do not reuse history scans');
+  last.resolve({ messages: [user('exact', 'duplicate-turn')] }); await settle();
+  assert.equal((await observer.observe('alice', backend, scope, new Set(['exact']))).size, 0);
+  assert.equal((await observer.observe('bob', backend, scope, new Set(['exact']))).size, 0);
+  assert.equal(reads, 4); observer.clear();
+});
+
+test("retired background receipt scans cannot return late proofs or hold the next owner", async () => {
+  const observer = new NativeInputReceiptObserver({ replyTimeoutMs: 10, scanTimeoutMs: 1000 });
+  const old = Promise.withResolvers<CodexHistoryPage>();
+  await assert.rejects(observer.observe('account', { getHistoryPage: () => old.promise }, scope, new Set(['exact'])), /scan continues/);
+  observer.clear(); old.resolve({ messages: [user()] }); await settle();
+  const fresh = await observer.observe('account', { async getHistoryPage() { return { messages: [] }; } }, scope, new Set(['exact']));
+  assert.equal(fresh.size, 0); observer.clear();
+});
+
+test("a failed background scan never publishes a partial match and retries with fresh complete history", async () => {
+  const observer = new NativeInputReceiptObserver({ replyTimeoutMs: 10, scanTimeoutMs: 25 });
+  let reads = 0;
+  const backend = { async getHistoryPage(_thread: string, input?: { cursor?: string }): Promise<CodexHistoryPage> {
+    reads++; if (input?.cursor) return new Promise(() => {});
+    return { messages: [user()], nextCursor: 'older' };
+  } };
+  await assert.rejects(observer.observe('account', backend, scope, new Set(['exact'])), /scan continues/);
+  await new Promise(resolve => setTimeout(resolve, 30));
+  await assert.rejects(observer.observe('account', backend, scope, new Set(['exact'])), /timed out/);
+  assert.equal(reads, 2);
+  const fresh = await observer.observe('account', { async getHistoryPage() { return { messages: [user('exact', 'fresh-turn')] }; } }, scope, new Set(['exact']));
+  assert.deepEqual([...fresh], [['exact', 'fresh-turn']]); observer.clear();
+});
 
 test("acceptance observation uses exact client IDs across complete pages on the original host/thread", async () => {
   const reads: unknown[] = [];

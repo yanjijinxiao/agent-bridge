@@ -229,17 +229,31 @@ function isTheme(value: unknown): value is Theme {
   return value === "light" || value === "dark";
 }
 
+// Display preferences are optional caches. Storage denial/quota must not take
+// down the board; submission journals below deliberately keep their errors.
+function readPreference(key: string): string | null {
+  try { return window.localStorage.getItem(key); } catch { return null; }
+}
+
+function writePreference(key: string, value: string): void {
+  try { window.localStorage.setItem(key, value); } catch { /* Keep the in-memory preference. */ }
+}
+
+function removePreference(key: string): void {
+  try { window.localStorage.removeItem(key); } catch { /* Keep the in-memory preference. */ }
+}
+
 function getInitialTheme(): Theme {
   const fromQuery = new URLSearchParams(window.location.search).get("theme");
   if (isTheme(fromQuery)) return fromQuery;
-  const stored = window.localStorage.getItem("taskboard.theme");
+  const stored = readPreference("taskboard.theme");
   if (isTheme(stored)) return stored;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function readFavoriteProjectIds(): Set<string> {
   try {
-    const value = JSON.parse(window.localStorage.getItem(FAVORITE_PROJECTS_KEY) ?? "[]");
+    const value = JSON.parse(readPreference(FAVORITE_PROJECTS_KEY) ?? "[]");
     return new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
   } catch {
     return new Set();
@@ -248,7 +262,7 @@ function readFavoriteProjectIds(): Set<string> {
 
 function readDeviceWorkspacePaths(): Record<string, string> {
   try {
-    const value = JSON.parse(window.localStorage.getItem(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");
+    const value = JSON.parse(readPreference(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
     return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => (
       typeof entry[1] === "string" && entry[1].trim().length > 0
@@ -259,12 +273,12 @@ function readDeviceWorkspacePaths(): Record<string, string> {
 }
 
 function readShowEmptyColumns(): boolean {
-  return window.localStorage.getItem(SHOW_EMPTY_COLUMNS_KEY) === "true";
+  return readPreference(SHOW_EMPTY_COLUMNS_KEY) === "true";
 }
 
 function readProjectAutomations(): ProjectAutomations {
   try {
-    const value = JSON.parse(window.localStorage.getItem(PROJECT_AUTOMATIONS_KEY) ?? "{}");
+    const value = JSON.parse(readPreference(PROJECT_AUTOMATIONS_KEY) ?? "{}");
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
     const result: ProjectAutomations = {};
     for (const [projectId, record] of Object.entries(value)) {
@@ -329,7 +343,7 @@ function isAutomationHostPolicy(
 
 function readColumnVisibilityByProject(): ColumnVisibilityByProject {
   try {
-    const value = JSON.parse(window.localStorage.getItem(COLUMN_VISIBILITY_KEY) ?? "{}");
+    const value = JSON.parse(readPreference(COLUMN_VISIBILITY_KEY) ?? "{}");
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
     const result: ColumnVisibilityByProject = {};
     for (const [projectId, visibilityValue] of Object.entries(value)) {
@@ -465,7 +479,7 @@ function LocalRealtimeSync({
       }
       if (!affectsSelectedProject) return;
       if (event.type === "workflow.updated") {
-        if (selectedProjectId) void refreshWorkflowOptions(selectedProjectId);
+        if (selectedProjectId) void refreshWorkflowOptions(selectedProjectId).catch(() => {});
         return;
       }
       if (event.type.startsWith("comment.")) {
@@ -487,7 +501,7 @@ function LocalRealtimeSync({
     source.onopen = () => {
       setConnection("live");
       scheduleRefresh({ projects: true, tasks: Boolean(selectedProjectId) });
-      if (selectedProjectId) void refreshWorkflowOptions(selectedProjectId);
+      if (selectedProjectId) void refreshWorkflowOptions(selectedProjectId).catch(() => {});
       if (detailTaskId) {
         setCommentsRevision((current) => current + 1);
         setAttachmentsRevision((current) => current + 1);
@@ -628,7 +642,7 @@ export function App() {
       const next = { ...current };
       if (normalizedPath) next[projectId] = normalizedPath;
       else delete next[projectId];
-      window.localStorage.setItem(DEVICE_WORKSPACE_PATHS_KEY, JSON.stringify(next));
+      writePreference(DEVICE_WORKSPACE_PATHS_KEY, JSON.stringify(next));
       return next;
     });
   }, []);
@@ -750,7 +764,7 @@ export function App() {
       if (record) next[projectId] = record;
       else delete next[projectId];
       projectAutomationsRef.current = next;
-      window.localStorage.setItem(PROJECT_AUTOMATIONS_KEY, JSON.stringify(next));
+      writePreference(PROJECT_AUTOMATIONS_KEY, JSON.stringify(next));
       return next;
     });
   }, []);
@@ -937,8 +951,8 @@ export function App() {
       if (routeProjectId === selectedProjectId) return;
       setBoardView("issues");
       selectProjectView(routeProjectId);
-      if (routeProjectId) window.localStorage.setItem(LAST_PROJECT_KEY, routeProjectId);
-      else window.localStorage.removeItem(LAST_PROJECT_KEY);
+      if (routeProjectId) writePreference(LAST_PROJECT_KEY, routeProjectId);
+      else removePreference(LAST_PROJECT_KEY);
     }
 
     window.addEventListener("popstate", syncRouteFromLocation);
@@ -949,7 +963,7 @@ export function App() {
     document.documentElement.dataset.theme = theme;
     document.documentElement.dataset.embedded = String(embedded);
     document.documentElement.style.colorScheme = theme;
-    if (!embedded) window.localStorage.setItem("taskboard.theme", theme);
+    if (!embedded) writePreference("taskboard.theme", theme);
   }, [embedded, theme]);
 
   useEffect(() => {
@@ -1085,12 +1099,12 @@ export function App() {
       setDeviceWorkspacePaths((current) => {
         const next = { ...current, ...workspaces };
         if (JSON.stringify(next) === JSON.stringify(current)) return current;
-        window.localStorage.setItem(DEVICE_WORKSPACE_PATHS_KEY, JSON.stringify(next));
+        writePreference(DEVICE_WORKSPACE_PATHS_KEY, JSON.stringify(next));
         return next;
       });
       setProjects(nextProjects);
       const fromQuery = new URLSearchParams(window.location.search).get("project");
-      const remembered = window.localStorage.getItem(LAST_PROJECT_KEY);
+      const remembered = readPreference(LAST_PROJECT_KEY);
       const current = selectedProjectIdRef.current;
       selectProjectView(fromQuery && nextProjects.some(project => project.id === fromQuery) ? fromQuery
         : current && nextProjects.some(project => project.id === current) ? current
@@ -1133,7 +1147,10 @@ export function App() {
         setLoadError(errorMessage(error));
       }
     } finally {
-      if (!options.quiet && requestId === tasksRequestRef.current) setTasksLoading(false);
+      // The newest read owns completion even if an SSE refresh replaced the
+      // initial foreground request. Otherwise a failed quiet read leaves the
+      // loading skeleton active forever; older responses remain retired.
+      if (requestId === tasksRequestRef.current) setTasksLoading(false);
     }
   }, []);
 
@@ -1369,7 +1386,7 @@ export function App() {
   );
 
   function updateShowEmptyColumns(show: boolean) {
-    window.localStorage.setItem(SHOW_EMPTY_COLUMNS_KEY, String(show));
+    writePreference(SHOW_EMPTY_COLUMNS_KEY, String(show));
     setShowEmptyColumns(show);
   }
 
@@ -1383,7 +1400,7 @@ export function App() {
           [status]: visible,
         },
       };
-      window.localStorage.setItem(COLUMN_VISIBILITY_KEY, JSON.stringify(next));
+      writePreference(COLUMN_VISIBILITY_KEY, JSON.stringify(next));
       return next;
     });
   }
@@ -1816,7 +1833,7 @@ export function App() {
     setDetailTaskIdentifier(null);
     setBoardView("issues");
     selectProjectView(projectId);
-    window.localStorage.setItem(LAST_PROJECT_KEY, projectId);
+    writePreference(LAST_PROJECT_KEY, projectId);
     setSearch("");
     setFilters(EMPTY_TASK_FILTERS);
     setActionError(null);
@@ -1831,7 +1848,7 @@ export function App() {
     setProjectMenuOpen(false);
     setDetailTaskIdentifier(null);
     selectProjectView("");
-    window.localStorage.removeItem(LAST_PROJECT_KEY);
+    removePreference(LAST_PROJECT_KEY);
     setSearch("");
     setFilters(EMPTY_TASK_FILTERS);
     setActionError(null);
@@ -1849,7 +1866,7 @@ export function App() {
       const next = new Set(current);
       if (shouldFavorite) next.add(selectedProjectId);
       else next.delete(selectedProjectId);
-      window.localStorage.setItem(FAVORITE_PROJECTS_KEY, JSON.stringify([...next]));
+      writePreference(FAVORITE_PROJECTS_KEY, JSON.stringify([...next]));
       return next;
     });
     setAnnouncement(`${selectedProject?.name ?? "项目"}${shouldFavorite ? "已收藏。" : "已取消收藏。"}`);

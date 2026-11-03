@@ -472,6 +472,32 @@ export const CLOUD_PROJECT_COUNTS_SQL = `
   FROM projects p ORDER BY p.id
 `;
 
+export const CLOUD_SUBMISSION_RECEIPTS_SQL =
+  "SELECT id, fingerprint, task_id, comment_id, created_at FROM task_submissions ORDER BY id";
+
+function requireReceiptReader(bundle, d1) {
+  // Legacy bundles explicitly have no receipt-table contract. New bundles
+  // retain even an empty table so verification cannot silently skip it.
+  if (bundle.tables.task_submissions !== undefined && typeof d1.readTaskSubmissions !== "function") {
+    throw new Error("Cloud migration adapter requires readTaskSubmissions to verify submission receipts");
+  }
+}
+
+async function verifySubmissionReceipts(bundle, d1) {
+  requireReceiptReader(bundle, d1);
+  if (bundle.tables.task_submissions === undefined) return undefined;
+  const actual = await d1.readTaskSubmissions();
+  const expected = bundle.tables.task_submissions;
+  const canonical = (rows) => sortRows("task_submissions", [...rows]).map((row) =>
+    CLOUD_COLUMNS.task_submissions.map((column) => row[column] ?? null));
+  // Counts alone cannot detect a lost tombstone, changed fingerprint or a
+  // receipt attached to another entity; those would change retry behavior.
+  if (!Array.isArray(actual) || JSON.stringify(canonical(expected)) !== JSON.stringify(canonical(actual))) {
+    throw new Error("Cloud submission receipt mismatch; original import remains unverified");
+  }
+  return { verified: expected.length };
+}
+
 export function createCloudBindingMigrationAdapters({ d1, r2 }) {
   return {
     d1: {
@@ -488,6 +514,10 @@ export function createCloudBindingMigrationAdapters({ d1, r2 }) {
           row.project_id,
           Object.fromEntries(TABLE_ORDER.map((table) => [table, Number(row[table])])),
         ]));
+      },
+      async readTaskSubmissions() {
+        const result = await d1.prepare(CLOUD_SUBMISSION_RECEIPTS_SQL).all();
+        return result.results;
       },
     },
     r2: {
@@ -518,19 +548,27 @@ export async function verifyCloudMigrationBundle(bundle, { d1, r2 }) {
   validateBundle(bundle);
   const counts = await d1.countByProject();
   assertCountsMatch(bundle.counts.byProject, counts);
+  const submissions = await verifySubmissionReceipts(bundle, d1);
   const verified = await verifyR2Attachments(bundle, r2);
   return {
     counts: { byProject: structuredClone(bundle.counts.byProject) },
     attachments: { verified },
+    ...(submissions ? { submissions } : {}),
   };
 }
 
 export async function importCloudMigrationBundle(bundle, { d1, r2 }) {
   validateBundle(bundle);
+  requireReceiptReader(bundle, d1);
 
   const existingCounts = await d1.countByProject();
   if (Object.keys(existingCounts).length > 0) {
     throw new Error("Cloud migration target D1 is not empty");
+  }
+  if (bundle.tables.task_submissions !== undefined) {
+    const existing = await d1.readTaskSubmissions();
+    if (!Array.isArray(existing)) throw new Error("Cloud migration submission receipt read is invalid");
+    if (existing.length) throw new Error("Cloud migration target D1 submission receipts are not empty");
   }
   for (const attachment of bundle.attachments) {
     if (await r2.head(attachment.objectKey)) {
@@ -558,9 +596,11 @@ export async function importCloudMigrationBundle(bundle, { d1, r2 }) {
     d1Committed = true;
     const counts = await d1.countByProject();
     assertCountsMatch(bundle.counts.byProject, counts);
+    const submissions = await verifySubmissionReceipts(bundle, d1);
     return {
       counts: { byProject: structuredClone(bundle.counts.byProject) },
       attachments: { verified },
+      ...(submissions ? { submissions } : {}),
     };
   } catch (error) {
     // A rejected transport promise does not prove the D1 transaction rolled
@@ -608,7 +648,7 @@ export async function writeCloudMigrationBundle(bundle, outputDirectory) {
     await mkdir(attachmentsDirectory, { mode: 0o700 });
 
     const tableFiles = {};
-    for (const table of [...TABLE_ORDER, ...(bundle.tables.task_submissions?.length ? ["task_submissions"] : [])]) {
+    for (const table of [...TABLE_ORDER, ...(bundle.tables.task_submissions !== undefined ? ["task_submissions"] : [])]) {
       const relativePath = `data/${table}.json`;
       await writePrivateFile(
         bundleFile(outputDirectory, relativePath),

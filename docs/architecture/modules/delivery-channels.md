@@ -10,7 +10,7 @@ ThreadEventHub 将 inputRecoveryFailure 与当前快照 syncFailure 分开。旧
 
 ## 一次投递的边界
 
-创建、更新、分页和媒体各有回执。sendActionCard/sendTaskCard 的文本能力降级在 ChannelClient 第一次外部写入前选择。任何卡片写异常都不能授权 Bridge 再建卡或把同一正文发文字；partial delivery 只记录已经确认的页并报告剩余未知，不能从头发送。明确命令卡更新失败保留原表面，不推断用户没看见。
+创建、更新、分页和媒体各有回执。sendActionCard/sendTaskCard 的文本能力降级在 ChannelClient 第一次外部写入前选择。任何卡片写异常都不能授权 Bridge 再建卡或把同一正文发文字；partial delivery 只记录已经确认的页并报告剩余未知，不能从头发送。明确命令卡更新失败保留原表面，不推断用户没看见。钉钉适配器同样遵守这条边界：已配置卡片时，即便平台明确拒绝创建，也向上返回该失败，不改走 webhook；未配置卡片时才预先选择文本能力。卡片收件人只接受已确认的群聊或单聊类型，空值和未知类型不能按私聊猜测。
 
 最终 @、复制控件和项目 IDE 页脚属于共享展示层。模型不重复拼 IDE 尾链；完整必要回复才可复制，路径、状态、目录树和原生按钮标签不变成复制答案。复制动作没有提交/授权副作用。围栏、分页、字节预算与 directed mention 分开测试，再检查合并边界。
 
@@ -39,3 +39,6 @@ FeishuChannelAdapter与WeComChannelAdapter只组合渠道端口；FeishuMediaSen
 Bridge仍以显式send动作触发；TurnResultActions在外部I/O前持久认领，确认后才done，未知结果跨重启保留started，不重复上传/发送。缺SDK媒体方法时不宣称available，也不把本地路径作为已送达文字。远程文件仍先通过原执行主机回传端口成为Gateway私有副本。
 
 验证使用实际飞书SDK对隔离HTTP的multipart/业务码与实际企微SDK对隔离WebSocket的init/chunk/finish/send，外加真实Bridge/动作日志；未连接真实账号。平台权限、企业安全策略、视频播放及手机呈现仍待实机验收。协议依据：[飞书消息内容](https://open.feishu.cn/document/server-docs/im-v1/message-content-description/create_json?lang=zh-CN)、[文件上传](https://open.feishu.cn/document/server-docs/im-v1/file/create)、[企微官方SDK](https://github.com/WecomTeam/aibot-node-sdk)。
+## 微信二维码回执
+
+创建/轮询 QR 的显式非零 ret 先于状态字段检查；错误响应中的旧二维码、connected 或 redirect_host 不得发布账号或改变轮询目的地。旧成功 GET 响应缺省 ret 仍兼容。失败只展示安全数字码，不把原始 errmsg 输出给用户；QR 自身到期仍优先终止轮询。CHAN-04.5 验证真实登录类与替身 HTTP 回执，不代表实际扫码验收。

@@ -45,7 +45,9 @@ export async function stageRemoteFiles(files: CodexInboundFile[], scope: string,
   const args = [...transport.args.slice(0, -1), `exec node -e "eval(Buffer.from('${encoded}','base64').toString())"`];
   const output: CodexInboundFile[] = [];
   for (const file of files) {
-    const fd = fs.openSync(file.path, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    // Opening a FIFO can block before fstat or the SSH timeout runs. Match the
+    // output/Peer file boundary: open nonblocking, then accept regular files only.
+    const fd = fs.openSync(file.path, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK);
     let body: Buffer;
     try {
       const stat = fs.fstatSync(fd);

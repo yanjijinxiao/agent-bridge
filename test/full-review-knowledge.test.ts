@@ -17,6 +17,36 @@ function fixture(t: test.TestContext, source: string) {
   const pool = new LlmWikiMcpClientPool(); t.after(() => { pool.close(); fs.rmSync(root, { recursive: true, force: true }); });
   return { root, wiki, pool, kb: { id: "knowledge", name: "wiki", rootPath: wiki, createdAt: "now", updatedAt: "now" } };
 }
+test("MCP preserves UTF-8 split across chunks and frames coalesced in one write", async t => {
+  const f = fixture(t, `const rl=require('node:readline').createInterface({input:process.stdin}),send=m=>console.log(JSON.stringify(m));
+    rl.on('line',line=>{const m=JSON.parse(line);
+      if(m.method==='initialize')send({id:m.id,result:{}});
+      if(m.method==='tools/list')send({id:m.id,result:{tools:[{name:'search'},{name:'get_document'}]}});
+      if(m.method==='tools/call'){
+        const bytes=Buffer.from(JSON.stringify({id:m.id,result:{structuredContent:{text:'汉字证据'}}})+'\\n'+JSON.stringify({method:'notification'})+'\\n');
+        const split=bytes.indexOf(Buffer.from('汉'))+1;
+        process.stdout.write(bytes.subarray(0,split));setTimeout(()=>process.stdout.write(bytes.subarray(split)),5);
+      }
+    });`);
+  assert.deepEqual(JSON.parse(await f.pool.call(f.kb, "search", { query: "evidence" })), { text: "汉字证据" });
+});
+for (const framing of ["complete", "unfinished"] as const) test(`MCP rejects an oversized ${framing} UTF-8 frame and permits a fresh session`, { timeout: 5000 }, async t => {
+  const f = fixture(t, `const fs=require('node:fs'),path=require('node:path'),rl=require('node:readline').createInterface({input:process.stdin});
+    const marker=path.join(path.dirname(process.argv[3]),'attempts'),n=Number(fs.existsSync(marker)?fs.readFileSync(marker,'utf8'):0)+1;fs.writeFileSync(marker,String(n));
+    const send=m=>console.log(JSON.stringify(m));
+    rl.on('line',line=>{const m=JSON.parse(line);
+      if(m.method==='initialize')send({id:m.id,result:{}});
+      if(m.method==='tools/list')send({id:m.id,result:{tools:[{name:'search'},{name:'get_document'}]}});
+      if(m.method==='tools/call'){
+        if(n>1)send({id:m.id,result:{structuredContent:{ok:true}}});
+        else if(${JSON.stringify(framing)}==='complete')send({id:m.id,result:{structuredContent:'界'.repeat(710000)}});
+        else {process.stdout.write('界'.repeat(710000));setTimeout(()=>{process.stdout.write('\\n');send({id:m.id,result:{structuredContent:{ok:true}}});},100);}
+      }
+    });`);
+  await assert.rejects(f.pool.call(f.kb, "get_document", { document_id: "large" }), /2 MiB/);
+  assert.match(await f.pool.call(f.kb, "search", { query: "next" }), /"ok": true/);
+  assert.equal(fs.readFileSync(path.join(f.root, "attempts"), "utf8"), "2");
+});
 test("concurrent knowledge calls wait for the same completed MCP initialization", { timeout: 5000 }, async t => {
   const f = fixture(t, `const fs=require('node:fs'), path=require('node:path'), rl=require('node:readline').createInterface({input:process.stdin});
     const root=path.dirname(process.argv[3]), send=(m)=>console.log(JSON.stringify(m));let ready=false;

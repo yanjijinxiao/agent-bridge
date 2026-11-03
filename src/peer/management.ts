@@ -18,8 +18,9 @@ const createSchema = z.object({ cwd: z.string().min(1).max(16384).optional(), pr
   clientUserMessageId: z.string().max(1024).optional() }).strict();
 const lifecycleSchema = z.object({ threadId: identity, title: z.string().trim().min(1).max(120).optional(), clientUserMessageId: z.string().max(1024).optional() }).strict();
 
-/** Native metadata writes only. Paths come from the device's project catalog
- * or a private device workspace, never a Gateway-selected arbitrary cwd. */
+/** Native metadata writes only. Project paths must match the device catalog
+ * or a confirmed worktree. Whole-device grants may also explicitly select an
+ * unassigned directory; fixed-thread/delegated grants cannot create sessions. */
 export class PeerManagement {
   private readonly queue = new SessionControlQueue();
   constructor(private readonly backend: CodexBridgeBackend, private readonly stateDir: string, private readonly receipts: PeerReceipts) {}

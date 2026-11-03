@@ -26,12 +26,13 @@ async function requireCloudImplementation() {
 
 export async function createCloudWorkerHarness({
   sharedSecret = "two-person-shared-secret",
+  entryPath = ENTRY_PATH,
 } = {}) {
   await requireCloudImplementation();
   const persistenceRoot = await mkdtemp(path.join(os.tmpdir(), "taskboard-cloud-worker-"));
   const miniflare = new Miniflare({
     modules: true,
-    scriptPath: ENTRY_PATH,
+    scriptPath: entryPath,
     modulesRoot: PROJECT_ROOT,
     compatibilityDate: "2026-07-24",
     bindings: {

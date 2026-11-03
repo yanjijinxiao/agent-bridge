@@ -1,0 +1,5 @@
+{"kind":"test","file":"test/install-local.test.ts","name":"local installer rejects Node 21.7.3 before building or writing links","sha256":"4536ce09365ea34bd60a5ca306c79274c4e6f86b3138983a799f5d27f6ed3990","status":"passed"}
+{"kind":"test","file":"test/install-local.test.ts","name":"local installer rejects Node 22.0.0 before building or writing links","sha256":"4536ce09365ea34bd60a5ca306c79274c4e6f86b3138983a799f5d27f6ed3990","status":"passed"}
+{"kind":"test","file":"test/install-local.test.ts","name":"local installer rejects Node 22.12.0 before building or writing links","sha256":"4536ce09365ea34bd60a5ca306c79274c4e6f86b3138983a799f5d27f6ed3990","status":"passed"}
+{"kind":"test","file":"test/install-local.test.ts","name":"local installer rejects Node 23.3.0 before building or writing links","sha256":"4536ce09365ea34bd60a5ca306c79274c4e6f86b3138983a799f5d27f6ed3990","status":"passed"}
+{"kind":"test","file":"test/install-local.test.ts","name":"local installer links every bundled Skill without named business dependencies","sha256":"4536ce09365ea34bd60a5ca306c79274c4e6f86b3138983a799f5d27f6ed3990","status":"passed"}

@@ -61,7 +61,9 @@ export function resolveRemoteSshConnection(hostId: string, options: RemoteCodexT
     ?? stringValue(hostFromId);
   const user = stringValue(connection?.user) ?? stringValue(connection?.username);
   const target = user && host && !host.includes("@") ? `${user}@${host}` : host;
-  if (!target || !SAFE_SSH_TARGET.test(target)) {
+  // argv avoids shell parsing, but SSH still interprets a leading '-' as an
+  // option. A registered alias/user must remain a destination argument.
+  if (!target || target.startsWith("-") || !SAFE_SSH_TARGET.test(target)) {
     throw new Error(`Codex Desktop remote host is not routable: ${normalizedHostId}`);
   }
 

@@ -129,6 +129,27 @@ test("offers persisted terminal evidence only to the recovery callback", async (
   assert.equal(recovered[0].text, "已在停机期间完成");
 });
 
+for (const phase of ["live", "recovered"] as const) test(`completed native turn without final text remains completed (${phase})`, async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "monitor-no-final-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(root, "sessions"));
+  const file = path.join(root, "sessions", "complete.jsonl");
+  const events = [taskStarted("turn"), { type: "event_msg", timestamp: "2026-08-01T08:00:03.000Z",
+    payload: { type: "task_complete", turn_id: "turn" } }];
+  writeLines(file, [sessionMeta("session", root), ...(phase === "recovered" ? events : [])]);
+  const completed: CodexSessionCompletion[] = [], recovered: CodexSessionCompletion[] = [];
+  const monitor = new CodexSessionCompletionMonitor({ codexHome: root, pollIntervalMs: 60000,
+    now: () => Date.parse("2026-08-01T09:00:00.000Z"),
+    onCompletion: value => { completed.push(value); }, onRecoveredCompletion: value => { recovered.push(value); } });
+  monitor.start(); t.after(() => monitor.stop()); await monitor.ready();
+  if (phase === "live") { appendLines(file, events); await monitor.scanNow(); }
+  const observed = phase === "live" ? completed : recovered;
+  assert.equal(observed.length, 1);
+  assert.equal(observed[0].success, true); assert.equal(observed[0].outcome, "completed");
+  assert.match(observed[0].text, /已完成/); assert.doesNotMatch(observed[0].text, /中断|停止|失败/);
+  assert.equal((phase === "live" ? recovered : completed).length, 0);
+});
+
 test("live and restart-recovered failed turns use the same safe reason without replaying completion notices", async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-failure-recovery-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

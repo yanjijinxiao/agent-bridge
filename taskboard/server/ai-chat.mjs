@@ -373,7 +373,12 @@ export class AiChatService {
       else {
         pending.public.error = "原生服务未确认答案，正在核对原请求；不会自动重发答案。";
         const active = this.active.get(run.id);
-        if (active) active.needsInteractionRefresh = true;
+        if (active) {
+          active.needsInteractionRefresh = true;
+          // A running turn can remain blocked on this request indefinitely.
+          // Reconciliation must not depend on an open page polling snapshots.
+          this.#scheduleRecovery();
+        }
       }
     }
     this.#emit(run.threadId, { type: "ai.event" });

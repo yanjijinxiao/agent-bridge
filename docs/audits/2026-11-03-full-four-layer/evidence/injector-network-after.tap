@@ -1,0 +1,33 @@
+✔ CDP target discovery bounds a stalled headers response and still accepts healthy JSON (51.070875ms)
+✔ CDP target discovery bounds a stalled body response and still accepts healthy JSON (42.18675ms)
+✔ CDP target discovery bounds a stalled healthy response and still accepts healthy JSON (2.481167ms)
+✔ CDP handshake timeout closes the socket and retires a late open (1.493959ms)
+✔ CDP handshake error rejects immediately and closes the failed connection (0.6005ms)
+✔ CDP handshake close rejects immediately and closes the failed connection (0.629167ms)
+✔ healthy CDP handshake removes the connection timer and delivers response messages (0.501834ms)
+✔ concurrent recovery and frame-open requests start only one Taskboard process (1.954333ms)
+✔ stopping during a health read cannot launch Taskboard after shutdown (0.505875ms)
+✔ a live but slow owned child does not cause a competing replacement (0.407667ms)
+✔ the resident injector supervises the fixed local Taskboard service (0.78025ms)
+✔ the resident injector lets a busy Taskboard health endpoint answer before restarting it (0.193625ms)
+✔ the supervisor does not start a competing server when the Taskboard port is occupied (0.097208ms)
+✔ a slow Taskboard recovery cannot block resident host heartbeats (0.108875ms)
+✔ the CDP bridge accepts only service ensure and native Skill composer prefill actions (0.117916ms)
+✔ the CDP bridge exposes only the fixed Taskboard automation operations (0.152833ms)
+✔ the package injection command remains resident for tab-triggered recovery (0.03825ms)
+✔ the resident injector can adopt the next normal Codex launch without interrupting the current window (0.048666ms)
+✔ a stalled CDP request retires its connection instead of freezing resident heartbeats (0.057459ms)
+✔ a freshly adopted renderer waits for its first document before the CSP bypass reload (0.082292ms)
+✔ attach reconciles the renderer against a hashed current injection source (0.076416ms)
+✔ the injector ignores auxiliary Codex windows (0.028667ms)
+✔ initial injection waits for the main Codex renderer after browser CDP is ready (0.069667ms)
+✔ a completed web build refreshes an already-open Codex iframe (0.130041ms)
+✔ the injected iframe follows the configured local service port (0.033458ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 230.126667

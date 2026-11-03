@@ -1,5 +1,6 @@
 const knowledgeBaseInspections = new Map();
 let knowledgeBaseDialogSession = 0;
+let knowledgeBaseSaveOperation;
 
 window.renderKnowledgeBasesPage = renderKnowledgeBasesPage;
 
@@ -248,10 +249,15 @@ async function pickKnowledgeBaseDirectory(button) {
 async function saveKnowledgeBase(event) {
   event.preventDefault();
   const dialogSession = knowledgeBaseDialogSession;
+  if (knowledgeBaseSaveOperation?.dialogSession === dialogSession) return;
+  const operation = { dialogSession };
+  knowledgeBaseSaveOperation = operation;
   const button = event.submitter ?? event.target.querySelector('button[type="submit"]');
   const knowledgeBaseId = document.querySelector("#editingKnowledgeBaseId").value;
   const editingAccountId = document.querySelector("#editingKnowledgeBaseAccountId").value;
   const accountId = editingAccountId || document.querySelector("#knowledgeBaseAccountInput").value;
+  const draftFields = ["knowledgeBaseAccountInput", "knowledgeBaseNameInput", "knowledgeBaseRootInput", "knowledgeBaseEngineInput", "knowledgeBaseStateInput"];
+  const draft = draftFields.map(id => document.querySelector(`#${id}`).value);
   const body = {
     name: document.querySelector("#knowledgeBaseNameInput").value.trim(),
     rootPath: document.querySelector("#knowledgeBaseRootInput").value.trim(),
@@ -268,6 +274,19 @@ async function saveKnowledgeBase(event) {
     const saved = result.knowledgeBase;
     if (result.inspection) knowledgeBaseInspections.set(knowledgeBaseKey(saved), result.inspection);
     if (!isKnowledgeBaseDialogSessionCurrent(dialogSession)) { void refreshData(false); return; }
+    if (draftFields.some((id, index) => document.querySelector(`#${id}`).value !== draft[index])) {
+      // The server acknowledged the earlier snapshot. Keep later edits, and
+      // retain a successful create's identity so the next save is an update.
+      if (!knowledgeBaseId && document.querySelector("#knowledgeBaseAccountInput").value === accountId) {
+        document.querySelector("#editingKnowledgeBaseId").value = saved.id;
+        document.querySelector("#editingKnowledgeBaseAccountId").value = accountId;
+        document.querySelector("#knowledgeBaseAccountField").hidden = true;
+        document.querySelector("#knowledgeBaseDialogTitle").textContent = "编辑 llm-wiki";
+      }
+      await refreshData(false);
+      toast("原提交已保存；当前修改尚未保存");
+      return;
+    }
     document.querySelector("#knowledgeBaseDialog").close();
     await refreshData(false);
     toast(knowledgeBaseId ? "知识库已更新" : "llm-wiki 已添加");
@@ -276,6 +295,7 @@ async function saveKnowledgeBase(event) {
     if (isKnowledgeBaseDialogSessionCurrent(dialogSession)) setKnowledgeBaseFormError(message);
     else toast(`先前的知识库保存失败：${message}`, true);
   } finally {
+    if (knowledgeBaseSaveOperation === operation) knowledgeBaseSaveOperation = undefined;
     if (dialogSession === knowledgeBaseDialogSession) {
       button.disabled = false;
       button.querySelector("span").textContent = "验证并保存";

@@ -1,0 +1,75 @@
+✔ remote receiver preserves bytes, reuses the same digest and rejects traversal/symlink destinations (202.317791ms)
+✔ remote staging refuses non-SSH transports instead of guessing another host (0.299959ms)
+✖ remote staging rejects a FIFO without blocking the Gateway event loop (2044.386708ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2402.233375
+
+✖ failing tests:
+
+test at test/inbound-files.test.ts:1:1830
+✖ remote staging rejects a FIFO without blocking the Gateway event loop (2044.386708ms)
+  AssertionError [ERR_ASSERTION]: non-files must be rejected before a blocking open or SSH process
+  + actual - expected
+  
+  + Error: spawnSync /opt/homebrew/Cellar/node/25.8.2/bin/node ETIMEDOUT
+  +     at Object.spawnSync (node:internal/child_process:1127:20)
+  +     at spawnSync (node:child_process:911:24)
+  +     at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/inbound-files.test.ts:44:17)
+  +     at Test.runInAsyncScope (node:async_hooks:226:14)
+  +     at Test.run (node:internal/test_runner/test:1201:25)
+  +     at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+  +     at Test.postRun (node:internal/test_runner/test:1330:19)
+  +     at Test.run (node:internal/test_runner/test:1258:12)
+  +     at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+  +   code: 'ETIMEDOUT',
+  +   errno: -60,
+  +   path: '/opt/homebrew/Cellar/node/25.8.2/bin/node',
+  +   spawnargs: [
+  +     '--import',
+  +     'tsx',
+  +     '--input-type=module',
+  +     '--eval',
+  +     '\n' +
+  +       '    const { stageRemoteFiles } = await import(process.argv[1]);\n' +
+  +       '    try {\n' +
+  +       '      await stageRemoteFiles([{ path: process.argv[2], label: "pipe", kind: "file" }], "test", 100,\n' +
+  +       '        { command: "/usr/bin/ssh", args: ["unused-host", "unused-command"], mode: "remote-daemon" });\n' +
+  +       '      process.exitCode = 2;\n' +
+  +       '    } catch { process.stdout.write("rejected"); }\n' +
+  +       '  ',
+  +     'file:///private/tmp/gateway-four-layer-audit-20261103/src/codex/inbound-files.ts',
+  +     '/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/staging-fifo-DYPjWl/pipe'
+  +   ],
+  +   syscall: 'spawnSync /opt/homebrew/Cellar/node/25.8.2/bin/node'
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/inbound-files.test.ts:52:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Error: spawnSync /opt/homebrew/Cellar/node/25.8.2/bin/node ETIMEDOUT
+        at Object.spawnSync (node:internal/child_process:1127:20)
+        at spawnSync (node:child_process:911:24)
+        at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/inbound-files.test.ts:44:17)
+        at Test.runInAsyncScope (node:async_hooks:226:14)
+        at Test.run (node:internal/test_runner/test:1201:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+        at Test.postRun (node:internal/test_runner/test:1330:19)
+        at Test.run (node:internal/test_runner/test:1258:12)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:831:7),
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

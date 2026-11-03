@@ -421,7 +421,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       } else {
         if (resume) {
           assertCapacityResume(await this.readThreadSnapshot(threadId), resume.failedTurnId);
-          if ((await this.listQueuedSubmissions(threadId)).data.length) throw new Error("Native queue takes precedence over capacity recovery");
+          const queue = await this.listQueuedSubmissions(threadId);
+          // An empty page with a continuation cursor is not an empty queue.
+          if (queue.data.length || queue.nextCursor) throw new Error("Native queue takes precedence over capacity recovery");
           resume.assertCurrent();
         }
         turnResponse = await guardNativeWrite(input.assertCurrent, () => this.request("turn/start", turnParams)) as Record<string, unknown>;
@@ -543,6 +545,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     // can overlap moving the chat out of its project.
     const membership = (state: CodexThreadState) => this.sessionMembership(true)(state);
     await this.ensureConnected();
+    const activeAtRead = this.activeTurns.get(threadId);
     try {
       let response: Record<string, unknown>;
       try {
@@ -562,7 +565,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       }
       const state = membership(parseThreadState({ ...thread, turns: latest ? [latest] : [] }, persistenceFromThread(thread)));
       const activeTurnId = this.activeTurns.get(threadId);
-      if (activeTurnId) {
+      // Fresh owner state outranks an old accepted-turn cache. Only a newer
+      // start notification can supersede the read; history alone cannot do so.
+      if (activeTurnId && (state.runtimeStatus === "active" || activeTurnId !== activeAtRead)) {
         state.activeTurnId = activeTurnId;
         state.latestTurnStatus = "inProgress";
         state.runtimeStatus = "active";
@@ -681,8 +686,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const state = this.sessionMembership()(parseThreadState({ ...thread, cwd: input.cwd, ...(title ? { name: title } : {}) }, "active"));
       this.threadStates.set(threadId, state); return state;
     } finally {
-      // Native empty threads cannot be resumed before their first input.
-      // Keep this subscription until the first run or adapter close.
+      // Shared-core subscriptions remain available for the first input.
+      // Explicit private stdio follows the normal idle-retirement policy;
+      // the native metadata must remain resumable without placeholder input.
       this.operationLeases--; await this.recyclePrivateTransportIfIdle();
     }
   }
@@ -958,12 +964,21 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     // A five-second follow tick must not reload an entire long-lived history.
     this.operationLeases++;
     try {
+      const activeAtRead = this.activeTurns.get(threadId);
       const timeoutMs = Math.min(this.options.requestTimeoutMs ?? 15_000, 15_000);
       const state = await this.inspectThread(threadId, { includeTurns: false, timeoutMs });
       if (state.persistence === "missing" || state.persistence === "archived") return { state, turns: [] };
       await this.ensureConnected();
       const response = await this.nativeTurns({ threadId, limit: 20, sortDirection: "desc", itemsView: "summary" }, timeoutMs);
       const turns = (response.data as Array<{ id: string; status: import("./backend.js").CodexTurnStatus; startedAt?: number }>).slice().reverse();
+      this.reconcileObservedTerminal(threadId, state, turns.find(turn => turn.id === activeAtRead), activeAtRead);
+      const newerActive = this.activeTurns.get(threadId);
+      if (newerActive && newerActive !== activeAtRead) {
+        state.runtimeStatus = "active";
+        state.activeTurnId = newerActive;
+        state.latestTurnStatus = "inProgress";
+        state.activeFlags = this.threadStates.get(threadId)?.activeFlags ?? [];
+      }
       const failure = lastCodexTurnFailure(turns.at(-1));
       const activeId = state.activeTurnId ?? turns.filter(turn => turn.status === "inProgress").at(-1)?.id;
       const active = turns.find(turn => turn.id === activeId && turn.status === "inProgress");
@@ -978,6 +993,21 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       this.operationLeases--;
       await this.recyclePrivateTransportIfIdle();
     }
+  }
+
+  private reconcileObservedTerminal(threadId: string, state: CodexThreadState,
+    turn: Record<string, unknown> | undefined, activeAtRead: string | undefined): void {
+    // A loaded, inactive owner plus the exact accepted terminal receipt can
+    // repair a missed notification. notLoaded/history, a different turn, or a
+    // start received during these reads cannot certify this run's ending.
+    // Metadata-only notLoaded items cannot settle a run: doing so would lose
+    // its final answer before the history reader fetched the summary items.
+    if (!activeAtRead || this.activeTurns.get(threadId) !== activeAtRead || state.persistence !== "active"
+      || !["idle", "systemError"].includes(state.runtimeStatus) || turn?.id !== activeAtRead
+      || turn.itemsView === "notLoaded" || !Array.isArray(turn.items)
+      || typeof turn.status !== "string" || !["completed", "failed", "interrupted"].includes(turn.status)) return;
+    const params = {threadId, turn};
+    this.handleNotification("turn/completed", params, JSON.stringify({method:"turn/completed", params, source:"owner-snapshot"}));
   }
 
   async recoverSystemError(input: CodexSystemRecoveryInput): Promise<CodexSystemRecoveryResult> {
@@ -1830,6 +1860,18 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private handleNotification(method: string, params: Record<string, unknown>, raw: string): void {
+    if (method === "turn/completed") {
+      const turn = params.turn;
+      // A malformed terminal event is not evidence of success, failure, or
+      // withdrawal. Keep the accepted identity and pending interactions until
+      // a valid terminal event (or native reconciliation) establishes the result.
+      if (!isRecord(turn) || typeof turn.status !== "string" || !["completed", "failed", "interrupted"].includes(turn.status)) {
+        if (typeof params.threadId === "string" && isRecord(turn) && typeof turn.id === "string") {
+          this.emitProgress(turnKey(params.threadId, turn.id), "收到的任务结束状态尚未确认，正在等待原生状态同步。");
+        }
+        return;
+      }
+    }
     const observer = typeof params.threadId === "string" ? this.interactionObservers.get(params.threadId) : undefined;
     if (observer && typeof params.turnId === "string" && this.activeTurns.get(String(params.threadId)) === params.turnId
       && ["item/started", "item/completed"].includes(method)
@@ -2036,7 +2078,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       && pending.request.turnId === turnId) this.resolveUserInput(key, pending.submitted ? "failed" : "withdrawn");
     const key = turnKey(threadId, turnId);
     this.appendTurnEvent(key, raw);
-    const status = typeof turn?.status === "string" ? turn.status : "completed";
+    const status = turn!.status as string; // Validated before changing any task or interaction state.
     const errorValue = turn?.error as Record<string, unknown> | undefined;
     const completion: TurnCompletion = {
       status,
@@ -2877,7 +2919,9 @@ function extractLastUserMessageFromTurn(turn: Record<string, unknown> | undefine
 function unixTimestampToIso(value: unknown): string | undefined {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
   const milliseconds = value < 1_000_000_000_000 ? value * 1_000 : value;
-  return new Date(milliseconds).toISOString();
+  const date = new Date(milliseconds);
+  // Finite protocol numbers may still exceed Date's representable range.
+  return Number.isFinite(date.getTime()) ? date.toISOString() : undefined;
 }
 
 function normalizeThreadOperationError(error: unknown, threadId: string): Error {

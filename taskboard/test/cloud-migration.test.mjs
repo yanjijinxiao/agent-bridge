@@ -1096,7 +1096,9 @@ test("Wrangler adapter requires remote opt-in and keeps transfer files private",
   }
 });
 
-test("one-time Wrangler adapter migrates and verifies local persistence without remote access", async () => {
+// Several sequential Wrangler processes exercise the real local D1/R2 path;
+// the measured isolated run takes about 140s, beyond the suite's 120s default.
+test("one-time Wrangler adapter migrates and verifies local persistence without remote access", { timeout: 300_000 }, async () => {
   const {
     createWranglerCloudAdapters,
   } = await import("../scripts/wrangler-cloud-adapter.mjs");

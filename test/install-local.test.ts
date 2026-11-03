@@ -11,6 +11,28 @@ const execFileAsync = promisify(execFile);
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const installer = path.join(repositoryRoot, "scripts", "install-local.mjs");
 
+for (const version of ["21.7.3", "22.0.0", "22.12.0", "23.3.0"]) {
+  test(`local installer rejects Node ${version} before building or writing links`, async t => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-version-check-"));
+    t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+    // Exercise the real CLI entry and its ordering; substitute only the version
+    // fact, rather than installing an old runtime or building in the live tree.
+    const code = `Object.defineProperty(process.versions, 'node', {value:${JSON.stringify(version)}});
+      process.argv = [process.execPath, ${JSON.stringify(installer)}, '--skip-dependencies', '--skip-build'];
+      await import(${JSON.stringify(new URL("../scripts/install-local.mjs", import.meta.url).href)});`;
+    await assert.rejects(execFileAsync(process.execPath, ["--input-type=module", "-e", code], {
+      cwd: repositoryRoot, env: { ...process.env, HOME: home }
+    }), (error: unknown) => {
+      const result = error as { code: number; stderr: string };
+      assert.equal(result.code, 1);
+      assert.match(result.stderr, /Node\.js.*22\.13.*23\.4/);
+      assert.match(result.stderr, new RegExp(`current version is ${version.replaceAll('.', '\\.')}`));
+      return true;
+    });
+    assert.deepEqual(fs.readdirSync(home), [], "unsupported Node must not install any links");
+  });
+}
+
 test("local installer links every bundled Skill without named business dependencies", async (t) => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "codex-im-gateway-installer-home-"));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));

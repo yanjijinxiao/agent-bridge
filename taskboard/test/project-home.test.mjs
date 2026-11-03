@@ -34,9 +34,9 @@ test("each device stores an independent workspace path for every project", () =>
 
 test("project selection is remembered until the user explicitly returns home", () => {
   assert.match(appSource, /const LAST_PROJECT_KEY = "taskboard\.lastProjectId"/);
-  assert.match(appSource, /window\.localStorage\.setItem\(LAST_PROJECT_KEY, projectId\)/);
+  assert.match(appSource, /writePreference\(LAST_PROJECT_KEY, projectId\)/);
   assert.match(appSource, /function returnToProjectHome\(\)/);
-  assert.match(appSource, /window\.localStorage\.removeItem\(LAST_PROJECT_KEY\)/);
+  assert.match(appSource, /removePreference\(LAST_PROJECT_KEY\)/);
   assert.match(appSource, /aria-label="返回项目首页"/);
   assert.match(appSource, /className="detail-back-button project-home-button"[\s\S]*?<span>首页<\/span>/);
   assert.match(styles, /\.project-home-button \{[\s\S]*?width: auto/);

@@ -1,0 +1,60 @@
+Codex runtime info unavailable: Peer observation unavailable
+✔ runtime metadata does not substitute Gateway defaults for a peer (local) (27.120208ms)
+✖ runtime metadata does not substitute Gateway defaults for a peer (peer:device) (23.174375ms)
+✖ runtime metadata does not substitute Gateway defaults for a peer (peer:unavailable) (17.904125ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 1
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1116.32675
+
+✖ failing tests:
+
+test at test/account-manager.test.ts:1:67338
+✖ runtime metadata does not substitute Gateway defaults for a peer (peer:device) (23.174375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   effort: 'high',
+  +   model: 'gateway-model',
+  -   effort: 'low',
+  -   model: 'native-model',
+      provider: 'native-provider'
+    }
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/account-manager.test.ts:1665:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { model: 'gateway-model', effort: 'high', provider: 'native-provider' },
+    expected: { model: 'native-model', effort: 'low', provider: 'native-provider' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/account-manager.test.ts:1:67338
+✖ runtime metadata does not substitute Gateway defaults for a peer (peer:unavailable) (17.904125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + {
+  +   effort: 'high',
+  +   model: 'gateway-model'
+  + }
+  - {}
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/account-manager.test.ts:1665:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { model: 'gateway-model', effort: 'high' },
+    expected: {},
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

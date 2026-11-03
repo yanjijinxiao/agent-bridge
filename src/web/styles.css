@@ -1,3 +1,7 @@
+/* Author layout rules (grid/flex labels and buttons) must not override the
+   controller's hidden state and expose actions for the wrong account/mode. */
+[hidden] { display: none !important; }
+
 :root {
   --canvas: #f3f5f2;
   --surface: #ffffff;

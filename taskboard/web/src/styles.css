@@ -5787,7 +5787,11 @@ kbd {
   max-height: none;
 }
 
-.task-dialog.is-expanded .task-form {
+.task-dialog.is-expanded .task-editor-fields {
+  display: contents;
+}
+
+.task-form {
   min-height: 0;
   height: 100%;
 }
@@ -8485,5 +8489,6 @@ kbd {
 .ai-chat-native-interaction button:disabled { opacity: .55; }
 .ai-chat-submission-review { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 12px; border:1px solid var(--border-color, #d8dce3); border-radius:8px; font-size:13px; }
 .ai-chat-submission-review p { flex-basis:100%; margin:0; }
-.ai-chat-submission-review button { padding:5px 9px; border:1px solid var(--border-color, #d8dce3); border-radius:6px; background:var(--bg-secondary, #f5f6f8); color:inherit; cursor:pointer; }
+/* Receipt actions inherit theme text, so their surface must use the same tokens. */
+.ai-chat-submission-review button { padding:5px 9px; border:1px solid var(--border-strong); border-radius:6px; background:var(--surface-muted); color:inherit; cursor:pointer; }
 .ai-chat-submission-review button:disabled { opacity:.55; cursor:default; }

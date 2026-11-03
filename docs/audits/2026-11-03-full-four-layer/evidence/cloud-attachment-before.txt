@@ -1,0 +1,101 @@
+Error: injected D1 acknowledgement loss
+    at Proxy.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/helpers/uncertain-upload-worker.mjs:15:21)
+    at async uploadAttachment (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/cloud/src/index.mjs:1862:5)
+    at async routeApi (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/cloud/src/index.mjs:2171:21)
+    at async Object.fetch (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/cloud/src/index.mjs:2282:11)
+✖ cloud attachment preserves its R2 object after an uncertain D1 receipt: after (853.054041ms)
+Error: injected D1 acknowledgement loss
+    at Proxy.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/helpers/uncertain-upload-worker.mjs:15:21)
+    at uploadAttachment (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/cloud/src/index.mjs:1874:7)
+    at async routeApi (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/cloud/src/index.mjs:2171:21)
+    at async Object.fetch (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/cloud/src/index.mjs:2282:11)
+✖ cloud attachment preserves its R2 object after an uncertain D1 receipt: before (9.641709ms)
+Error: injected D1 acknowledgement loss
+    at Proxy.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/helpers/uncertain-upload-worker.mjs:15:21)
+    at async uploadAttachment (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/cloud/src/index.mjs:1862:5)
+    at async routeApi (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/cloud/src/index.mjs:2171:21)
+    at async Object.fetch (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/cloud/src/index.mjs:2282:11)
+✖ cloud attachment preserves its R2 object after an uncertain D1 receipt: read-unavailable (8.27925ms)
+✖ cloud project lookup supplies the local AI catalog without exposing local paths (1.083042ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1081.781875
+
+✖ failing tests:
+
+test at taskboard/test/cloud-attachment-receipt.test.mjs:13:3
+✖ cloud attachment preserves its R2 object after an uncertain D1 receipt: after (853.054041ms)
+  AssertionError [ERR_ASSERTION]: an attempted D1 write does not authorize deleting its object
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/cloud-attachment-receipt.test.mjs:22:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at taskboard/test/cloud-attachment-receipt.test.mjs:13:3
+✖ cloud attachment preserves its R2 object after an uncertain D1 receipt: before (9.641709ms)
+  AssertionError [ERR_ASSERTION]: an attempted D1 write does not authorize deleting its object
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/cloud-attachment-receipt.test.mjs:22:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at taskboard/test/cloud-attachment-receipt.test.mjs:13:3
+✖ cloud attachment preserves its R2 object after an uncertain D1 receipt: read-unavailable (8.27925ms)
+  AssertionError [ERR_ASSERTION]: an attempted D1 write does not authorize deleting its object
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/cloud-attachment-receipt.test.mjs:22:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at taskboard/test/cloud-attachment-receipt.test.mjs:35:1
+✖ cloud project lookup supplies the local AI catalog without exposing local paths (1.083042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 200
+  
+      at TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/cloud-attachment-receipt.test.mjs:37:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

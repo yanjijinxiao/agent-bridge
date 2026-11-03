@@ -25,6 +25,7 @@ const state = {
   updateInfo: null,
   updateChecking: false,
   updateInstalling: false,
+  savingSettings: false,
   selectedAccountId: "",
   chatFiles: [],
   collapsedProjectKeys: new Set()
@@ -367,7 +368,10 @@ async function waitForUpdatedService(targetVersion, previousToken) {
   const deadline = Date.now() + UPDATE_RECONNECT_TIMEOUT_MS;
   while (Date.now() < deadline) {
     try {
-      const response = await fetch("/api/bootstrap", { cache: "no-store" });
+      // Headers alone are not recovery: a stalled body must also release the
+      // polling loop before its deadline so the page can report the failure.
+      const timeoutMs = Math.max(1, Math.min(5_000, deadline - Date.now()));
+      const response = await fetch("/api/bootstrap", { cache: "no-store", signal: AbortSignal.timeout(timeoutMs) });
       const data = await response.json().catch(() => ({}));
       if (
         response.ok
@@ -1110,9 +1114,9 @@ function taskboardPriorityText(priority) {
   return ({ urgent: "紧急", high: "高", medium: "中", low: "低", none: "未设置" })[priority] || priority;
 }
 
-function renderModelOptions() {
+function renderModelOptions(preferredModel = state.config?.model || "", preferredEffort = state.config?.effort || "") {
   const select = document.querySelector("#modelInput");
-  const configuredModel = state.config?.model || "";
+  const configuredModel = preferredModel;
   const effectiveModel = state.codexRuntime?.model || "";
   const models = Array.isArray(state.codexModels) ? state.codexModels : [];
   const options = [{
@@ -1126,11 +1130,11 @@ function renderModelOptions() {
     title: model.description || ""
   }))];
   if (configuredModel && !options.some((option) => option.value === configuredModel)) {
-    options.push({ value: configuredModel, label: `${configuredModel}（当前配置）` });
+    options.push({ value: configuredModel, label: `${configuredModel}（${configuredModel === state.config?.model ? "当前配置" : "当前选择"}）` });
   }
   select.innerHTML = options.map((option) => `<option value="${escapeAttr(option.value)}"${option.title ? ` title="${escapeAttr(option.title)}"` : ""}>${escapeHtml(option.label)}</option>`).join("");
   select.value = configuredModel;
-  renderEffortOptions(state.config?.effort || "");
+  renderEffortOptions(preferredEffort);
 }
 
 function renderEffortOptions(preferredEffort) {
@@ -2076,7 +2080,6 @@ function openProjectNotificationDialog(project) {
   const selectedAccount = state.accounts.find((account) => account.accountId === accountInput.value);
   document.querySelector("#notificationRecipientInput").value = current?.recipientId
     || (selectedAccount ? authorizedConversationId(selectedAccount) : "")
-    || selectedAccount?.pairedSenderIds?.[0]
     || "";
   document.querySelector("#notificationEnabledInput").checked = current?.enabled === true;
   updateNotificationFields();
@@ -2432,9 +2435,15 @@ async function saveSession(event) {
 
 async function saveSettings(event) {
   event.preventDefault();
+  if (state.savingSettings) return;
+  state.savingSettings = true;
   const button = event.submitter ?? event.target.querySelector('button[type="submit"]');
   try {
     button.disabled = true;
+    const submitted = new Map(Array.from(event.target.querySelectorAll("input, select, textarea"), input => {
+      const property = input.type === "checkbox" ? "checked" : "value";
+      return [input, { property, value: input[property] }];
+    }));
     const result = await api("/api/config", {
       method: "PUT",
       body: {
@@ -2455,12 +2464,21 @@ async function saveSettings(event) {
     state.config = result.config;
     state.codexRuntime = result.codexRuntime;
     state.codexModels = result.codexModels || state.codexModels;
+    // The response acknowledges the submitted snapshot, not edits made while
+    // waiting. Capture those drafts before rebuilding the confirmed projection.
+    const changed = new Map([...submitted].filter(([input, entry]) => input[entry.property] !== entry.value)
+      .map(([input, entry]) => [input, { property: entry.property, value: input[entry.property] }]));
+    const model = document.querySelector("#modelInput"), effort = document.querySelector("#effortInput");
+    const preferredModel = model.value, preferredEffort = effort.value;
     renderAll();
-    toast("设置已保存");
+    if (changed.has(model) || changed.has(effort)) renderModelOptions(preferredModel, preferredEffort);
+    for (const [input, entry] of changed) input[entry.property] = entry.value;
+    toast(changed.size ? "设置已保存；后续修改仍未保存" : "设置已保存");
     void refreshTaskboardIssues(false, { background: true, loadDetail: false });
   } catch (error) {
     toast(error.message, true);
   } finally {
+    state.savingSettings = false;
     button.disabled = false;
   }
 }

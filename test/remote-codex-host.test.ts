@@ -10,6 +10,17 @@ import { HybridCodexRunner } from "../src/codex/runner.js";
 
 const fixturesDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
 
+test("an SSH host or user beginning with an option prefix cannot replace the destination", t => {
+  const codexHome = fs.mkdtempSync(path.join(os.tmpdir(), "codex-remote-option-"));
+  t.after(() => fs.rmSync(codexHome, { recursive: true, force: true }));
+  assert.throws(() => resolveRemoteCodexTransport("remote-ssh-discovered:-V", { codexHome }), /not routable/);
+  fs.writeFileSync(path.join(codexHome, ".codex-global-state.json"), JSON.stringify({
+    "codex-managed-remote-connections": [{ hostId: "registered", alias: "server", user: "-user" }]
+  }));
+  assert.throws(() => resolveRemoteCodexTransport("registered", { codexHome }), /not routable/);
+  assert.equal(resolveRemoteCodexTransport("remote-ssh-discovered:user@host-name", { codexHome }).args.at(-2), "user@host-name");
+});
+
 test("resolves a Codex Desktop host id through its managed SSH connection", () => {
   const codexHome = fs.mkdtempSync(path.join(os.tmpdir(), "codex-remote-host-"));
   try {

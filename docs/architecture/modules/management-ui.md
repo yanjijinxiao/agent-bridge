@@ -15,3 +15,7 @@ architecture-web-state、full-review-web-races、web-native-form-submit、web-bi
 ## 旧页面与同进程启用的浏览器路径
 
 WEB-01.3用生产HTML/JS、真实本机HTTP服务关闭并在原端口重开，旧DOM通过request-context握手后仅实际改名一次；服务已提交后模拟浏览器丢响应，不重发。WEB-02.2点击原生启用按钮经/api/taskboard/start、TaskboardLifecycle启动真实嵌入服务，Gateway PID不变；禁用时iframe无src。WEB-02.3在375px真实隔离Chrome逐管理视图、长ID/标题、IDE按钮及全部含form的dialog量测边界，不能写成手机实机通过。
+
+通知设置和新建会话遵守相同身份边界：个人准入不等于群会话；缺少明确接收路线时留空让用户选择，不捏造群ID。控件的hidden状态高于grid/flex布局，避免为不适用的渠道或模式显示可操作选项。WEB-01.8验证四渠道目标，WEB-02.4用生产页面及CSS核对隐藏/重新显示。
+
+管理页设置保存只确认点击保存时的快照。等待期间新增的字段编辑属于未提交草稿，成功回执不能通过 renderAll 覆盖它；模型和推理强度选项重建也须保留后续选择。保存失败保持草稿，同一保存等待期间的重复表单提交不再发第二次 PUT。此边界不改变后端权限政策，也不自动重发未知写入。

@@ -7,6 +7,7 @@ import { isIP } from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
@@ -124,12 +125,9 @@ async function sendFetchResponse(response, upstream) {
     response.end();
     return;
   }
-  await new Promise((resolve, reject) => {
-    const body = Readable.fromWeb(upstream.body);
-    body.once("error", reject);
-    response.once("finish", resolve);
-    body.pipe(response);
-  });
+  // Closing either side must cancel the other; pipe() alone retains an upstream
+  // download when the browser closes before its response finishes.
+  await pipeline(Readable.fromWeb(upstream.body), response);
 }
 
 function normalizeHostname(hostname) {
@@ -1160,7 +1158,9 @@ export function resolveServerOptions(options = {}) {
   const dataDirectory = configuredDataDirectory
     ? path.resolve(configuredDataDirectory)
     : path.join(PROJECT_ROOT, ".data");
-  const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
+  // Catalog/state reads and the native backend must resolve the same explicit
+  // home; otherwise multi-root projects silently lose their additional roots.
+  const codexHome = options.codexHome ?? (process.env.CODEX_HOME || path.join(os.homedir(), ".codex"));
   return {
     dataDirectory,
     databasePath: options.databasePath ?? path.join(dataDirectory, "taskboard.sqlite"),
@@ -1566,7 +1566,7 @@ export function createTaskboardServer(options = {}) {
                 }
               }
             }
-            return sendFetchResponse(response, upstream);
+            return await sendFetchResponse(response, upstream);
           }
         }
       }
@@ -2062,7 +2062,7 @@ export function createTaskboardServer(options = {}) {
       if (await serveStatic(request, response, pathname, resolved.staticDirectory)) return;
       throw new ApiError(404, "NOT_FOUND", "Resource not found");
     } catch (error) {
-      if (response.headersSent) {
+      if (response.headersSent || response.destroyed) {
         response.destroy(error);
         return;
       }

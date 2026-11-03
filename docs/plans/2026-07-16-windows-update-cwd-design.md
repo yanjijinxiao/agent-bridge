@@ -1,5 +1,7 @@
 # Windows Update Working-directory Design
 
+> 历史设计记录，不是当前部署约定。当前执行入口与更新方式以 [后端契约](../codex-backends.md) 和 [运行指南](../local-run.md) 为准；不恢复 exec 回退或 npm 自更新。
+
 ## Goal
 
 Prevent npm self-updates from failing with Windows `EBUSY` when the running codex-weixin service was launched with its package directory as the process working directory.

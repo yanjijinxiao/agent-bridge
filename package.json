@@ -59,7 +59,7 @@
     "peer:dev": "tsx src/peer/index.ts"
   },
   "engines": {
-    "node": ">=22"
+    "node": "^22.13.0 || >=23.4.0"
   },
   "dependencies": {
     "@alicloud/dingtalk": "^2.2.46",

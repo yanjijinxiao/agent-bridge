@@ -1,0 +1,2734 @@
+
+> codex-im-gateway@0.4.0 taskboard:check
+> npm run check --workspace=codex-taskboard
+
+
+> codex-taskboard@0.1.0 check
+> npm run typecheck && npm run build:web && npm test
+
+
+> codex-taskboard@0.1.0 typecheck
+> tsc -p web/tsconfig.json --noEmit
+
+
+> codex-taskboard@0.1.0 build:web
+> vite build --config web/vite.config.ts
+
+vite v8.1.5 building client environment for production...
+[2Ktransforming...✓ 475 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/web/index.html                           0.64 kB │ gzip:   0.38 kB
+dist/web/assets/x-logo-black-BIVm9hpF.png   102.32 kB
+dist/web/assets/WorkflowBoard-7hFYUCbs.css   39.30 kB │ gzip:   6.69 kB
+dist/web/assets/index-CM5r4vF9.css          137.24 kB │ gzip:  23.35 kB
+dist/web/assets/WorkflowBoard-Dc11sRhi.js   282.98 kB │ gzip:  86.82 kB
+dist/web/assets/index-dIdPyZ1N.js           573.39 kB │ gzip: 173.84 kB
+
+✓ built in 115ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+> codex-taskboard@0.1.0 test
+> node --test
+
+✔ task and comment contracts expose persisted user or agent identities (1.292875ms)
+✔ issue activity renders distinct avatars, IDs, and styles for users and agents (0.649334ms)
+✔ agent avatar asset is a transparent PNG logo (3.393042ms)
+✔ comment metadata separators never become avatar content (0.37775ms)
+✔ Codex host identity is forwarded to user-authored taskboard mutations (0.097958ms)
+✔ local AI API client follows the fixed catalog, thread, turn and interrupt contract (30.308792ms)
+✔ aborted catalog requests preserve AbortError instead of reporting a service outage (0.242792ms)
+✔ thread event subscription listens only for public snapshot hints and closes cleanly (0.1335ms)
+﹣ isolated Chrome exercises production AI and issue composers, model scope and responsive layout (1.844459ms) # SKIP
+✔ AI chat persistence stores threads, runs, and visible events without hidden prompt fields (13.788375ms)
+✔ opening the database interrupts abandoned runs and preserves resumable Codex thread ids (8.348542ms)
+✔ deleting an AI chat thread removes its runs and visible events (5.242875ms)
+✔ AI chat events with the same timestamp retain SQLite insertion order (6.653417ms)
+✔ native turns retain selected cwd, exact continuation id, chosen permissions and visible item identity (59.9575ms)
+✔ same-thread admission locks while different native threads run concurrently and explicit stop targets one exact turn (56.795958ms)
+✔ native failure is terminal while an uncertain accepted observation stays unreplayed (63.823125ms)
+✔ a failed durable user-event transaction sends no native input and leaves no running claim (15.571541ms)
+✔ native questions are scoped to their run and secret answers never enter SQLite events (44.844958ms)
+✔ an uncertain approval flush rereads its pending request without automatically resending the old decision (69.020125ms)
+✔ attachments survive a detached observer and cleanup follows the confirmed native terminal event (34.290583ms)
+✔ startTurn revalidates the latest danger sandbox and persisted model settings (12.663583ms)
+✔ settings changed during attachment preparation govern the process that is actually spawned (25.472833ms)
+✔ startup marks abandoned runs interrupted while preserving the Codex thread id (11.357958ms)
+✔ HTTP operation identities retain the original thread/turn across completion and restart without replay (23.234709ms)
+✔ submission identity binds scope, kind and attachment bytes, and a failed receipt transaction creates no turn (23.214959ms)
+✔ accepted native observation retries a transient disconnect without a UI poll or another input (1025.213875ms)
+✔ native observation retry stops while paused or closed and resumes only on the same accepted task (2250.70025ms)
+✔ uncertain approval answer refreshes the original request without a page poll or answer replay (1049.260625ms)
+✔ uncertain user-input answer refreshes the original request without a page poll or answer replay (1041.584417ms)
+✖ loopback AI API freezes server-owned origin and rejects injected execution fields (15.181417ms)
+✖ danger-full-access requires confirmation on every turn and thread settings are validated (8.468583ms)
+✖ thread management, interrupt and query contracts stay narrow (6.733875ms)
+✖ local AI routes reject non-loopback socket peers while admitted ordinary API routes remain available (9.594375ms)
+✖ AI SSE is live-only and thread snapshots remain the durable source (5.51625ms)
+✖ server close stops accepting requests before AI shutdown completes (5.797375ms)
+✖ local HTTP acknowledges and rereads stable submission identities without creating another native input (4.218167ms)
+✔ AI chat is exposed only when the local capability is explicit (0.957292ms)
+✔ new threads freeze the current project and optional issue as server identifiers (0.545375ms)
+✔ route changes update only the next origin and preserve the selected global thread (0.04625ms)
+✔ a new project's model catalog rejects inherited settings it does not offer (0.218417ms)
+✔ PATCH results can update only the snapshot for the thread that started the request (0.528458ms)
+✔ model and effort selections are restricted to the real catalog (0.06325ms)
+✔ composer clipboard fragments retain ordered real skill ids and reject forged or missing tokens (0.149625ms)
+✔ turn input cannot contain cwd, hidden context, model overrides or arbitrary args (0.084ms)
+✔ runtime controls distinguish send, stop, danger confirmation and SSE refresh hints (0.076708ms)
+✔ visible activity keeps only the latest lifecycle item without merging messages (0.172208ms)
+✔ activity status treats started, running and in_progress as active and failures as failed (0.063375ms)
+✔ snapshot hint refreshes allow one in-flight request and one queued request (3.178708ms)
+✔ reasoning and raw JSONL events are excluded from the visible timeline (0.073375ms)
+✔ AI chat capability is local-only and thread creation freezes the current origin (2.329ms)
+✔ navigation updates only the pending new-thread origin and preserves the selected global thread (0.074583ms)
+✔ model and effort selections are normalized exclusively against the real catalog (0.100041ms)
+✔ skill clipboard parsing keeps the selected real id in its marker position (0.210167ms)
+✔ turn input contains only visible user content, real skill ids and one-time confirmation (0.090666ms)
+✔ running threads expose stop, danger-full-access requires confirmation, and SSE is a refresh hint (0.075417ms)
+✔ reasoning and raw JSONL events never enter the visible activity timeline (0.090875ms)
+✔ App wires the global panel outside project/detail branches and hides it without local capability (0.177334ms)
+✔ AI chat API uses the stable local contract and never sends cwd or hidden prompt fields (0.120166ms)
+✔ quiet refreshes preserve action errors and PATCH results are guarded by their starting thread (0.149834ms)
+✔ danger confirmation sends the bound pending retry instead of the current draft (0.211584ms)
+✔ history exposes deletion of local records without adding rename controls (0.132375ms)
+✔ AI writable directories contain every selected project root and no other project root (14.185208ms)
+✔ an automation quota wait cannot outlive its unchanged policy (24.413833ms)
+✔ an automation quota wait cannot outlive its disabled policy (8.432042ms)
+✔ an automation quota wait cannot outlive its removed policy (10.509208ms)
+✔ an automation quota wait cannot outlive its model policy (8.5675ms)
+✔ an automation quota wait cannot outlive its workspace policy (8.050708ms)
+✔ an automation quota wait cannot outlive its skill policy (6.650958ms)
+✔ dragging previews the insertion rank before committing it (0.943458ms)
+✔ text selection is reserved for editable fields (0.091667ms)
+✔ issue cards omit redundant metadata and keep three compact, well-spaced rows (0.195875ms)
+✔ scrollbars stay proportional while the workflow node library hides its bar (0.288667ms)
+✔ each status column remains a drop target for the full board height (0.128084ms)
+✔ the issue board has no shared vertical scroll and each status column scrolls below a sticky heading (0.136959ms)
+✔ the complete Linear-style workflow shares one ordered status source (0.6985ms)
+✔ review, blocked and canceled statuses round-trip through filter URLs (0.197625ms)
+✔ the column surface wraps its heading and issue list (0.133334ms)
+✔ common issue mutations enter a Linear-style undo queue (0.197792ms)
+✔ issues expose processing conversations without manual binding (0.392042ms)
+✔ issues bind one workflow from the current project's workflow tabs (0.35225ms)
+✔ comments stage, upload, render and delete their own attachments (0.138333ms)
+✔ issue creation and detail share one searchable, creatable label picker (0.198375ms)
+✔ the taskboard defaults to issues and exposes issue and node mode tabs (1.586833ms)
+✔ node mode lazy-loads WorkflowBoard while issue-only controls remain isolated (0.610542ms)
+✔ the workflow catalog retains the real trigger, capability, API, integration, planning and result steps (0.383417ms)
+✔ workflow tabs switch independent sequences, create blank workflows and rename in place (0.52375ms)
+✔ workflow tab context menu opens at the pointer and closes through established interactions (0.349292ms)
+✔ workflow deletion preserves inactive state, selects the right active neighbor and persists snapshots (0.6335ms)
+✔ workflow edits persist per project and continue to synchronize through the shared service (0.386542ms)
+✔ issue workflow choices read the shared service workspace without loading React Flow (0.368541ms)
+✔ the on-demand inspector exposes real capabilities and the existing node configuration (0.619666ms)
+✔ Git and issue configuration render the selected action in each step title (0.335042ms)
+✔ the execution plan keeps compact ordered items with drag preview and settling animation (0.458208ms)
+✔ steps are inserted from sequence connectors through a searchable grouped chooser (0.219375ms)
+✔ parseArgs supports equals syntax and boolean --json (1.348292ms)
+✔ project list uses the default local service and adds schemaVersion (33.8285ms)
+✔ CODEX_TASKBOARD_URL overrides the service origin (0.317125ms)
+✔ project create sends id, name, and an absolute workspace path (0.2335ms)
+✔ issue list serializes project and status filters (0.433291ms)
+✔ issue commands accept in-review, blocked, and canceled statuses (1.04125ms)
+✔ invalid status errors list every accepted status (0.462375ms)
+✔ issue create reads a description file and parses labels (0.38275ms)
+✔ issue update sends an explicit optimistic concurrency version (0.243917ms)
+✔ issue update binds one worktree context (0.280875ms)
+✔ issue update rejects simultaneous branch and worktree bindings (0.130875ms)
+✔ issue move fetches the current version when --if-version is omitted (0.248125ms)
+✔ an explicit --thread-id overrides CODEX_THREAD_ID on issue writes (0.180125ms)
+✔ issue restore uses the mutation thread and optimistic version (0.201042ms)
+✔ issue relation add and remove use typed relation endpoints (0.418833ms)
+✔ issue relation validates its action and relation type before fetching (0.214084ms)
+✔ comment list and add use the issue comments endpoint (0.356125ms)
+✔ comment update and delete require an explicit version (0.687709ms)
+✔ context current selects the project with the most specific matching workspace (0.467458ms)
+✔ context current falls back to the local project (0.305875ms)
+✔ issue and comment writes require Codex conversation attribution (0.228625ms)
+✔ manual linked-thread options and commands are no longer accepted (0.173667ms)
+✔ API conflicts produce stable JSON on stderr and exit code 5 (0.24675ms)
+✔ usage errors are stable and never call the service (0.113459ms)
+
+  #  /opt/homebrew/Cellar/node/25.8.2/bin/node[96588]: void node::InternalCallbackScope::Close() at ../src/api/callback.cc:185
+  #  Assertion failed: (env_->execution_async_id()) == (0)
+
+----- Native stack trace -----
+
+ 1: 0x1072f9bf4 node::Assert(node::AssertionInfo const&) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 2: 0x108270a30 node::InternalCallbackScope::Close() (.cold.1) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 3: 0x10723ff34 node::InternalCallbackScope::Close() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 4: 0x10723fc38 node::InternalCallbackScope::~InternalCallbackScope() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 5: 0x10734cef0 node::PerIsolatePlatformData::RunForegroundTask(std::__1::unique_ptr<v8::Task, std::__1::default_delete<v8::Task>>) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 6: 0x10734bf98 node::PerIsolatePlatformData::FlushForegroundTasksInternal() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 7: 0x102d6a3cc uv__async_io [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 8: 0x102d791b0 uv__io_poll [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 9: 0x102d6ab64 uv_run [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+10: 0x107240e2c node::SpinEventLoopInternal(node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+11: 0x107328820 node::NodeMainInstance::Run(node::ExitCode*, node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+12: 0x107328554 node::NodeMainInstance::Run() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+13: 0x1072cc778 node::Start(int, char**) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+14: 0x181a05158 start [/usr/lib/dyld]
+✖ test/cloud-attachment-receipt.test.mjs (362.257792ms)
+✔ cloud config persists Basic Auth credentials and device mappings in a mode-0600 file (9.001458ms)
+✔ cloud config only accepts HTTPS origins, except loopback HTTP used in development (9.340792ms)
+✔ cloud proxy replaces client identity with Basic Auth and makes exactly one upstream request (5.162ms)
+✔ configured cloud mode fails explicitly and never falls back to the local database (0.253625ms)
+✔ cloud proxy preserves upstream 401 responses and binary attachment streams (0.390416ms)
+✔ cloud routing keeps machine-specific capability endpoints in the local companion (0.148ms)
+✔ project creation stores workspacePath locally and never sends it to cloud (0.980834ms)
+✔ project lists overlay this device's workspace mappings and discard remote paths (0.445708ms)
+✔ task mutations do not send absolute worktree paths to cloud (0.416958ms)
+✔ workflow mutations remove structured git worktree paths without altering other path fields or text (0.417333ms)
+✔ two companions map the same cloud project to different local paths (10.958167ms)
+✖ configured server proxies business APIs without touching local rows and advertises polling (18.576791ms)
+✖ cloud mode exposes machine capabilities only to loopback while local mode keeps LAN access (11.424208ms)
+✔ taskctl cloud login reads the shared key privately and sends it to the local companion (1.556041ms)
+✔ taskctl cloud status, logout, and project map use local companion endpoints (0.792375ms)
+✔ taskctl accepts only loopback companion origins and supports the legacy loopback URL (0.345667ms)
+✔ taskctl uses an explicit companion URL for ordinary commands before the legacy URL (0.175375ms)
+✔ without cloud configuration taskctl keeps using the local companion (0.202208ms)
+✖ cloud forwarding keeps credentials on the configured origin: /api/tasks (15.806583ms)
+✖ cloud forwarding keeps credentials on the configured origin: //other.example.test/api/tasks (6.966084ms)
+✖ disconnecting an attachment download cancels its upstream stream (4.734458ms)
+✔ migration snapshots live WAL data, counts each project, and strips local execution state (25.230875ms)
+✔ migration records attachment bytes, SHA-256, and actual size (9.577208ms)
+✔ migration fails before import when an attachment referenced by SQLite is missing (9.399709ms)
+✔ migration rejects a snapshot with foreign key violations (6.872333ms)
+✔ cloud import calls D1 and R2 adapters, then verifies project counts and object hashes (9.238916ms)
+✔ cloud import rejects D1 count drift and R2 hash drift (9.776292ms)
+✔ cloud import preserves staged R2 when the D1 adapter rejects without a confirmed transaction outcome (10.49675ms)
+
+  #  /opt/homebrew/Cellar/node/25.8.2/bin/node[96591]: void node::InternalCallbackScope::Close() at ../src/api/callback.cc:185
+  #  Assertion failed: (env_->execution_async_id()) == (0)
+
+----- Native stack trace -----
+
+ 1: 0x108635bf4 node::Assert(node::AssertionInfo const&) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 2: 0x1095aca30 node::InternalCallbackScope::Close() (.cold.1) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 3: 0x10857bf34 node::InternalCallbackScope::Close() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 4: 0x10857bc38 node::InternalCallbackScope::~InternalCallbackScope() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 5: 0x1095c463c node::Environment::RunAndClearNativeImmediates(bool) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 6: 0x1095c406c node::Environment::CheckImmediate(uv_check_s*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 7: 0x10436824c uv__run_check [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 8: 0x104362b94 uv_run [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 9: 0x10857ce2c node::SpinEventLoopInternal(node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+10: 0x108664820 node::NodeMainInstance::Run(node::ExitCode*, node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+11: 0x108664554 node::NodeMainInstance::Run() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+12: 0x108608778 node::Start(int, char**) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+13: 0x181a05158 start [/usr/lib/dyld]
+✖ test/cloud-migration.test.mjs (493.356625ms)
+✔ polls the current revision every 2000ms by default and ignores unchanged responses (2.006125ms)
+✔ advances the revision on change and invalidates once (0.216167ms)
+✔ does not start another request while a revision request is pending (0.172709ms)
+✔ keeps the old revision after an error and retries it on the next tick (0.245791ms)
+✔ uses an explicit interval and clears its timer when stopped (0.276ms)
+✔ does not invalidate after being stopped while a request is pending (0.159583ms)
+✔ cloud metadata selects polling and local metadata does not (0.095292ms)
+✔ the app connects the selected realtime transport without reloading the page (6.413709ms)
+
+  #  /opt/homebrew/Cellar/node/25.8.2/bin/node[96593]: void node::InternalCallbackScope::Close() at ../src/api/callback.cc:185
+  #  Assertion failed: (env_->execution_async_id()) == (0)
+
+----- Native stack trace -----
+
+ 1: 0x108845bf4 node::Assert(node::AssertionInfo const&) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 2: 0x1097bca30 node::InternalCallbackScope::Close() (.cold.1) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 3: 0x10878bf34 node::InternalCallbackScope::Close() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 4: 0x10878bc38 node::InternalCallbackScope::~InternalCallbackScope() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 5: 0x108898ef0 node::PerIsolatePlatformData::RunForegroundTask(std::__1::unique_ptr<v8::Task, std::__1::default_delete<v8::Task>>) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 6: 0x108897f98 node::PerIsolatePlatformData::FlushForegroundTasksInternal() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 7: 0x1045763cc uv__async_io [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 8: 0x1045851b0 uv__io_poll [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 9: 0x104576b64 uv_run [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+10: 0x10878ce2c node::SpinEventLoopInternal(node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+11: 0x108874820 node::NodeMainInstance::Run(node::ExitCode*, node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+12: 0x108874554 node::NodeMainInstance::Run() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+13: 0x108818778 node::Start(int, char**) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+14: 0x181a05158 start [/usr/lib/dyld]
+✖ test/cloud-shared-worker.test.mjs (388.045083ms)
+✔ an explicit Codex home supplies the AI project's full root set (36.460375ms)
+✔ explicit Codex state paths still override home-derived defaults (0.097917ms)
+✔ comment floors use Linear-style cards with the author inside the card (1.63775ms)
+✔ comment body renders document formatting at Linear typography (0.192458ms)
+✔ comment composer aligns with the full comment floor width (0.187417ms)
+✖ local validates calendar dates on issue create and update without mutating rejected writes (16.835708ms)
+
+  #  /opt/homebrew/Cellar/node/25.8.2/bin/node[96596]: void node::InternalCallbackScope::Close() at ../src/api/callback.cc:185
+  #  Assertion failed: (env_->execution_async_id()) == (0)
+
+----- Native stack trace -----
+
+ 1: 0x10475dbf4 node::Assert(node::AssertionInfo const&) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 2: 0x1056d4a30 node::InternalCallbackScope::Close() (.cold.1) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 3: 0x1046a3f34 node::InternalCallbackScope::Close() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 4: 0x1046a3c38 node::InternalCallbackScope::~InternalCallbackScope() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 5: 0x1056ec63c node::Environment::RunAndClearNativeImmediates(bool) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 6: 0x1056ec06c node::Environment::CheckImmediate(uv_check_s*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 7: 0x10038c24c uv__run_check [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 8: 0x100386b94 uv_run [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 9: 0x1046a4e2c node::SpinEventLoopInternal(node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+10: 0x10478c820 node::NodeMainInstance::Run(node::ExitCode*, node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+11: 0x10478c554 node::NodeMainInstance::Run() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+12: 0x104730778 node::Start(int, char**) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+13: 0x181a05158 start [/usr/lib/dyld]
+✔ test/helpers/automation-native.mjs (77.829292ms)
+✔ test/helpers/cloud-worker-harness.mjs (241.077125ms)
+✔ test/helpers/native-backend.mjs (78.13025ms)
+✔ test/helpers/non-loopback-client.mjs (107.215541ms)
+✔ test/helpers/uncertain-upload-worker.mjs (73.922291ms)
+✔ empty workflow statuses are partitioned from the filtered board result (0.919916ms)
+✖ show empty columns is off by default, persisted locally, and updates immediately (1.212125ms)
+✖ column menus persist manual hiding and showing per project (0.988916ms)
+✔ 隐藏列 is collapsible and accepts drops into hidden statuses (0.108292ms)
+✔ display options uses the centralized Linear sliders asset (0.060833ms)
+✔ settings focus enters the portal and returns to the trigger on Escape (0.085458ms)
+✔ product UI uses the reverse-engineered Linear icon system (10.942ms)
+✔ legacy CSS-drawn status and priority icons stay removed (0.214708ms)
+✔ new workflow statuses use the central Linear icon mapping and semantic colors (0.107875ms)
+✔ injection is an idempotent IIFE guarded by its current source hash (0.842375ms)
+✔ embedded page uses the local taskboard URL and supports a runtime override (0.120333ms)
+✔ Taskboard, Channel Configuration, and capability navigation switch one main-workspace surface (0.252416ms)
+✔ capability navigation is fetched, validated, ordered, reconciled, and loaded generically (0.289833ms)
+✔ entry clones the native Plugins row and the page fills the Codex workspace below its titlebar (0.223042ms)
+✔ opening an integration keeps its active sidebar entry visible (0.055792ms)
+✔ opening Taskboard suppresses native selection and contextual header until close (0.1235ms)
+✔ the embedded header stays below the native titlebar without clipping or a full-page no-drag region (0.154792ms)
+✔ only the empty embedded header spacer is draggable (0.257542ms)
+✔ the embedded header clears the macOS window controls when the Codex sidebar is collapsed (0.115042ms)
+✔ the embedded header exposes Codex's native sidebar expansion when collapsed (0.186292ms)
+✔ opening asks the resident launcher to ensure the service and rebuilds failed frames (0.110042ms)
+✔ the injected iframe can be cache-busted without reloading the Codex shell (0.077667ms)
+✔ reopening reuses a ready cache-busted iframe without showing the startup placeholder (0.157708ms)
+✔ iframe messages require both the exact origin and source window (0.064958ms)
+✔ the iframe automation contract is forwarded through the fixed host binding (0.240666ms)
+✔ complete App automation payloads cross the injected forwarder into the current parser (1.435542ms)
+✔ only a loopback Taskboard iframe can request native automation (0.165917ms)
+✔ issues open an unsent native Codex composer in the exact workspace with a Skill mention (0.275084ms)
+✔ the standalone web page opens linked Codex tasks through the app deep link (0.038292ms)
+✔ the injected app opens an existing local Codex task instead of a new composer (0.099042ms)
+✔ host navigation follows Codex's renderer message bus (0.045041ms)
+✔ the standalone web page opens unlinked issues as prefilled empty Codex tasks (0.061042ms)
+✔ host context captures all Codex projects even when the sidebar section is collapsed (0.136833ms)
+✔ cleanup removes observers, listeners, timers and owned DOM (0.080333ms)
+✔ host integration stays thin (0.125417ms)
+✔ a stale automation parser receives an immediate host error instead of timing out (1.514583ms)
+✔ attach replaces an old runtime with the current source and restores an open page (0.1455ms)
+✔ attach is idempotent for the same source hash and does not open a closed page (0.093ms)
+✔ resident discovery accepts this repository's absolute and relative launch forms only (0.40375ms)
+✔ a Dock-launched Codex process without a CDP port is selected for adoption (0.206667ms)
+✔ resident adoption waits for the current Codex window and relaunches the next Dock opening with CDP (0.149833ms)
+✔ refresh stops every stale resident before starting one token-verified replacement (0.110792ms)
+✔ the resident injector supervises the fixed local Taskboard service (1.632291ms)
+✔ the resident injector lets a busy Taskboard health endpoint answer before restarting it (0.062625ms)
+✔ the supervisor does not start a competing server when the Taskboard port is occupied (0.077625ms)
+✔ a slow Taskboard recovery cannot block resident host heartbeats (0.098625ms)
+✔ the CDP bridge accepts only service ensure and native Skill composer prefill actions (0.118125ms)
+✔ the CDP bridge exposes only the fixed Taskboard automation operations (0.145542ms)
+✔ the package injection command remains resident for tab-triggered recovery (0.037125ms)
+✔ the resident injector can adopt the next normal Codex launch without interrupting the current window (0.043084ms)
+✔ a stalled CDP request retires its connection instead of freezing resident heartbeats (0.164833ms)
+✔ a freshly adopted renderer waits for its first document before the CSP bypass reload (0.173042ms)
+✔ attach reconciles the renderer against a hashed current injection source (0.142292ms)
+✔ the injector ignores auxiliary Codex windows (0.055ms)
+✔ initial injection waits for the main Codex renderer after browser CDP is ready (0.078666ms)
+✔ a completed web build refreshes an already-open Codex iframe (0.113583ms)
+✔ the injected iframe follows the configured local service port (0.065833ms)
+✔ editable controls suppress native focus outlines without disabling non-text focus feedback (1.117333ms)
+✔ editable-control wrappers do not add focus chrome (6.820042ms)
+✔ workflow-local styles do not reintroduce input focus chrome (0.279542ms)
+✔ issue model and editor preserve a concrete assignee identity (3.752958ms)
+✔ issue detail and cards expose the same assignee identity (1.339ms)
+✔ issue card assignee avatar stays compact inside the identifier row (1.217083ms)
+✔ new issues coalesce around one drain worker and a later issue starts again (39.229459ms)
+✔ disabled policies do not start Codex (9.084958ms)
+✔ close does not wait for a stalled quota check or allow a late spawn (9.9415ms)
+✖ loopback POST /api/tasks reaches the event worker without a scheduler tick (13.74725ms)
+✖ moving a newly created backlog issue into todo retriggers the event worker (10.131416ms)
+✖ cloud-proxied creation and entering todo both trigger the local event worker (8.6335ms)
+✖ LAN task creation persists the issue but cannot launch the local Codex worker (8.229625ms)
+✔ issue title and description keep Linear-style inline editing when focused (0.905709ms)
+✔ editing and composing comments do not add focus chrome (0.221583ms)
+✔ issue detail renders descriptions and comments with GFM markdown (1.762584ms)
+✔ issue detail markdown styles cover rich document elements (0.281875ms)
+✔ the configured markdown renderer produces CommonMark and GFM elements (13.372625ms)
+✔ issue detail URLs preserve project context and unrelated query parameters (0.85525ms)
+✔ closing issue detail removes only the issue route (0.669292ms)
+✔ the app restores issue detail from the URL and follows browser history (0.240042ms)
+✔ local keeps identifiers unique for projects audit-one and auditone (19.617333ms)
+✔ local keeps identifiers unique for projects abcdefghijkl-one and abcdefghijkl-two (18.55775ms)
+
+  #  /opt/homebrew/Cellar/node/25.8.2/bin/node[96615]: void node::InternalCallbackScope::Close() at ../src/api/callback.cc:185
+  #  Assertion failed: (env_->execution_async_id()) == (0)
+
+----- Native stack trace -----
+
+ 1: 0x106df9bf4 node::Assert(node::AssertionInfo const&) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 2: 0x107d70a30 node::InternalCallbackScope::Close() (.cold.1) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 3: 0x106d3ff34 node::InternalCallbackScope::Close() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 4: 0x106d3fc38 node::InternalCallbackScope::~InternalCallbackScope() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 5: 0x107d8863c node::Environment::RunAndClearNativeImmediates(bool) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 6: 0x107d8806c node::Environment::CheckImmediate(uv_check_s*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 7: 0x102ad824c uv__run_check [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 8: 0x102ad2b94 uv_run [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 9: 0x106d40e2c node::SpinEventLoopInternal(node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+10: 0x106e28820 node::NodeMainInstance::Run(node::ExitCode*, node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+11: 0x106e28554 node::NodeMainInstance::Run() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+12: 0x106dcc778 node::Start(int, char**) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+13: 0x181a05158 start [/usr/lib/dyld]
+✖ test/issue-identifier-collision.test.mjs (419.486334ms)
+✔ tasks expose one parent plus directional and symmetric issue relations (1.248666ms)
+✔ the web client mutates issue relations with optimistic concurrency (0.250167ms)
+✔ issue details mirror Linear parent, sub-issue, dependency, and related sections (0.249917ms)
+✔ board cards keep relation context compact (0.103542ms)
+✔ the taskboard skill tracks substantive requests before implementation (0.324208ms)
+✔ the taskboard skill coordinates safe issue execution and review handoff (1.528834ms)
+✖ project automation state is device-local and scoped by taskboard project (2.058958ms)
+✔ automation requests use the exact Codex host message contract (0.172292ms)
+✔ project mapping is based on exact ids and workspace paths, never project names (0.099542ms)
+✔ the project navigation automation menu owns the icon, fields, and accessible popover (0.510291ms)
+✔ automation status uses the verified Linear play and pause icon assets (0.577791ms)
+✔ automation play and pause retain Linear's 16px filled presentation (0.154292ms)
+✔ the automation menu reuses the Linear switch and keeps form focus chrome suppressed (0.198333ms)
+✔ unavailable automation state has one notice, clears stale errors, and cannot change (0.181834ms)
+✔ automation changes submit immediately with model-specific effort normalization (0.330083ms)
+✔ pending completion reconciles the optimistic draft to confirmed host state (0.203375ms)
+✔ opening settings and changing projects reconcile with the host list (0.280541ms)
+✔ the project home merges live Codex projects with persisted Taskboard projects (0.743917ms)
+✔ each device stores an independent workspace path for every project (0.116792ms)
+✖ project selection is remembered until the user explicitly returns home (1.232958ms)
+✔ the home uses the same restrained surface language as the issue board (0.134083ms)
+✔ new issues stage attachments in the composer and upload them after creation (0.116458ms)
+✔ the issue composer includes Linear-style labels and scheduling (0.076667ms)
+✔ the current project is shown only in navigation, not in issue creation or detail properties (0.224916ms)
+✔ the project header exposes real controls instead of decorative actions (0.105833ms)
+✔ the project breadcrumb stops at the project name (0.124709ms)
+✔ the collapsed Codex sidebar can be expanded immediately left of Home (0.145209ms)
+✔ the project home omits the navigation bar but keeps an invisible drag region (0.1115ms)
+✔ realtime updates remain active on the project home and reconcile after reconnecting (0.102334ms)
+✔ quota probe normal completes without terminating its host process (81.837875ms)
+✔ quota probe closed-input completes without terminating its host process (74.332041ms)
+✖ health and the default local project are available (20.24575ms)
+✖ workflow workspaces persist centrally with optimistic concurrency (8.127709ms)
+✖ Twitter post content survives the shared workflow workspace round trip (7.550041ms)
+✖ workflow service accepts legacy edge snapshots and persists them as V2 control flow (4.693833ms)
+✖ workflow service recursively migrates V1 linear conditions and persists V2 control flow (4.397083ms)
+✖ workflow service rejects snapshots with unknown flow versions (5.602542ms)
+✖ workflow service rejects malformed V2 snapshots with repeated triggers (3.849667ms)
+✖ workflow service rejects V2 item types that do not match node kinds (4.928042ms)
+✖ workflow service rejects V2 snapshots with duplicate node records (6.353167ms)
+✖ workflow service rejects V2 flow items that reference parented plan children (5.750375ms)
+✖ workflow service rejects malformed parented workflow nodes (5.541208ms)
+✖ workflow service rejects non-empty V2 snapshots without a trigger (7.990542ms)
+✖ workflow service rejects unknown node kinds that only look like triggers (4.030334ms)
+✖ workflow workspace changes are broadcast to other open clients (5.448333ms)
+✖ workflow capabilities come from the live Codex skill and MCP catalogs (5.418125ms)
+✖ workflow capability discovery fails instead of inventing fallback options (5.401708ms)
+✖ existing task and comment thread attribution remains content-specific (9.562084ms)
+✖ task thread migration excludes comment-only aggregate entries (15.219583ms)
+✖ development context scan resolves the current Codex conversation workspace (4.985458ms)
+✖ device workspaces come from this machine's Codex project roots (4.691209ms)
+✖ accepts private LAN requests and rejects public Host and Origin headers (4.615375ms)
+✖ project and task CRUD flow (4.728791ms)
+✖ moving a task updates its status and sort order (4.698041ms)
+✖ transitioning a task writes its evidence and status atomically (4.800417ms)
+✖ tasks can bind, change, and unbind one project workflow (5.760625ms)
+✖ issues support parent, sub-issue, blocking, and related issue relationships (4.572916ms)
+✖ issue relationship changes are broadcast in realtime (4.508292ms)
+✖ all task statuses are accepted, filtered, and listed in workflow order (4.359292ms)
+✖ task and comment mutations keep content-specific conversation attribution (5.084708ms)
+✖ stale updates receive a version conflict (4.2685ms)
+✖ issue comments can be created, edited, listed, and deleted (4.198458ms)
+✖ taskctl issue creation and comments use the Codex Agent identity (4.266166ms)
+✖ Codex-hosted user mutations persist the current account identity and avatar (15.148333ms)
+✖ issue attachments can be uploaded, listed, opened, downloaded, and deleted (4.506333ms)
+✖ comments support attachments and deleting a comment removes its files (4.321167ms)
+✖ attachment uploads reject unsafe filenames (4.51375ms)
+✖ request boundaries reject unknown fields and invalid values (4.231916ms)
+✖ task changes from one LAN client are broadcast to another client (4.271041ms)
+✔ current schema reopen preserves issue identity and related data (19.830958ms)
+✔ legacy status migration preserves issue identity and related data (16.690792ms)
+✖ Task mutations retain atomic idempotency receipts (sqlite) (13.2065ms)
+
+  #  /opt/homebrew/Cellar/node/25.8.2/bin/node[96624]: void node::InternalCallbackScope::Close() at ../src/api/callback.cc:185
+  #  Assertion failed: (env_->execution_async_id()) == (0)
+
+----- Native stack trace -----
+
+ 1: 0x108819bf4 node::Assert(node::AssertionInfo const&) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 2: 0x109790a30 node::InternalCallbackScope::Close() (.cold.1) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 3: 0x10875ff34 node::InternalCallbackScope::Close() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 4: 0x10875fc38 node::InternalCallbackScope::~InternalCallbackScope() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 5: 0x1097a863c node::Environment::RunAndClearNativeImmediates(bool) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 6: 0x1097a806c node::Environment::CheckImmediate(uv_check_s*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+ 7: 0x10421c24c uv__run_check [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 8: 0x104216b94 uv_run [/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib]
+ 9: 0x108760e2c node::SpinEventLoopInternal(node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+10: 0x108848820 node::NodeMainInstance::Run(node::ExitCode*, node::Environment*) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+11: 0x108848554 node::NodeMainInstance::Run() [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+12: 0x1087ec778 node::Start(int, char**) [/opt/homebrew/Cellar/node/25.8.2/lib/libnode.141.dylib]
+13: 0x181a05158 start [/usr/lib/dyld]
+✔ historical scheduler models retain their legacy effort normalization (1.186583ms)
+✔ persisted event policy accepts current native model names without treating a bundled list as authority (0.350166ms)
+✔ the host request accepts event policies and migrates legacy interval fields (0.124542ms)
+✔ the generated prompt drains todo issues and exits without scheduling (0.132875ms)
+✔ legacy reconciliation can only pause an existing Cron and never creates one (0.174292ms)
+✔ an already paused legacy Cron stays paused and list output is sanitized (0.119625ms)
+✔ injector startup pauses every active legacy Taskboard Cron without a policy record (0.144709ms)
+✔ legacy condition edges migrate to two branches followed by one shared continuation (1.806666ms)
+✔ legacy linear steps after a condition migrate to the true path in order (0.111291ms)
+✔ empty condition paths remain distinct and adding to one path cannot reorder the other (0.099ms)
+✔ condition branch membership and order survive workspace JSON persistence (0.128833ms)
+✔ condition branch starts use a shared explicit orthogonal trunk and rail (1.277042ms)
+✔ condition path labels live on the branch edge instead of stretching inside the card (0.204541ms)
+✔ derived split, empty and merge anchors never render duplicate add-step buttons (0.174333ms)
+✔ empty condition anchors and populated first steps share one branch top (0.065042ms)
+✔ empty and unequal branches merge below the taller side with one add point per insertion (4.19175ms)
+✔ nested merges return to the parent lane before the parent merge (0.532625ms)
+✔ both nested sides and three levels measure disjoint sibling bounds (0.329458ms)
+✔ all derived routes are orthogonal, downward and use explicit local split or merge rails (0.196083ms)
+✔ virtual split, empty and merge anchors are derived and never overlap real ids (1.359583ms)
+✔ shared continuation has one incoming merge edge and one insertion point (0.426458ms)
+✔ V2 stores a pure linear workflow as one root sequence (2.268417ms)
+✔ a condition owns two branches while following root items are its shared continuation (0.232875ms)
+✔ conditions can nest in either branch and keep local continuations (0.129041ms)
+✔ at least three levels of nested conditions remain addressable (0.116666ms)
+✔ V1 linear snapshots migrate without dropping nodes (1.018792ms)
+✔ V1 snapshots created before trigger restrictions keep the first trigger and compatible steps (0.14675ms)
+✔ V1 persisted condition paths migrate to true and false branch sequences (0.218167ms)
+✔ legacy linear items following a condition migrate into its true branch (0.1455ms)
+✔ V1 linear snapshots recursively migrate later conditions into true branches (0.164917ms)
+✔ V1 persisted condition branches recursively migrate nested linear conditions (0.189958ms)
+✔ snapshot normalization rejects unknown flow versions instead of reinterpreting them as V1 (0.484834ms)
+✔ flow validation rejects duplicate, missing and virtual node ids (0.230542ms)
+✔ V2 validation rejects duplicate node records even when flow references the id once (0.38825ms)
+✔ V2 validation rejects flow items that reference parented plan children (0.105833ms)
+✔ V2 validation requires parented nodes to belong to one root child container (0.344833ms)
+✔ V2 validation requires item types to match their referenced node kinds (0.346ms)
+✔ V2 validation accepts an empty root but requires one root-first trigger once non-empty (0.1545ms)
+✔ V2 validation rejects unknown node kinds that only look like triggers (0.14775ms)
+✔ V2 validation rejects repeated triggers and triggers outside root index zero (0.116ms)
+✔ serialized V2 snapshots persist flow but never derived edges or virtual nodes (0.142083ms)
+✔ inserting a condition cuts the sequence tail into its true branch (0.076459ms)
+✔ root, branch and continuation insertion all use sequenceRef plus index (0.070625ms)
+✔ conditions can be inserted inside a branch and own that branch tail (0.070208ms)
+✔ deleting inner or outer conditions removes only their branch subtrees and preserves continuation (0.235042ms)
+✔ moving a condition carries its subtree but not the source sequence continuation (0.096417ms)
+✔ moving into a condition's descendant is rejected and the trigger stays root-first (0.091834ms)
+✔ workflow roots are converted from a free canvas graph into one execution sequence (7.449291ms)
+✔ disconnected workflow roots are appended deterministically without including nested plan items (0.467459ms)
+✔ steps insert and reorder within the sequence while the trigger stays pinned first (0.244334ms)
+✔ the execution sequence owns its connectors and vertical layout (0.229208ms)
+✔ Twitter publishing is a third-party workflow choice with the official transparent X logo (0.796875ms)
+✔ Twitter publishing owns only one shared node-data configuration field (0.132625ms)
+✔ Twitter node title, summary and configured state derive from actual post content (0.414833ms)
+✔ Twitter post content follows the shared workspace autosave path (0.19125ms)
+✔ workflow editing is a constrained vertical execution sequence instead of a free canvas (1.20725ms)
+✔ workflow viewport controls are only shown in the bottom-left control group (0.144041ms)
+✔ steps are inserted from the connector or sequence end through a searchable chooser (0.157583ms)
+✔ RSS, pull request and repository issue submissions are distinct trigger choices (0.171333ms)
+✔ every trigger kind stays pinned first and cannot be deleted or duplicated (0.188208ms)
+✔ RSS trigger stores one feed address and derives its configured source display (0.124292ms)
+✔ repository submission triggers use current project context without fake infrastructure (0.165417ms)
+✔ Git 状态 is a distinct current-project trigger without fake execution infrastructure (0.254208ms)
+✔ condition steps keep one comparison rule and own two persisted outcome paths (0.3235ms)
+✔ condition branch pickers use recursive sequence refs and allow nested conditions (0.166209ms)
+✔ deleting a condition removes its subtree, while conditions move as one subtree and cannot duplicate (0.102875ms)
+✔ condition fields expose only meaningful operators and value controls (0.208333ms)
+✔ Feishu message keeps Feishu docs and configures exactly one real delivery target (0.127417ms)
+✔ add ISSUE is a separate result step beside issue update (0.059708ms)
+✔ add ISSUE owns independent creation fields (0.080958ms)
+✔ add ISSUE keeps shared inspector settings and limits its configuration to creation inputs (0.147375ms)
+✔ add ISSUE title, meta and configured state reflect draft data without executing (0.159041ms)
+✔ add ISSUE uses the shared node data and workspace persistence path (0.066208ms)
+✔ new step configuration follows the shared node data and workspace persistence path (0.070542ms)
+✔ sequence steps reuse the original structured workflow node presentation (0.149417ms)
+✔ step configuration is an on-demand right panel rather than a permanent three-column shell (0.116541ms)
+✔ planning remains a compact ordered container inside the lighter sequence (0.583ms)
+✔ development steps are distinct reusable workflow choices (0.260417ms)
+✔ the step picker follows the catalog's canonical group order (0.077708ms)
+✔ custom code stores an environment and source without executing it (0.18375ms)
+✔ run tests supports related, all and custom command scopes (0.147292ms)
+✔ development settings use the shared snapshot persistence path (0.099292ms)
+ℹ tests 403
+ℹ suites 0
+ℹ pass 338
+ℹ fail 64
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 5930.63075
+
+✖ failing tests:
+
+test at test/ai-chat-server.test.mjs:83:1
+✖ loopback AI API freezes server-owned origin and rejects injected execution fields (15.181417ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/ai-chat-server.test.mjs:140:1
+✖ danger-full-access requires confirmation on every turn and thread settings are validated (8.468583ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/ai-chat-server.test.mjs:177:1
+✖ thread management, interrupt and query contracts stay narrow (6.733875ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/ai-chat-server.test.mjs:217:1
+✖ local AI routes reject non-loopback socket peers while admitted ordinary API routes remain available (9.594375ms)
+  Error: listen EPERM: operation not permitted 0.0.0.0
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '0.0.0.0'
+  }
+
+test at test/ai-chat-server.test.mjs:239:1
+✖ AI SSE is live-only and thread snapshots remain the durable source (5.51625ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/ai-chat-server.test.mjs:278:1
+✖ server close stops accepting requests before AI shutdown completes (5.797375ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/ai-chat-server.test.mjs:307:1
+✖ local HTTP acknowledges and rereads stable submission identities without creating another native input (4.218167ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/cloud-attachment-receipt.test.mjs:1:1
+✖ test/cloud-attachment-receipt.test.mjs (362.257792ms)
+  'test failed'
+
+test at test/cloud-companion.test.mjs:491:1
+✖ configured server proxies business APIs without touching local rows and advertises polling (18.576791ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/cloud-companion.test.mjs:536:1
+✖ cloud mode exposes machine capabilities only to loopback while local mode keeps LAN access (11.424208ms)
+  Error: listen EPERM: operation not permitted 0.0.0.0
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '0.0.0.0'
+  }
+
+test at test/cloud-forwarding-boundaries.test.mjs:20:3
+✖ cloud forwarding keeps credentials on the configured origin: /api/tasks (15.806583ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/cloud-forwarding-boundaries.test.mjs:20:3
+✖ cloud forwarding keeps credentials on the configured origin: //other.example.test/api/tasks (6.966084ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/cloud-forwarding-boundaries.test.mjs:39:1
+✖ disconnecting an attachment download cancels its upstream stream (4.734458ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/cloud-migration.test.mjs:1:1
+✖ test/cloud-migration.test.mjs (493.356625ms)
+  'test failed'
+
+test at test/cloud-shared-worker.test.mjs:1:1
+✖ test/cloud-shared-worker.test.mjs (388.045083ms)
+  'test failed'
+
+test at test/due-date-boundaries.test.mjs:10:3
+✖ local validates calendar dates on issue create and update without mutating rejected writes (16.835708ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/hidden-columns.test.mjs:23:1
+✖ show empty columns is off by default, persisted locally, and updates immediately (1.212125ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /getItem\(SHOW_EMPTY_COLUMNS_KEY\) === "true"/. Input:
+  
+  'import {\n' +
+    '  lazy,\n' +
+    '  Suspense,\n' +
+    '  useCallback,\n' +
+    '  useEffect,\n' +
+    '  useLayoutEffect,\n' +
+    '  useMemo,\n' +
+    '  useRef,\n' +
+    '  useState,\n' +
+    '  type CSSProperties,\n' +
+    '  type Dispatch,\n' +
+    '  type SetStateAction,\n' +
+    '} from "react";\n' +
+    'import {\n' +
+    '  isAutomationModel,\n' +
+    '  isAutomationReasoningEffort,\n' +
+    '  isAutomationSelection,\n' +
+    '  type AutomationModel,\n' +
+    '  type AutomationReasoningEffort,\n' +
+    '} from "../../shared/taskboard-automation-options.mjs";\n' +
+    'import {\n' +
+    '  ApiError,\n' +
+    '  addTaskRelation,\n' +
+    '  archiveTask as archiveTaskRequest,\n' +
+    '  createProject as createProjectRequest,\n' +
+    '  createTask as createTaskRequest,\n' +
+    '  getTaskboardRevision,\n' +
+    '  getWorkflowWorkspace,\n' +
+    '  getTaskboardMetadata,\n' +
+    '  listDevelopmentContexts,\n' +
+    '  listDeviceWorkspaces,\n' +
+    '  listProjects,\n' +
+    '  listTasks,\n' +
+    '  moveTask as moveTaskRequest,\n' +
+    '  removeTaskRelation,\n' +
+    '  restoreTask as restoreTaskRequest,\n' +
+    '  setCurrentUserActor,\n' +
+    '  uploadAttachment,\n' +
+    '  updateTask as updateTaskRequest,\n' +
+    '} from "./api";\n' +
+    'import {\n' +
+    '  actorForAssigneeTarget,\n' +
+    '  assigneeTargetForActor,\n' +
+    '} from "./actors";\n' +
+    'import { BoardColumn, STATUS_DETAILS } from "./components/BoardColumn";\n' +
+    'import { AiChat } from "./components/AiChat";\n' +
+    'import { BoardSettingsMenu } from "./components/BoardSettingsMenu";\n' +
+    'import { HiddenColumns } from "./components/HiddenColumns";\n' +
+    'import {\n' +
+    '  resolveInlineMediaMarkdown,\n' +
+    '  type PendingInlineImage,\n' +
+    '} from "./components/InlineMediaComposer";\n' +
+    'import { LinearIcon } from "./components/LinearIcon";\n' +
+    'import { ProjectAutomationMenu } from "./components/ProjectAutomationMenu";\n' +
+    'import { TaskContextMenu } from "./components/TaskContextMenu";\n' +
+    'import { TaskDetail } from "./components/TaskDetail";\n' +
+    'import { TaskEditor } from "./components/TaskEditor";\n' +
+    'import { TaskFilterMenu } from "./components/TaskFilterMenu";\n' +
+    'import { buildIssueUrl, readIssueIdentifier } from "./issueRoute";\n' +
+    'import { ownsSubmissionReceipt, pendingSubmissionKeys, submissionKey, submissionReceiptState } from "./submissionReceipts";\n' +
+    'import { DEFAULT_LABELS } from "./labels";\n' +
+    'import {\n' +
+    '  EMPTY_TASK_FILTERS,\n' +
+    '  matchesTaskFilters,\n' +
+    '  matchesTaskSearch,\n' +
+    '  readTaskFilters,\n' +
+    '  taskFilterCount,\n' +
+    '  writeTaskFilters,\n' +
+    '} from "./taskFilters";\n' +
+    'import {\n' +
+    '  TASK_STATUSES,\n' +
+    '  type ActorIdentity,\n' +
+    '  type Attachment,\n' +
+    '  type DevelopmentScan,\n' +
+    '  type HostContext,\n' +
+    '  type IssueRelationType,\n' +
+    '  type Project,\n' +
+    '  type Task,\n' +
+    '  type TaskboardMetadata,\n' +
+    '  type TaskDraft,\n' +
+    '  type TaskStatus,\n' +
+    '  type WorkflowOption,\n' +
+    '} from "./types";\n' +
+    'import {\n' +
+    '  DEFAULT_WORKFLOW_OPTIONS,\n' +
+    '  readLegacyWorkflowWorkspace,\n' +
+    '  workflowOptionsFromWorkspace,\n' +
+    '} from "./workflowStore";\n' +
+    '// The poller stays in ESM JavaScript so its lifecycle can be tested directly with node:test.\n' +
+    "// @ts-expect-error The module's option contract is enforced by its focused node tests.\n" +
+    'import { createRevisionPoller, getRevisionPollingInterval } from "./revisionPolling.mjs";\n' +
+    '\n' +
+    'type ConnectionState = "connecting" | "live" | "reconnecting";\n' +
+    'type Theme = "light" | "dark";\n' +
+    'type BoardView = "issues" | "workflow";\n' +
+    'const SHOW_WORKFLOW_BOARD_ENTRY = false;\n' +
+    '\n' +
+    'const WorkflowBoard = lazy(() => import("./components/WorkflowBoard").then((module) => ({\n' +
+    '  default: module.WorkflowBoard,\n' +
+    '})));\n' +
+    '\n' +
+    'interface EditorState {\n' +
+    '  task: Task | null;\n' +
+    '  status: TaskStatus;\n' +
+    '}\n' +
+    '\n' +
+    'interface IssueCreation {\n' +
+    '  id: string;\n' +
+    '  editor: EditorState;\n' +
+    '  task?: Task;\n' +
+    '  savedDraft?: string;\n' +
+    '  uploaded: Map<File, Attachment>;\n' +
+    '  uncertain?: boolean;\n' +
+    '}\n' +
+    '\n' +
+    'interface ContextMenuState {\n' +
+    '  taskId: string;\n' +
+    '  x: number;\n' +
+    '  y: number;\n' +
+    '}\n' +
+    '\n' +
+    'interface ProjectChoice {\n' +
+    '  id: string;\n' +
+    '  name: string;\n' +
+    '  issueCount: number;\n' +
+    '  inCodex: boolean;\n' +
+    '  persisted: boolean;\n' +
+    '}\n' +
+    '\n' +
+    'interface UndoOperation {\n' +
+    '  id: number;\n' +
+    '  message: string;\n' +
+    '  undo: () => Promise<void>;\n' +
+    '}\n' +
+    '\n' +
+    'interface UndoNotice {\n' +
+    '  id: number;\n' +
+    '  message: string;\n' +
+    '}\n' +
+    '\n' +
+    'type ColumnVisibilityByProject = Record<string, Partial<Record<TaskStatus, boolean>>>;\n' +
+    'type ProjectAutomationStatus = "ACTIVE" | "PAUSED";\n' +
+    'type AutomationQuotaState = "available" | "blocked" | "unknown" | "unavailable";\n' +
+    '\n' +
+    'interface AutomationQuotaStatus {\n' +
+    '  state: AutomationQuotaState;\n' +
+    '  checkedAt: number;\n' +
+    '  resetsAt?: number;\n' +
+    '  reason?: "api-key";\n' +
+    '}\n' +
+    '\n' +
+    'interface ProjectAutomationRecord {\n' +
+    '  codexProjectId: string;\n' +
+    '  status: ProjectAutomationStatus;\n' +
+    '  enabledByUser: boolean;\n' +
+    '  quotaAware: boolean;\n' +
+    '  quota?: AutomationQuotaStatus;\n' +
+    '  model: AutomationModel;\n' +
+    '  reasoningEffort: AutomationReasoningEffort;\n' +
+    '}\n' +
+    '\n' +
+    'type ProjectAutomations = Record<string, ProjectAutomationRecord>;\n' +
+    '\n' +
+    'interface AutomationHostItem {\n' +
+    '  id: string;\n' +
+    '  status: ProjectAutomationStatus;\n' +
+    '  model: AutomationModel;\n' +
+    '  reasoningEffort: AutomationReasoningEffort;\n' +
+    '}\n' +
+    '\n' +
+    'interface AutomationHostResponse {\n' +
+    '  requestId: string;\n' +
+    '  ok: boolean;\n' +
+    '  item?: AutomationHostItem;\n' +
+    '  items?: AutomationHostItem[];\n' +
+    '  quota?: AutomationQuotaStatus;\n' +
+    '  policy?: {\n' +
+    '    enabledByUser: boolean;\n' +
+    '    quotaAware: boolean;\n' +
+    '    model: AutomationModel;\n' +
+    '    reasoningEffort: AutomationReasoningEffort;\n' +
+    '  };\n' +
+    '  error?: string;\n' +
+    '}\n' +
+    '\n' +
+    'interface PendingAutomationRequest {\n' +
+    '  resolve: (response: AutomationHostResponse) => void;\n' +
+    '  reject: (error: Error) => void;\n' +
+    '  timeoutId: number;\n' +
+    '}\n' +
+    '\n' +
+    'const DEFAULT_USER_ACTOR: ActorIdentity = {\n' +
+    '  type: "user",\n' +
+    '  id: "local-user",\n' +
+    '  name: "本地用户",\n' +
+    '  avatarUrl: null,\n' +
+    '};\n' +
+    '\n' +
+    'const LAST_PROJECT_KEY = "taskboard.lastProjectId";\n' +
+    'const FAVORITE_PROJECTS_KEY = "taskboard.favoriteProjectIds";\n' +
+    'const DEVICE_WORKSPACE_PATHS_KEY = "taskboard.deviceWorkspacePaths.v1";\n' +
+    'const SHOW_EMPTY_COLUMNS_KEY = "taskboard.showEmptyColumns.v1";\n' +
+    'const COLUMN_VISIBILITY_KEY = "taskboard.columnVisibility.v1";\n' +
+    'const PROJECT_AUTOMATIONS_KEY = "taskboard.projectAutomations.v1";\n' +
+    'const DEFAULT_AUTOMATION_OPTIONS = {\n' +
+    '  enabledByUser: false,\n' +
+    '  quotaAware: false,\n' +
+    '  model: "gpt-5.5",\n' +
+    '  reasoningEffort: "high",\n' +
+    '} as const;\n' +
+    '\n' +
+    'const EVENT_NAMES = [\n' +
+    '  "task.created",\n' +
+    '  "task.updated",\n' +
+    '  "task.moved",\n' +
+    '  "task.archived",\n' +
+    '  "task.restored",\n' +
+    '  "task.relation.updated",\n' +
+    '  "comment.created",\n' +
+    '  "comment.updated",\n' +
+    '  "comment.deleted",\n' +
+    '  "attachment.created",\n' +
+    '  "attachment.deleted",\n' +
+    '  "project.created",\n' +
+    '  "workflow.updated",\n' +
+    '] as const;\n' +
+    '\n' +
+    'function isTheme(value: unknown): value is Theme {\n' +
+    '  return value === "light" || value === "dark";\n' +
+    '}\n' +
+    '\n' +
+    '// Display preferences are optional caches. Storage denial/quota must not take\n' +
+    '// down the board; submission journals below deliberately keep their errors.\n' +
+    'function readPreference(key: string): string | null {\n' +
+    '  try { return window.localStorage.getItem(key); } catch { return null; }\n' +
+    '}\n' +
+    '\n' +
+    'function writePreference(key: string, value: string): void {\n' +
+    '  try { window.localStorage.setItem(key, value); } catch { /* Keep the in-memory preference. */ }\n' +
+    '}\n' +
+    '\n' +
+    'function removePreference(key: string): void {\n' +
+    '  try { window.localStorage.removeItem(key); } catch { /* Keep the in-memory preference. */ }\n' +
+    '}\n' +
+    '\n' +
+    'function getInitialTheme(): Theme {\n' +
+    '  const fromQuery = new URLSearchParams(window.location.search).get("theme");\n' +
+    '  if (isTheme(fromQuery)) return fromQuery;\n' +
+    '  const stored = readPreference("taskboard.theme");\n' +
+    '  if (isTheme(stored)) return stored;\n' +
+    '  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";\n' +
+    '}\n' +
+    '\n' +
+    'function readFavoriteProjectIds(): Set<string> {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(FAVORITE_PROJECTS_KEY) ?? "[]");\n' +
+    '    return new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);\n' +
+    '  } catch {\n' +
+    '    return new Set();\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function readDeviceWorkspacePaths(): Record<string, string> {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");\n' +
+    '    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n' +
+    '    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => (\n' +
+    '      typeof entry[1] === "string" && entry[1].trim().length > 0\n' +
+    '    )));\n' +
+    '  } catch {\n' +
+    '    return {};\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function readShowEmptyColumns(): boolean {\n' +
+    '  return readPreference(SHOW_EMPTY_COLUMNS_KEY) === "true";\n' +
+    '}\n' +
+    '\n' +
+    'function readProjectAutomations(): ProjectAutomations {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(PROJECT_AUTOMATIONS_KEY) ?? "{}");\n' +
+    '    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n' +
+    '    const result: ProjectAutomations = {};\n' +
+    '    for (const [projectId, record] of Object.entries(value)) {\n' +
+    '      if (!record || typeof record !== "object" || Array.isArray(record)) continue;\n' +
+    '      const candidate = record as Partial<ProjectAutomationRecord>;\n' +
+    '      const model = candidate.model ?? "gpt-5.5";\n' +
+    '      const reasoningEffort = candidate.reasoningEffort ?? "high";\n' +
+    '      const enabledByUser = candidate.enabledByUser ?? candidate.status === "ACTIVE";\n' +
+    '      const quotaAware = candidate.quotaAware ?? false;\n' +
+    '      if (\n' +
+    '        typeof candidate.codexProjectId !== "string"\n' +
+    '        || (candidate.status !== "ACTIVE" && candidate.status !== "PAUSED")\n' +
+    '        || !isAutomationModel(model)\n' +
+    '        || !isAutomationReasoningEffort(reasoningEffort)\n' +
+    '        || !isAutomationSelection(model, reasoningEffort)\n' +
+    '        || typeof enabledByUser !== "boolean"\n' +
+    '        || typeof quotaAware !== "boolean"\n' +
+    '      ) continue;\n' +
+    '      const quota = isAutomationQuotaStatus(candidate.quota) ? candidate.quota : undefined;\n' +
+    '      result[projectId] = {\n' +
+    '        codexProjectId: candidate.codexProjectId,\n' +
+    '        status: candidate.status,\n' +
+    '        enabledByUser,\n' +
+    '        quotaAware,\n' +
+    '        ...(quota ? { quota } : {}),\n' +
+    '        model,\n' +
+    '        reasoningEffort,\n' +
+    '      };\n' +
+    '    }\n' +
+    '    return result;\n' +
+    '  } catch {\n' +
+    '    return {};\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function isAutomationQuotaStatus(value: unknown): value is AutomationQuotaStatus {\n' +
+    '  if (!value || typeof value !== "object" || Array.isArray(value)) return false;\n' +
+    '  const candidate = value as Partial<AutomationQuotaStatus>;\n' +
+    '  return (\n' +
+    '    (candidate.state === "available"\n' +
+    '      || candidate.state === "blocked"\n' +
+    '      || candidate.state === "unknown"\n' +
+    '      || candidate.state === "unavailable")\n' +
+    '    && Number.isFinite(candidate.checkedAt)\n' +
+    '    && (candidate.resetsAt === undefined || Number.isFinite(candidate.resetsAt))\n' +
+    '    && (candidate.reason === undefined || candidate.reason === "api-key")\n' +
+    '  );\n' +
+    '}\n' +
+    '\n' +
+    'function isAutomationHostPolicy(\n' +
+    '  value: AutomationHostResponse["policy"] | undefined,\n' +
+    '): value is NonNullable<Automat'... 85648 more characters
+  
+      at TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/hidden-columns.test.mjs:25:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `import {\n  lazy,\n  Suspense,\n  useCallback,\n  useEffect,\n  useLayoutEffect,\n  useMemo,\n  useRef,\n  useState,\n  type CSSProperties,\n  type Dispatch,\n  type SetStateAction,\n} from "react";\nimport {\n  isAutomationModel,\n  isAutomationReasoningEffort,\n  isAutomationSelection,\n  type AutomationModel,\n  type AutomationReasoningEffort,\n} from "../../shared/taskboard-automation-options.mjs";\nimport {\n  ApiError,\n  addTaskRelation,\n  archiveTask as archiveTaskRequest,\n  createProject as createProjectRequest,\n  createTask as createTaskRequest,\n  getTaskboardRevision,\n  getWorkflowWorkspace,\n  getTaskboardMetadata,\n  listDevelopmentContexts,\n  listDeviceWorkspaces,\n  listProjects,\n  listTasks,\n  moveTask as moveTaskRequest,\n  removeTaskRelation,\n  restoreTask as restoreTaskRequest,\n  setCurrentUserActor,\n  uploadAttachment,\n  updateTask as updateTaskRequest,\n} from "./api";\nimport {\n  actorForAssigneeTarget,\n  assigneeTargetForActor,\n} from "./actors";\nimport { BoardColumn, STATUS_DETAILS } from "./components/BoardColumn";\nimport { AiChat } from "./components/AiChat";\nimport { BoardSettingsMenu } from "./components/BoardSettingsMenu";\nimport { HiddenColumns } from "./components/HiddenColumns";\nimport {\n  resolveInlineMediaMarkdown,\n  type PendingInlineImage,\n} from "./components/InlineMediaComposer";\nimport { LinearIcon } from "./components/LinearIcon";\nimport { ProjectAutomationMenu } from "./components/ProjectAutomationMenu";\nimport { TaskContextMenu } from "./components/TaskContextMenu";\nimport { TaskDetail } from "./components/TaskDetail";\nimport { TaskEditor } from "./components/TaskEditor";\nimport { TaskFilterMenu } from "./components/TaskFilterMenu";\nimport { buildIssueUrl, readIssueIdentifier } from "./issueRoute";\nimport { ownsSubmissionReceipt, pendingSubmissionKeys, submissionKey, submissionReceiptState } from "./submissionReceipts";\nimport { DEFAULT_LABELS } from "./labels";\nimport {\n  EMPTY_TASK_FILTERS,\n  matchesTaskFilters,\n  matchesTaskSearch,\n  readTaskFilters,\n  taskFilterCount,\n  writeTaskFilters,\n} from "./taskFilters";\nimport {\n  TASK_STATUSES,\n  type ActorIdentity,\n  type Attachment,\n  type DevelopmentScan,\n  type HostContext,\n  type IssueRelationType,\n  type Project,\n  type Task,\n  type TaskboardMetadata,\n  type TaskDraft,\n  type TaskStatus,\n  type WorkflowOption,\n} from "./types";\nimport {\n  DEFAULT_WORKFLOW_OPTIONS,\n  readLegacyWorkflowWorkspace,\n  workflowOptionsFromWorkspace,\n} from "./workflowStore";\n// The poller stays in ESM JavaScript so its lifecycle can be tested directly with node:test.\n// @ts-expect-error The module's option contract is enforced by its focused node tests.\nimport { createRevisionPoller, getRevisionPollingInterval } from "./revisionPolling.mjs";\n\ntype ConnectionState = "connecting" | "live" | "reconnecting";\ntype Theme = "light" | "dark";\ntype BoardView = "issues" | "workflow";\nconst SHOW_WORKFLOW_BOARD_ENTRY = false;\n\nconst WorkflowBoard = lazy(() => import("./components/WorkflowBoard").then((module) => ({\n  default: module.WorkflowBoard,\n})));\n\ninterface EditorState {\n  task: Task | null;\n  status: TaskStatus;\n}\n\ninterface IssueCreation {\n  id: string;\n  editor: EditorState;\n  task?: Task;\n  savedDraft?: string;\n  uploaded: Map<File, Attachment>;\n  uncertain?: boolean;\n}\n\ninterface ContextMenuState {\n  taskId: string;\n  x: number;\n  y: number;\n}\n\ninterface ProjectChoice {\n  id: string;\n  name: string;\n  issueCount: number;\n  inCodex: boolean;\n  persisted: boolean;\n}\n\ninterface UndoOperation {\n  id: number;\n  message: string;\n  undo: () => Promise<void>;\n}\n\ninterface UndoNotice {\n  id: number;\n  message: string;\n}\n\ntype ColumnVisibilityByProject = Record<string, Partial<Record<TaskStatus, boolean>>>;\ntype ProjectAutomationStatus = "ACTIVE" | "PAUSED";\ntype AutomationQuotaState = "available" | "blocked" | "unknown" | "unavailable";\n\ninterface AutomationQuotaStatus {\n  state: AutomationQuotaState;\n  checkedAt: number;\n  resetsAt?: number;\n  reason?: "api-key";\n}\n\ninterface ProjectAutomationRecord {\n  codexProjectId: string;\n  status: ProjectAutomationStatus;\n  enabledByUser: boolean;\n  quotaAware: boolean;\n  quota?: AutomationQuotaStatus;\n  model: AutomationModel;\n  reasoningEffort: AutomationReasoningEffort;\n}\n\ntype ProjectAutomations = Record<string, ProjectAutomationRecord>;\n\ninterface AutomationHostItem {\n  id: string;\n  status: ProjectAutomationStatus;\n  model: AutomationModel;\n  reasoningEffort: AutomationReasoningEffort;\n}\n\ninterface AutomationHostResponse {\n  requestId: string;\n  ok: boolean;\n  item?: AutomationHostItem;\n  items?: AutomationHostItem[];\n  quota?: AutomationQuotaStatus;\n  policy?: {\n    enabledByUser: boolean;\n    quotaAware: boolean;\n    model: AutomationModel;\n    reasoningEffort: AutomationReasoningEffort;\n  };\n  error?: string;\n}\n\ninterface PendingAutomationRequest {\n  resolve: (response: AutomationHostResponse) => void;\n  reject: (error: Error) => void;\n  timeoutId: number;\n}\n\nconst DEFAULT_USER_ACTOR: ActorIdentity = {\n  type: "user",\n  id: "local-user",\n  name: "本地用户",\n  avatarUrl: null,\n};\n\nconst LAST_PROJECT_KEY = "taskboard.lastProjectId";\nconst FAVORITE_PROJECTS_KEY = "taskboard.favoriteProjectIds";\nconst DEVICE_WORKSPACE_PATHS_KEY = "taskboard.deviceWorkspacePaths.v1";\nconst SHOW_EMPTY_COLUMNS_KEY = "taskboard.showEmptyColumns.v1";\nconst COLUMN_VISIBILITY_KEY = "taskboard.columnVisibility.v1";\nconst PROJECT_AUTOMATIONS_KEY = "taskboard.projectAutomations.v1";\nconst DEFAULT_AUTOMATION_OPTIONS = {\n  enabledByUser: false,\n  quotaAware: false,\n  model: "gpt-5.5",\n  reasoningEffort: "high",\n} as const;\n\nconst EVENT_NAMES = [\n  "task.created",\n  "task.updated",\n  "task.moved",\n  "task.archived",\n  "task.restored",\n  "task.relation.updated",\n  "comment.created",\n  "comment.updated",\n  "comment.deleted",\n  "attachment.created",\n  "attachment.deleted",\n  "project.created",\n  "workflow.updated",\n] as const;\n\nfunction isTheme(value: unknown): value is Theme {\n  return value === "light" || value === "dark";\n}\n\n// Display preferences are optional caches. Storage denial/quota must not take\n// down the board; submission journals below deliberately keep their errors.\nfunction readPreference(key: string): string | null {\n  try { return window.localStorage.getItem(key); } catch { return null; }\n}\n\nfunction writePreference(key: string, value: string): void {\n  try { window.localStorage.setItem(key, value); } catch { /* Keep the in-memory preference. */ }\n}\n\nfunction removePreference(key: string): void {\n  try { window.localStorage.removeItem(key); } catch { /* Keep the in-memory preference. */ }\n}\n\nfunction getInitialTheme(): Theme {\n  const fromQuery = new URLSearchParams(window.location.search).get("theme");\n  if (isTheme(fromQuery)) return fromQuery;\n  const stored = readPreference("taskboard.theme");\n  if (isTheme(stored)) return stored;\n  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";\n}\n\nfunction readFavoriteProjectIds(): Set<string> {\n  try {\n    const value = JSON.parse(readPreference(FAVORITE_PROJECTS_KEY) ?? "[]");\n    return new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);\n  } catch {\n    return new Set();\n  }\n}\n\nfunction readDeviceWorkspacePaths(): Record<string, string> {\n  try {\n    const value = JSON.parse(readPreference(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");\n    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => (\n      typeof entry[1] === "string" && entry[1].trim().length > 0\n    )));\n  } catch {\n    return {};\n  }\n}\n\nfunction readShowEmptyColumns(): boolean {\n  return readPreference(SHOW_EMPTY_COLUMNS_KEY) === "true";\n}\n\nfunction readProjectAutomations(): ProjectAutomations {\n  try {\n    const value = JSON.parse(readPreference(PROJECT_AUTOMATIONS_KEY) ?? "{}");\n    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n    const result: ProjectAutomations = {};\n    for (const [projectId, record] of Object.entries(value)) {\n      if (!record || typeof record !== "object" || Array.isArray(record)) continue;\n      const candidate = record as Partial<ProjectAutomationRecord>;\n      const model = candidate.model ?? "gpt-5.5";\n      const reasoningEffort = candidate.reasoningEffort ?? "high";\n      const enabledByUser = candidate.enabledByUser ?? candidate.status === "ACTIVE";\n      const quotaAware = candidate.quotaAware ?? false;\n      if (\n        typeof candidate.codexProjectId !== "string"\n        || (candidate.status !== "ACTIVE" && candidate.status !== "PAUSED")\n        || !isAutomationModel(model)\n        || !isAutomationReasoningEffort(reasoningEffort)\n        || !isAutomationSelection(model, reasoningEffort)\n        || typeof enabledByUser !== "boolean"\n        || typeof quotaAware !== "boolean"\n      ) continue;\n      const quota = isAutomationQuotaStatus(candidate.quota) ? candidate.quota : undefined;\n      result[projectId] = {\n        codexProjectId: candidate.codexProjectId,\n        status: candidate.status,\n        enabledByUser,\n        quotaAware,\n        ...(quota ? { quota } : {}),\n        model,\n        reasoningEffort,\n      };\n    }\n    return result;\n  } catch {\n    return {};\n  }\n}\n\nfunction isAutomationQuotaStatus(value: unknown): value is AutomationQuotaStatus {\n  if (!value || typeof value !== "object" || Array.isArray(value)) return false;\n  const candidate = value as Partial<AutomationQuotaStatus>;\n  return (\n    (candidate.state === "available"\n      || candidate.state === "blocked"\n      || candidate.state === "unknown"\n      || candidate.state === "unavailable")\n    && Number.isFinite(candidate.checkedAt)\n    && (candidate.resetsAt === undefined || Number.isFinite(candidate.resetsAt))\n    && (candidate.reason === undefined || candidate.reason === "api-key")\n  );\n}\n\nfunction isAutomationHostPolicy(\n  value: AutomationHostResponse["policy"] | undefined,\n): value is NonNullable<Automat`... 85648 more characters,
+    expected: /getItem\(SHOW_EMPTY_COLUMNS_KEY\) === "true"/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/hidden-columns.test.mjs:34:1
+✖ column menus persist manual hiding and showing per project (0.988916ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /window\.localStorage\.setItem\(COLUMN_VISIBILITY_KEY, JSON\.stringify\(next\)\)/. Input:
+  
+  'import {\n' +
+    '  lazy,\n' +
+    '  Suspense,\n' +
+    '  useCallback,\n' +
+    '  useEffect,\n' +
+    '  useLayoutEffect,\n' +
+    '  useMemo,\n' +
+    '  useRef,\n' +
+    '  useState,\n' +
+    '  type CSSProperties,\n' +
+    '  type Dispatch,\n' +
+    '  type SetStateAction,\n' +
+    '} from "react";\n' +
+    'import {\n' +
+    '  isAutomationModel,\n' +
+    '  isAutomationReasoningEffort,\n' +
+    '  isAutomationSelection,\n' +
+    '  type AutomationModel,\n' +
+    '  type AutomationReasoningEffort,\n' +
+    '} from "../../shared/taskboard-automation-options.mjs";\n' +
+    'import {\n' +
+    '  ApiError,\n' +
+    '  addTaskRelation,\n' +
+    '  archiveTask as archiveTaskRequest,\n' +
+    '  createProject as createProjectRequest,\n' +
+    '  createTask as createTaskRequest,\n' +
+    '  getTaskboardRevision,\n' +
+    '  getWorkflowWorkspace,\n' +
+    '  getTaskboardMetadata,\n' +
+    '  listDevelopmentContexts,\n' +
+    '  listDeviceWorkspaces,\n' +
+    '  listProjects,\n' +
+    '  listTasks,\n' +
+    '  moveTask as moveTaskRequest,\n' +
+    '  removeTaskRelation,\n' +
+    '  restoreTask as restoreTaskRequest,\n' +
+    '  setCurrentUserActor,\n' +
+    '  uploadAttachment,\n' +
+    '  updateTask as updateTaskRequest,\n' +
+    '} from "./api";\n' +
+    'import {\n' +
+    '  actorForAssigneeTarget,\n' +
+    '  assigneeTargetForActor,\n' +
+    '} from "./actors";\n' +
+    'import { BoardColumn, STATUS_DETAILS } from "./components/BoardColumn";\n' +
+    'import { AiChat } from "./components/AiChat";\n' +
+    'import { BoardSettingsMenu } from "./components/BoardSettingsMenu";\n' +
+    'import { HiddenColumns } from "./components/HiddenColumns";\n' +
+    'import {\n' +
+    '  resolveInlineMediaMarkdown,\n' +
+    '  type PendingInlineImage,\n' +
+    '} from "./components/InlineMediaComposer";\n' +
+    'import { LinearIcon } from "./components/LinearIcon";\n' +
+    'import { ProjectAutomationMenu } from "./components/ProjectAutomationMenu";\n' +
+    'import { TaskContextMenu } from "./components/TaskContextMenu";\n' +
+    'import { TaskDetail } from "./components/TaskDetail";\n' +
+    'import { TaskEditor } from "./components/TaskEditor";\n' +
+    'import { TaskFilterMenu } from "./components/TaskFilterMenu";\n' +
+    'import { buildIssueUrl, readIssueIdentifier } from "./issueRoute";\n' +
+    'import { ownsSubmissionReceipt, pendingSubmissionKeys, submissionKey, submissionReceiptState } from "./submissionReceipts";\n' +
+    'import { DEFAULT_LABELS } from "./labels";\n' +
+    'import {\n' +
+    '  EMPTY_TASK_FILTERS,\n' +
+    '  matchesTaskFilters,\n' +
+    '  matchesTaskSearch,\n' +
+    '  readTaskFilters,\n' +
+    '  taskFilterCount,\n' +
+    '  writeTaskFilters,\n' +
+    '} from "./taskFilters";\n' +
+    'import {\n' +
+    '  TASK_STATUSES,\n' +
+    '  type ActorIdentity,\n' +
+    '  type Attachment,\n' +
+    '  type DevelopmentScan,\n' +
+    '  type HostContext,\n' +
+    '  type IssueRelationType,\n' +
+    '  type Project,\n' +
+    '  type Task,\n' +
+    '  type TaskboardMetadata,\n' +
+    '  type TaskDraft,\n' +
+    '  type TaskStatus,\n' +
+    '  type WorkflowOption,\n' +
+    '} from "./types";\n' +
+    'import {\n' +
+    '  DEFAULT_WORKFLOW_OPTIONS,\n' +
+    '  readLegacyWorkflowWorkspace,\n' +
+    '  workflowOptionsFromWorkspace,\n' +
+    '} from "./workflowStore";\n' +
+    '// The poller stays in ESM JavaScript so its lifecycle can be tested directly with node:test.\n' +
+    "// @ts-expect-error The module's option contract is enforced by its focused node tests.\n" +
+    'import { createRevisionPoller, getRevisionPollingInterval } from "./revisionPolling.mjs";\n' +
+    '\n' +
+    'type ConnectionState = "connecting" | "live" | "reconnecting";\n' +
+    'type Theme = "light" | "dark";\n' +
+    'type BoardView = "issues" | "workflow";\n' +
+    'const SHOW_WORKFLOW_BOARD_ENTRY = false;\n' +
+    '\n' +
+    'const WorkflowBoard = lazy(() => import("./components/WorkflowBoard").then((module) => ({\n' +
+    '  default: module.WorkflowBoard,\n' +
+    '})));\n' +
+    '\n' +
+    'interface EditorState {\n' +
+    '  task: Task | null;\n' +
+    '  status: TaskStatus;\n' +
+    '}\n' +
+    '\n' +
+    'interface IssueCreation {\n' +
+    '  id: string;\n' +
+    '  editor: EditorState;\n' +
+    '  task?: Task;\n' +
+    '  savedDraft?: string;\n' +
+    '  uploaded: Map<File, Attachment>;\n' +
+    '  uncertain?: boolean;\n' +
+    '}\n' +
+    '\n' +
+    'interface ContextMenuState {\n' +
+    '  taskId: string;\n' +
+    '  x: number;\n' +
+    '  y: number;\n' +
+    '}\n' +
+    '\n' +
+    'interface ProjectChoice {\n' +
+    '  id: string;\n' +
+    '  name: string;\n' +
+    '  issueCount: number;\n' +
+    '  inCodex: boolean;\n' +
+    '  persisted: boolean;\n' +
+    '}\n' +
+    '\n' +
+    'interface UndoOperation {\n' +
+    '  id: number;\n' +
+    '  message: string;\n' +
+    '  undo: () => Promise<void>;\n' +
+    '}\n' +
+    '\n' +
+    'interface UndoNotice {\n' +
+    '  id: number;\n' +
+    '  message: string;\n' +
+    '}\n' +
+    '\n' +
+    'type ColumnVisibilityByProject = Record<string, Partial<Record<TaskStatus, boolean>>>;\n' +
+    'type ProjectAutomationStatus = "ACTIVE" | "PAUSED";\n' +
+    'type AutomationQuotaState = "available" | "blocked" | "unknown" | "unavailable";\n' +
+    '\n' +
+    'interface AutomationQuotaStatus {\n' +
+    '  state: AutomationQuotaState;\n' +
+    '  checkedAt: number;\n' +
+    '  resetsAt?: number;\n' +
+    '  reason?: "api-key";\n' +
+    '}\n' +
+    '\n' +
+    'interface ProjectAutomationRecord {\n' +
+    '  codexProjectId: string;\n' +
+    '  status: ProjectAutomationStatus;\n' +
+    '  enabledByUser: boolean;\n' +
+    '  quotaAware: boolean;\n' +
+    '  quota?: AutomationQuotaStatus;\n' +
+    '  model: AutomationModel;\n' +
+    '  reasoningEffort: AutomationReasoningEffort;\n' +
+    '}\n' +
+    '\n' +
+    'type ProjectAutomations = Record<string, ProjectAutomationRecord>;\n' +
+    '\n' +
+    'interface AutomationHostItem {\n' +
+    '  id: string;\n' +
+    '  status: ProjectAutomationStatus;\n' +
+    '  model: AutomationModel;\n' +
+    '  reasoningEffort: AutomationReasoningEffort;\n' +
+    '}\n' +
+    '\n' +
+    'interface AutomationHostResponse {\n' +
+    '  requestId: string;\n' +
+    '  ok: boolean;\n' +
+    '  item?: AutomationHostItem;\n' +
+    '  items?: AutomationHostItem[];\n' +
+    '  quota?: AutomationQuotaStatus;\n' +
+    '  policy?: {\n' +
+    '    enabledByUser: boolean;\n' +
+    '    quotaAware: boolean;\n' +
+    '    model: AutomationModel;\n' +
+    '    reasoningEffort: AutomationReasoningEffort;\n' +
+    '  };\n' +
+    '  error?: string;\n' +
+    '}\n' +
+    '\n' +
+    'interface PendingAutomationRequest {\n' +
+    '  resolve: (response: AutomationHostResponse) => void;\n' +
+    '  reject: (error: Error) => void;\n' +
+    '  timeoutId: number;\n' +
+    '}\n' +
+    '\n' +
+    'const DEFAULT_USER_ACTOR: ActorIdentity = {\n' +
+    '  type: "user",\n' +
+    '  id: "local-user",\n' +
+    '  name: "本地用户",\n' +
+    '  avatarUrl: null,\n' +
+    '};\n' +
+    '\n' +
+    'const LAST_PROJECT_KEY = "taskboard.lastProjectId";\n' +
+    'const FAVORITE_PROJECTS_KEY = "taskboard.favoriteProjectIds";\n' +
+    'const DEVICE_WORKSPACE_PATHS_KEY = "taskboard.deviceWorkspacePaths.v1";\n' +
+    'const SHOW_EMPTY_COLUMNS_KEY = "taskboard.showEmptyColumns.v1";\n' +
+    'const COLUMN_VISIBILITY_KEY = "taskboard.columnVisibility.v1";\n' +
+    'const PROJECT_AUTOMATIONS_KEY = "taskboard.projectAutomations.v1";\n' +
+    'const DEFAULT_AUTOMATION_OPTIONS = {\n' +
+    '  enabledByUser: false,\n' +
+    '  quotaAware: false,\n' +
+    '  model: "gpt-5.5",\n' +
+    '  reasoningEffort: "high",\n' +
+    '} as const;\n' +
+    '\n' +
+    'const EVENT_NAMES = [\n' +
+    '  "task.created",\n' +
+    '  "task.updated",\n' +
+    '  "task.moved",\n' +
+    '  "task.archived",\n' +
+    '  "task.restored",\n' +
+    '  "task.relation.updated",\n' +
+    '  "comment.created",\n' +
+    '  "comment.updated",\n' +
+    '  "comment.deleted",\n' +
+    '  "attachment.created",\n' +
+    '  "attachment.deleted",\n' +
+    '  "project.created",\n' +
+    '  "workflow.updated",\n' +
+    '] as const;\n' +
+    '\n' +
+    'function isTheme(value: unknown): value is Theme {\n' +
+    '  return value === "light" || value === "dark";\n' +
+    '}\n' +
+    '\n' +
+    '// Display preferences are optional caches. Storage denial/quota must not take\n' +
+    '// down the board; submission journals below deliberately keep their errors.\n' +
+    'function readPreference(key: string): string | null {\n' +
+    '  try { return window.localStorage.getItem(key); } catch { return null; }\n' +
+    '}\n' +
+    '\n' +
+    'function writePreference(key: string, value: string): void {\n' +
+    '  try { window.localStorage.setItem(key, value); } catch { /* Keep the in-memory preference. */ }\n' +
+    '}\n' +
+    '\n' +
+    'function removePreference(key: string): void {\n' +
+    '  try { window.localStorage.removeItem(key); } catch { /* Keep the in-memory preference. */ }\n' +
+    '}\n' +
+    '\n' +
+    'function getInitialTheme(): Theme {\n' +
+    '  const fromQuery = new URLSearchParams(window.location.search).get("theme");\n' +
+    '  if (isTheme(fromQuery)) return fromQuery;\n' +
+    '  const stored = readPreference("taskboard.theme");\n' +
+    '  if (isTheme(stored)) return stored;\n' +
+    '  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";\n' +
+    '}\n' +
+    '\n' +
+    'function readFavoriteProjectIds(): Set<string> {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(FAVORITE_PROJECTS_KEY) ?? "[]");\n' +
+    '    return new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);\n' +
+    '  } catch {\n' +
+    '    return new Set();\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function readDeviceWorkspacePaths(): Record<string, string> {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");\n' +
+    '    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n' +
+    '    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => (\n' +
+    '      typeof entry[1] === "string" && entry[1].trim().length > 0\n' +
+    '    )));\n' +
+    '  } catch {\n' +
+    '    return {};\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function readShowEmptyColumns(): boolean {\n' +
+    '  return readPreference(SHOW_EMPTY_COLUMNS_KEY) === "true";\n' +
+    '}\n' +
+    '\n' +
+    'function readProjectAutomations(): ProjectAutomations {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(PROJECT_AUTOMATIONS_KEY) ?? "{}");\n' +
+    '    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n' +
+    '    const result: ProjectAutomations = {};\n' +
+    '    for (const [projectId, record] of Object.entries(value)) {\n' +
+    '      if (!record || typeof record !== "object" || Array.isArray(record)) continue;\n' +
+    '      const candidate = record as Partial<ProjectAutomationRecord>;\n' +
+    '      const model = candidate.model ?? "gpt-5.5";\n' +
+    '      const reasoningEffort = candidate.reasoningEffort ?? "high";\n' +
+    '      const enabledByUser = candidate.enabledByUser ?? candidate.status === "ACTIVE";\n' +
+    '      const quotaAware = candidate.quotaAware ?? false;\n' +
+    '      if (\n' +
+    '        typeof candidate.codexProjectId !== "string"\n' +
+    '        || (candidate.status !== "ACTIVE" && candidate.status !== "PAUSED")\n' +
+    '        || !isAutomationModel(model)\n' +
+    '        || !isAutomationReasoningEffort(reasoningEffort)\n' +
+    '        || !isAutomationSelection(model, reasoningEffort)\n' +
+    '        || typeof enabledByUser !== "boolean"\n' +
+    '        || typeof quotaAware !== "boolean"\n' +
+    '      ) continue;\n' +
+    '      const quota = isAutomationQuotaStatus(candidate.quota) ? candidate.quota : undefined;\n' +
+    '      result[projectId] = {\n' +
+    '        codexProjectId: candidate.codexProjectId,\n' +
+    '        status: candidate.status,\n' +
+    '        enabledByUser,\n' +
+    '        quotaAware,\n' +
+    '        ...(quota ? { quota } : {}),\n' +
+    '        model,\n' +
+    '        reasoningEffort,\n' +
+    '      };\n' +
+    '    }\n' +
+    '    return result;\n' +
+    '  } catch {\n' +
+    '    return {};\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function isAutomationQuotaStatus(value: unknown): value is AutomationQuotaStatus {\n' +
+    '  if (!value || typeof value !== "object" || Array.isArray(value)) return false;\n' +
+    '  const candidate = value as Partial<AutomationQuotaStatus>;\n' +
+    '  return (\n' +
+    '    (candidate.state === "available"\n' +
+    '      || candidate.state === "blocked"\n' +
+    '      || candidate.state === "unknown"\n' +
+    '      || candidate.state === "unavailable")\n' +
+    '    && Number.isFinite(candidate.checkedAt)\n' +
+    '    && (candidate.resetsAt === undefined || Number.isFinite(candidate.resetsAt))\n' +
+    '    && (candidate.reason === undefined || candidate.reason === "api-key")\n' +
+    '  );\n' +
+    '}\n' +
+    '\n' +
+    'function isAutomationHostPolicy(\n' +
+    '  value: AutomationHostResponse["policy"] | undefined,\n' +
+    '): value is NonNullable<Automat'... 85648 more characters
+  
+      at TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/hidden-columns.test.mjs:37:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `import {\n  lazy,\n  Suspense,\n  useCallback,\n  useEffect,\n  useLayoutEffect,\n  useMemo,\n  useRef,\n  useState,\n  type CSSProperties,\n  type Dispatch,\n  type SetStateAction,\n} from "react";\nimport {\n  isAutomationModel,\n  isAutomationReasoningEffort,\n  isAutomationSelection,\n  type AutomationModel,\n  type AutomationReasoningEffort,\n} from "../../shared/taskboard-automation-options.mjs";\nimport {\n  ApiError,\n  addTaskRelation,\n  archiveTask as archiveTaskRequest,\n  createProject as createProjectRequest,\n  createTask as createTaskRequest,\n  getTaskboardRevision,\n  getWorkflowWorkspace,\n  getTaskboardMetadata,\n  listDevelopmentContexts,\n  listDeviceWorkspaces,\n  listProjects,\n  listTasks,\n  moveTask as moveTaskRequest,\n  removeTaskRelation,\n  restoreTask as restoreTaskRequest,\n  setCurrentUserActor,\n  uploadAttachment,\n  updateTask as updateTaskRequest,\n} from "./api";\nimport {\n  actorForAssigneeTarget,\n  assigneeTargetForActor,\n} from "./actors";\nimport { BoardColumn, STATUS_DETAILS } from "./components/BoardColumn";\nimport { AiChat } from "./components/AiChat";\nimport { BoardSettingsMenu } from "./components/BoardSettingsMenu";\nimport { HiddenColumns } from "./components/HiddenColumns";\nimport {\n  resolveInlineMediaMarkdown,\n  type PendingInlineImage,\n} from "./components/InlineMediaComposer";\nimport { LinearIcon } from "./components/LinearIcon";\nimport { ProjectAutomationMenu } from "./components/ProjectAutomationMenu";\nimport { TaskContextMenu } from "./components/TaskContextMenu";\nimport { TaskDetail } from "./components/TaskDetail";\nimport { TaskEditor } from "./components/TaskEditor";\nimport { TaskFilterMenu } from "./components/TaskFilterMenu";\nimport { buildIssueUrl, readIssueIdentifier } from "./issueRoute";\nimport { ownsSubmissionReceipt, pendingSubmissionKeys, submissionKey, submissionReceiptState } from "./submissionReceipts";\nimport { DEFAULT_LABELS } from "./labels";\nimport {\n  EMPTY_TASK_FILTERS,\n  matchesTaskFilters,\n  matchesTaskSearch,\n  readTaskFilters,\n  taskFilterCount,\n  writeTaskFilters,\n} from "./taskFilters";\nimport {\n  TASK_STATUSES,\n  type ActorIdentity,\n  type Attachment,\n  type DevelopmentScan,\n  type HostContext,\n  type IssueRelationType,\n  type Project,\n  type Task,\n  type TaskboardMetadata,\n  type TaskDraft,\n  type TaskStatus,\n  type WorkflowOption,\n} from "./types";\nimport {\n  DEFAULT_WORKFLOW_OPTIONS,\n  readLegacyWorkflowWorkspace,\n  workflowOptionsFromWorkspace,\n} from "./workflowStore";\n// The poller stays in ESM JavaScript so its lifecycle can be tested directly with node:test.\n// @ts-expect-error The module's option contract is enforced by its focused node tests.\nimport { createRevisionPoller, getRevisionPollingInterval } from "./revisionPolling.mjs";\n\ntype ConnectionState = "connecting" | "live" | "reconnecting";\ntype Theme = "light" | "dark";\ntype BoardView = "issues" | "workflow";\nconst SHOW_WORKFLOW_BOARD_ENTRY = false;\n\nconst WorkflowBoard = lazy(() => import("./components/WorkflowBoard").then((module) => ({\n  default: module.WorkflowBoard,\n})));\n\ninterface EditorState {\n  task: Task | null;\n  status: TaskStatus;\n}\n\ninterface IssueCreation {\n  id: string;\n  editor: EditorState;\n  task?: Task;\n  savedDraft?: string;\n  uploaded: Map<File, Attachment>;\n  uncertain?: boolean;\n}\n\ninterface ContextMenuState {\n  taskId: string;\n  x: number;\n  y: number;\n}\n\ninterface ProjectChoice {\n  id: string;\n  name: string;\n  issueCount: number;\n  inCodex: boolean;\n  persisted: boolean;\n}\n\ninterface UndoOperation {\n  id: number;\n  message: string;\n  undo: () => Promise<void>;\n}\n\ninterface UndoNotice {\n  id: number;\n  message: string;\n}\n\ntype ColumnVisibilityByProject = Record<string, Partial<Record<TaskStatus, boolean>>>;\ntype ProjectAutomationStatus = "ACTIVE" | "PAUSED";\ntype AutomationQuotaState = "available" | "blocked" | "unknown" | "unavailable";\n\ninterface AutomationQuotaStatus {\n  state: AutomationQuotaState;\n  checkedAt: number;\n  resetsAt?: number;\n  reason?: "api-key";\n}\n\ninterface ProjectAutomationRecord {\n  codexProjectId: string;\n  status: ProjectAutomationStatus;\n  enabledByUser: boolean;\n  quotaAware: boolean;\n  quota?: AutomationQuotaStatus;\n  model: AutomationModel;\n  reasoningEffort: AutomationReasoningEffort;\n}\n\ntype ProjectAutomations = Record<string, ProjectAutomationRecord>;\n\ninterface AutomationHostItem {\n  id: string;\n  status: ProjectAutomationStatus;\n  model: AutomationModel;\n  reasoningEffort: AutomationReasoningEffort;\n}\n\ninterface AutomationHostResponse {\n  requestId: string;\n  ok: boolean;\n  item?: AutomationHostItem;\n  items?: AutomationHostItem[];\n  quota?: AutomationQuotaStatus;\n  policy?: {\n    enabledByUser: boolean;\n    quotaAware: boolean;\n    model: AutomationModel;\n    reasoningEffort: AutomationReasoningEffort;\n  };\n  error?: string;\n}\n\ninterface PendingAutomationRequest {\n  resolve: (response: AutomationHostResponse) => void;\n  reject: (error: Error) => void;\n  timeoutId: number;\n}\n\nconst DEFAULT_USER_ACTOR: ActorIdentity = {\n  type: "user",\n  id: "local-user",\n  name: "本地用户",\n  avatarUrl: null,\n};\n\nconst LAST_PROJECT_KEY = "taskboard.lastProjectId";\nconst FAVORITE_PROJECTS_KEY = "taskboard.favoriteProjectIds";\nconst DEVICE_WORKSPACE_PATHS_KEY = "taskboard.deviceWorkspacePaths.v1";\nconst SHOW_EMPTY_COLUMNS_KEY = "taskboard.showEmptyColumns.v1";\nconst COLUMN_VISIBILITY_KEY = "taskboard.columnVisibility.v1";\nconst PROJECT_AUTOMATIONS_KEY = "taskboard.projectAutomations.v1";\nconst DEFAULT_AUTOMATION_OPTIONS = {\n  enabledByUser: false,\n  quotaAware: false,\n  model: "gpt-5.5",\n  reasoningEffort: "high",\n} as const;\n\nconst EVENT_NAMES = [\n  "task.created",\n  "task.updated",\n  "task.moved",\n  "task.archived",\n  "task.restored",\n  "task.relation.updated",\n  "comment.created",\n  "comment.updated",\n  "comment.deleted",\n  "attachment.created",\n  "attachment.deleted",\n  "project.created",\n  "workflow.updated",\n] as const;\n\nfunction isTheme(value: unknown): value is Theme {\n  return value === "light" || value === "dark";\n}\n\n// Display preferences are optional caches. Storage denial/quota must not take\n// down the board; submission journals below deliberately keep their errors.\nfunction readPreference(key: string): string | null {\n  try { return window.localStorage.getItem(key); } catch { return null; }\n}\n\nfunction writePreference(key: string, value: string): void {\n  try { window.localStorage.setItem(key, value); } catch { /* Keep the in-memory preference. */ }\n}\n\nfunction removePreference(key: string): void {\n  try { window.localStorage.removeItem(key); } catch { /* Keep the in-memory preference. */ }\n}\n\nfunction getInitialTheme(): Theme {\n  const fromQuery = new URLSearchParams(window.location.search).get("theme");\n  if (isTheme(fromQuery)) return fromQuery;\n  const stored = readPreference("taskboard.theme");\n  if (isTheme(stored)) return stored;\n  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";\n}\n\nfunction readFavoriteProjectIds(): Set<string> {\n  try {\n    const value = JSON.parse(readPreference(FAVORITE_PROJECTS_KEY) ?? "[]");\n    return new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);\n  } catch {\n    return new Set();\n  }\n}\n\nfunction readDeviceWorkspacePaths(): Record<string, string> {\n  try {\n    const value = JSON.parse(readPreference(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");\n    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => (\n      typeof entry[1] === "string" && entry[1].trim().length > 0\n    )));\n  } catch {\n    return {};\n  }\n}\n\nfunction readShowEmptyColumns(): boolean {\n  return readPreference(SHOW_EMPTY_COLUMNS_KEY) === "true";\n}\n\nfunction readProjectAutomations(): ProjectAutomations {\n  try {\n    const value = JSON.parse(readPreference(PROJECT_AUTOMATIONS_KEY) ?? "{}");\n    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n    const result: ProjectAutomations = {};\n    for (const [projectId, record] of Object.entries(value)) {\n      if (!record || typeof record !== "object" || Array.isArray(record)) continue;\n      const candidate = record as Partial<ProjectAutomationRecord>;\n      const model = candidate.model ?? "gpt-5.5";\n      const reasoningEffort = candidate.reasoningEffort ?? "high";\n      const enabledByUser = candidate.enabledByUser ?? candidate.status === "ACTIVE";\n      const quotaAware = candidate.quotaAware ?? false;\n      if (\n        typeof candidate.codexProjectId !== "string"\n        || (candidate.status !== "ACTIVE" && candidate.status !== "PAUSED")\n        || !isAutomationModel(model)\n        || !isAutomationReasoningEffort(reasoningEffort)\n        || !isAutomationSelection(model, reasoningEffort)\n        || typeof enabledByUser !== "boolean"\n        || typeof quotaAware !== "boolean"\n      ) continue;\n      const quota = isAutomationQuotaStatus(candidate.quota) ? candidate.quota : undefined;\n      result[projectId] = {\n        codexProjectId: candidate.codexProjectId,\n        status: candidate.status,\n        enabledByUser,\n        quotaAware,\n        ...(quota ? { quota } : {}),\n        model,\n        reasoningEffort,\n      };\n    }\n    return result;\n  } catch {\n    return {};\n  }\n}\n\nfunction isAutomationQuotaStatus(value: unknown): value is AutomationQuotaStatus {\n  if (!value || typeof value !== "object" || Array.isArray(value)) return false;\n  const candidate = value as Partial<AutomationQuotaStatus>;\n  return (\n    (candidate.state === "available"\n      || candidate.state === "blocked"\n      || candidate.state === "unknown"\n      || candidate.state === "unavailable")\n    && Number.isFinite(candidate.checkedAt)\n    && (candidate.resetsAt === undefined || Number.isFinite(candidate.resetsAt))\n    && (candidate.reason === undefined || candidate.reason === "api-key")\n  );\n}\n\nfunction isAutomationHostPolicy(\n  value: AutomationHostResponse["policy"] | undefined,\n): value is NonNullable<Automat`... 85648 more characters,
+    expected: /window\.localStorage\.setItem\(COLUMN_VISIBILITY_KEY, JSON\.stringify\(next\)\)/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/issue-automation.test.mjs:189:1
+✖ loopback POST /api/tasks reaches the event worker without a scheduler tick (13.74725ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/issue-automation.test.mjs:219:1
+✖ moving a newly created backlog issue into todo retriggers the event worker (10.131416ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/issue-automation.test.mjs:261:1
+✖ cloud-proxied creation and entering todo both trigger the local event worker (8.6335ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/issue-automation.test.mjs:366:1
+✖ LAN task creation persists the issue but cannot launch the local Codex worker (8.229625ms)
+  Error: listen EPERM: operation not permitted 0.0.0.0
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '0.0.0.0'
+  }
+
+test at test/issue-identifier-collision.test.mjs:1:1
+✖ test/issue-identifier-collision.test.mjs (419.486334ms)
+  'test failed'
+
+test at test/project-automation-settings.test.mjs:20:1
+✖ project automation state is device-local and scoped by taskboard project (2.058958ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /localStorage\.getItem\(PROJECT_AUTOMATIONS_KEY\)/. Input:
+  
+  'import {\n' +
+    '  lazy,\n' +
+    '  Suspense,\n' +
+    '  useCallback,\n' +
+    '  useEffect,\n' +
+    '  useLayoutEffect,\n' +
+    '  useMemo,\n' +
+    '  useRef,\n' +
+    '  useState,\n' +
+    '  type CSSProperties,\n' +
+    '  type Dispatch,\n' +
+    '  type SetStateAction,\n' +
+    '} from "react";\n' +
+    'import {\n' +
+    '  isAutomationModel,\n' +
+    '  isAutomationReasoningEffort,\n' +
+    '  isAutomationSelection,\n' +
+    '  type AutomationModel,\n' +
+    '  type AutomationReasoningEffort,\n' +
+    '} from "../../shared/taskboard-automation-options.mjs";\n' +
+    'import {\n' +
+    '  ApiError,\n' +
+    '  addTaskRelation,\n' +
+    '  archiveTask as archiveTaskRequest,\n' +
+    '  createProject as createProjectRequest,\n' +
+    '  createTask as createTaskRequest,\n' +
+    '  getTaskboardRevision,\n' +
+    '  getWorkflowWorkspace,\n' +
+    '  getTaskboardMetadata,\n' +
+    '  listDevelopmentContexts,\n' +
+    '  listDeviceWorkspaces,\n' +
+    '  listProjects,\n' +
+    '  listTasks,\n' +
+    '  moveTask as moveTaskRequest,\n' +
+    '  removeTaskRelation,\n' +
+    '  restoreTask as restoreTaskRequest,\n' +
+    '  setCurrentUserActor,\n' +
+    '  uploadAttachment,\n' +
+    '  updateTask as updateTaskRequest,\n' +
+    '} from "./api";\n' +
+    'import {\n' +
+    '  actorForAssigneeTarget,\n' +
+    '  assigneeTargetForActor,\n' +
+    '} from "./actors";\n' +
+    'import { BoardColumn, STATUS_DETAILS } from "./components/BoardColumn";\n' +
+    'import { AiChat } from "./components/AiChat";\n' +
+    'import { BoardSettingsMenu } from "./components/BoardSettingsMenu";\n' +
+    'import { HiddenColumns } from "./components/HiddenColumns";\n' +
+    'import {\n' +
+    '  resolveInlineMediaMarkdown,\n' +
+    '  type PendingInlineImage,\n' +
+    '} from "./components/InlineMediaComposer";\n' +
+    'import { LinearIcon } from "./components/LinearIcon";\n' +
+    'import { ProjectAutomationMenu } from "./components/ProjectAutomationMenu";\n' +
+    'import { TaskContextMenu } from "./components/TaskContextMenu";\n' +
+    'import { TaskDetail } from "./components/TaskDetail";\n' +
+    'import { TaskEditor } from "./components/TaskEditor";\n' +
+    'import { TaskFilterMenu } from "./components/TaskFilterMenu";\n' +
+    'import { buildIssueUrl, readIssueIdentifier } from "./issueRoute";\n' +
+    'import { ownsSubmissionReceipt, pendingSubmissionKeys, submissionKey, submissionReceiptState } from "./submissionReceipts";\n' +
+    'import { DEFAULT_LABELS } from "./labels";\n' +
+    'import {\n' +
+    '  EMPTY_TASK_FILTERS,\n' +
+    '  matchesTaskFilters,\n' +
+    '  matchesTaskSearch,\n' +
+    '  readTaskFilters,\n' +
+    '  taskFilterCount,\n' +
+    '  writeTaskFilters,\n' +
+    '} from "./taskFilters";\n' +
+    'import {\n' +
+    '  TASK_STATUSES,\n' +
+    '  type ActorIdentity,\n' +
+    '  type Attachment,\n' +
+    '  type DevelopmentScan,\n' +
+    '  type HostContext,\n' +
+    '  type IssueRelationType,\n' +
+    '  type Project,\n' +
+    '  type Task,\n' +
+    '  type TaskboardMetadata,\n' +
+    '  type TaskDraft,\n' +
+    '  type TaskStatus,\n' +
+    '  type WorkflowOption,\n' +
+    '} from "./types";\n' +
+    'import {\n' +
+    '  DEFAULT_WORKFLOW_OPTIONS,\n' +
+    '  readLegacyWorkflowWorkspace,\n' +
+    '  workflowOptionsFromWorkspace,\n' +
+    '} from "./workflowStore";\n' +
+    '// The poller stays in ESM JavaScript so its lifecycle can be tested directly with node:test.\n' +
+    "// @ts-expect-error The module's option contract is enforced by its focused node tests.\n" +
+    'import { createRevisionPoller, getRevisionPollingInterval } from "./revisionPolling.mjs";\n' +
+    '\n' +
+    'type ConnectionState = "connecting" | "live" | "reconnecting";\n' +
+    'type Theme = "light" | "dark";\n' +
+    'type BoardView = "issues" | "workflow";\n' +
+    'const SHOW_WORKFLOW_BOARD_ENTRY = false;\n' +
+    '\n' +
+    'const WorkflowBoard = lazy(() => import("./components/WorkflowBoard").then((module) => ({\n' +
+    '  default: module.WorkflowBoard,\n' +
+    '})));\n' +
+    '\n' +
+    'interface EditorState {\n' +
+    '  task: Task | null;\n' +
+    '  status: TaskStatus;\n' +
+    '}\n' +
+    '\n' +
+    'interface IssueCreation {\n' +
+    '  id: string;\n' +
+    '  editor: EditorState;\n' +
+    '  task?: Task;\n' +
+    '  savedDraft?: string;\n' +
+    '  uploaded: Map<File, Attachment>;\n' +
+    '  uncertain?: boolean;\n' +
+    '}\n' +
+    '\n' +
+    'interface ContextMenuState {\n' +
+    '  taskId: string;\n' +
+    '  x: number;\n' +
+    '  y: number;\n' +
+    '}\n' +
+    '\n' +
+    'interface ProjectChoice {\n' +
+    '  id: string;\n' +
+    '  name: string;\n' +
+    '  issueCount: number;\n' +
+    '  inCodex: boolean;\n' +
+    '  persisted: boolean;\n' +
+    '}\n' +
+    '\n' +
+    'interface UndoOperation {\n' +
+    '  id: number;\n' +
+    '  message: string;\n' +
+    '  undo: () => Promise<void>;\n' +
+    '}\n' +
+    '\n' +
+    'interface UndoNotice {\n' +
+    '  id: number;\n' +
+    '  message: string;\n' +
+    '}\n' +
+    '\n' +
+    'type ColumnVisibilityByProject = Record<string, Partial<Record<TaskStatus, boolean>>>;\n' +
+    'type ProjectAutomationStatus = "ACTIVE" | "PAUSED";\n' +
+    'type AutomationQuotaState = "available" | "blocked" | "unknown" | "unavailable";\n' +
+    '\n' +
+    'interface AutomationQuotaStatus {\n' +
+    '  state: AutomationQuotaState;\n' +
+    '  checkedAt: number;\n' +
+    '  resetsAt?: number;\n' +
+    '  reason?: "api-key";\n' +
+    '}\n' +
+    '\n' +
+    'interface ProjectAutomationRecord {\n' +
+    '  codexProjectId: string;\n' +
+    '  status: ProjectAutomationStatus;\n' +
+    '  enabledByUser: boolean;\n' +
+    '  quotaAware: boolean;\n' +
+    '  quota?: AutomationQuotaStatus;\n' +
+    '  model: AutomationModel;\n' +
+    '  reasoningEffort: AutomationReasoningEffort;\n' +
+    '}\n' +
+    '\n' +
+    'type ProjectAutomations = Record<string, ProjectAutomationRecord>;\n' +
+    '\n' +
+    'interface AutomationHostItem {\n' +
+    '  id: string;\n' +
+    '  status: ProjectAutomationStatus;\n' +
+    '  model: AutomationModel;\n' +
+    '  reasoningEffort: AutomationReasoningEffort;\n' +
+    '}\n' +
+    '\n' +
+    'interface AutomationHostResponse {\n' +
+    '  requestId: string;\n' +
+    '  ok: boolean;\n' +
+    '  item?: AutomationHostItem;\n' +
+    '  items?: AutomationHostItem[];\n' +
+    '  quota?: AutomationQuotaStatus;\n' +
+    '  policy?: {\n' +
+    '    enabledByUser: boolean;\n' +
+    '    quotaAware: boolean;\n' +
+    '    model: AutomationModel;\n' +
+    '    reasoningEffort: AutomationReasoningEffort;\n' +
+    '  };\n' +
+    '  error?: string;\n' +
+    '}\n' +
+    '\n' +
+    'interface PendingAutomationRequest {\n' +
+    '  resolve: (response: AutomationHostResponse) => void;\n' +
+    '  reject: (error: Error) => void;\n' +
+    '  timeoutId: number;\n' +
+    '}\n' +
+    '\n' +
+    'const DEFAULT_USER_ACTOR: ActorIdentity = {\n' +
+    '  type: "user",\n' +
+    '  id: "local-user",\n' +
+    '  name: "本地用户",\n' +
+    '  avatarUrl: null,\n' +
+    '};\n' +
+    '\n' +
+    'const LAST_PROJECT_KEY = "taskboard.lastProjectId";\n' +
+    'const FAVORITE_PROJECTS_KEY = "taskboard.favoriteProjectIds";\n' +
+    'const DEVICE_WORKSPACE_PATHS_KEY = "taskboard.deviceWorkspacePaths.v1";\n' +
+    'const SHOW_EMPTY_COLUMNS_KEY = "taskboard.showEmptyColumns.v1";\n' +
+    'const COLUMN_VISIBILITY_KEY = "taskboard.columnVisibility.v1";\n' +
+    'const PROJECT_AUTOMATIONS_KEY = "taskboard.projectAutomations.v1";\n' +
+    'const DEFAULT_AUTOMATION_OPTIONS = {\n' +
+    '  enabledByUser: false,\n' +
+    '  quotaAware: false,\n' +
+    '  model: "gpt-5.5",\n' +
+    '  reasoningEffort: "high",\n' +
+    '} as const;\n' +
+    '\n' +
+    'const EVENT_NAMES = [\n' +
+    '  "task.created",\n' +
+    '  "task.updated",\n' +
+    '  "task.moved",\n' +
+    '  "task.archived",\n' +
+    '  "task.restored",\n' +
+    '  "task.relation.updated",\n' +
+    '  "comment.created",\n' +
+    '  "comment.updated",\n' +
+    '  "comment.deleted",\n' +
+    '  "attachment.created",\n' +
+    '  "attachment.deleted",\n' +
+    '  "project.created",\n' +
+    '  "workflow.updated",\n' +
+    '] as const;\n' +
+    '\n' +
+    'function isTheme(value: unknown): value is Theme {\n' +
+    '  return value === "light" || value === "dark";\n' +
+    '}\n' +
+    '\n' +
+    '// Display preferences are optional caches. Storage denial/quota must not take\n' +
+    '// down the board; submission journals below deliberately keep their errors.\n' +
+    'function readPreference(key: string): string | null {\n' +
+    '  try { return window.localStorage.getItem(key); } catch { return null; }\n' +
+    '}\n' +
+    '\n' +
+    'function writePreference(key: string, value: string): void {\n' +
+    '  try { window.localStorage.setItem(key, value); } catch { /* Keep the in-memory preference. */ }\n' +
+    '}\n' +
+    '\n' +
+    'function removePreference(key: string): void {\n' +
+    '  try { window.localStorage.removeItem(key); } catch { /* Keep the in-memory preference. */ }\n' +
+    '}\n' +
+    '\n' +
+    'function getInitialTheme(): Theme {\n' +
+    '  const fromQuery = new URLSearchParams(window.location.search).get("theme");\n' +
+    '  if (isTheme(fromQuery)) return fromQuery;\n' +
+    '  const stored = readPreference("taskboard.theme");\n' +
+    '  if (isTheme(stored)) return stored;\n' +
+    '  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";\n' +
+    '}\n' +
+    '\n' +
+    'function readFavoriteProjectIds(): Set<string> {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(FAVORITE_PROJECTS_KEY) ?? "[]");\n' +
+    '    return new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);\n' +
+    '  } catch {\n' +
+    '    return new Set();\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function readDeviceWorkspacePaths(): Record<string, string> {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");\n' +
+    '    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n' +
+    '    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => (\n' +
+    '      typeof entry[1] === "string" && entry[1].trim().length > 0\n' +
+    '    )));\n' +
+    '  } catch {\n' +
+    '    return {};\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function readShowEmptyColumns(): boolean {\n' +
+    '  return readPreference(SHOW_EMPTY_COLUMNS_KEY) === "true";\n' +
+    '}\n' +
+    '\n' +
+    'function readProjectAutomations(): ProjectAutomations {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(PROJECT_AUTOMATIONS_KEY) ?? "{}");\n' +
+    '    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n' +
+    '    const result: ProjectAutomations = {};\n' +
+    '    for (const [projectId, record] of Object.entries(value)) {\n' +
+    '      if (!record || typeof record !== "object" || Array.isArray(record)) continue;\n' +
+    '      const candidate = record as Partial<ProjectAutomationRecord>;\n' +
+    '      const model = candidate.model ?? "gpt-5.5";\n' +
+    '      const reasoningEffort = candidate.reasoningEffort ?? "high";\n' +
+    '      const enabledByUser = candidate.enabledByUser ?? candidate.status === "ACTIVE";\n' +
+    '      const quotaAware = candidate.quotaAware ?? false;\n' +
+    '      if (\n' +
+    '        typeof candidate.codexProjectId !== "string"\n' +
+    '        || (candidate.status !== "ACTIVE" && candidate.status !== "PAUSED")\n' +
+    '        || !isAutomationModel(model)\n' +
+    '        || !isAutomationReasoningEffort(reasoningEffort)\n' +
+    '        || !isAutomationSelection(model, reasoningEffort)\n' +
+    '        || typeof enabledByUser !== "boolean"\n' +
+    '        || typeof quotaAware !== "boolean"\n' +
+    '      ) continue;\n' +
+    '      const quota = isAutomationQuotaStatus(candidate.quota) ? candidate.quota : undefined;\n' +
+    '      result[projectId] = {\n' +
+    '        codexProjectId: candidate.codexProjectId,\n' +
+    '        status: candidate.status,\n' +
+    '        enabledByUser,\n' +
+    '        quotaAware,\n' +
+    '        ...(quota ? { quota } : {}),\n' +
+    '        model,\n' +
+    '        reasoningEffort,\n' +
+    '      };\n' +
+    '    }\n' +
+    '    return result;\n' +
+    '  } catch {\n' +
+    '    return {};\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function isAutomationQuotaStatus(value: unknown): value is AutomationQuotaStatus {\n' +
+    '  if (!value || typeof value !== "object" || Array.isArray(value)) return false;\n' +
+    '  const candidate = value as Partial<AutomationQuotaStatus>;\n' +
+    '  return (\n' +
+    '    (candidate.state === "available"\n' +
+    '      || candidate.state === "blocked"\n' +
+    '      || candidate.state === "unknown"\n' +
+    '      || candidate.state === "unavailable")\n' +
+    '    && Number.isFinite(candidate.checkedAt)\n' +
+    '    && (candidate.resetsAt === undefined || Number.isFinite(candidate.resetsAt))\n' +
+    '    && (candidate.reason === undefined || candidate.reason === "api-key")\n' +
+    '  );\n' +
+    '}\n' +
+    '\n' +
+    'function isAutomationHostPolicy(\n' +
+    '  value: AutomationHostResponse["policy"] | undefined,\n' +
+    '): value is NonNullable<Automat'... 85648 more characters
+  
+      at TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/project-automation-settings.test.mjs:27:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `import {\n  lazy,\n  Suspense,\n  useCallback,\n  useEffect,\n  useLayoutEffect,\n  useMemo,\n  useRef,\n  useState,\n  type CSSProperties,\n  type Dispatch,\n  type SetStateAction,\n} from "react";\nimport {\n  isAutomationModel,\n  isAutomationReasoningEffort,\n  isAutomationSelection,\n  type AutomationModel,\n  type AutomationReasoningEffort,\n} from "../../shared/taskboard-automation-options.mjs";\nimport {\n  ApiError,\n  addTaskRelation,\n  archiveTask as archiveTaskRequest,\n  createProject as createProjectRequest,\n  createTask as createTaskRequest,\n  getTaskboardRevision,\n  getWorkflowWorkspace,\n  getTaskboardMetadata,\n  listDevelopmentContexts,\n  listDeviceWorkspaces,\n  listProjects,\n  listTasks,\n  moveTask as moveTaskRequest,\n  removeTaskRelation,\n  restoreTask as restoreTaskRequest,\n  setCurrentUserActor,\n  uploadAttachment,\n  updateTask as updateTaskRequest,\n} from "./api";\nimport {\n  actorForAssigneeTarget,\n  assigneeTargetForActor,\n} from "./actors";\nimport { BoardColumn, STATUS_DETAILS } from "./components/BoardColumn";\nimport { AiChat } from "./components/AiChat";\nimport { BoardSettingsMenu } from "./components/BoardSettingsMenu";\nimport { HiddenColumns } from "./components/HiddenColumns";\nimport {\n  resolveInlineMediaMarkdown,\n  type PendingInlineImage,\n} from "./components/InlineMediaComposer";\nimport { LinearIcon } from "./components/LinearIcon";\nimport { ProjectAutomationMenu } from "./components/ProjectAutomationMenu";\nimport { TaskContextMenu } from "./components/TaskContextMenu";\nimport { TaskDetail } from "./components/TaskDetail";\nimport { TaskEditor } from "./components/TaskEditor";\nimport { TaskFilterMenu } from "./components/TaskFilterMenu";\nimport { buildIssueUrl, readIssueIdentifier } from "./issueRoute";\nimport { ownsSubmissionReceipt, pendingSubmissionKeys, submissionKey, submissionReceiptState } from "./submissionReceipts";\nimport { DEFAULT_LABELS } from "./labels";\nimport {\n  EMPTY_TASK_FILTERS,\n  matchesTaskFilters,\n  matchesTaskSearch,\n  readTaskFilters,\n  taskFilterCount,\n  writeTaskFilters,\n} from "./taskFilters";\nimport {\n  TASK_STATUSES,\n  type ActorIdentity,\n  type Attachment,\n  type DevelopmentScan,\n  type HostContext,\n  type IssueRelationType,\n  type Project,\n  type Task,\n  type TaskboardMetadata,\n  type TaskDraft,\n  type TaskStatus,\n  type WorkflowOption,\n} from "./types";\nimport {\n  DEFAULT_WORKFLOW_OPTIONS,\n  readLegacyWorkflowWorkspace,\n  workflowOptionsFromWorkspace,\n} from "./workflowStore";\n// The poller stays in ESM JavaScript so its lifecycle can be tested directly with node:test.\n// @ts-expect-error The module's option contract is enforced by its focused node tests.\nimport { createRevisionPoller, getRevisionPollingInterval } from "./revisionPolling.mjs";\n\ntype ConnectionState = "connecting" | "live" | "reconnecting";\ntype Theme = "light" | "dark";\ntype BoardView = "issues" | "workflow";\nconst SHOW_WORKFLOW_BOARD_ENTRY = false;\n\nconst WorkflowBoard = lazy(() => import("./components/WorkflowBoard").then((module) => ({\n  default: module.WorkflowBoard,\n})));\n\ninterface EditorState {\n  task: Task | null;\n  status: TaskStatus;\n}\n\ninterface IssueCreation {\n  id: string;\n  editor: EditorState;\n  task?: Task;\n  savedDraft?: string;\n  uploaded: Map<File, Attachment>;\n  uncertain?: boolean;\n}\n\ninterface ContextMenuState {\n  taskId: string;\n  x: number;\n  y: number;\n}\n\ninterface ProjectChoice {\n  id: string;\n  name: string;\n  issueCount: number;\n  inCodex: boolean;\n  persisted: boolean;\n}\n\ninterface UndoOperation {\n  id: number;\n  message: string;\n  undo: () => Promise<void>;\n}\n\ninterface UndoNotice {\n  id: number;\n  message: string;\n}\n\ntype ColumnVisibilityByProject = Record<string, Partial<Record<TaskStatus, boolean>>>;\ntype ProjectAutomationStatus = "ACTIVE" | "PAUSED";\ntype AutomationQuotaState = "available" | "blocked" | "unknown" | "unavailable";\n\ninterface AutomationQuotaStatus {\n  state: AutomationQuotaState;\n  checkedAt: number;\n  resetsAt?: number;\n  reason?: "api-key";\n}\n\ninterface ProjectAutomationRecord {\n  codexProjectId: string;\n  status: ProjectAutomationStatus;\n  enabledByUser: boolean;\n  quotaAware: boolean;\n  quota?: AutomationQuotaStatus;\n  model: AutomationModel;\n  reasoningEffort: AutomationReasoningEffort;\n}\n\ntype ProjectAutomations = Record<string, ProjectAutomationRecord>;\n\ninterface AutomationHostItem {\n  id: string;\n  status: ProjectAutomationStatus;\n  model: AutomationModel;\n  reasoningEffort: AutomationReasoningEffort;\n}\n\ninterface AutomationHostResponse {\n  requestId: string;\n  ok: boolean;\n  item?: AutomationHostItem;\n  items?: AutomationHostItem[];\n  quota?: AutomationQuotaStatus;\n  policy?: {\n    enabledByUser: boolean;\n    quotaAware: boolean;\n    model: AutomationModel;\n    reasoningEffort: AutomationReasoningEffort;\n  };\n  error?: string;\n}\n\ninterface PendingAutomationRequest {\n  resolve: (response: AutomationHostResponse) => void;\n  reject: (error: Error) => void;\n  timeoutId: number;\n}\n\nconst DEFAULT_USER_ACTOR: ActorIdentity = {\n  type: "user",\n  id: "local-user",\n  name: "本地用户",\n  avatarUrl: null,\n};\n\nconst LAST_PROJECT_KEY = "taskboard.lastProjectId";\nconst FAVORITE_PROJECTS_KEY = "taskboard.favoriteProjectIds";\nconst DEVICE_WORKSPACE_PATHS_KEY = "taskboard.deviceWorkspacePaths.v1";\nconst SHOW_EMPTY_COLUMNS_KEY = "taskboard.showEmptyColumns.v1";\nconst COLUMN_VISIBILITY_KEY = "taskboard.columnVisibility.v1";\nconst PROJECT_AUTOMATIONS_KEY = "taskboard.projectAutomations.v1";\nconst DEFAULT_AUTOMATION_OPTIONS = {\n  enabledByUser: false,\n  quotaAware: false,\n  model: "gpt-5.5",\n  reasoningEffort: "high",\n} as const;\n\nconst EVENT_NAMES = [\n  "task.created",\n  "task.updated",\n  "task.moved",\n  "task.archived",\n  "task.restored",\n  "task.relation.updated",\n  "comment.created",\n  "comment.updated",\n  "comment.deleted",\n  "attachment.created",\n  "attachment.deleted",\n  "project.created",\n  "workflow.updated",\n] as const;\n\nfunction isTheme(value: unknown): value is Theme {\n  return value === "light" || value === "dark";\n}\n\n// Display preferences are optional caches. Storage denial/quota must not take\n// down the board; submission journals below deliberately keep their errors.\nfunction readPreference(key: string): string | null {\n  try { return window.localStorage.getItem(key); } catch { return null; }\n}\n\nfunction writePreference(key: string, value: string): void {\n  try { window.localStorage.setItem(key, value); } catch { /* Keep the in-memory preference. */ }\n}\n\nfunction removePreference(key: string): void {\n  try { window.localStorage.removeItem(key); } catch { /* Keep the in-memory preference. */ }\n}\n\nfunction getInitialTheme(): Theme {\n  const fromQuery = new URLSearchParams(window.location.search).get("theme");\n  if (isTheme(fromQuery)) return fromQuery;\n  const stored = readPreference("taskboard.theme");\n  if (isTheme(stored)) return stored;\n  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";\n}\n\nfunction readFavoriteProjectIds(): Set<string> {\n  try {\n    const value = JSON.parse(readPreference(FAVORITE_PROJECTS_KEY) ?? "[]");\n    return new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);\n  } catch {\n    return new Set();\n  }\n}\n\nfunction readDeviceWorkspacePaths(): Record<string, string> {\n  try {\n    const value = JSON.parse(readPreference(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");\n    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => (\n      typeof entry[1] === "string" && entry[1].trim().length > 0\n    )));\n  } catch {\n    return {};\n  }\n}\n\nfunction readShowEmptyColumns(): boolean {\n  return readPreference(SHOW_EMPTY_COLUMNS_KEY) === "true";\n}\n\nfunction readProjectAutomations(): ProjectAutomations {\n  try {\n    const value = JSON.parse(readPreference(PROJECT_AUTOMATIONS_KEY) ?? "{}");\n    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n    const result: ProjectAutomations = {};\n    for (const [projectId, record] of Object.entries(value)) {\n      if (!record || typeof record !== "object" || Array.isArray(record)) continue;\n      const candidate = record as Partial<ProjectAutomationRecord>;\n      const model = candidate.model ?? "gpt-5.5";\n      const reasoningEffort = candidate.reasoningEffort ?? "high";\n      const enabledByUser = candidate.enabledByUser ?? candidate.status === "ACTIVE";\n      const quotaAware = candidate.quotaAware ?? false;\n      if (\n        typeof candidate.codexProjectId !== "string"\n        || (candidate.status !== "ACTIVE" && candidate.status !== "PAUSED")\n        || !isAutomationModel(model)\n        || !isAutomationReasoningEffort(reasoningEffort)\n        || !isAutomationSelection(model, reasoningEffort)\n        || typeof enabledByUser !== "boolean"\n        || typeof quotaAware !== "boolean"\n      ) continue;\n      const quota = isAutomationQuotaStatus(candidate.quota) ? candidate.quota : undefined;\n      result[projectId] = {\n        codexProjectId: candidate.codexProjectId,\n        status: candidate.status,\n        enabledByUser,\n        quotaAware,\n        ...(quota ? { quota } : {}),\n        model,\n        reasoningEffort,\n      };\n    }\n    return result;\n  } catch {\n    return {};\n  }\n}\n\nfunction isAutomationQuotaStatus(value: unknown): value is AutomationQuotaStatus {\n  if (!value || typeof value !== "object" || Array.isArray(value)) return false;\n  const candidate = value as Partial<AutomationQuotaStatus>;\n  return (\n    (candidate.state === "available"\n      || candidate.state === "blocked"\n      || candidate.state === "unknown"\n      || candidate.state === "unavailable")\n    && Number.isFinite(candidate.checkedAt)\n    && (candidate.resetsAt === undefined || Number.isFinite(candidate.resetsAt))\n    && (candidate.reason === undefined || candidate.reason === "api-key")\n  );\n}\n\nfunction isAutomationHostPolicy(\n  value: AutomationHostResponse["policy"] | undefined,\n): value is NonNullable<Automat`... 85648 more characters,
+    expected: /localStorage\.getItem\(PROJECT_AUTOMATIONS_KEY\)/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/project-home.test.mjs:35:1
+✖ project selection is remembered until the user explicitly returns home (1.232958ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /window\.localStorage\.setItem\(LAST_PROJECT_KEY, projectId\)/. Input:
+  
+  'import {\n' +
+    '  lazy,\n' +
+    '  Suspense,\n' +
+    '  useCallback,\n' +
+    '  useEffect,\n' +
+    '  useLayoutEffect,\n' +
+    '  useMemo,\n' +
+    '  useRef,\n' +
+    '  useState,\n' +
+    '  type CSSProperties,\n' +
+    '  type Dispatch,\n' +
+    '  type SetStateAction,\n' +
+    '} from "react";\n' +
+    'import {\n' +
+    '  isAutomationModel,\n' +
+    '  isAutomationReasoningEffort,\n' +
+    '  isAutomationSelection,\n' +
+    '  type AutomationModel,\n' +
+    '  type AutomationReasoningEffort,\n' +
+    '} from "../../shared/taskboard-automation-options.mjs";\n' +
+    'import {\n' +
+    '  ApiError,\n' +
+    '  addTaskRelation,\n' +
+    '  archiveTask as archiveTaskRequest,\n' +
+    '  createProject as createProjectRequest,\n' +
+    '  createTask as createTaskRequest,\n' +
+    '  getTaskboardRevision,\n' +
+    '  getWorkflowWorkspace,\n' +
+    '  getTaskboardMetadata,\n' +
+    '  listDevelopmentContexts,\n' +
+    '  listDeviceWorkspaces,\n' +
+    '  listProjects,\n' +
+    '  listTasks,\n' +
+    '  moveTask as moveTaskRequest,\n' +
+    '  removeTaskRelation,\n' +
+    '  restoreTask as restoreTaskRequest,\n' +
+    '  setCurrentUserActor,\n' +
+    '  uploadAttachment,\n' +
+    '  updateTask as updateTaskRequest,\n' +
+    '} from "./api";\n' +
+    'import {\n' +
+    '  actorForAssigneeTarget,\n' +
+    '  assigneeTargetForActor,\n' +
+    '} from "./actors";\n' +
+    'import { BoardColumn, STATUS_DETAILS } from "./components/BoardColumn";\n' +
+    'import { AiChat } from "./components/AiChat";\n' +
+    'import { BoardSettingsMenu } from "./components/BoardSettingsMenu";\n' +
+    'import { HiddenColumns } from "./components/HiddenColumns";\n' +
+    'import {\n' +
+    '  resolveInlineMediaMarkdown,\n' +
+    '  type PendingInlineImage,\n' +
+    '} from "./components/InlineMediaComposer";\n' +
+    'import { LinearIcon } from "./components/LinearIcon";\n' +
+    'import { ProjectAutomationMenu } from "./components/ProjectAutomationMenu";\n' +
+    'import { TaskContextMenu } from "./components/TaskContextMenu";\n' +
+    'import { TaskDetail } from "./components/TaskDetail";\n' +
+    'import { TaskEditor } from "./components/TaskEditor";\n' +
+    'import { TaskFilterMenu } from "./components/TaskFilterMenu";\n' +
+    'import { buildIssueUrl, readIssueIdentifier } from "./issueRoute";\n' +
+    'import { ownsSubmissionReceipt, pendingSubmissionKeys, submissionKey, submissionReceiptState } from "./submissionReceipts";\n' +
+    'import { DEFAULT_LABELS } from "./labels";\n' +
+    'import {\n' +
+    '  EMPTY_TASK_FILTERS,\n' +
+    '  matchesTaskFilters,\n' +
+    '  matchesTaskSearch,\n' +
+    '  readTaskFilters,\n' +
+    '  taskFilterCount,\n' +
+    '  writeTaskFilters,\n' +
+    '} from "./taskFilters";\n' +
+    'import {\n' +
+    '  TASK_STATUSES,\n' +
+    '  type ActorIdentity,\n' +
+    '  type Attachment,\n' +
+    '  type DevelopmentScan,\n' +
+    '  type HostContext,\n' +
+    '  type IssueRelationType,\n' +
+    '  type Project,\n' +
+    '  type Task,\n' +
+    '  type TaskboardMetadata,\n' +
+    '  type TaskDraft,\n' +
+    '  type TaskStatus,\n' +
+    '  type WorkflowOption,\n' +
+    '} from "./types";\n' +
+    'import {\n' +
+    '  DEFAULT_WORKFLOW_OPTIONS,\n' +
+    '  readLegacyWorkflowWorkspace,\n' +
+    '  workflowOptionsFromWorkspace,\n' +
+    '} from "./workflowStore";\n' +
+    '// The poller stays in ESM JavaScript so its lifecycle can be tested directly with node:test.\n' +
+    "// @ts-expect-error The module's option contract is enforced by its focused node tests.\n" +
+    'import { createRevisionPoller, getRevisionPollingInterval } from "./revisionPolling.mjs";\n' +
+    '\n' +
+    'type ConnectionState = "connecting" | "live" | "reconnecting";\n' +
+    'type Theme = "light" | "dark";\n' +
+    'type BoardView = "issues" | "workflow";\n' +
+    'const SHOW_WORKFLOW_BOARD_ENTRY = false;\n' +
+    '\n' +
+    'const WorkflowBoard = lazy(() => import("./components/WorkflowBoard").then((module) => ({\n' +
+    '  default: module.WorkflowBoard,\n' +
+    '})));\n' +
+    '\n' +
+    'interface EditorState {\n' +
+    '  task: Task | null;\n' +
+    '  status: TaskStatus;\n' +
+    '}\n' +
+    '\n' +
+    'interface IssueCreation {\n' +
+    '  id: string;\n' +
+    '  editor: EditorState;\n' +
+    '  task?: Task;\n' +
+    '  savedDraft?: string;\n' +
+    '  uploaded: Map<File, Attachment>;\n' +
+    '  uncertain?: boolean;\n' +
+    '}\n' +
+    '\n' +
+    'interface ContextMenuState {\n' +
+    '  taskId: string;\n' +
+    '  x: number;\n' +
+    '  y: number;\n' +
+    '}\n' +
+    '\n' +
+    'interface ProjectChoice {\n' +
+    '  id: string;\n' +
+    '  name: string;\n' +
+    '  issueCount: number;\n' +
+    '  inCodex: boolean;\n' +
+    '  persisted: boolean;\n' +
+    '}\n' +
+    '\n' +
+    'interface UndoOperation {\n' +
+    '  id: number;\n' +
+    '  message: string;\n' +
+    '  undo: () => Promise<void>;\n' +
+    '}\n' +
+    '\n' +
+    'interface UndoNotice {\n' +
+    '  id: number;\n' +
+    '  message: string;\n' +
+    '}\n' +
+    '\n' +
+    'type ColumnVisibilityByProject = Record<string, Partial<Record<TaskStatus, boolean>>>;\n' +
+    'type ProjectAutomationStatus = "ACTIVE" | "PAUSED";\n' +
+    'type AutomationQuotaState = "available" | "blocked" | "unknown" | "unavailable";\n' +
+    '\n' +
+    'interface AutomationQuotaStatus {\n' +
+    '  state: AutomationQuotaState;\n' +
+    '  checkedAt: number;\n' +
+    '  resetsAt?: number;\n' +
+    '  reason?: "api-key";\n' +
+    '}\n' +
+    '\n' +
+    'interface ProjectAutomationRecord {\n' +
+    '  codexProjectId: string;\n' +
+    '  status: ProjectAutomationStatus;\n' +
+    '  enabledByUser: boolean;\n' +
+    '  quotaAware: boolean;\n' +
+    '  quota?: AutomationQuotaStatus;\n' +
+    '  model: AutomationModel;\n' +
+    '  reasoningEffort: AutomationReasoningEffort;\n' +
+    '}\n' +
+    '\n' +
+    'type ProjectAutomations = Record<string, ProjectAutomationRecord>;\n' +
+    '\n' +
+    'interface AutomationHostItem {\n' +
+    '  id: string;\n' +
+    '  status: ProjectAutomationStatus;\n' +
+    '  model: AutomationModel;\n' +
+    '  reasoningEffort: AutomationReasoningEffort;\n' +
+    '}\n' +
+    '\n' +
+    'interface AutomationHostResponse {\n' +
+    '  requestId: string;\n' +
+    '  ok: boolean;\n' +
+    '  item?: AutomationHostItem;\n' +
+    '  items?: AutomationHostItem[];\n' +
+    '  quota?: AutomationQuotaStatus;\n' +
+    '  policy?: {\n' +
+    '    enabledByUser: boolean;\n' +
+    '    quotaAware: boolean;\n' +
+    '    model: AutomationModel;\n' +
+    '    reasoningEffort: AutomationReasoningEffort;\n' +
+    '  };\n' +
+    '  error?: string;\n' +
+    '}\n' +
+    '\n' +
+    'interface PendingAutomationRequest {\n' +
+    '  resolve: (response: AutomationHostResponse) => void;\n' +
+    '  reject: (error: Error) => void;\n' +
+    '  timeoutId: number;\n' +
+    '}\n' +
+    '\n' +
+    'const DEFAULT_USER_ACTOR: ActorIdentity = {\n' +
+    '  type: "user",\n' +
+    '  id: "local-user",\n' +
+    '  name: "本地用户",\n' +
+    '  avatarUrl: null,\n' +
+    '};\n' +
+    '\n' +
+    'const LAST_PROJECT_KEY = "taskboard.lastProjectId";\n' +
+    'const FAVORITE_PROJECTS_KEY = "taskboard.favoriteProjectIds";\n' +
+    'const DEVICE_WORKSPACE_PATHS_KEY = "taskboard.deviceWorkspacePaths.v1";\n' +
+    'const SHOW_EMPTY_COLUMNS_KEY = "taskboard.showEmptyColumns.v1";\n' +
+    'const COLUMN_VISIBILITY_KEY = "taskboard.columnVisibility.v1";\n' +
+    'const PROJECT_AUTOMATIONS_KEY = "taskboard.projectAutomations.v1";\n' +
+    'const DEFAULT_AUTOMATION_OPTIONS = {\n' +
+    '  enabledByUser: false,\n' +
+    '  quotaAware: false,\n' +
+    '  model: "gpt-5.5",\n' +
+    '  reasoningEffort: "high",\n' +
+    '} as const;\n' +
+    '\n' +
+    'const EVENT_NAMES = [\n' +
+    '  "task.created",\n' +
+    '  "task.updated",\n' +
+    '  "task.moved",\n' +
+    '  "task.archived",\n' +
+    '  "task.restored",\n' +
+    '  "task.relation.updated",\n' +
+    '  "comment.created",\n' +
+    '  "comment.updated",\n' +
+    '  "comment.deleted",\n' +
+    '  "attachment.created",\n' +
+    '  "attachment.deleted",\n' +
+    '  "project.created",\n' +
+    '  "workflow.updated",\n' +
+    '] as const;\n' +
+    '\n' +
+    'function isTheme(value: unknown): value is Theme {\n' +
+    '  return value === "light" || value === "dark";\n' +
+    '}\n' +
+    '\n' +
+    '// Display preferences are optional caches. Storage denial/quota must not take\n' +
+    '// down the board; submission journals below deliberately keep their errors.\n' +
+    'function readPreference(key: string): string | null {\n' +
+    '  try { return window.localStorage.getItem(key); } catch { return null; }\n' +
+    '}\n' +
+    '\n' +
+    'function writePreference(key: string, value: string): void {\n' +
+    '  try { window.localStorage.setItem(key, value); } catch { /* Keep the in-memory preference. */ }\n' +
+    '}\n' +
+    '\n' +
+    'function removePreference(key: string): void {\n' +
+    '  try { window.localStorage.removeItem(key); } catch { /* Keep the in-memory preference. */ }\n' +
+    '}\n' +
+    '\n' +
+    'function getInitialTheme(): Theme {\n' +
+    '  const fromQuery = new URLSearchParams(window.location.search).get("theme");\n' +
+    '  if (isTheme(fromQuery)) return fromQuery;\n' +
+    '  const stored = readPreference("taskboard.theme");\n' +
+    '  if (isTheme(stored)) return stored;\n' +
+    '  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";\n' +
+    '}\n' +
+    '\n' +
+    'function readFavoriteProjectIds(): Set<string> {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(FAVORITE_PROJECTS_KEY) ?? "[]");\n' +
+    '    return new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);\n' +
+    '  } catch {\n' +
+    '    return new Set();\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function readDeviceWorkspacePaths(): Record<string, string> {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");\n' +
+    '    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n' +
+    '    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => (\n' +
+    '      typeof entry[1] === "string" && entry[1].trim().length > 0\n' +
+    '    )));\n' +
+    '  } catch {\n' +
+    '    return {};\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function readShowEmptyColumns(): boolean {\n' +
+    '  return readPreference(SHOW_EMPTY_COLUMNS_KEY) === "true";\n' +
+    '}\n' +
+    '\n' +
+    'function readProjectAutomations(): ProjectAutomations {\n' +
+    '  try {\n' +
+    '    const value = JSON.parse(readPreference(PROJECT_AUTOMATIONS_KEY) ?? "{}");\n' +
+    '    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n' +
+    '    const result: ProjectAutomations = {};\n' +
+    '    for (const [projectId, record] of Object.entries(value)) {\n' +
+    '      if (!record || typeof record !== "object" || Array.isArray(record)) continue;\n' +
+    '      const candidate = record as Partial<ProjectAutomationRecord>;\n' +
+    '      const model = candidate.model ?? "gpt-5.5";\n' +
+    '      const reasoningEffort = candidate.reasoningEffort ?? "high";\n' +
+    '      const enabledByUser = candidate.enabledByUser ?? candidate.status === "ACTIVE";\n' +
+    '      const quotaAware = candidate.quotaAware ?? false;\n' +
+    '      if (\n' +
+    '        typeof candidate.codexProjectId !== "string"\n' +
+    '        || (candidate.status !== "ACTIVE" && candidate.status !== "PAUSED")\n' +
+    '        || !isAutomationModel(model)\n' +
+    '        || !isAutomationReasoningEffort(reasoningEffort)\n' +
+    '        || !isAutomationSelection(model, reasoningEffort)\n' +
+    '        || typeof enabledByUser !== "boolean"\n' +
+    '        || typeof quotaAware !== "boolean"\n' +
+    '      ) continue;\n' +
+    '      const quota = isAutomationQuotaStatus(candidate.quota) ? candidate.quota : undefined;\n' +
+    '      result[projectId] = {\n' +
+    '        codexProjectId: candidate.codexProjectId,\n' +
+    '        status: candidate.status,\n' +
+    '        enabledByUser,\n' +
+    '        quotaAware,\n' +
+    '        ...(quota ? { quota } : {}),\n' +
+    '        model,\n' +
+    '        reasoningEffort,\n' +
+    '      };\n' +
+    '    }\n' +
+    '    return result;\n' +
+    '  } catch {\n' +
+    '    return {};\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function isAutomationQuotaStatus(value: unknown): value is AutomationQuotaStatus {\n' +
+    '  if (!value || typeof value !== "object" || Array.isArray(value)) return false;\n' +
+    '  const candidate = value as Partial<AutomationQuotaStatus>;\n' +
+    '  return (\n' +
+    '    (candidate.state === "available"\n' +
+    '      || candidate.state === "blocked"\n' +
+    '      || candidate.state === "unknown"\n' +
+    '      || candidate.state === "unavailable")\n' +
+    '    && Number.isFinite(candidate.checkedAt)\n' +
+    '    && (candidate.resetsAt === undefined || Number.isFinite(candidate.resetsAt))\n' +
+    '    && (candidate.reason === undefined || candidate.reason === "api-key")\n' +
+    '  );\n' +
+    '}\n' +
+    '\n' +
+    'function isAutomationHostPolicy(\n' +
+    '  value: AutomationHostResponse["policy"] | undefined,\n' +
+    '): value is NonNullable<Automat'... 85648 more characters
+  
+      at TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/project-home.test.mjs:37:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `import {\n  lazy,\n  Suspense,\n  useCallback,\n  useEffect,\n  useLayoutEffect,\n  useMemo,\n  useRef,\n  useState,\n  type CSSProperties,\n  type Dispatch,\n  type SetStateAction,\n} from "react";\nimport {\n  isAutomationModel,\n  isAutomationReasoningEffort,\n  isAutomationSelection,\n  type AutomationModel,\n  type AutomationReasoningEffort,\n} from "../../shared/taskboard-automation-options.mjs";\nimport {\n  ApiError,\n  addTaskRelation,\n  archiveTask as archiveTaskRequest,\n  createProject as createProjectRequest,\n  createTask as createTaskRequest,\n  getTaskboardRevision,\n  getWorkflowWorkspace,\n  getTaskboardMetadata,\n  listDevelopmentContexts,\n  listDeviceWorkspaces,\n  listProjects,\n  listTasks,\n  moveTask as moveTaskRequest,\n  removeTaskRelation,\n  restoreTask as restoreTaskRequest,\n  setCurrentUserActor,\n  uploadAttachment,\n  updateTask as updateTaskRequest,\n} from "./api";\nimport {\n  actorForAssigneeTarget,\n  assigneeTargetForActor,\n} from "./actors";\nimport { BoardColumn, STATUS_DETAILS } from "./components/BoardColumn";\nimport { AiChat } from "./components/AiChat";\nimport { BoardSettingsMenu } from "./components/BoardSettingsMenu";\nimport { HiddenColumns } from "./components/HiddenColumns";\nimport {\n  resolveInlineMediaMarkdown,\n  type PendingInlineImage,\n} from "./components/InlineMediaComposer";\nimport { LinearIcon } from "./components/LinearIcon";\nimport { ProjectAutomationMenu } from "./components/ProjectAutomationMenu";\nimport { TaskContextMenu } from "./components/TaskContextMenu";\nimport { TaskDetail } from "./components/TaskDetail";\nimport { TaskEditor } from "./components/TaskEditor";\nimport { TaskFilterMenu } from "./components/TaskFilterMenu";\nimport { buildIssueUrl, readIssueIdentifier } from "./issueRoute";\nimport { ownsSubmissionReceipt, pendingSubmissionKeys, submissionKey, submissionReceiptState } from "./submissionReceipts";\nimport { DEFAULT_LABELS } from "./labels";\nimport {\n  EMPTY_TASK_FILTERS,\n  matchesTaskFilters,\n  matchesTaskSearch,\n  readTaskFilters,\n  taskFilterCount,\n  writeTaskFilters,\n} from "./taskFilters";\nimport {\n  TASK_STATUSES,\n  type ActorIdentity,\n  type Attachment,\n  type DevelopmentScan,\n  type HostContext,\n  type IssueRelationType,\n  type Project,\n  type Task,\n  type TaskboardMetadata,\n  type TaskDraft,\n  type TaskStatus,\n  type WorkflowOption,\n} from "./types";\nimport {\n  DEFAULT_WORKFLOW_OPTIONS,\n  readLegacyWorkflowWorkspace,\n  workflowOptionsFromWorkspace,\n} from "./workflowStore";\n// The poller stays in ESM JavaScript so its lifecycle can be tested directly with node:test.\n// @ts-expect-error The module's option contract is enforced by its focused node tests.\nimport { createRevisionPoller, getRevisionPollingInterval } from "./revisionPolling.mjs";\n\ntype ConnectionState = "connecting" | "live" | "reconnecting";\ntype Theme = "light" | "dark";\ntype BoardView = "issues" | "workflow";\nconst SHOW_WORKFLOW_BOARD_ENTRY = false;\n\nconst WorkflowBoard = lazy(() => import("./components/WorkflowBoard").then((module) => ({\n  default: module.WorkflowBoard,\n})));\n\ninterface EditorState {\n  task: Task | null;\n  status: TaskStatus;\n}\n\ninterface IssueCreation {\n  id: string;\n  editor: EditorState;\n  task?: Task;\n  savedDraft?: string;\n  uploaded: Map<File, Attachment>;\n  uncertain?: boolean;\n}\n\ninterface ContextMenuState {\n  taskId: string;\n  x: number;\n  y: number;\n}\n\ninterface ProjectChoice {\n  id: string;\n  name: string;\n  issueCount: number;\n  inCodex: boolean;\n  persisted: boolean;\n}\n\ninterface UndoOperation {\n  id: number;\n  message: string;\n  undo: () => Promise<void>;\n}\n\ninterface UndoNotice {\n  id: number;\n  message: string;\n}\n\ntype ColumnVisibilityByProject = Record<string, Partial<Record<TaskStatus, boolean>>>;\ntype ProjectAutomationStatus = "ACTIVE" | "PAUSED";\ntype AutomationQuotaState = "available" | "blocked" | "unknown" | "unavailable";\n\ninterface AutomationQuotaStatus {\n  state: AutomationQuotaState;\n  checkedAt: number;\n  resetsAt?: number;\n  reason?: "api-key";\n}\n\ninterface ProjectAutomationRecord {\n  codexProjectId: string;\n  status: ProjectAutomationStatus;\n  enabledByUser: boolean;\n  quotaAware: boolean;\n  quota?: AutomationQuotaStatus;\n  model: AutomationModel;\n  reasoningEffort: AutomationReasoningEffort;\n}\n\ntype ProjectAutomations = Record<string, ProjectAutomationRecord>;\n\ninterface AutomationHostItem {\n  id: string;\n  status: ProjectAutomationStatus;\n  model: AutomationModel;\n  reasoningEffort: AutomationReasoningEffort;\n}\n\ninterface AutomationHostResponse {\n  requestId: string;\n  ok: boolean;\n  item?: AutomationHostItem;\n  items?: AutomationHostItem[];\n  quota?: AutomationQuotaStatus;\n  policy?: {\n    enabledByUser: boolean;\n    quotaAware: boolean;\n    model: AutomationModel;\n    reasoningEffort: AutomationReasoningEffort;\n  };\n  error?: string;\n}\n\ninterface PendingAutomationRequest {\n  resolve: (response: AutomationHostResponse) => void;\n  reject: (error: Error) => void;\n  timeoutId: number;\n}\n\nconst DEFAULT_USER_ACTOR: ActorIdentity = {\n  type: "user",\n  id: "local-user",\n  name: "本地用户",\n  avatarUrl: null,\n};\n\nconst LAST_PROJECT_KEY = "taskboard.lastProjectId";\nconst FAVORITE_PROJECTS_KEY = "taskboard.favoriteProjectIds";\nconst DEVICE_WORKSPACE_PATHS_KEY = "taskboard.deviceWorkspacePaths.v1";\nconst SHOW_EMPTY_COLUMNS_KEY = "taskboard.showEmptyColumns.v1";\nconst COLUMN_VISIBILITY_KEY = "taskboard.columnVisibility.v1";\nconst PROJECT_AUTOMATIONS_KEY = "taskboard.projectAutomations.v1";\nconst DEFAULT_AUTOMATION_OPTIONS = {\n  enabledByUser: false,\n  quotaAware: false,\n  model: "gpt-5.5",\n  reasoningEffort: "high",\n} as const;\n\nconst EVENT_NAMES = [\n  "task.created",\n  "task.updated",\n  "task.moved",\n  "task.archived",\n  "task.restored",\n  "task.relation.updated",\n  "comment.created",\n  "comment.updated",\n  "comment.deleted",\n  "attachment.created",\n  "attachment.deleted",\n  "project.created",\n  "workflow.updated",\n] as const;\n\nfunction isTheme(value: unknown): value is Theme {\n  return value === "light" || value === "dark";\n}\n\n// Display preferences are optional caches. Storage denial/quota must not take\n// down the board; submission journals below deliberately keep their errors.\nfunction readPreference(key: string): string | null {\n  try { return window.localStorage.getItem(key); } catch { return null; }\n}\n\nfunction writePreference(key: string, value: string): void {\n  try { window.localStorage.setItem(key, value); } catch { /* Keep the in-memory preference. */ }\n}\n\nfunction removePreference(key: string): void {\n  try { window.localStorage.removeItem(key); } catch { /* Keep the in-memory preference. */ }\n}\n\nfunction getInitialTheme(): Theme {\n  const fromQuery = new URLSearchParams(window.location.search).get("theme");\n  if (isTheme(fromQuery)) return fromQuery;\n  const stored = readPreference("taskboard.theme");\n  if (isTheme(stored)) return stored;\n  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";\n}\n\nfunction readFavoriteProjectIds(): Set<string> {\n  try {\n    const value = JSON.parse(readPreference(FAVORITE_PROJECTS_KEY) ?? "[]");\n    return new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);\n  } catch {\n    return new Set();\n  }\n}\n\nfunction readDeviceWorkspacePaths(): Record<string, string> {\n  try {\n    const value = JSON.parse(readPreference(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");\n    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => (\n      typeof entry[1] === "string" && entry[1].trim().length > 0\n    )));\n  } catch {\n    return {};\n  }\n}\n\nfunction readShowEmptyColumns(): boolean {\n  return readPreference(SHOW_EMPTY_COLUMNS_KEY) === "true";\n}\n\nfunction readProjectAutomations(): ProjectAutomations {\n  try {\n    const value = JSON.parse(readPreference(PROJECT_AUTOMATIONS_KEY) ?? "{}");\n    if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n    const result: ProjectAutomations = {};\n    for (const [projectId, record] of Object.entries(value)) {\n      if (!record || typeof record !== "object" || Array.isArray(record)) continue;\n      const candidate = record as Partial<ProjectAutomationRecord>;\n      const model = candidate.model ?? "gpt-5.5";\n      const reasoningEffort = candidate.reasoningEffort ?? "high";\n      const enabledByUser = candidate.enabledByUser ?? candidate.status === "ACTIVE";\n      const quotaAware = candidate.quotaAware ?? false;\n      if (\n        typeof candidate.codexProjectId !== "string"\n        || (candidate.status !== "ACTIVE" && candidate.status !== "PAUSED")\n        || !isAutomationModel(model)\n        || !isAutomationReasoningEffort(reasoningEffort)\n        || !isAutomationSelection(model, reasoningEffort)\n        || typeof enabledByUser !== "boolean"\n        || typeof quotaAware !== "boolean"\n      ) continue;\n      const quota = isAutomationQuotaStatus(candidate.quota) ? candidate.quota : undefined;\n      result[projectId] = {\n        codexProjectId: candidate.codexProjectId,\n        status: candidate.status,\n        enabledByUser,\n        quotaAware,\n        ...(quota ? { quota } : {}),\n        model,\n        reasoningEffort,\n      };\n    }\n    return result;\n  } catch {\n    return {};\n  }\n}\n\nfunction isAutomationQuotaStatus(value: unknown): value is AutomationQuotaStatus {\n  if (!value || typeof value !== "object" || Array.isArray(value)) return false;\n  const candidate = value as Partial<AutomationQuotaStatus>;\n  return (\n    (candidate.state === "available"\n      || candidate.state === "blocked"\n      || candidate.state === "unknown"\n      || candidate.state === "unavailable")\n    && Number.isFinite(candidate.checkedAt)\n    && (candidate.resetsAt === undefined || Number.isFinite(candidate.resetsAt))\n    && (candidate.reason === undefined || candidate.reason === "api-key")\n  );\n}\n\nfunction isAutomationHostPolicy(\n  value: AutomationHostResponse["policy"] | undefined,\n): value is NonNullable<Automat`... 85648 more characters,
+    expected: /window\.localStorage\.setItem\(LAST_PROJECT_KEY, projectId\)/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/server.test.mjs:66:1
+✖ health and the default local project are available (20.24575ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:93:1
+✖ workflow workspaces persist centrally with optimistic concurrency (8.127709ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:153:1
+✖ Twitter post content survives the shared workflow workspace round trip (7.550041ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:208:1
+✖ workflow service accepts legacy edge snapshots and persists them as V2 control flow (4.693833ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:268:1
+✖ workflow service recursively migrates V1 linear conditions and persists V2 control flow (4.397083ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:328:1
+✖ workflow service rejects snapshots with unknown flow versions (5.602542ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:359:1
+✖ workflow service rejects malformed V2 snapshots with repeated triggers (3.849667ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:396:1
+✖ workflow service rejects V2 item types that do not match node kinds (4.928042ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:433:1
+✖ workflow service rejects V2 snapshots with duplicate node records (6.353167ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:467:1
+✖ workflow service rejects V2 flow items that reference parented plan children (5.750375ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:511:1
+✖ workflow service rejects malformed parented workflow nodes (5.541208ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:605:1
+✖ workflow service rejects non-empty V2 snapshots without a trigger (7.990542ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:638:1
+✖ workflow service rejects unknown node kinds that only look like triggers (4.030334ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:675:1
+✖ workflow workspace changes are broadcast to other open clients (5.448333ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:711:1
+✖ workflow capabilities come from the live Codex skill and MCP catalogs (5.418125ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:754:1
+✖ workflow capability discovery fails instead of inventing fallback options (5.401708ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:763:1
+✖ existing task and comment thread attribution remains content-specific (9.562084ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:893:1
+✖ task thread migration excludes comment-only aggregate entries (15.219583ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:971:1
+✖ development context scan resolves the current Codex conversation workspace (4.985458ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1005:1
+✖ device workspaces come from this machine's Codex project roots (4.691209ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1024:1
+✖ accepts private LAN requests and rejects public Host and Origin headers (4.615375ms)
+  Error: listen EPERM: operation not permitted 0.0.0.0
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '0.0.0.0'
+  }
+
+test at test/server.test.mjs:1054:1
+✖ project and task CRUD flow (4.728791ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1171:1
+✖ moving a task updates its status and sort order (4.698041ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1190:1
+✖ transitioning a task writes its evidence and status atomically (4.800417ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1233:1
+✖ tasks can bind, change, and unbind one project workflow (5.760625ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1276:1
+✖ issues support parent, sub-issue, blocking, and related issue relationships (4.572916ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1388:1
+✖ issue relationship changes are broadcast in realtime (4.508292ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1429:1
+✖ all task statuses are accepted, filtered, and listed in workflow order (4.359292ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1455:1
+✖ task and comment mutations keep content-specific conversation attribution (5.084708ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1488:1
+✖ stale updates receive a version conflict (4.2685ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1514:1
+✖ issue comments can be created, edited, listed, and deleted (4.198458ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1576:1
+✖ taskctl issue creation and comments use the Codex Agent identity (4.266166ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1616:1
+✖ Codex-hosted user mutations persist the current account identity and avatar (15.148333ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1708:1
+✖ issue attachments can be uploaded, listed, opened, downloaded, and deleted (4.506333ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1777:1
+✖ comments support attachments and deleting a comment removes its files (4.321167ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1827:1
+✖ attachment uploads reject unsafe filenames (4.51375ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1847:1
+✖ request boundaries reject unknown fields and invalid values (4.231916ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:1878:1
+✖ task changes from one LAN client are broadcast to another client (4.271041ms)
+  Error: listen EPERM: operation not permitted 0.0.0.0
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '0.0.0.0'
+  }
+
+test at test/task-submissions.test.mjs:10:41
+✖ Task mutations retain atomic idempotency receipts (sqlite) (13.2065ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1986:21)
+      at listenInCluster (node:net:2065:12)
+      at node:net:2274:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /private/tmp/gateway-four-layer-audit-20261103/taskboard
+npm error workspace codex-taskboard@0.1.0
+npm error location /private/tmp/gateway-four-layer-audit-20261103/taskboard
+npm error command failed
+npm error command sh -c node --test
+npm error Lifecycle script `check` failed with error:
+npm error code 1
+npm error path /private/tmp/gateway-four-layer-audit-20261103/taskboard
+npm error workspace codex-taskboard@0.1.0
+npm error location /private/tmp/gateway-four-layer-audit-20261103/taskboard
+npm error command failed
+npm error command sh -c npm run typecheck && npm run build:web && npm test

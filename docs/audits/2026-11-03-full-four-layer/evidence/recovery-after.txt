@@ -1,0 +1,27 @@
+✔ receipt refreshes share a complete scan beyond the old twenty-page limit without replaying page one (15.846208ms)
+✔ background receipt scans preserve duplicate detection across refresh timeouts and principal scopes (24.515791ms)
+✔ retired background receipt scans cannot return late proofs or hold the next owner (11.428125ms)
+✔ a failed background scan never publishes a partial match and retries with fresh complete history (44.447083ms)
+✔ acceptance observation uses exact client IDs across complete pages on the original host/thread (0.169541ms)
+✔ same text, missing IDs/turns and cross-turn duplicate IDs do not confirm acceptance (0.14025ms)
+✔ an early matching page cannot confirm before a later error, repeated cursor or scan limit (0.149375ms)
+✔ bounded receipt reads retire without confirming a late native response (16.872584ms)
+✔ recovered acceptance is durable before cleanup and never reopens a claim (32.997125ms)
+✔ recovery rejects wrong scope, live handoffs and stale journal versions (18.695375ms)
+✔ recovery fsync failure retains the unknown receipt and saved source, then safely retries (24.470709ms)
+✔ recovered output obligations survive restart and settle only for their exact durable receipt (27.054834ms)
+✔ new-thread identity must be durable before turn/start can submit any native input (19.434917ms)
+✔ a retired account cannot commit a late native receipt and readonly recovery does not block release (102.107208ms)
+✔ legacy ordinary inbox sources recover but legacy queue/control messages remain unknown (183.561667ms)
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T04:06:03.756Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"new","status":"delivered"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T04:06:03.759Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"old","status":"delivered"}
+✔ a changed binding never becomes the native receipt lookup target (89.828916ms)
+✔ a recovered old result waits for the current turn without replaying unrelated history or replacing active progress (44.685541ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1688.311334

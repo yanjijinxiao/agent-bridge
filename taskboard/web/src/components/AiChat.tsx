@@ -156,9 +156,9 @@ function clampPanelGeometry(geometry: PanelGeometry): PanelGeometry {
 }
 
 function loadPanelGeometry(): PanelGeometry {
-  const stored = window.localStorage.getItem(PANEL_GEOMETRY_KEY);
-  if (!stored) return clampPanelGeometry(PANEL_DEFAULT_GEOMETRY);
   try {
+    const stored = window.localStorage.getItem(PANEL_GEOMETRY_KEY);
+    if (!stored) return clampPanelGeometry(PANEL_DEFAULT_GEOMETRY);
     const geometry = JSON.parse(stored) as PanelGeometry;
     if (
       !Number.isFinite(geometry.width)

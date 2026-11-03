@@ -3,8 +3,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
+import os from "node:os";
 import { peerFixture, principal } from "./peer-fixture.js";
-import { downloadPeerFile, FILE_CHUNK_BYTES, MAX_PEER_FILE_BYTES } from "../src/peer/files.js";
+import { downloadPeerFile, PeerFiles, FILE_CHUNK_BYTES, MAX_PEER_FILE_BYTES } from "../src/peer/files.js";
+import type { PeerConnection } from "../src/peer/rpc.js";
 import { prepareTurnSubmission } from "../src/bridge/turn-submission.js";
 import { defaultConfig } from "../src/state/config.js";
 import { RuntimeStateStore } from "../src/state/runtime-state.js";
@@ -23,6 +25,38 @@ async function fixture(t: test.TestContext) {
   const source = (bytes: Buffer | string, label = "source.bin") => { const file = path.join(f.root, label); fs.writeFileSync(file, bytes); return { path: file, label, kind: "file" as const }; };
   return { ...f, options, input, fileCall, source };
 }
+
+for (const change of ["unchanged", "revoked", "closed"] as const)
+  test(`upload publication revalidates its lease after native inspection (${change})`, async t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "peer-upload-lease-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+    let finishing = false, allowed = true;
+    const owner = { open: true } as PeerConnection;
+    const files = new PeerFiles(root, async () => {
+      if (finishing) { entered.resolve(); await release.promise; }
+      return { cwd: root };
+    });
+    t.after(() => files.close(owner));
+    const grant = { id: crypto.randomUUID(), principal, hostId: "peer:test", threadId: "thread" };
+    const call = (method: string, input: unknown) => files.call(grant, owner, method, input, () => {
+      if (!allowed) throw Error("grant revoked");
+    });
+    const lease = await call("fileUploadBegin", { threadId: "thread", scope: "source", name: "result.txt", size: 1,
+      hash: crypto.createHash("sha256").update("x").digest("hex") }) as { id: string };
+    await call("fileUploadChunk", { id: lease.id, offset: 0, data: "eA==" });
+    finishing = true;
+    const pending = call("fileUploadFinish", { id: lease.id });
+    const result = pending.then(value => ({ value }), error => ({ error }));
+    await entered.promise;
+    if (change === "revoked") allowed = false;
+    if (change === "closed") Object.defineProperty(owner, "open", { value: false });
+    release.resolve(); const outcome = await result;
+    const published = fs.readdirSync(root, { recursive: true }).map(String).filter(f => f.endsWith("result.txt"));
+    assert.equal(published.length, change === "unchanged" ? 1 : 0);
+    assert.equal("error" in outcome, change !== "unchanged");
+    assert.ok(fs.readdirSync(root, { recursive: true }).every(f => !String(f).endsWith(".part")));
+  });
 
 test("files larger than the RPC frame round-trip in bounded chunks with stable paths and private temporary copies", async t => {
   const f = await fixture(t), bytes = crypto.randomBytes(2 * 1024 * 1024 + 17), file = f.source(bytes);

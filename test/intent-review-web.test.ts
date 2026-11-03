@@ -56,7 +56,8 @@ test("settings commit feedback does not depend on an optional Taskboard refresh"
   context.refreshTaskboardIssues=(...args:unknown[])=>refresh=refreshTaskboard(...args);
   context.renderAll=()=>{};context.toast=(s:string)=>messages.push(s);context.drawIcons=()=>{};
   context.renderTaskboardStatus=()=>{};context.renderTaskboardWorkbench=()=>{};
-  const button={disabled:false},work=context.saveSettings({preventDefault(){},submitter:button});
+  const button={disabled:false},form={querySelectorAll(){return [...fields.values()];}};
+  const work=context.saveSettings({preventDefault(){},submitter:button,target:form});
   try{
     await new Promise(resolve=>setImmediate(resolve));
     assert.ok(messages.includes("设置已保存"),"the durable save is acknowledged before optional refresh completes");

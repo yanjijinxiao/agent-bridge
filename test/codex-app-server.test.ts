@@ -393,7 +393,7 @@ test("starts a remote thread by cwd when the daemon has no project catalog API",
   assert.deepEqual(await runner.listProjects(), { backend: "app-server", projects: [] });
 });
 
-test("keeps an active channel turn alive from its latest progress reply", async (t) => {
+test("an accepted turn can emit progress and finish after the RPC deadline", async (t) => {
   // Given: a turn whose progress arrives before the timeout and final answer arrives after the original deadline.
   const runner = new AppServerCodexRunner({
     codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"),
@@ -410,7 +410,7 @@ test("keeps an active channel turn alive from its latest progress reply", async 
     onProgress: (message) => progress.push(message)
   });
 
-  // Then: the timeout is measured from that reply and the final answer completes.
+  // Then: RPC deadlines do not limit an already accepted turn, with or without progress.
   assert.deepEqual(progress, ["working:sliding-timeout"]);
   assert.equal(result.text, "reply:sliding-timeout");
 });
@@ -482,7 +482,7 @@ test("propagates an explicit per-input sandbox without changing inheritance defa
   assert.equal(result.text, "reply:verify-danger-full-access");
 });
 
-test("runs AI classification on a persistent ephemeral app-server thread", async (t) => {
+test("executes an explicit structured request on an ephemeral native thread", async (t) => {
   const runner = new HybridCodexRunner({ appServerTransport: "stdio",
     backend: "app-server",
     codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"),

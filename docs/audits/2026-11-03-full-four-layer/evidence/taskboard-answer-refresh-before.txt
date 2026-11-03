@@ -1,0 +1,28 @@
+✖ uncertain approval answer refreshes the original request without a page poll or answer replay (2629.85425ms)
+✖ uncertain user-input answer refreshes the original request without a page poll or answer replay (2630.9825ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5349.884291
+
+✖ failing tests:
+
+test at taskboard/test/ai-chat-runner.test.mjs:360:3
+✖ uncertain approval answer refreshes the original request without a page poll or answer replay (2629.85425ms)
+  Error: Timed out waiting for native fixture
+      at waitFor (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/ai-chat-runner.test.mjs:14:9)
+      at async TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/ai-chat-runner.test.mjs:394:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)
+
+test at taskboard/test/ai-chat-runner.test.mjs:360:3
+✖ uncertain user-input answer refreshes the original request without a page poll or answer replay (2630.9825ms)
+  Error: Timed out waiting for native fixture
+      at waitFor (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/ai-chat-runner.test.mjs:14:9)
+      at async TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/ai-chat-runner.test.mjs:394:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)

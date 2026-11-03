@@ -77,11 +77,14 @@ test("device rollback journal survives restart and never grants a new turn", asy
 });
 
 test("runtime query preserves the metadata observation options", async t => {
-  const f = await peerFixture(t); await f.bind(); let received: unknown;
+  const f = await peerFixture(t); await f.bind(); let received: unknown, inspected: unknown;
+  const inspect = f.backend.inspectThread.bind(f.backend);
+  f.backend.inspectThread = async (id, host, observation) => { inspected = observation; return inspect(id, host, observation); };
   f.backend.getRuntimeInfo = async (_cwd, _id, _host, observation) => { received = observation; return {}; };
   const observation = { timeoutMs: 1234, purpose: "status" as const };
   await f.as(() => f.facade.getRuntimeInfo(f.thread.cwd!, f.thread.threadId, f.ticket.hostId, observation));
   assert.deepEqual(received, observation);
+  assert.deepEqual(inspected, { ...observation, includeTurns: false });
 });
 
 test("optional native results retain undefined across JSON transport", async t => {

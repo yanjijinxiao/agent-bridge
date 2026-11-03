@@ -30,30 +30,61 @@ export class NativeQueueCoordinator {
   private receipts: Record<string, QueueReceipt>;
   private readonly controls = new SessionControlQueue();
   private readonly dispatching = new Set<string>();
+  private persistenceUnavailable = false;
   constructor(private readonly filePath: string, private readonly options: { observationTimeoutMs?: number } = {}) {
-    const data = readJsonFile<unknown>(filePath, { receipts: {} });
+    this.receipts = this.readReceipts();
+  }
+  private readReceipts(): Record<string, QueueReceipt> {
+    const data = readJsonFile<unknown>(this.filePath, { receipts: {} });
     if (!record(data) || !record(data.receipts) || Object.entries(data.receipts).some(([id, value]) =>
       !record(value) || !/^[a-f0-9]{64}$/.test(id) || value.id !== id || value.clientUserMessageId !== `gateway-${id}`
       || !["submitting", "queued", "starting", "running", "completed", "uncertain", "cancelled", "rejected"].includes(String(value.status))
       || !["app-server", "exec"].includes(String(value.backend))
       || ["accountId", "conversationId", "actorId", "messageId", "sessionId", "hostId", "threadId", "updatedAt"].some(key => typeof value[key] !== "string" || !value[key])))
       throw new Error("Invalid native queue receipt journal; original file preserved");
-    this.receipts = data.receipts as Record<string, QueueReceipt>;
+    return data.receipts as Record<string, QueueReceipt>;
   }
-  private save(): void { writeJsonFile(this.filePath, { receipts: this.receipts }, { durable: true }); }
+  private assertAvailable(): void {
+    if (this.persistenceUnavailable) throw Error("Native queue journal persistence is unconfirmed; restart recovery required");
+  }
+  private save(): void {
+    this.assertAvailable();
+    try { writeJsonFile(this.filePath, { receipts: this.receipts }, { durable: true }); }
+    catch (error) {
+      // Rename may already have committed. Recover the actual file, preserving
+      // object identity for other threads whose native calls are still awaiting
+      // a response. Replacing the map would strand their receipt references.
+      try {
+        const persisted = this.readReceipts();
+        for (const [id, receipt] of Object.entries(this.receipts)) {
+          const saved = persisted[id];
+          if (!saved) { delete this.receipts[id]; continue; }
+          for (const key of Object.keys(receipt)) delete (receipt as unknown as Record<string, unknown>)[key];
+          Object.assign(receipt, saved); persisted[id] = receipt;
+        }
+        this.receipts = persisted;
+      } catch { this.persistenceUnavailable = true; }
+      throw error;
+    }
+  }
   private update(r: QueueReceipt, changes: Partial<QueueReceipt>): void {
+    this.assertAvailable();
+    if (this.receipts[r.id] !== r) throw Error("Native queue receipt changed before update");
     if (Object.entries(changes).every(([key, value]) => r[key as keyof QueueReceipt] === value)) return;
     Object.assign(r, changes, { updatedAt: new Date().toISOString() }); this.save();
   }
   list(accountId: string, conversationId?: string): QueueReceipt[] {
+    this.assertAvailable();
     return Object.values(this.receipts).filter(r => r.accountId === accountId
       && (!conversationId || r.conversationId === conversationId)).map(r => structuredClone(r));
   }
   hasUnsettledThread(threadId: string, hostId: string): boolean {
+    this.assertAvailable();
     return Object.values(this.receipts).some(r => r.threadId === threadId && r.hostId === hostId
       && (unsettled.has(r.status) || r.status === "completed" && !r.delivered));
   }
   hasLegacyTerminal(scope: { accountId: string; sessionId: string; hostId: string; threadId: string; turnId: string }): boolean {
+    this.assertAvailable();
     return Object.values(this.receipts).some(r => r.accountId === scope.accountId && r.sessionId === scope.sessionId
       && r.hostId === scope.hostId && r.threadId === scope.threadId && r.turnId === scope.turnId
       && r.status === "completed" && r.lifecycleVersion !== 2);
@@ -68,6 +99,7 @@ export class NativeQueueCoordinator {
       origin.accountId, origin.conversationId, origin.actorId, origin.messageId
     ])).digest("hex");
     return this.controls.run(threadKey(origin), async () => {
+      this.assertAvailable();
       const existing = this.receipts[id];
       if (existing) {
         if (existing.threadId !== origin.threadId || existing.hostId !== origin.hostId || existing.backend !== origin.backend) {
@@ -90,7 +122,8 @@ export class NativeQueueCoordinator {
       } catch (error) {
         // A concrete accepted turn outranks the classification of a later
         // request failure. Never erase it or reopen admission for this source.
-        if (r.turnId) throw error;
+        this.assertAvailable();
+        if (r.turnId || r.status === "queued" && r.queuedSubmissionId) throw error;
         if (error instanceof CodexCommunicationError && error.submission === "not-submitted") {
           delete this.receipts[id]; this.save(); throw error;
         }
@@ -135,6 +168,7 @@ export class NativeQueueCoordinator {
     reads.set(key, work); return work;
   }
   private async reconcileScope(accountId: string, backend: CodexBridgeBackend, scope?: { conversationId: string }): Promise<void> {
+    this.assertAvailable();
     const groups = new Map<string, QueueReceipt[]>();
     for (const r of Object.values(this.receipts)) {
       if (r.accountId !== accountId || scope && r.conversationId !== scope.conversationId || !unsettled.has(r.status)) continue;
@@ -199,6 +233,7 @@ export class NativeQueueCoordinator {
   }
   async dispatch(accountId: string, backend: CodexBridgeBackend, execute: (receipt: QueueReceipt,
     starting: () => void, started: (turnId: string) => void, item?: CodexQueuedSubmission) => Promise<void>): Promise<void> {
+    this.assertAvailable();
     const groups = new Map<string, QueueReceipt[]>();
     for (const r of Object.values(this.receipts)) {
       if (r.accountId !== accountId || !["queued", "running", "completed"].includes(r.status)
@@ -217,6 +252,7 @@ export class NativeQueueCoordinator {
         const observing = Boolean(r.turnId);
         if (!observing && (items[0]?.id !== r.queuedSubmissionId || items[0]?.clientUserMessageId !== r.clientUserMessageId)) continue;
         const state = await backend.inspectThread(r.threadId, r.hostId);
+        this.assertAvailable();
         const terminalObservation = r.status === "completed" && observing;
         if (terminalObservation && (state.activeTurnId === r.turnId && state.runtimeStatus === "active" || r.lifecycleVersion !== 2)) continue;
         if (!terminalObservation && (state.runtimeStatus === "active" || state.pendingTurnWithoutId
@@ -247,13 +283,16 @@ export class NativeQueueCoordinator {
   }
   async cancel(accountId: string, conversationId: string, actorId: string, queueId: string,
     backend: CodexBridgeBackend, controller = false, assertCurrent?: () => void): Promise<boolean> {
+    this.assertAvailable();
     const r = Object.values(this.receipts).find(x => x.accountId === accountId
       && x.conversationId === conversationId && x.queuedSubmissionId === queueId && (controller || x.actorId === actorId));
     if (!r || !backend.deleteQueuedSubmission) throw new Error("这条队列记录不属于当前账号、聊天或用户。");
     return this.controls.run(threadKey(r), async () => {
+      this.assertAvailable();
       if (r.status !== "queued") throw new Error("该消息已开始或接收状态未确认，不能按待执行消息取消。");
       const items = await this.nativeItems(r, backend);
       if (!items.some(x => x.id === queueId && x.clientUserMessageId === r.clientUserMessageId)) return false;
+      this.assertAvailable();
       assertCurrent?.();
       const deleted = await backend.deleteQueuedSubmission!(r.threadId, queueId, r.hostId, assertCurrent);
       if (deleted) this.update(r, { status: "cancelled", reason: undefined });

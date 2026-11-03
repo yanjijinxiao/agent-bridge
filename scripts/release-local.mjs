@@ -80,8 +80,9 @@ async function withReleaseOwnership(state, action) {
   }
 }
 
-/** Fail closed against old runtimes. Only the running owner can atomically
- * freeze submissions and certify that its private native work is idle. */
+/** Fail closed against old runtimes. The running owner atomically freezes new
+ * handoffs and checks in-flight writes plus any host-owned private execution.
+ * Waiting for work accepted by an independent core is not a restart blocker. */
 export async function claimRuntimeRelease(origin, expectedPid, request = fetch) {
   const read = await request(new URL('/api/request-context', origin), { signal: AbortSignal.timeout(5000) });
   if (!read.ok) throw Error('Cannot acquire runtime release admission; service was not stopped');

@@ -139,6 +139,10 @@ export class PeerFiles {
       }
       if (method === "fileUploadFinish" && lease.kind === "upload") {
         await this.inspect(lease.threadId, true);
+        // Inspection can outlive revocation, disconnect or lease expiry. Do
+        // not publish using the authority/descriptor captured before the await.
+        authorize?.(lease.threadId);
+        if (!owner.open || this.leases.get(p.id) !== lease) throw new PeerError("scope", "File transfer expired or connection closed");
         if (lease.offset !== lease.size || lease.sum!.digest("hex") !== lease.expected) throw new PeerError("hash", "Attachment is incomplete or checksum does not match");
         fs.fsyncSync(lease.fd);
         try { fs.linkSync(lease.temporary!, lease.target!); }

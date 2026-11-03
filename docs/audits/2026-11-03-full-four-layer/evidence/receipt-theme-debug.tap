@@ -1,0 +1,423 @@
+TAP version 13
+# Subtest: isolated Chrome exercises production AI and issue composers, model scope and responsive layout
+    # Subtest: optional browser preferences cannot crash the board or bypass submission receipts (storageReadDenied)
+    ok 1 - optional browser preferences cannot crash the board or bypass submission receipts (storageReadDenied)
+      ---
+      duration_ms: 139.226792
+      type: 'test'
+      ...
+    # Subtest: optional browser preferences cannot crash the board or bypass submission receipts (storageFull)
+    ok 2 - optional browser preferences cannot crash the board or bypass submission receipts (storageFull)
+      ---
+      duration_ms: 129.465833
+      type: 'test'
+      ...
+    # Subtest: a quiet task refresh settles initial loading and retires the older read (failure=false)
+    ok 3 - a quiet task refresh settles initial loading and retires the older read (failure=false)
+      ---
+      duration_ms: 189.239
+      type: 'test'
+      ...
+    # Subtest: a quiet task refresh settles initial loading and retires the older read (failure=true)
+    ok 4 - a quiet task refresh settles initial loading and retires the older read (failure=true)
+      ---
+      duration_ms: 177.506709
+      type: 'test'
+      ...
+    # Subtest: SSE workflow read failures are contained and later refreshes still work
+    ok 5 - SSE workflow read failures are contained and later refreshes still work
+      ---
+      duration_ms: 204.949042
+      type: 'test'
+      ...
+    # Subtest: property save preserves another field edited while awaiting its receipt (title, failure=false)
+    ok 6 - property save preserves another field edited while awaiting its receipt (title, failure=false)
+      ---
+      duration_ms: 100.442041
+      type: 'test'
+      ...
+    # Subtest: property save preserves another field edited while awaiting its receipt (description, failure=false)
+    ok 7 - property save preserves another field edited while awaiting its receipt (description, failure=false)
+      ---
+      duration_ms: 68.26025
+      type: 'test'
+      ...
+    # Subtest: property save preserves another field edited while awaiting its receipt (title, failure=true)
+    ok 8 - property save preserves another field edited while awaiting its receipt (title, failure=true)
+      ---
+      duration_ms: 63.501541
+      type: 'test'
+      ...
+    # Subtest: property save preserves another field edited while awaiting its receipt (description, failure=true)
+    ok 9 - property save preserves another field edited while awaiting its receipt (description, failure=true)
+      ---
+      duration_ms: 77.602833
+      type: 'test'
+      ...
+    # Subtest: issue creation does not allow silently discarded edits while its write is pending
+    ok 10 - issue creation does not allow silently discarded edits while its write is pending
+      ---
+      duration_ms: 56.001
+      type: 'test'
+      ...
+    # Subtest: native approval buttons and question fields submit only explicit actions and clear secret values
+    ok 11 - native approval buttons and question fields submit only explicit actions and clear secret values
+      ---
+      duration_ms: 50.780542
+      type: 'test'
+      ...
+    # Subtest: opening a project reads server policy without reapplying an old enabled browser cache
+    ok 12 - opening a project reads server policy without reapplying an old enabled browser cache
+      ---
+      duration_ms: 67.079458
+      type: 'test'
+      ...
+    # Subtest: automation menu uses the selected native model catalog and enables only after an explicit click
+    ok 13 - automation menu uses the selected native model catalog and enables only after an explicit click
+      ---
+      duration_ms: 50.557542
+      type: 'test'
+      ...
+# Receipt theme: light {
+#   ratio: 15.92867009804992,
+#   foreground: 'rgb(27, 27, 27)',
+#   background: 'rgb(245, 246, 248)'
+# }
+# Receipt theme: dark {
+#   ratio: 15.92867009804992,
+#   foreground: 'rgb(27, 27, 27)',
+#   background: 'rgb(245, 246, 248)'
+# }
+    # Subtest: a completed AI turn with a lost HTTP acknowledgement is held instead of resubmitting the draft
+    ok 14 - a completed AI turn with a lost HTTP acknowledgement is held instead of resubmitting the draft
+      ---
+      duration_ms: 136.836375
+      type: 'test'
+      ...
+    # Subtest: AI journal storage failure sends zero writes and explicit retry preserves the original draft
+    ok 15 - AI journal storage failure sends zero writes and explicit retry preserves the original draft
+      ---
+      duration_ms: 51.851209
+      type: 'test'
+      ...
+    # Subtest: issue cards render existing malformed dates without crashing and retain valid date labels
+    ok 16 - issue cards render existing malformed dates without crashing and retain valid date labels
+      ---
+      duration_ms: 121.643583
+      type: 'test'
+      ...
+    # Subtest: snapshot loading and IME Enter never submit; a later ordinary Enter submits exactly once
+    ok 17 - snapshot loading and IME Enter never submit; a later ordinary Enter submits exactly once
+      ---
+      duration_ms: 77.37575
+      type: 'test'
+      ...
+    # Subtest: Markdown is visible while private reasoning and host fields stay out of the timeline
+    ok 18 - Markdown is visible while private reasoning and host fields stay out of the timeline
+      ---
+      duration_ms: 67.333209
+      type: 'test'
+      ...
+    # Subtest: malformed encoded skill links remain readable without crashing valid references or the composer
+    ok 19 - malformed encoded skill links remain readable without crashing valid references or the composer
+      ---
+      duration_ms: 46.244
+      type: 'test'
+      ...
+    # Subtest: late file reads belong only to the original composer while unchanged drafts still receive their attachment
+    ok 20 - late file reads belong only to the original composer while unchanged drafts still receive their attachment
+      ---
+      duration_ms: 185.978583
+      type: 'test'
+      ...
+    # Subtest: selecting a skill in the real editor sends its ordered marker and native id
+    ok 21 - selecting a skill in the real editor sends its ordered marker and native id
+      ---
+      duration_ms: 58.807667
+      type: 'test'
+      ...
+    # Subtest: known create and turn rejections preserve the submitted text, skill and attachment for an explicit retry
+    ok 22 - known create and turn rejections preserve the submitted text, skill and attachment for an explicit retry
+      ---
+      duration_ms: 293.843625
+      type: 'test'
+      ...
+    # Subtest: pending turn submission sends once and an accepted late receipt preserves a changed draft
+    ok 23 - pending turn submission sends once and an accepted late receipt preserves a changed draft
+      ---
+      duration_ms: 118.282333
+      type: 'test'
+      ...
+    # Subtest: late thread creation and turn receipts keep a newly selected conversation and its draft
+    ok 24 - late thread creation and turn receipts keep a newly selected conversation and its draft
+      ---
+      duration_ms: 211.712917
+      type: 'test'
+      ...
+    # Subtest: new conversation validates inherited settings using the target project catalog
+    ok 25 - new conversation validates inherited settings using the target project catalog
+      ---
+      duration_ms: 53.43725
+      type: 'test'
+      ...
+    # Subtest: desktop pointer resizing changes geometry within the viewport
+    ok 26 - desktop pointer resizing changes geometry within the viewport
+      ---
+      duration_ms: 64.462792
+      type: 'test'
+      ...
+    # Subtest: 390px viewport keeps panel and model menu within the visible screen
+    ok 27 - 390px viewport keeps panel and model menu within the visible screen
+      ---
+      duration_ms: 54.390041
+      type: 'test'
+      ...
+    # Subtest: a confirmed duplicate retains its original view ownership (unchanged)
+    ok 28 - a confirmed duplicate retains its original view ownership (unchanged)
+      ---
+      duration_ms: 124.746667
+      type: 'test'
+      ...
+    # Subtest: a confirmed duplicate retains its original view ownership (switch)
+    ok 29 - a confirmed duplicate retains its original view ownership (switch)
+      ---
+      duration_ms: 134.5605
+      type: 'test'
+      ...
+    # Subtest: a confirmed duplicate retains its original view ownership (aba)
+    ok 30 - a confirmed duplicate retains its original view ownership (aba)
+      ---
+      duration_ms: 151.103166
+      type: 'test'
+      ...
+    # Subtest: a confirmed archive retains its original view ownership (unchanged)
+    ok 31 - a confirmed archive retains its original view ownership (unchanged)
+      ---
+      duration_ms: 132.396125
+      type: 'test'
+      ...
+    # Subtest: a confirmed archive retains its original view ownership (switch)
+    ok 32 - a confirmed archive retains its original view ownership (switch)
+      ---
+      duration_ms: 132.98625
+      type: 'test'
+      ...
+    # Subtest: a confirmed archive retains its original view ownership (aba)
+    ok 33 - a confirmed archive retains its original view ownership (aba)
+      ---
+      duration_ms: 133.143791
+      type: 'test'
+      ...
+    # Subtest: a confirmed restore retains its original view ownership (unchanged)
+    ok 34 - a confirmed restore retains its original view ownership (unchanged)
+      ---
+      duration_ms: 132.554041
+      type: 'test'
+      ...
+    # Subtest: a confirmed restore retains its original view ownership (switch)
+    ok 35 - a confirmed restore retains its original view ownership (switch)
+      ---
+      duration_ms: 133.045208
+      type: 'test'
+      ...
+    # Subtest: a confirmed restore retains its original view ownership (aba)
+    ok 36 - a confirmed restore retains its original view ownership (aba)
+      ---
+      duration_ms: 134.177875
+      type: 'test'
+      ...
+    # Subtest: a confirmed create retains its original view ownership (unchanged)
+    ok 37 - a confirmed create retains its original view ownership (unchanged)
+      ---
+      duration_ms: 131.583833
+      type: 'test'
+      ...
+    # Subtest: a confirmed create retains its original view ownership (switch)
+    ok 38 - a confirmed create retains its original view ownership (switch)
+      ---
+      duration_ms: 135.85275
+      type: 'test'
+      ...
+    # Subtest: a confirmed create retains its original view ownership (aba)
+    ok 39 - a confirmed create retains its original view ownership (aba)
+      ---
+      duration_ms: 132.006208
+      type: 'test'
+      ...
+    # Subtest: a partial new issue upload retains its confirmed entity and retries only failed files (inline=false, storageFull=false)
+    ok 40 - a partial new issue upload retains its confirmed entity and retries only failed files (inline=false, storageFull=false)
+      ---
+      duration_ms: 75.843166
+      type: 'test'
+      ...
+    # Subtest: a partial new issue upload retains its confirmed entity and retries only failed files (inline=true, storageFull=false)
+    ok 41 - a partial new issue upload retains its confirmed entity and retries only failed files (inline=true, storageFull=false)
+      ---
+      duration_ms: 76.3585
+      type: 'test'
+      ...
+    # Subtest: a partial new issue upload retains its confirmed entity and retries only failed files (inline=false, storageFull=true)
+    ok 42 - a partial new issue upload retains its confirmed entity and retries only failed files (inline=false, storageFull=true)
+      ---
+      duration_ms: 73.170042
+      type: 'test'
+      ...
+    # Subtest: a partial new issue upload retains its confirmed entity and retries only failed files (inline=true, storageFull=true)
+    ok 43 - a partial new issue upload retains its confirmed entity and retries only failed files (inline=true, storageFull=true)
+      ---
+      duration_ms: 50.28275
+      type: 'test'
+      ...
+    # Subtest: a lost new issue acknowledgement is retained across reload without authorizing another creation
+    ok 44 - a lost new issue acknowledgement is retained across reload without authorizing another creation
+      ---
+      duration_ms: 84.874834
+      type: 'test'
+      ...
+    # Subtest: legacy workflow migration only retires local data after the merged receipt (none)
+    ok 45 - legacy workflow migration only retires local data after the merged receipt (none)
+      ---
+      duration_ms: 402.1765
+      type: 'test'
+      ...
+    # Subtest: legacy workflow migration only retires local data after the merged receipt (once)
+    ok 46 - legacy workflow migration only retires local data after the merged receipt (once)
+      ---
+      duration_ms: 422.183708
+      type: 'test'
+      ...
+    # Subtest: legacy workflow migration only retires local data after the merged receipt (twice)
+    ok 47 - legacy workflow migration only retires local data after the merged receipt (twice)
+      ---
+      duration_ms: 419.307916
+      type: 'test'
+      ...
+    # Subtest: workflow controls wait for hydration and an old project save cannot replace the new workspace
+    ok 48 - workflow controls wait for hydration and an old project save cannot replace the new workspace
+      ---
+      duration_ms: 491.489625
+      type: 'test'
+      ...
+    # Subtest: workflow persistence keeps local edits until an explicit conflict resolution (normal)
+    ok 49 - workflow persistence keeps local edits until an explicit conflict resolution (normal)
+      ---
+      duration_ms: 269.378417
+      type: 'test'
+      ...
+    # Subtest: workflow persistence keeps local edits until an explicit conflict resolution (keep-local)
+    ok 50 - workflow persistence keeps local edits until an explicit conflict resolution (keep-local)
+      ---
+      duration_ms: 472.669583
+      type: 'test'
+      ...
+    # Subtest: workflow persistence keeps local edits until an explicit conflict resolution (load-remote)
+    ok 51 - workflow persistence keeps local edits until an explicit conflict resolution (load-remote)
+      ---
+      duration_ms: 279.102334
+      type: 'test'
+      ...
+    # Subtest: workflow dragging preserves canonical sequence and subtree ownership (root-step)
+    ok 52 - workflow dragging preserves canonical sequence and subtree ownership (root-step)
+      ---
+      duration_ms: 570.462417
+      type: 'test'
+      ...
+    # Subtest: workflow dragging preserves canonical sequence and subtree ownership (condition)
+    ok 53 - workflow dragging preserves canonical sequence and subtree ownership (condition)
+      ---
+      duration_ms: 569.517708
+      type: 'test'
+      ...
+    # Subtest: workflow dragging preserves canonical sequence and subtree ownership (plan-child)
+    ok 54 - workflow dragging preserves canonical sequence and subtree ownership (plan-child)
+      ---
+      duration_ms: 565.100833
+      type: 'test'
+      ...
+    # Subtest: workflow dragging preserves canonical sequence and subtree ownership (trigger)
+    ok 55 - workflow dragging preserves canonical sequence and subtree ownership (trigger)
+      ---
+      duration_ms: 563.900125
+      type: 'test'
+      ...
+    # Subtest: context menu ignores punctuation safely while its status keyboard shortcut still selects the requested status
+    ok 56 - context menu ignores punctuation safely while its status keyboard shortcut still selects the requested status
+      ---
+      duration_ms: 53.325875
+      type: 'test'
+      ...
+    # Subtest: relation keyboard selection is single-flight while pending and a rejected selection remains explicitly retryable
+    ok 57 - relation keyboard selection is single-flight while pending and a rejected selection remains explicitly retryable
+      ---
+      duration_ms: 137.591958
+      type: 'test'
+      ...
+    # Subtest: comment floor and composer have equal width and both real editors retain their focus appearance
+    ok 58 - comment floor and composer have equal width and both real editors retain their focus appearance
+      ---
+      duration_ms: 46.102334
+      type: 'test'
+      ...
+    # Subtest: comment files stage in the shared list, upload to that comment, render and delete through the original attachment API
+    ok 59 - comment files stage in the shared list, upload to that comment, render and delete through the original attachment API
+      ---
+      duration_ms: 101.551375
+      type: 'test'
+      ...
+    # Subtest: a confirmed comment clears only its unchanged draft and preserves edits made while its request was pending
+    ok 60 - a confirmed comment clears only its unchanged draft and preserves edits made while its request was pending
+      ---
+      duration_ms: 105.22075
+      type: 'test'
+      ...
+    # Subtest: a full browser store retains the comment editor and draft before any request, and recovers on explicit retry
+    ok 61 - a full browser store retains the comment editor and draft before any request, and recovers on explicit retry
+      ---
+      duration_ms: 56.0825
+      type: 'test'
+      ...
+    # Subtest: a partially uploaded comment resumes only its failed files on the same confirmed comment
+    ok 62 - a partially uploaded comment resumes only its failed files on the same confirmed comment
+      ---
+      duration_ms: 394.650792
+      type: 'test'
+      ...
+    # Subtest: an applied comment or attachment with a lost response is held across reload and never reposted
+    ok 63 - an applied comment or attachment with a lost response is held across reload and never reposted
+      ---
+      duration_ms: 214.088583
+      type: 'test'
+      ...
+    # Subtest: a late comment acknowledgement clears its detached draft but preserves a remounted composer's later draft
+    ok 64 - a late comment acknowledgement clears its detached draft but preserves a remounted composer's later draft
+      ---
+      duration_ms: 106.276667
+      type: 'test'
+      ...
+    # Subtest: two composers retain independent receipt ownership when one response is lost and the other confirms
+    ok 65 - two composers retain independent receipt ownership when one response is lost and the other confirms
+      ---
+      duration_ms: 98.3765
+      type: 'test'
+      ...
+    # Subtest: new issue uses the shared pending attachment component and hands the original file to save
+    ok 66 - new issue uses the shared pending attachment component and hands the original file to save
+      ---
+      duration_ms: 62.702458
+      type: 'test'
+      ...
+    1..66
+ok 1 - isolated Chrome exercises production AI and issue composers, model scope and responsive layout
+  ---
+  duration_ms: 13944.650834
+  type: 'test'
+  ...
+1..1
+# tests 67
+# suites 0
+# pass 67
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14075.480625

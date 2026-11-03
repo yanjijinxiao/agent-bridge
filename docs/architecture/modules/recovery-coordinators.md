@@ -29,3 +29,5 @@ SystemErrorRecovery.stop 退休 source token 和 journal writer，不等待只�
 system-error-recovery.test.ts 核对精确失败、队列/活动排除、已保存回滚义务、冷却、过期来源、只读等待不锁重启、停止后的磁盘不被旧回执覆盖，以及 transport 真正写入仍阻塞。capacity-recovery.test.ts 核对退避、独立接收、终态投递、checking/settling 退休。相关本轮边界测试56项通过，系统恢复另37项通过、2项真实原生默认跳过；全量显式原生回归另记最终日志。
 
 这些是注明场景的证据，不代表供应商任意崩溃窗口全部验收。Gateway、原生执行、平台投递和用户客户端可见仍是四个独立事实。
+
+容量续跑的最后队列检查同时核对data与nextCursor；空页但有未读后页不能证明队列为空，恢复暂缓并让原队列优先。REC-02.5使用真实runner与独立JSONL夹具验证零新轮接收。

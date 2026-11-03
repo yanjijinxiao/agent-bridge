@@ -1858,24 +1858,22 @@ async function uploadAttachment(env, ownerType, ownerId, request) {
   await env.ATTACHMENTS.put(id, body, {
     httpMetadata: { contentType: metadata.contentType },
   });
-  try {
-    await env.DB.prepare(`
-      INSERT INTO attachments (
-        id, task_id, comment_id, filename, content_type, size, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      id,
-      taskId,
-      commentId,
-      metadata.filename,
-      metadata.contentType,
-      body.byteLength,
-      now(),
-    ).run();
-  } catch (error) {
-    await env.ATTACHMENTS.delete(id);
-    throw error;
-  }
+  // R2 is staged before D1. Once the metadata write is attempted, a rejected
+  // receipt cannot prove rollback: deleting here can destroy an accepted upload.
+  // Preserve the object for read-only reconciliation, including read outages.
+  await env.DB.prepare(`
+    INSERT INTO attachments (
+      id, task_id, comment_id, filename, content_type, size, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    taskId,
+    commentId,
+    metadata.filename,
+    metadata.contentType,
+    body.byteLength,
+    now(),
+  ).run();
   const row = await env.DB.prepare("SELECT * FROM attachments WHERE id = ?").bind(id).first();
   return attachmentFromRow(row);
 }
@@ -2035,6 +2033,16 @@ async function routeApi(request, env, actor, url) {
       });
     }
     methodNotAllowed(["GET", "POST"]);
+  }
+
+  const projectMatch = pathname.match(/^\/api\/projects\/([^/]+)$/);
+  if (projectMatch) {
+    requireNoQuery(url, "Project route");
+    if (request.method !== "GET") methodNotAllowed(["GET"]);
+    const projectId = validateProjectId(decodePathPart(projectMatch[1], "Project id"));
+    const project = await getProject(env, projectId);
+    if (!project) throw new ApiError(404, "PROJECT_NOT_FOUND", `Project '${projectId}' does not exist`);
+    return json(200, { project });
   }
 
   const workflowMatch = pathname.match(

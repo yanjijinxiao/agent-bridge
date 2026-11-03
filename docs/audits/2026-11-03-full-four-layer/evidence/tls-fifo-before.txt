@@ -1,0 +1,109 @@
+✖ TLS rejects a FIFO certFile before blocking the Gateway (2216.648125ms)
+✖ TLS rejects a FIFO keyFile before blocking the Gateway (2213.937958ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5574.863166
+
+✖ failing tests:
+
+test at test/ide-tls.test.ts:1:1709
+✖ TLS rejects a FIFO certFile before blocking the Gateway (2216.648125ms)
+  AssertionError [ERR_ASSERTION]: TLS input validation must reject non-files without a blocking open
+  + actual - expected
+  
+  + Error: spawnSync /opt/homebrew/Cellar/node/25.8.2/bin/node ETIMEDOUT
+  +     at Object.spawnSync (node:internal/child_process:1127:20)
+  +     at spawnSync (node:child_process:911:24)
+  +     at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/ide-tls.test.ts:42:19)
+  +     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+  +     at async Test.run (node:internal/test_runner/test:1208:7)
+  +     at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+  +   code: 'ETIMEDOUT',
+  +   errno: -60,
+  +   path: '/opt/homebrew/Cellar/node/25.8.2/bin/node',
+  +   spawnargs: [
+  +     '--import',
+  +     'tsx',
+  +     '--input-type=module',
+  +     '--eval',
+  +     '\n' +
+  +       '      const { loadIDETLS } = await import(process.argv[1]);\n' +
+  +       '      try { loadIDETLS(JSON.parse(process.argv[2]), "https://127.0.0.1:8790"); process.exitCode = 2; }\n' +
+  +       '      catch { process.stdout.write("rejected"); }\n' +
+  +       '    ',
+  +     'file:///private/tmp/gateway-four-layer-audit-20261103/src/ide/tls.ts',
+  +     '{"bindAddress":"127.0.0.1","certFile":"/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/cig-ide-tls-test-c4IGAT/pipe","keyFile":"/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/cig-ide-tls-test-c4IGAT/tls/12ca17b49af2289436f303e0/server.key"}'
+  +   ],
+  +   syscall: 'spawnSync /opt/homebrew/Cellar/node/25.8.2/bin/node'
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/ide-tls.test.ts:48:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Error: spawnSync /opt/homebrew/Cellar/node/25.8.2/bin/node ETIMEDOUT
+        at Object.spawnSync (node:internal/child_process:1127:20)
+        at spawnSync (node:child_process:911:24)
+        at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/ide-tls.test.ts:42:19)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.run (node:internal/test_runner/test:1208:7)
+        at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3),
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/ide-tls.test.ts:1:1709
+✖ TLS rejects a FIFO keyFile before blocking the Gateway (2213.937958ms)
+  AssertionError [ERR_ASSERTION]: TLS input validation must reject non-files without a blocking open
+  + actual - expected
+  
+  + Error: spawnSync /opt/homebrew/Cellar/node/25.8.2/bin/node ETIMEDOUT
+  +     at Object.spawnSync (node:internal/child_process:1127:20)
+  +     at spawnSync (node:child_process:911:24)
+  +     at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/ide-tls.test.ts:42:19)
+  +     at async Test.run (node:internal/test_runner/test:1208:7)
+  +     at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+  +   code: 'ETIMEDOUT',
+  +   errno: -60,
+  +   path: '/opt/homebrew/Cellar/node/25.8.2/bin/node',
+  +   spawnargs: [
+  +     '--import',
+  +     'tsx',
+  +     '--input-type=module',
+  +     '--eval',
+  +     '\n' +
+  +       '      const { loadIDETLS } = await import(process.argv[1]);\n' +
+  +       '      try { loadIDETLS(JSON.parse(process.argv[2]), "https://127.0.0.1:8790"); process.exitCode = 2; }\n' +
+  +       '      catch { process.stdout.write("rejected"); }\n' +
+  +       '    ',
+  +     'file:///private/tmp/gateway-four-layer-audit-20261103/src/ide/tls.ts',
+  +     '{"bindAddress":"127.0.0.1","certFile":"/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/cig-ide-tls-test-RfbZsq/tls/12ca17b49af2289436f303e0/server.crt","keyFile":"/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/cig-ide-tls-test-RfbZsq/pipe"}'
+  +   ],
+  +   syscall: 'spawnSync /opt/homebrew/Cellar/node/25.8.2/bin/node'
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/ide-tls.test.ts:48:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Error: spawnSync /opt/homebrew/Cellar/node/25.8.2/bin/node ETIMEDOUT
+        at Object.spawnSync (node:internal/child_process:1127:20)
+        at spawnSync (node:child_process:911:24)
+        at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/ide-tls.test.ts:42:19)
+        at async Test.run (node:internal/test_runner/test:1208:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:831:7),
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

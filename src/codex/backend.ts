@@ -135,7 +135,8 @@ export type CodexInputReceipt = {
 export type CodexSteerResult = CodexInputReceipt;
 
 /** Ordinary input targets a conversation, not a caller-selected execution.
- * The native owner selects its receiving turn; this is NOT compare-and-steer.
+ * The facade observes the active native turn and uses guarded turn/steer;
+ * a changed turn never authorizes a new turn or an implicit queue submission.
  */
 export type CodexThreadMessageInput = {
   threadId: string;

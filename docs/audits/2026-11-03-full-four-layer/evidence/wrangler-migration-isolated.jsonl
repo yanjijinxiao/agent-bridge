@@ -1,0 +1,1 @@
+{"kind":"test","file":"taskboard/test/cloud-migration.test.mjs","name":"one-time Wrangler adapter migrates and verifies local persistence without remote access","sha256":"664dd29a272111cf1b3e034e49e7313566fd560e20445427a0cc70830d048cff","status":"passed"}

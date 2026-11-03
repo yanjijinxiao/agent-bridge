@@ -2,14 +2,19 @@
 
 ## Local components
 
-Verify paths and runtime state before acting; these are the current machine defaults:
+Resolve paths and runtime state from the current installation before acting.
+This bundled Skill has no per-user workspace, recipient, or service-manager
+defaults; do not copy another machine's settings into this installation.
 
-- Weekly report workspace: `/Users/shicheng_lei/code/周报`
+- Weekly report workspace: the directory explicitly configured or selected by the user
 - Confirmed archive filename: `YYYY-MM-DD至YYYY-MM-DD周报.md`
 - Weekly report renderer: `http://127.0.0.1:42732`
 - codex-weixin Bridge admin: `http://127.0.0.1:8787`
 - Bridge-owned Taskboard: `http://127.0.0.1:47823`
-- Taskboard data: `~/.codex-weixin/taskboard/`
+- Taskboard data: the running Gateway's actual state directory, including legacy-directory reuse
+
+The loopback URLs above are example defaults, not evidence that these services
+are installed or running. Read the current configuration before probing or writing.
 
 The weekly renderer imports archive files matching the filename pattern and groups them by year. Its UI owns the `草稿` / `已确认` / `已发布` display state and mail settings.
 
@@ -47,7 +52,10 @@ curl -fsS http://127.0.0.1:47823/health
 curl -fsS http://127.0.0.1:8787/api/taskboard
 ```
 
-The renderer LaunchAgent label is `com.shichenglei.weekly-report-renderer`; it starts the renderer only while Codex is running. Bridge owns both `8787` and `47823`. Do not start a standalone Taskboard beside the Bridge.
+Service-manager labels and lifecycle are installation-specific. In embedded
+mode Gateway owns its configured management and Taskboard listeners. Do not
+start a standalone Taskboard beside that managed instance or infer ownership
+from a default port number.
 
 If a service is unavailable, continue collecting user-supplied facts and report the missing integration. Do not perform a broad service reset merely to draft text.
 
@@ -57,11 +65,13 @@ After explicit confirmation, write the complete report to the weekly workspace u
 
 ## Create the WeCom email draft
 
-Use the renderer's `生成邮件` action so its validation and WeCom compatibility handling remain in the path. Current defaults are configurable in the UI:
+Use the renderer's `生成邮件` action so its validation and WeCom compatibility handling remain in the path. Read the current UI configuration or the user's explicit instructions:
 
-- To: `chen_wu@intsig.net`
-- CC: `huihui_guo@intsig.net`
-- Subject: `周报-雷诗城-Web`
+- To and CC: the recipients configured or explicitly supplied for this report
+- Subject: the configured subject or a title based on the confirmed reporting period
 - Body: the complete current report content
+
+If the workspace or recipients are missing, ask only for the missing value;
+never infer a person or destination from an example or another installation.
 
 Opening the composer is an external desktop action. Do it only when the user asks to generate the draft. Leave the composer unsent and ask the user to review it. Mark the report `已发布` only after the user confirms actual delivery or publication.

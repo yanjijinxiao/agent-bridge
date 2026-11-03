@@ -46,26 +46,24 @@ async function main(): Promise<void> {
     console.error(`[codex-im-gateway] shutdown failed: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   });
-  const scheduleRestart = (version: string) => {
+  const scheduleRestart = async (version: string): Promise<void> => {
     if (restartScheduled) return;
     restartScheduled = true;
-    const timer = setTimeout(async () => {
-      try {
-        await launchRestartHelper({
-          parentPid: process.pid,
-          entryPath: fileURLToPath(import.meta.url),
-          stateDir: paths.root,
-          port
-        });
-      } catch (error) {
-        restartScheduled = false;
-        console.error(`[codex-im-gateway] unable to restart after update: ${error instanceof Error ? error.message : String(error)}`);
-        return;
-      }
-      console.log(`[codex-im-gateway] updated to ${version}; restarting`);
-      exitAfterShutdown();
-    }, 500);
-    timer.unref();
+    try {
+      await launchRestartHelper({
+        parentPid: process.pid,
+        entryPath: fileURLToPath(import.meta.url),
+        stateDir: paths.root,
+        port
+      });
+    } catch (error) {
+      restartScheduled = false;
+      // The caller owns the release lease. Do not swallow an asynchronous
+      // launch failure and leave the still-running Gateway permanently frozen.
+      throw error;
+    }
+    console.log(`[codex-im-gateway] updated to ${version}; restarting`);
+    exitAfterShutdown();
   };
   try {
     if (peers) { peerServer = await listenGatewayPeers(peerConfig, peers); sharedWorkspaces = await listenSharedWorkspaces(peerConfig, peers); }

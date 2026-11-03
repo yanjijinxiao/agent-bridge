@@ -126,8 +126,11 @@ async function ensureBundledSkillLinks(home, checkOnly) {
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
-  if (Number(process.versions.node.split(".")[0]) < 22) {
-    throw new Error(`Node.js 22 or newer is required; current version is ${process.versions.node}`);
+  const [major, minor] = process.versions.node.split(".").map(Number);
+  // The catalog and Taskboard import node:sqlite without experimental flags;
+  // this boundary also satisfies the locked Vite build's minimum version.
+  if (!(major > 23 || major === 23 && minor >= 4 || major === 22 && minor >= 13)) {
+    throw new Error(`Node.js 22.13+ (22.x) or 23.4+ is required; current version is ${process.versions.node}`);
   }
   if (!options.check && !options.skipDependencies && !await dependenciesAreCurrent()) {
     await runNpm(["ci", "--ignore-scripts"]);

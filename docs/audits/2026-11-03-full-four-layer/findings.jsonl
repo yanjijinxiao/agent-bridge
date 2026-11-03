@@ -1,0 +1,84 @@
+{"id": "DOC-01", "status": "confirmed-documentation", "title": "当前文档入口混用310/319/323 case及140/151/160函数数", "evidence": "JSON当前85要求、323case、163精选函数记录；README/模块audit-method/实现图仍有历史数称当前。"}
+{"id": "IN-A", "status": "candidate", "title": "长历史回执恢复每轮重置预算", "evidence": "native-input-recovery每次从第一页开始，3秒/20页限制后丢弃扫描进度，须复现可达的长历史。"}
+{"id": "IN-B", "status": "candidate", "title": "定时收件箱清理落盘异常逃出callback", "evidence": "ForwardingInbox.tick对accepted/handled调用remove时没有catch；interval入口直接tick。"}
+{"id": "CTRL-A", "status": "candidate", "title": "控制journal写失败后内存状态可能抢先生效", "evidence": "submit/createChoice/claimChoice修改state后save，缺少事务回滚，需精确正常/失败对照。"}
+{"id": "IN-C", "status": "candidate", "title": "TurnSubmission包装器未传递异步来源guard", "evidence": "CodexRunnerInput guard可能异步；current调用input.assertCurrent但不await或返回，需先核真实生产来源。"}
+{"id": "IN-B", "status": "fixed-isolated", "evidence": "真实定时器子进程修前exit 1，修后清理重试且原生输入次数1；65项相关测试通过。"}
+{"id": "CTRL-A", "status": "fixed-isolated", "evidence": "选择claim/提交前落盘失败均已复现；修后重读磁盘，不留下伪claim；改名后目录fsync错误保留accepted；65项相关测试通过。"}
+{"id": "IN-C", "status": "not-confirmed-production", "evidence": "修正：guard本体同步、异步为beforeWrite属性；TurnSubmission包装未复制属性，但当前生产peer在包装后附加，未找到实际丢失异步校验的入口，继续调用链核对。"}
+{"id": "QUEUE-A", "status": "confirmed", "title": "原生队列journal持久化失败残留内存占位/覆盖落盘接收事实", "evidence": "隔离enqueue测试已失败：预提交原生0次但retry仍返回submitting；改名后fsync失败把已落盘queued改成uncertain。"}
+{"id": "QUEUE-A", "status": "fixed-isolated", "evidence": "队列journal保存失败读取实际落盘状态，保留并发在途引用。31项针对性测试及全量2893通过。"}
+{"id": "IN-A", "status": "fixed-isolated", "evidence": "保留有独立预算的完整只读扫描；25页、刷新超时、跨身份、迟到重复ID、关闭退休和后台超时用例通过。仍有120秒/10000页上限，未知不重发。"}
+{"id": "CONNECT-A", "status": "fixed-isolated", "title": "配对后的异步读取丢失原始绑定代次", "evidence": "实际Bridge+Connector协议用例修前binding/ABA失败，修后正常/换绑/ABA/降权均通过；传递操作原始guard。"}
+{"id": "STATUS-A", "status": "fixed-isolated", "title": "远端status错误选用本机模型且元数据DTO字段不匹配", "evidence": "真实Bridge /status传入includeTurns被Connector严格元数据schema拒绝；读失败还显示Gateway本机模型。改为分开观察DTO和远端优先级，同步传递只读预算，40项相关测试通过。"}
+{"id": "HOST-A", "status": "fixed-isolated", "title": "跨主机同ID审批污染当前任务进展", "evidence": "正常local和peer:other对照，修前remote同thread/turn把local卡改成waiting-approval；修后仅完整host/thread/turn匹配才改变。原项目通知审批仍可发送。"}
+{"id": "PEER-CLOSE-A", "status": "not-confirmed", "title": "交互关闭异常是否中断其余清理", "evidence": "完整阅读interaction-client.close，其Promise.allSettled已收集全部close异常，当前疑点不成立。"}
+{"id": "PEER-UPLOAD-A", "status": "fixed-isolated", "title": "附件发布等待原生检查后未复核授权与连接租约", "evidence": "修前 unchanged 通过，revoked/closed 两个反例均错误发布；修后 15 项 peer-files 测试通过。新增测试是真实文件系统与 PeerFiles，授权/连接状态为可控替身，不冒充真实设备断网验收。"}
+{"id": "IN-FIFO-A", "status": "fixed-isolated", "title": "远端附件输入 FIFO 在检查文件类型前阻塞 Gateway", "evidence": "子进程真实 mkfifo 修前 2 秒超时，修后 O_NONBLOCK + fstat 拒绝非普通文件，3 个附件测试通过，未启动 SSH。"}
+{"id": "EMPTY-THREAD-A", "status": "not-confirmed", "title": "私有 stdio 空会话不能继续的注释与实测不符", "evidence": "当前安装原生服务 stdio 和 daemon 两组均能读取空会话并在同一 ID 只执行一次首条输入；修正文档注释，未改运行逻辑，不计为故障修复。"}
+{"id": "STATUS-B", "status": "fixed-isolated", "title": "AccountManager远端runtime混入Gateway本机默认值", "evidence": "local正常、peer读成功和peer不可达对照修前2失败，修后5相关测试通过；不会以本机配置填补远端未知。"}
+{"id": "REL-ASYNC-A", "status": "fixed-isolated", "title": "网页更新异步重启失败不能回传释放lease", "evidence": "真实临时HTTP+AccountManager子进程，修前异步回调拒绝导致退出1，修后同步失败/异步失败/成功3例通过。index原有嵌套定时器吞异常改为返回助手启动Promise；未重启线上。"}
+{"id": "FINAL-EMPTY-A", "status": "fixed-isolated", "title": "原生完成但缺少最终文字被展示为中断或失败", "evidence": "live/recovered两个真实临时rollout反例修前均失败；成功收据与可选正文分离，修后monitor全16项通过。"}
+{"id": "IDE-TLS-FIFO-A", "status": "fixed-isolated", "files": ["src/ide/tls.ts", "test/ide-tls.test.ts"], "finding": "TLS证书或私钥同步open可被FIFO阻塞，卡住Gateway事件循环。", "before": "两个真实mkfifo子进程在2秒预算内均超时。", "after": "O_NONBLOCK打开、fstat普通文件检查、128KB实际读取上限；6项TLS测试通过，保持私钥属主/权限/no-follow和公共证书符号链接兼容。", "evidence": ["evidence/tls-fifo-before.txt", "evidence/tls-fifo-after.jsonl"], "limits": "隔离临时证书和本地HTTP/WS；未操作线上监听。"}
+{"id": "IDE-UPLOAD-CANDIDATE", "status": "hypothesis", "file": "src/ide/host-command.ts", "finding": "uploadIDEHost在源读取或stdin错误后reject但未立即终止child/清理timer；需真实进程边界复现。"}
+{"id": "DT-ROUTE-CANDIDATE", "status": "hypothesis", "file": "src/channels/dingtalk.ts", "finding": "cardTarget使用replyTargets缓存时只拒绝已知单聊无staffId，未知conversationType可能走user分支；需真实adapter事件反例。"}
+{"id": "DT-FALLBACK-CANDIDATE", "status": "hypothesis", "file": "src/channels/dingtalk.ts", "finding": "HTTPS/SDK已知create拒绝抛raw error，sendText/sendActionCard可改发文字；与文档任何卡写异常不二次发送的约定是否一致，核对现有契约测试再判定。"}
+{"id": "DT-SELECT-A", "status": "fixed", "files": ["src/channels/dingtalk.ts"], "evidence": "dingtalk-selection-before.txt: 4 failures, 2 passes; dingtalk-selection-after.jsonl: 112 passes", "finding": "Configured static card rejection switched to webhook despite documented selection-before-I/O. Unknown conversation type was accepted as private target. Removed post-write fallback and require explicit 1/2 type. Old fallback test corrected."}
+{"id": "KB-OUTPUT-CANDIDATE", "status": "hypothesis", "finding": "MCP readline无单行预算，而知识文档称执行输出2MiB；CLI有maxBuffer。需超长有/无换行子进程复现。"}
+{"id": "QR-ACK-CANDIDATE", "status": "hypothesis", "finding": "非零ret和confirmed同时出现时login.poll先返回confirmed；起始qrcode同样未优先验证业务错误。需隔离响应复现。"}
+{"id": "WX-ID-CANDIDATE", "status": "hypothesis", "finding": "缺少message_id时以sender:Date.now造ID，同毫秒输入可能同ID；需确定协议兼容边界再测试。"}
+{"id": "TB-ANSWER-A", "status": "fixed", "finding": "审批/提问答案未确认仅设置needsInteractionRefresh，没有调度recover，等待页面轮询，关闭页面后卡住。复用既有单个恢复定时器核对原请求，不重发答案。", "evidence": ["evidence/taskboard-answer-refresh-before.txt", "evidence/taskboard-answer-refresh-after.jsonl"]}
+{"id": "TB-CLOUD-ORIGIN", "status": "fixed-isolated-tests-passed", "finding": "原生HTTP请求双斜杠路径可重新指定凭据目标；改为只赋pathname/search。", "limits": "尚未部署；云对象未知暂存保留，需要独立后续核对，不声称自动清理。"}
+{"id": "TB-CLOUD-CLOSE", "status": "fixed-isolated-tests-passed", "finding": "下载断连未取消上游；await pipeline收拢双向生命周期与现有错误出口。", "limits": "尚未部署；云对象未知暂存保留，需要独立后续核对，不声称自动清理。"}
+{"id": "TB-CLOUD-UPLOAD", "status": "fixed-isolated-tests-passed", "finding": "D1提交已应用但回执丢失时catch误删R2；移除提交尝试后的破坏性补偿，保留失败及对象供核对。", "limits": "尚未部署；云对象未知暂存保留，需要独立后续核对，不声称自动清理。"}
+{"id": "TB-CLOUD-PROJECT", "status": "fixed-isolated-tests-passed", "finding": "AI依赖单项目GET但Worker遗漏；补充与本地同语义的只读路由。", "limits": "尚未部署；云对象未知暂存保留，需要独立后续核对，不声称自动清理。"}
+{"id": "TB-HOME-A", "status": "fixed-isolated-tests-passed", "finding": "resolveServerOptions忽略codexHome导致native后端和项目目录使用不同Home；多根项目提交实际丢第二根。显式home优先且保留state/process单独覆盖。", "evidence": ["evidence/taskboard-home-before.txt", "evidence/taskboard-home-after.jsonl"]}
+{"id": "TB-STORAGE-A", "status": "fixed", "files": ["taskboard/web/src/App.tsx", "taskboard/web/src/components/AiChat.tsx"], "problem": "可选localStorage偏好读/写异常造成整个React看板崩溃。", "evidence": ["evidence/taskboard-storage-before.jsonl", "evidence/taskboard-storage-after.jsonl"], "resolution": "偏好访问失败使用内存/默认值；提交日志仍严格失败并阻止POST。第一次after中getItem-only夹具不能模拟Object.keys访问拒绝，已改成window.localStorage SecurityError，最终两场景通过。"}
+{"id": "TB-REFRESH-A", "status": "fixed", "problem": "首次列表读取被quiet读取替代；后者失败时tasksLoading未清，持续显示加载。SSE工作流读取失败无catch导致unhandledrejection。", "files": ["taskboard/web/src/App.tsx"], "evidence": ["evidence/taskboard-refresh-before.jsonl", "evidence/taskboard-refresh-after.jsonl"], "resolution": "最新请求统一负责结束loading；旧请求仍退休。可选工作流刷新捕获拒绝并保留现有投影，与轮询路径一致。"}
+{"id": "TB-DETAIL-DRAFT-CANDIDATE", "status": "candidate", "problem": "TaskDetail.saveTask成功/失败统一重置title/description；等待属性保存时另一个字段可编辑，可能丢未提交草稿。"}
+{"id": "TB-EDITOR-DRAFT-CANDIDATE", "status": "candidate", "problem": "TaskEditor等待onSave时title与属性可编辑，成功后App直接关闭，可能丢等待中的新编辑。"}
+{"id": "TB-DETAIL-DRAFT-CANDIDATE", "status": "fixed", "problem": "真实App属性保存成功和拒绝各覆盖title/description两例，旧回执覆盖另一字段新草稿。现只替换未改变字段，失败保留草稿。", "evidence": ["evidence/taskboard-draft-before.jsonl", "evidence/taskboard-draft-after.jsonl"]}
+{"id": "TB-EDITOR-DRAFT-CANDIDATE", "status": "fixed", "problem": "创建等待回执时原表单仍允许编辑，但成功会关闭丢失新增编辑。现fieldset仅在保存等待期间禁用提交字段，失败后可继续编辑。", "evidence": ["evidence/taskboard-draft-before.jsonl", "evidence/taskboard-draft-after.jsonl"]}
+{"id": "TB-WORKFLOW-LEGACY-CANDIDATE", "status": "candidate", "problem": "WorkflowBoard初始化空远端保存遇到CAS冲突后，mergeLegacyWorkspace结果未再次保存就记lastRemote并清理legacy，可能丢迁移草稿。需要真实Chrome竞争反例。"}
+{"id": "TB-WORKFLOW-LEGACY-CANDIDATE", "status": "fixed", "evidence": "taskboard-legacy-before.jsonl: 正常通过，单次/再次冲突均错误删除legacy；修复后3迁移场景及其他Chrome/隐藏列检查通过。", "change": "首次CAS冲突先读取remote，再对legacy合并执行CAS；只在成功写回后清理。失败不启动默认画布自动保存；用户可明确重载。"}
+{"id": "WEB-NOTIFICATION-TARGET", "status": "fixed", "problem": "通知表单为群渠道将个人准入ID填入接收会话；只保留明确配置或已确认路线。", "evidence": ["evidence/notification-target-before.jsonl", "evidence/notification-target-after.jsonl"]}
+{"id": "WEB-HIDDEN-CONTROLS", "status": "fixed", "problem": "grid/flex覆盖hidden，非微信账号误显示保留历史选项；管理页统一遵守hidden，核验IDE自动/手动字段及旧更新按钮。", "evidence": ["evidence/management-hidden-before.jsonl", "evidence/management-hidden-after.jsonl"]}
+{"id": "TB-SUPERVISOR-A", "status": "fixed", "problem": "并发ensure在首次await前未串行，可能重复拉起；停止后迟到健康读取仍可启动；owned进程健康超时误作退出。", "evidence": ["evidence/injector-supervisor-before.jsonl", "evidence/injector-supervisor-after.jsonl"]}
+{"id": "TB-QUOTA-A", "status": "fixed", "problem": "原生空额度/仅套餐信息误判available，null重置时间变0；补有/无额度信息对照。", "evidence": ["evidence/quota-status-before.jsonl", "evidence/quota-status-authorized-after.jsonl"]}
+{"id": "TB-INJECT-ASYNC-CANDIDATE", "status": "candidate", "problem": "createThreadForTask在ensureProjectRows/prefill等待期间切视图或destroy后仍可能改变桌面当前输入框；需核对真实可达入口。"}
+{"id": "TB-MIGRATION-VERIFY-CANDIDATE", "status": "candidate", "problem": "迁移task_submissions虽写入，但verify仅项目行数和附件hash，不校验提交回执；未知导入部分提交时可能漏报。需隔离证据。"}
+{"id": "TB-RECEIPT-THEME", "status": "fixed", "title": "暗色主题的回执核对按钮落到浅色背景", "evidence": "receipt-theme-settled-before.jsonl复现1.072对比度；改用已有surface-muted/border-strong，receipt-theme-after.jsonl通过。首次即刻取样没有等待重绘是假通过，保留debug证据。"}
+{"id": "DOC-WEEKLY-DEFAULTS", "status": "fixed-documentation", "title": "可安装周报Skill把某台机器的路径和邮件目标当成通用默认", "evidence": "已改为当前部署与用户明确配置；默认端口仅为示例，不影响当前业务代码或实际收件人设置。"}
+{"id": "INSTALL-NODE-A", "status": "fixed", "title": "安装器及清单允许低于SQLite和Vite前置要求的Node", "evidence": "install-version-before中22.0/22.12/23.3被允许进入安装；更新前置条件、两个manifest/lock及文档后5项通过。第一次after里已有--check因刚修改lock使安装缓存过期而失败；正常offline ci后通过，未修改断言。", "source": ["https://nodejs.org/api/sqlite.html", "https://vite.dev/guide/"]}
+{"id": "QR-ACK", "status": "fixed", "title": "QR非零ret被成功状态绕过，已在副作用之前校验并限制错误展示。", "evidence": "qr-mcp-before.jsonl中7项真实反例；qr-mcp-final.jsonl中27项通过。文档变更按源码调用核对，未改变权限或执行策略。"}
+{"id": "KB-OUTPUT", "status": "fixed", "title": "MCP无界readline与2MiB文档承诺不符，已在换行前限制字节并退休异常子进程。", "evidence": "qr-mcp-before.jsonl中7项真实反例；qr-mcp-final.jsonl中27项通过。文档变更按源码调用核对，未改变权限或执行策略。"}
+{"id": "DOC-NATIVE-BOUNDARY", "status": "fixed", "title": "传输自动选择、Taskboard入口、host绑定和断连生命周期的旧说明已对齐实际实现；发布门禁只修改错误注释。", "evidence": "qr-mcp-before.jsonl中7项真实反例；qr-mcp-final.jsonl中27项通过。文档变更按源码调用核对，未改变权限或执行策略。"}
+{"id": "IDE-UPLOAD-A", "status": "fixed", "title": "源读取与stdin失败仅reject遗留传输进程；2项反例，修后11项通过。", "evidence": "ide-transfer-before/after.jsonl"}
+{"id": "SSH-TARGET-A", "status": "fixed", "title": "SSH目标允许选项前缀；反例修复后5项通过。", "evidence": "ssh-target-before/after.jsonl"}
+{"id": "CAPACITY-QUEUE-A", "status": "fixed", "title": "空页带cursor被当无队列；续跑末次检查补全。", "evidence": "queue-date-before/after.jsonl"}
+{"id": "CAT-DATE-A", "status": "fixed", "title": "有限但Date超范围时间会让整个列表抛RangeError；两个目录入口修复。", "evidence": "queue-date-before/after.jsonl"}
+{"id": "MONITOR-EXEC-CANDIDATE", "status": "closed-unreachable-production", "title": "ensureNativeRequestMonitor的exec总开关与peer关系仅适用于旧注入；loadConfig/saveConfig都强制app-server，当前生产不进入该分支。未据此删除旧兼容代码。", "evidence": "src/state/config.ts:loadConfig/saveConfig"}
+{"id": "REC-RESTORE-INTENT", "status": "documented-limitation", "title": "archive前保存义务后崩溃但没有确认回执，active读取无法证明archive不会迟到；保留restoreActive是安全未知，不擅自清除。未来需原生请求完成证据，不能简单放行。", "evidence": "src/codex/app-server-runner.ts:restoreRecoveryPersistence"}
+{"id": "NATIVE-05.6", "status": "fixed", "title": "畸形结束通知不推断终态，保留接收身份并显示待同步；迟到的有效失败仍决定结果。", "evidence": "native-completion-final.jsonl", "limits": "真实JSONL子进程；六种无效状态与稍后有效失败，不代替原生服务畸形数据的恢复验收。"}
+{"id": "TB-01.6", "status": "fixed", "title": "桌面预填按明确项目ID选择，缺失ID及重名旧标签不落到其他项目；唯一旧标签仍可用。", "evidence": "inject-selection-after.jsonl", "limits": "执行生产函数的VM测试，DOM/桌面导航为受控边界；并非真实桌面点击验收。"}
+{"id": "TB-COMMENT-EDIT-A", "status": "fixed", "case": "TB-09.9", "files": ["taskboard/web/src/components/TaskDetail.tsx"], "finding": "saveComment 的旧成功关闭后续编辑；键盘在 pending 期间可重复 PATCH。", "evidence": ["evidence/comment-edit-before.jsonl", "evidence/comment-edit-after.jsonl"], "result": "3 个反例失败后修复，含父用例的浏览器 71 条通过。"}
+{"id": "NATIVE-ACTIVE-CACHE-A", "status": "fixed", "cases": ["NATIVE-05.7"], "finding": "旧activeTurns覆盖当前原生idle；两次只读RPC之间的新start被旧快照隐藏。", "evidence": ["evidence/native-snapshot-before.jsonl", "evidence/native-snapshot-after.jsonl", "evidence/native-snapshot-complete-items.jsonl", "evidence/native-date-and-snapshot-after.jsonl"], "limits": "首次after有3个测试过早检查run完成，尚有unsubscribe RPC；已改为有界等待该正常交接并保留日志。元数据不会结算最终正文。"}
+{"id": "NATIVE-DATE-RANGE-A", "status": "fixed", "cases": ["CAT-01.6"], "finding": "原生有限但超范围时间令toISOString抛错，inspect误入目录fallback，最终读取失败。", "evidence": ["evidence/native-date-before.jsonl", "evidence/native-date-and-snapshot-after.jsonl"]}
+{"id": "NATIVE-CLOSE-A", "status": "fixed", "cases": ["NATIVE-03.7"], "finding": "close清空remoteAppServers/remoteTransports后，迟到只读调用能够重新获取连接；关闭检查原先仅在mutating。", "evidence": ["evidence/gateway-close-before.jsonl", "evidence/gateway-close-after.jsonl"], "result": "8个关闭反例修前失败、正常对照通过；修后关联56条通过。"}
+{"id": "TB-INJECT-ASYNC-CANDIDATE", "status": "fixed-isolated-tests-passed", "case": "TB-01.7", "problem": "旧预填跨异步等待继续导航/写入或把回执发给替换页面，finally清除后续操作；宿主分离focus与Input.insertText可能写入后来获取焦点的页面。", "evidence": ["evidence/inject-composer-before.jsonl", "evidence/inject-composer-unit-final.jsonl", "evidence/inject-composer-browser-final.jsonl"], "limits": "隔离Chrome执行生产步骤与受控Skill菜单；不证明真实Codex编辑器兼容性。初次浏览器测试普通空格被默认contenteditable折叠，夹具改为编辑器的pre-wrap后成功；沙箱Chrome启动失败且测试清理遗漏signalCode，已修复测试清理并只清理该测试进程。"}
+{"id": "TB-MIGRATION-VERIFY-CANDIDATE", "status": "fixed-isolated-tests-passed", "case": "TB-11.4", "finding": "原counts/附件核验遗漏task_submissions，现对新包完整核对回执列、空表及既有tombstone，旧包范围明确。", "evidence": ["evidence/migration-receipt-before.jsonl", "evidence/migration-receipt-after.jsonl", "evidence/migration-receipt-final.jsonl"], "limits": "完整业务正文仍是原有counts范围，不宣称逐字段迁移验证；无远端迁移。"}
+{"id": "WEB-01.9", "status": "fixed", "finding": "设置回执只确认原提交快照，保留等待中的文本、开关、模型/effort草稿；相同等待不重复PUT，失败保留草稿。", "evidence": ["evidence/settings-draft-final.jsonl", "evidence/settings-draft-browser.jsonl"], "limits": "生产JS VM及生产HTML/CSS/HTTP的独立Chrome，临时Gateway数据；不是手机实机。"}
+{"id": "PEER-04.3", "status": "fixed", "finding": "共享入口写盘成功后才发布内存；已撤销/过期或资源替换的入口不永久占用额度；仍有效入口及URL跨重启保留，不因设备离线清理。", "evidence": ["evidence/shared-portal-after.jsonl"], "limits": "真实临时文件/写盘错误、重建实例与既有本机HTTP共享授权回归，无生产授权变更。"}
+{"id": "TB-01.8", "status": "fixed", "finding": "开发脚本未捕获启动失败，正常退出或SIGTERM时不清理另一个进程；npm包装前端所有权不明确。", "evidence": ["evidence/dev-lifecycle-before.tap", "evidence/dev-lifecycle-after.tap"], "limits": "六条修前失败包括新增直接启动约束和不再向已退出进程发信号，真实退出反例需测试兜底SIGKILL；修后全部通过。"}
+{"id": "IN-02.9", "status": "fixed", "finding": "缺少message_id时用Date.now补身份可能碰撞或重投变号，normalize异常被跳过并推进游标。", "evidence": ["evidence/weixin-identity-before.tap", "evidence/weixin-identity-after.tap"], "limits": "14条修前失败+1正常对照；修后专项15及既有轮询/引用/游标16通过。持续畸形事件会保留游标且显示重连，不宣称上游修复。"}
+{"id": "WEB-01.10", "status": "fixed", "finding": "同一知识库弹窗旧保存回执关闭并丢弃后续草稿；键盘重复提交再写一次。", "evidence": ["evidence/knowledge-draft-before.tap", "evidence/knowledge-draft-after.tap", "evidence/knowledge-draft-browser.tap"], "limits": "修前5失败2对照；修后43条关联VM与8条Chrome记录通过，知识服务回执为受控边界。"}
+{"id": "TB-CDP-NETWORK-A", "status": "fixed-isolated", "evidence": "injectAll→codexTargets→fetchJson缺少signal；CdpConnection.open缺少超时/close退场。修前7例5失败2正常，修后25条关联通过；目标HTTP含body均受1500ms signal限制，握手15秒失败关闭连接，不重启App。"}
+{"id": "WEB-UPDATE-DEADLINE-A", "status": "fixed-isolated", "evidence": "核实npm部署兼容入口可达，源码模式不会进入；waitForUpdatedService外层90秒不能终止单次fetch或body停滞。两处反例修前失败，修后4例+UpdateManager共20条，19通过、1条Windows专用跳过。"}
+{"id": "DOC-01", "status": "fixed-documentation", "conclusion": "当前374case/174精选函数及主机/卡片/空线程说明已同步，历史值明确标历史。"}
+{"id": "IN-C", "status": "closed-unreachable-production", "conclusion": "补查唯一beforeWrite添加端在设备PeerExecutionService，在TurnSubmission调用Peer backend之后；生产同步guard未丢异步校验。未据假设修改运行逻辑。"}
+{"id": "IDE-UPLOAD-CANDIDATE", "status": "superseded", "conclusion": "后续确认为IDE-UPLOAD-A并已修复。"}
+{"id": "DT-ROUTE-CANDIDATE", "status": "superseded", "conclusion": "后续并入DT-SELECT-A并已修复。"}
+{"id": "DT-FALLBACK-CANDIDATE", "status": "superseded", "conclusion": "后续并入DT-SELECT-A并已修复。"}
+{"id": "KB-OUTPUT-CANDIDATE", "status": "superseded", "conclusion": "后续确认为KB-OUTPUT并已修复。"}
+{"id": "QR-ACK-CANDIDATE", "status": "superseded", "conclusion": "后续确认为QR-ACK并已修复。"}
+{"id": "WX-ID-CANDIDATE", "status": "superseded", "conclusion": "后续确认为IN-02.9并已修复。"}

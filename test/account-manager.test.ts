@@ -1653,6 +1653,22 @@ test("reports the effective Codex model and reasoning effort", async (t) => {
   });
 });
 
+for (const source of ["local", "peer:device", "peer:unavailable"]) {
+  test(`runtime metadata does not substitute Gateway defaults for a peer (${source})`, async t => {
+    const f = setup(t, { config: { model: "gateway-model", effort: "high" } });
+    Object.assign(f.runner, { async getRuntimeInfo(_cwd: string, _thread: string, hostId: string) {
+      assert.equal(hostId, source);
+      if (hostId === "peer:unavailable") throw Error("Peer observation unavailable");
+      return { model: "native-model", effort: "low", provider: "native-provider" };
+    } });
+    const runtime = await f.manager.getCodexRuntimeInfo({ hostId: source, threadId: "thread", cwd: "/project" });
+    assert.deepEqual(runtime, source === "peer:unavailable" ? {} : {
+      model: source === "local" ? "gateway-model" : "native-model",
+      effort: source === "local" ? "high" : "low", provider: "native-provider"
+    });
+  });
+}
+
 test("reports the models and reasoning efforts advertised by Codex", async (t) => {
   const { manager } = setup(t);
 

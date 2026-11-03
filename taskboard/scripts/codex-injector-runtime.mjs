@@ -33,6 +33,8 @@ function parseHostRequest(payload, parseAutomationRequest) {
   }
   if (
     request.action === "prefill-task-composer"
+    && typeof request.operationId === "string"
+    && /^[a-z0-9-]{1,80}$/i.test(request.operationId)
     && typeof request.instruction === "string"
     && request.instruction.length > 0
     && request.instruction.length <= 1_024

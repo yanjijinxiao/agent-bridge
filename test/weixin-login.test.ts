@@ -7,6 +7,28 @@ import test from "node:test";
 import { resolveStatePaths } from "../src/state/paths.js";
 import { createQrLoginSession, loginWithQr, WeixinQrLoginSession } from "../src/weixin/login.js";
 
+test("a rejected QR creation cannot become a usable login session", async () => {
+  await assert.rejects(createQrLoginSession({ fetch: async () => Response.json({
+    ret: -7, errmsg: "untrusted credential-like detail", qrcode: "stale-token", qrcode_img_content: "stale-content"
+  }) }), error => error instanceof Error && /-7/.test(error.message) && !/credential-like/.test(error.message));
+});
+
+for (const status of ["confirmed", "connected", "scaned_but_redirect", "expired"]) {
+  test(`a rejected QR poll cannot publish ${status} or change its polling destination`, async () => {
+    const urls: string[] = [];
+    const session = new WeixinQrLoginSession("content", "token", "https://original.example", async url => {
+      urls.push(String(url));
+      return Response.json(urls.length === 1 ? {
+        ret: -7, errmsg: "untrusted credential-like detail", status, connected: true,
+        redirect_host: "redirect.example", bot_token: "synthetic", ilink_bot_id: "bot"
+      } : { ret: 0, status: "scaned" });
+    }, Date.now() + 60_000);
+    await assert.rejects(session.poll(), error => error instanceof Error && /-7/.test(error.message) && !/credential-like/.test(error.message));
+    assert.deepEqual(await session.poll(), { status: "scanned" });
+    assert.ok(urls.every(url => url.startsWith("https://original.example/")));
+  });
+}
+
 test("the QR-owned expiry wins even if the wall clock has not reached its millisecond deadline", async t => {
   t.mock.method(Date, "now", () => 1000);
   const expiry = new AbortController();

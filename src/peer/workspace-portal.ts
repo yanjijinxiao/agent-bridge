@@ -39,10 +39,18 @@ export class SharedWorkspacePortal {
     });
   }
   entry(ref: SharedBrowserRef): string {
-    const previous = [...this.entries].find(([, r]) => JSON.stringify(r) === JSON.stringify(ref));
-    if (this.entries.size >= 200 && !previous) throw Error("共享入口过多，请重启资源入口清理未使用的浏览器。");
-    const id = previous?.[0] ?? crypto.randomUUID(); this.entries.set(id, structuredClone(ref));
-    if (this.options.stateFile) writeJsonFile(this.options.stateFile, { version: 1, entries: [...this.entries] }, { durable: true });
+    // Entries survive restart. Retire only locally known revoked/expired or
+    // replaced grants, never a live grant whose device is temporarily offline.
+    const next = new Map([...this.entries].filter(([, entry]) =>
+      this.registry.grantsFor(entry.principal).some(grant => grant.id === entry.grantId
+        && (!grant.delegation || grant.delegation.resourceId === entry.resourceId))));
+    const previous = [...next].find(([, r]) => JSON.stringify(r) === JSON.stringify(ref));
+    if (next.size >= 200 && !previous) throw Error("共享入口过多，请撤销不再使用的共享授权后重试。");
+    const id = previous?.[0] ?? crypto.randomUUID(); next.set(id, structuredClone(ref));
+    // A failed durable write must not publish or accumulate entries in memory.
+    if (this.options.stateFile) writeJsonFile(this.options.stateFile, { version: 1, entries: [...next] }, { durable: true });
+    this.entries.clear();
+    for (const [entryId, entry] of next) this.entries.set(entryId, entry);
     return `${new URL(this.options.publicOrigin).origin}/shared/${id}`;
   }
   async approve(principal: PeerPrincipal, code: string): Promise<string> {

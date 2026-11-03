@@ -22,9 +22,9 @@ test("empty workflow statuses are partitioned from the filtered board result", (
 
 test("show empty columns is off by default, persisted locally, and updates immediately", () => {
   assert.match(appSource, /const SHOW_EMPTY_COLUMNS_KEY = "taskboard\.showEmptyColumns\.v1"/);
-  assert.match(appSource, /getItem\(SHOW_EMPTY_COLUMNS_KEY\) === "true"/);
+  assert.match(appSource, /readPreference\(SHOW_EMPTY_COLUMNS_KEY\) === "true"/);
   assert.match(appSource, /useState\(readShowEmptyColumns\)/);
-  assert.match(appSource, /localStorage\.setItem\(SHOW_EMPTY_COLUMNS_KEY, String\(show\)\)/);
+  assert.match(appSource, /writePreference\(SHOW_EMPTY_COLUMNS_KEY, String\(show\)\)/);
   assert.match(appSource, /setShowEmptyColumns\(show\)/);
   assert.match(settingsSource, /role="switch"/);
   assert.match(settingsSource, /aria-checked=\{showEmptyColumns\}/);
@@ -34,7 +34,7 @@ test("show empty columns is off by default, persisted locally, and updates immed
 test("column menus persist manual hiding and showing per project", () => {
   assert.match(appSource, /const COLUMN_VISIBILITY_KEY = "taskboard\.columnVisibility\.v1"/);
   assert.match(appSource, /useState\(readColumnVisibilityByProject\)/);
-  assert.match(appSource, /window\.localStorage\.setItem\(COLUMN_VISIBILITY_KEY, JSON\.stringify\(next\)\)/);
+  assert.match(appSource, /writePreference\(COLUMN_VISIBILITY_KEY, JSON\.stringify\(next\)\)/);
   assert.match(appSource, /if \(!selectedProjectId \|\| tasksByStatus\[status\]\.length === 0\) return/);
   assert.match(appSource, /onHide=\{\(hiddenStatus\) => updateColumnVisibility\(hiddenStatus, false\)\}/);
   assert.match(appSource, /onShow=\{\(shownStatus\) => updateColumnVisibility\(shownStatus, true\)\}/);

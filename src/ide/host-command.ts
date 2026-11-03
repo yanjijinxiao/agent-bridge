@@ -1,5 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import fs from "node:fs";
+import { pipeline } from "node:stream";
 import { promisify } from "node:util";
 import { resolveRemoteSshConnection, type RemoteCodexTransportOptions } from "../codex/remote-host.js";
 
@@ -25,9 +26,28 @@ export async function uploadIDEHost(hostId: string, script: string, input: objec
   await new Promise<void>((resolve, reject) => {
     const child = spawn(call.command, call.args, { signal, stdio: ["pipe", "ignore", "pipe"], windowsHide: true });
     const source = fs.createReadStream(file); child.stderr.resume();
-    const timer = setTimeout(() => child.kill("SIGTERM"), 120_000);
-    child.once("error", reject); source.once("error", reject); child.stdin.on("error", reject);
-    child.once("close", code => { clearTimeout(timer); source.destroy(); code === 0 ? resolve() : reject(new Error("SSH 制品传输失败，可重试")); });
-    source.pipe(child.stdin);
+    let settled = false, copied = false, exited = false;
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true; clearTimeout(timer);
+      // This child belongs to the artifact transfer, not to the independent
+      // Codex executor. A failed local read must not leave SSH awaiting stdin.
+      source.destroy(); child.stdin.destroy(); child.kill("SIGTERM");
+      reject(error);
+    };
+    const complete = () => {
+      if (settled || !copied || !exited) return;
+      settled = true; clearTimeout(timer); resolve();
+    };
+    const timer = setTimeout(() => fail(new Error("SSH 制品传输超时，可重试")), 120_000);
+    child.once("error", fail);
+    child.once("close", code => {
+      if (code !== 0) { fail(new Error("SSH 制品传输失败，可重试")); return; }
+      exited = true; complete();
+    });
+    pipeline(source, child.stdin, error => {
+      if (error) { fail(error); return; }
+      copied = true; complete();
+    });
   });
 }

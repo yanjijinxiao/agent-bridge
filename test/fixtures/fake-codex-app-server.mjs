@@ -487,7 +487,6 @@ rl.on("line", (line) => {
     if (process.argv.includes("--bounded-inspection") && message.params.includeTurns !== false) {
       fail(message.id, "inspection and idle waiting must not hydrate full history"); return;
     }
-    if (process.argv.includes("--bounded-inspection") && message.params.includeTurns !== false) { fail(message.id, "inspection must not load full history"); return; }
     if (message.params.threadId === "thread-read-unresponsive") return;
     if (archivedThreads.has(message.params.threadId)) {
       fail(message.id, `thread ${message.params.threadId} is archived; unarchive it first`);

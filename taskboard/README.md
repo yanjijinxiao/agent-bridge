@@ -4,7 +4,7 @@ A local-first issue board that runs in a browser and can be embedded in Codex th
 
 ## Requirements
 
-- Node.js 22.5 or newer
+- Node.js 22.13+ on the 22.x line, or 23.4+
 
 ## Run locally
 
@@ -22,7 +22,7 @@ For development with live frontend reload:
 npm run dev
 ```
 
-The Vite UI runs at <http://127.0.0.1:5173> and proxies API requests to the local service.
+The Vite UI runs at <http://127.0.0.1:5173> and proxies API requests to the local service. The development launcher owns both services: either service exiting or failing to start stops its sibling; Ctrl-C stops both. It launches Vite directly with the current Node executable.
 
 ## Use the CLI
 

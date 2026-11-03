@@ -238,8 +238,10 @@ export class PeerExecutionService {
         case "getAccountRateLimits": return backend.getAccountRateLimits(undefined, z.string().max(200).optional().parse(args[1] ?? undefined));
         case "receipt": return this.receipts.get(z.string().regex(/^[a-f0-9]{64}$/).parse(args[0])) ?? null;
         case "getRuntimeInfo": {
-          const state = await this.readState(args[1] ?? this.description.thread?.threadId);
-          return backend.getRuntimeInfo(state.cwd, state.threadId, undefined, metadataObservation.parse(args[3] ?? undefined));
+          const observation = metadataObservation.parse(args[3] ?? undefined);
+          const state = await this.readState(args[1] ?? this.description.thread?.threadId, false,
+            observation && { ...observation, includeTurns: false });
+          return backend.getRuntimeInfo(state.cwd, state.threadId, undefined, observation);
         }
         case "inspectThread": {
           this.assertThread(args[0]);

@@ -67,7 +67,6 @@ export async function monitorWeixin(options: MonitorOptions): Promise<void> {
     let batch: { syncKey?: string; messages: WeixinRawMessage[] };
     try {
       batch = parseUpdateBatch(await options.client.getUpdates(syncKey, options.signal));
-      options.onStatus?.({ state: "connected" });
     } catch (error) {
       if (options.signal?.aborted) break;
       options.onStatus?.({ state: "reconnecting", detail: "Polling failed; retrying" });
@@ -76,18 +75,19 @@ export async function monitorWeixin(options: MonitorOptions): Promise<void> {
       await delay(retryMs, options.signal);
       continue;
     }
-    retryBackoff.reset();
     const { messages } = batch;
     if (messages.length) {
       console.log(`[codex-im-gateway] received ${messages.length} update(s)`);
     }
     const work: Promise<void>[] = [];
     let claimFailed = false;
+    let normalizationFailed = false;
     for (const raw of messages) {
       let normalized: NormalizedWeixinMessage | undefined;
       try {
         normalized = normalizeWeixinMessage(raw);
       } catch (error) {
+        normalizationFailed = true;
         console.error(`[codex-im-gateway] failed to normalize message: ${errorDetail(error)}`);
         continue;
       }
@@ -120,7 +120,10 @@ export async function monitorWeixin(options: MonitorOptions): Promise<void> {
       handling.set(message.id, pending);
       work.push(pending);
     }
-    if (!claimFailed && batch.syncKey && batch.syncKey !== syncKey) {
+    // A rejected source record has not been durably received. Keep its poll
+    // cursor; valid neighbours are still claimed and deduplicated on redelivery.
+    const batchFailed = claimFailed || normalizationFailed;
+    if (!batchFailed && batch.syncKey && batch.syncKey !== syncKey) {
       syncKey = batch.syncKey; // Volatile poll cursor; never an execution queue.
       const checkpoint = { key: syncKey, ready: work.length === 0 };
       checkpoints.push(checkpoint);
@@ -134,7 +137,13 @@ export async function monitorWeixin(options: MonitorOptions): Promise<void> {
         return flushCheckpoints();
       });
     }
-    if (claimFailed) await delay(retryBackoff.next(), options.signal);
+    if (batchFailed) {
+      options.onStatus?.({ state: "reconnecting", detail: "Inbound message not received; source cursor retained for retry" });
+      await delay(retryBackoff.next(), options.signal);
+    } else {
+      retryBackoff.reset();
+      options.onStatus?.({ state: "connected" });
+    }
     await Promise.resolve();
     if (!messages.length) {
       await delay(pollIntervalMs, options.signal);

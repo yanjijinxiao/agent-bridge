@@ -37,7 +37,7 @@ function fixture(knowledge = false) {
     vm.runInContext(fs.readFileSync(new URL("../src/web/knowledge-bases.js", import.meta.url), "utf8"), context);
     fields.set("#knowledgeBaseDialog", dialog());
   }
-  return { context, state, field, button, requests, notices };
+  return { context, state, field, button, requests, notices, controls: () => [...fields.values()] };
 }
 
 const scenarios = [
@@ -80,7 +80,7 @@ const scenarios = [
 for (const scenario of scenarios) for (const explicit of [false, true]) {
   test(`${scenario.name} submits its exact payload with ${explicit ? "a clicked submit button" : "a null native submitter"}`, async () => {
     const f = fixture(scenario.knowledge); scenario.setup(f);
-    const form = { id: scenario.form, querySelector: () => f.button };
+    const form = { id: scenario.form, querySelector: () => f.button, querySelectorAll: () => f.controls() };
     await f.context[scenario.handler]({ preventDefault() {}, target: form, currentTarget: form,
       submitter: explicit ? f.button : null });
     assert.equal(f.requests.length, 1, f.notices.join("; "));

@@ -1,13 +1,13 @@
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import readline from "node:readline";
 import { promisify } from "node:util";
 
 import type { ManagedKnowledgeBase } from "../state/runtime-state.js";
 
 const execFileAsync = promisify(execFile);
 const MCP_PROTOCOL_VERSION = "2025-06-18";
+const MAX_MCP_FRAME_BYTES = 2 * 1024 * 1024;
 
 export type LlmWikiStatus = {
   documentCount: number;
@@ -279,7 +279,6 @@ export function llmWikiDynamicTools(): readonly Record<string, unknown>[] {
 
 class StdioMcpSession {
   private child?: ChildProcessWithoutNullStreams;
-  private lines?: readline.Interface;
   private nextId = 1;
   private stderr = "";
   private startPromise?: Promise<void>;
@@ -314,8 +313,8 @@ class StdioMcpSession {
     const child = this.child;
     this.child = undefined;
     this.ready = false;
-    this.lines?.close();
-    this.lines = undefined;
+    child?.stdout.removeAllListeners("data");
+    child?.stdout.removeAllListeners("end");
     if (child?.exitCode === null) child.kill();
     this.rejectPending(new Error("llm-wiki MCP client closed"));
   }
@@ -343,8 +342,34 @@ class StdioMcpSession {
     });
     this.child = child;
     this.stderr = "";
-    this.lines = readline.createInterface({ input: child.stdout });
-    this.lines.on("line", (line) => { if (this.child === child) this.handleLine(line); });
+    // Bound bytes before newline framing/JSON parsing: readline accumulates an
+    // unfinished line without a limit. Keep UTF-8 chunks intact until assembly.
+    let parts: Buffer[] = [], size = 0;
+    child.stdout.on("data", (chunk: Buffer) => {
+      if (this.child !== child) return;
+      let offset = 0;
+      while (offset < chunk.length) {
+        const newline = chunk.indexOf(10, offset);
+        const end = newline === -1 ? chunk.length : newline;
+        size += end - offset;
+        if (size > MAX_MCP_FRAME_BYTES) {
+          parts = []; size = 0;
+          this.handleFailure(child, new Error("llm-wiki MCP response exceeds 2 MiB frame limit"));
+          child.kill();
+          return;
+        }
+        if (end > offset) parts.push(Buffer.from(chunk.subarray(offset, end)));
+        if (newline === -1) break;
+        const line = Buffer.concat(parts, size).toString("utf8");
+        parts = []; size = 0;
+        this.handleLine(line);
+        offset = end + 1;
+      }
+    });
+    child.stdout.once("end", () => {
+      if (this.child === child && size) this.handleLine(Buffer.concat(parts, size).toString("utf8"));
+      parts = []; size = 0;
+    });
     child.stdin.on("error", error => {
       // A peer may close its input before exiting. write() reports EPIPE on
       // the stream asynchronously; the process error event cannot catch it.
@@ -436,8 +461,8 @@ class StdioMcpSession {
     if (this.child !== child) return;
     this.child = undefined;
     this.ready = false;
-    this.lines?.close();
-    this.lines = undefined;
+    child.stdout.removeAllListeners("data");
+    child.stdout.removeAllListeners("end");
     this.rejectPending(error);
   }
 

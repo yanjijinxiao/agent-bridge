@@ -1,0 +1,62 @@
+TAP version 13
+# Subtest: isolated production Gateway browser gap scenarios
+    # Subtest: WEB-01.10: knowledge form preserves later edits and updates its acknowledged create
+    ok 1 - WEB-01.10: knowledge form preserves later edits and updates its acknowledged create
+      ---
+      duration_ms: 75.881958
+      type: 'test'
+      ...
+    # Subtest: WEB-01.9: a real settings form retains edits made after its submitted snapshot
+    ok 2 - WEB-01.9: a real settings form retains edits made after its submitted snapshot
+      ---
+      duration_ms: 19.973416
+      type: 'test'
+      ...
+# [codex-im-gateway] result delivery {"timestamp":"2026-11-03T07:29:03.522Z","operation":"final-result-delivery","hostId":"local","threadId":"native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-","turnId":"completed","status":"pending"}
+# [codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T07:29:03.527Z","hostId":"local","threadId":"native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-","operation":"follow-synchronize","status":"failed","code":"presentation","message":"当前轮次已结束，但最终答复尚未确认送达；后端状态读取成功不表示这一轮同步完成。","snapshotRuntime":"idle","snapshotPersistence":"active","snapshotAt":"2026-11-03T07:29:03.524Z"}
+    # Subtest: WEB-02.4: hidden controls stay hidden under production styles and return when applicable
+    ok 3 - WEB-02.4: hidden controls stay hidden under production styles and return when applicable
+      ---
+      duration_ms: 29.660541
+      type: 'test'
+      ...
+# [codex-im-gateway] result delivery {"timestamp":"2026-11-03T07:29:03.549Z","operation":"final-result-delivery","hostId":"local","threadId":"native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-native-thread-","turnId":"completed","status":"delivered"}
+    # Subtest: DEL-01.3: Web and IM show a completed native turn with pending delivery separately from channel acknowledgement, never device acceptance
+    ok 4 - DEL-01.3: Web and IM show a completed native turn with pending delivery separately from channel acknowledgement, never device acceptance
+      ---
+      duration_ms: 49.432834
+      type: 'test'
+      ...
+    # Subtest: WEB-01.3: a real old page reconnects after server restart and submits a form exactly once; a lost mutation response is not replayed
+    ok 5 - WEB-01.3: a real old page reconnects after server restart and submits a form exactly once; a lost mutation response is not replayed
+      ---
+      duration_ms: 43.942958
+      type: 'test'
+      ...
+    # Subtest: WEB-02.2: disabled Taskboard does not load an iframe; the native enable button starts the embedded service inside the same Gateway process
+    ok 6 - WEB-02.2: disabled Taskboard does not load an iframe; the native enable button starts the embedded service inside the same Gateway process
+      ---
+      duration_ms: 51.225584
+      type: 'test'
+      ...
+    # Subtest: WEB-02.3: actual Gateway management views, long identifiers, forms and IDE buttons fit a 375px Chrome viewport
+    ok 7 - WEB-02.3: actual Gateway management views, long identifiers, forms and IDE buttons fit a 375px Chrome viewport
+      ---
+      duration_ms: 123.352333
+      type: 'test'
+      ...
+    1..7
+ok 1 - isolated production Gateway browser gap scenarios
+  ---
+  duration_ms: 1454.409375
+  type: 'test'
+  ...
+1..1
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2611.580916

@@ -87,6 +87,7 @@
   let mutedNativeSelections = new Map();
   let openGeneration = 0;
   let pendingThreadCreation = null;
+  let threadCreationSequence = 0;
   let lastNativeThreadId = "";
   let active = false;
   let activeView = null;
@@ -888,17 +889,117 @@
   function projectRowByLabel(label) {
     if (typeof label !== "string" || !label.trim()) return null;
     const expected = normalizedLabel(label);
-    return Array.from(document.querySelectorAll("[data-app-action-sidebar-project-row]"))
-      .find((row) => normalizedLabel(row.getAttribute("data-app-action-sidebar-project-label")) === expected) || null;
+    const matches = Array.from(document.querySelectorAll("[data-app-action-sidebar-project-row]"))
+      .filter((row) => normalizedLabel(row.getAttribute("data-app-action-sidebar-project-label")) === expected);
+    return matches.length === 1 ? matches[0] : null;
   }
 
-  async function ensureProjectRows() {
+  function isCurrentThreadCreation(operation) {
+    return !destroyed && pendingThreadCreation === operation
+      && frame === operation.frame && frameOrigin === operation.origin
+      && frame?.contentWindow === operation.source;
+  }
+
+  function assertThreadCreation(operation) {
+    if (!isCurrentThreadCreation(operation)) throw new Error("任务输入框准备已取消");
+  }
+
+  function cancelThreadCreation() {
+    const operation = pendingThreadCreation;
+    if (!operation) return;
+    if (isCurrentThreadCreation(operation)) {
+      operation.source?.postMessage({ type: "taskboard:thread-create-error", payload: {
+        taskId: operation.taskId, error: "页面已切换，已取消准备任务输入框；未发送任务。",
+      } }, operation.origin);
+    }
+    pendingThreadCreation = null;
+  }
+
+  function prefillTaskComposerStep(operationId, step) {
+    const operation = pendingThreadCreation;
+    if (!operation || operation.id !== operationId) throw new Error("任务输入框准备已过期");
+    assertThreadCreation(operation);
+    const { instruction, skillName, skillDisplayName, skillPath } = operation;
+    const mentionIn = (editor) => Array.from(editor.querySelectorAll("[skill-mention-name]"))
+      .find((mention) => mention.getAttribute("skill-mention-name") === skillName);
+    let editor = operation.editor;
+    if (step === "prepare" && !editor) {
+      // postMessage is not a navigation acknowledgement. Never claim the
+      // previous thread's composer while the requested home route is pending.
+      if (threadIdFromLocation()) return { ready: false };
+      editor = Array.from(document.querySelectorAll(
+        '[data-codex-composer="true"][contenteditable="true"]',
+      )).find((candidate) => candidate.getClientRects().length > 0);
+      if (!editor) return { ready: false };
+      operation.editor = editor;
+      operation.href = window.location.href;
+      operation.navigating = false;
+    }
+    if (!editor?.isConnected || !editor.getClientRects().length || operation.href !== window.location.href) {
+      throw new Error("Codex 输入框已切换，已停止预填");
+    }
+    const selected = mentionIn(editor);
+    const matches = selected?.getAttribute("skill-mention-path") === skillPath
+      && (editor.textContent || "").includes(instruction);
+    if (matches) return { ready: true, prefilled: true };
+
+    function insert(text) {
+      // Check ownership, focus and insert in the SAME renderer operation.
+      // Separate CDP focus/Input.insertText calls can type into a new page
+      // if the user navigates while the command is in flight.
+      assertThreadCreation(operation);
+      editor.focus();
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      if (!document.execCommand("insertText", false, text)) {
+        throw new Error("Codex 输入框未接受预填，未发送任务");
+      }
+    }
+    if (step === "prepare") {
+      if ((editor.textContent || "").trim()) throw new Error("Codex 输入框已有草稿，已保留原内容");
+      insert("$");
+      return { ready: true };
+    }
+    if (step === "select") {
+      const overlay = Array.from(document.querySelectorAll('[data-composer-overlay-floating-ui="true"]'))
+        .find((candidate) => candidate.getClientRects().length > 0);
+      if (!overlay) return { ready: false };
+      const buttons = Array.from(overlay.querySelectorAll('button[data-list-navigation-item="true"]'))
+        .filter((button) => Array.from(button.querySelectorAll("span"))
+          .some((label) => (label.textContent || "").trim() === skillDisplayName));
+      if (!buttons.length) return { ready: false };
+      if (buttons.length !== 1) throw new Error("Skill 名称不唯一，请在 Codex 中选择准确的 Skill");
+      buttons[0].click();
+      return { ready: true };
+    }
+    if (step === "instruction") {
+      if (!selected) return { ready: false };
+      if (selected.getAttribute("skill-mention-path") !== skillPath) throw new Error("Codex 选中了不同路径的 Skill");
+      insert(instruction);
+      return { ready: true };
+    }
+    if (step === "verify") return { ready: false };
+    throw new Error("未知的输入框预填步骤");
+  }
+
+  function clickForThreadCreation(operation, element) {
+    assertThreadCreation(operation);
+    operation.nativeClick = true;
+    try { element.click(); } finally { operation.nativeClick = false; }
+  }
+
+  async function ensureProjectRows(operation) {
     let section = findProjectsSection();
     const deadline = Date.now() + 1_200;
     while (!section && Date.now() < deadline) {
       await new Promise((resolve) => window.setTimeout(resolve, 40));
       section = findProjectsSection();
     }
+    assertThreadCreation(operation);
     if (section?.getAttribute("data-app-action-sidebar-section-collapsed") === "true") {
       section.querySelector("[data-app-action-sidebar-section-toggle]")?.click();
     }
@@ -946,7 +1047,12 @@
       || !skillPath
       || pendingThreadCreation
     ) return;
-    pendingThreadCreation = taskId;
+    const operation = {
+      id: `${Date.now().toString(36)}-${(++threadCreationSequence).toString(36)}`,
+      taskId, frame, origin: frameOrigin, source: frame?.contentWindow,
+      instruction, skillName, skillDisplayName, skillPath,
+    };
+    pendingThreadCreation = operation;
     try {
       const bridge = window.electronBridge;
       if (!bridge || typeof bridge.sendMessageFromView !== "function") {
@@ -958,26 +1064,38 @@
           type: "electron-set-active-workspace-root",
           root: workspacePath,
         });
+        assertThreadCreation(operation);
       } else {
-        await ensureProjectRows();
+        await ensureProjectRows(operation);
+        assertThreadCreation(operation);
         const snapshotProjectId = hostContextSnapshot?.projectId || "";
         const requestedProjectId = typeof payload.codexProjectId === "string"
           ? payload.codexProjectId.trim()
           : "";
-        const row = projectRowByLabel(payload.workspaceLabel)
-          || projectRowById(requestedProjectId)
-          || projectRowById(snapshotProjectId)
-          || projectRowByLabel(payload.projectName);
+        // A supplied identity must not fall through to a different project.
+        // Legacy labels are usable only when they identify exactly one row.
+        const row = requestedProjectId
+          ? projectRowById(requestedProjectId)
+          : typeof payload.workspaceLabel === "string" && payload.workspaceLabel.trim()
+            ? projectRowByLabel(payload.workspaceLabel)
+            : typeof payload.projectName === "string" && payload.projectName.trim()
+              ? projectRowByLabel(payload.projectName)
+              : projectRowById(snapshotProjectId);
+        if (!row) throw new Error("无法唯一确认所选 Codex 项目，请刷新项目后重试");
         if (row?.getAttribute("data-app-action-sidebar-project-collapsed") === "true") {
-          row.click?.();
+          clickForThreadCreation(operation, row);
           await new Promise((resolve) => window.setTimeout(resolve, 120));
+          assertThreadCreation(operation);
         }
         const selectProject = row?.querySelector("[data-app-action-sidebar-select-project]");
-        selectProject?.click?.();
-        if (selectProject) await new Promise((resolve) => window.setTimeout(resolve, 120));
+        if (!selectProject) throw new Error("所选 Codex 项目没有可用的原生选择入口");
+        clickForThreadCreation(operation, selectProject);
+        await new Promise((resolve) => window.setTimeout(resolve, 120));
+        assertThreadCreation(operation);
       }
 
-      closeTaskboard(false);
+      closeTaskboard(false, true);
+      operation.navigating = true;
       await dispatchHostMessage({
         type: "navigate-to-route",
         path: "/",
@@ -985,21 +1103,26 @@
           focusComposerNonce: Date.now(),
         },
       });
+      assertThreadCreation(operation);
       await requestHostTaskComposerPrefill({
+        operationId: operation.id,
         instruction,
         skillDisplayName,
         skillName,
         skillPath,
       });
+      assertThreadCreation(operation);
       await waitForPreparedComposer(identifier, skillPath);
+      assertThreadCreation(operation);
       postToFrame({ type: "taskboard:thread-prepared", payload: { taskId } });
     } catch (error) {
+      if (!isCurrentThreadCreation(operation)) return;
       postToFrame({
         type: "taskboard:thread-create-error",
         payload: { taskId, error: error instanceof Error ? error.message : "无法创建 Codex 对话" },
       });
     } finally {
-      pendingThreadCreation = null;
+      if (pendingThreadCreation === operation) pendingThreadCreation = null;
     }
   }
 
@@ -1386,6 +1509,7 @@
   }
 
   function reloadFrame() {
+    cancelThreadCreation();
     if (!frame) return false;
     const generation = ++openGeneration;
     if (activeView === SUB2API_VIEW) {
@@ -1470,12 +1594,14 @@
   }
 
   function requestHostTaskComposerPrefill({
+    operationId,
     instruction,
     skillDisplayName,
     skillName,
     skillPath,
   }) {
     return requestHost("prefill-task-composer", {
+      operationId,
       instruction,
       skillDisplayName,
       skillName,
@@ -1577,7 +1703,8 @@
     document.documentElement.setAttribute("data-codex-taskboard-open", "true");
   }
 
-  function closeTaskboard(restoreFocus = true) {
+  function closeTaskboard(restoreFocus = true, preserveCreation = false) {
+    if (!preserveCreation && !pendingThreadCreation?.nativeClick) cancelThreadCreation();
     if (!active && page?.hidden !== false) return;
     openGeneration += 1;
     active = false;
@@ -1594,6 +1721,7 @@
 
   function openTaskboard() {
     if (destroyed) return;
+    cancelThreadCreation();
     if (!active) {
       lastFocusedElement = document.activeElement;
       hostContextSnapshot = null;
@@ -1612,6 +1740,7 @@
 
   function openChannelConfig() {
     if (destroyed) return;
+    cancelThreadCreation();
     if (!active) {
       lastFocusedElement = document.activeElement;
       hostContextSnapshot = null;
@@ -1635,6 +1764,7 @@
 
   function openCapability(id) {
     if (destroyed) return;
+    cancelThreadCreation();
     const capability = capabilityNavigation.find((candidate) => candidate.id === id);
     if (!capability) return;
     if (!active) {
@@ -1660,6 +1790,7 @@
 
   function openSub2api() {
     if (destroyed) return;
+    cancelThreadCreation();
     if (!active) {
       lastFocusedElement = document.activeElement;
       hostContextSnapshot = null;
@@ -1705,8 +1836,9 @@
     const threadRow = event.target?.closest?.("[data-app-action-sidebar-thread-id]");
     const clickedThreadId = normalizeThreadId(threadRow?.getAttribute?.("data-app-action-sidebar-thread-id"));
     if (clickedThreadId) lastNativeThreadId = clickedThreadId;
-    if (!active || !isNativePageNavigation(event.target)) return;
-    closeTaskboard(false);
+    if (pendingThreadCreation?.nativeClick || !isNativePageNavigation(event.target)) return;
+    cancelThreadCreation();
+    if (active) closeTaskboard(false);
   }
 
   function scheduleRefresh() {
@@ -1766,6 +1898,8 @@
     pendingThreadCreation = null;
     document.removeEventListener("DOMContentLoaded", mount);
     document.removeEventListener("click", onDocumentClick, true);
+    document.removeEventListener("pointerdown", onUserComposerInteraction, true);
+    document.removeEventListener("keydown", onUserComposerInteraction, true);
     window.removeEventListener("message", onFrameMessage);
     window.removeEventListener("popstate", onNativeRouteChange);
     window.removeEventListener("hashchange", onNativeRouteChange);
@@ -1788,7 +1922,15 @@
   }
 
   function onNativeRouteChange() {
-    if (active) closeTaskboard(false);
+    // The requested home navigation may arrive after postMessage returns.
+    // Trusted input always cancels; after claiming the composer, any route
+    // change also retires the operation.
+    if (!pendingThreadCreation?.navigating) cancelThreadCreation();
+    if (active) closeTaskboard(false, Boolean(pendingThreadCreation?.navigating));
+  }
+
+  function onUserComposerInteraction(event) {
+    if (event.isTrusted) cancelThreadCreation();
   }
 
   const api = {
@@ -1803,6 +1945,7 @@
     close: closeTaskboard,
     destroy,
     hostResponse: onHostResponse,
+    prefillTaskComposerStep,
   };
   window[SENTINEL_KEY] = api;
 
@@ -1811,6 +1954,8 @@
   window.addEventListener("hashchange", onNativeRouteChange);
   window.addEventListener("resize", scheduleRefresh);
   document.addEventListener("click", onDocumentClick, true);
+  document.addEventListener("pointerdown", onUserComposerInteraction, true);
+  document.addEventListener("keydown", onUserComposerInteraction, true);
   if (document.documentElement) mount();
   else document.addEventListener("DOMContentLoaded", mount, { once: true });
 })();

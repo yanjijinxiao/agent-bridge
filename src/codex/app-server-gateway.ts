@@ -304,7 +304,13 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
   }
   private once<T>(scope: unknown[], read: () => Promise<T>): Promise<T> { const key = JSON.stringify(scope), pending = this.observations.get(key); if (pending) return pending as Promise<T>;
     const work = Promise.resolve().then(read).finally(() => { if (this.observations.get(key) === work) this.observations.delete(key); }); this.observations.set(key, work); return work; }
-  private appServerFor(hostId = "local"): CodexAppServerBackend { if (hostId === "local") return this.appServer; let backend = this.remoteAppServers.get(hostId);
+  private appServerFor(hostId = "local"): CodexAppServerBackend {
+    // Closing retires read callbacks too: a late read must not recreate the
+    // remote connection map after close() has drained its original owners.
+    if (this.closed) throw new Error("Codex runner is closed");
+    if (hostId === "local") return this.appServer; let backend = this.remoteAppServers.get(hostId);
     if (!backend) { backend = new AppServerCodexRunner({ hostId, codexHome: this.options.codexHome, catalogSource: "native", transport: this.remoteTransport(hostId), requestTimeoutMs: this.options.timeoutMs, sandbox: this.options.execSandbox }); this.remoteAppServers.set(hostId, backend); } return backend; }
-  private remoteTransport(hostId: string) { let transport = this.remoteTransports.get(hostId); if (!transport) { transport = (this.options.remoteTransportResolver ?? resolveRemoteCodexTransport)(hostId, { codexHome: this.options.codexHome }); this.remoteTransports.set(hostId, transport); } return transport; }
+  private remoteTransport(hostId: string) {
+    if (this.closed) throw new Error("Codex runner is closed");
+    let transport = this.remoteTransports.get(hostId); if (!transport) { transport = (this.options.remoteTransportResolver ?? resolveRemoteCodexTransport)(hostId, { codexHome: this.options.codexHome }); this.remoteTransports.set(hostId, transport); } return transport; }
 }

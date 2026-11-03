@@ -14,7 +14,7 @@
     }
   },
   "engines": {
-    "node": ">=22.5"
+    "node": "^22.13.0 || >=23.4.0"
   },
   "bin": {
     "taskctl": "./cli/taskctl.mjs"

@@ -18,15 +18,27 @@ export function localIDEAddresses(): Array<{ name: string; address: string }> {
 function checkAddress(address: string): void {
   if (!net.isIP(address) || ["0.0.0.0", "::"].includes(address)) throw new Error("需要精确的 IP 地址，不能监听全部接口");
 }
-function privateFile(file: string): Buffer {
-  const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+/** Inspect the opened descriptor without ever waiting for a FIFO writer.
+ * Public certificates may use symlink deployments; private keys may not. */
+function readTLSFile(file: string, privateKey = false): Buffer {
+  const limit = 128_000;
+  const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NONBLOCK
+    | (privateKey ? fs.constants.O_NOFOLLOW : 0));
   try {
     const stat = fs.fstatSync(fd);
-    if (!stat.isFile() || stat.size > 128_000 || (stat.mode & 0o077) || (process.getuid && stat.uid !== process.getuid())) throw new Error("私钥必须属于 Gateway 运行用户且仅该用户可读");
-    return fs.readFileSync(fd);
+    if (!stat.isFile() || stat.size > limit) throw new Error("TLS 证书及私钥必须为不超过 128KB 的普通文件");
+    if (privateKey && ((stat.mode & 0o077) || (process.getuid && stat.uid !== process.getuid())))
+      throw new Error("私钥必须属于 Gateway 运行用户且仅该用户可读");
+    // Bound the actual read too: the file can grow after fstat.
+    const buffer = Buffer.alloc(limit + 1);
+    let size = 0, count: number;
+    while (size < buffer.length && (count = fs.readSync(fd, buffer, size, buffer.length - size, null)) > 0) size += count;
+    if (size > limit) throw new Error("TLS 文件超过 128KB");
+    return buffer.subarray(0, size);
   } finally { fs.closeSync(fd); }
 }
-function certificate(file: string): crypto.X509Certificate { return new crypto.X509Certificate(fs.readFileSync(file)); }
+function privateFile(file: string): Buffer { return readTLSFile(file, true); }
+function certificate(file: string): crypto.X509Certificate { return new crypto.X509Certificate(readTLSFile(file)); }
 function matchesKey(cert: crypto.X509Certificate, key: Buffer): boolean {
   return cert.publicKey.equals(crypto.createPublicKey(crypto.createPrivateKey(key)));
 }
@@ -35,7 +47,7 @@ function valid(cert: crypto.X509Certificate, now = Date.now()): boolean {
 }
 export function loadIDETLS(files: Files, origin: string): tls.SecureContextOptions {
   checkAddress(files.bindAddress);
-  const cert = fs.readFileSync(files.certFile), parsed = new crypto.X509Certificate(cert), key = privateFile(files.keyFile);
+  const cert = readTLSFile(files.certFile), parsed = new crypto.X509Certificate(cert), key = privateFile(files.keyFile);
   const hostname = new URL(origin).hostname.replace(/^\[|\]$/g, "");
   if (!valid(parsed)) throw new Error("IDE HTTPS 证书尚未生效或已过期");
   if (!(net.isIP(hostname) ? parsed.checkIP(hostname) : parsed.checkHost(hostname))) throw new Error("IDE HTTPS 证书与浏览器入口地址不匹配");
@@ -58,7 +70,7 @@ export class IDETLSManager {
     return { bindAddress: address, certFile: path.join(directory, "server.crt"), keyFile: path.join(directory, "server.key") };
   }
   owns(files: Files): boolean { const expected = this.files(files.certificateAddress ?? files.bindAddress); return expected.certFile === files.certFile && expected.keyFile === files.keyFile; }
-  caCertificate(): Buffer { return fs.readFileSync(this.caFile()); }
+  caCertificate(): Buffer { return readTLSFile(this.caFile()); }
   details(files?: Files) {
     if (!files) return undefined;
     try {

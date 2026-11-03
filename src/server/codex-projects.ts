@@ -394,9 +394,10 @@ function desktopProjectSessionCount(value: unknown): number {
 }
 
 function timestampFromMilliseconds(value: unknown): string {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? new Date(value).toISOString()
-    : new Date(0).toISOString();
+  const date = new Date(typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0);
+  // Finite JSON numbers can still exceed Date's supported range. Display
+  // metadata must not abort discovery of every project in the registry.
+  return Number.isFinite(date.getTime()) ? date.toISOString() : new Date(0).toISOString();
 }
 
 function firstString(value: unknown): string | undefined {

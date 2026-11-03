@@ -14,7 +14,7 @@ for (const inherited of [false, true]) test(`Windows source installer runs npm t
   let invocation: { command: string; args: string[] } | undefined;
   const cli = inherited ? "C:\\custom npm\\bin\\npm-cli.js" : "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js";
   const context = vm.createContext({path, Error, fileURLToPath: () => "/fixture/scripts/install-local.mjs",
-    process: {argv: ["node", "installer"], platform: "win32", versions: {node:"22.0.0"},
+    process: {argv: ["node", "installer"], platform: "win32", versions: {node:"22.13.0"},
       execPath:"C:\\Program Files\\nodejs\\node.exe", env: inherited ? {npm_execpath:cli} : {}},
     existsSync: (file: string) => file === cli,
     stat: async () => { throw Object.assign(Error("missing"), {code:"ENOENT"}); },

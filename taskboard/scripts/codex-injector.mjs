@@ -105,8 +105,10 @@ function parseArgs(argv) {
   return options;
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url);
+async function fetchJson(url, timeoutMs = 1_500) {
+  // The watch loop cannot publish another heartbeat until discovery finishes.
+  // Keep the signal alive through response.json(), including a stalled body.
+  const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.json();
 }
@@ -161,25 +163,37 @@ function createTaskboardSupervisor({ detached }) {
   let stopping = false;
 
   async function ensure({ force = false } = {}) {
-    if (await isReachable(taskboardHealthUrl, taskboardHealthTimeoutMs)) {
-      return { status: "ok", restarted: false };
-    }
+    if (stopping) throw new Error("Taskboard supervisor is stopping");
     if (ensureInFlight) return ensureInFlight;
-    if (await isPortListening(taskboardOrigin)) {
-      throw new Error("Taskboard service owns its port but did not answer /health");
-    }
-    if (!force && Date.now() < retryAfter) {
-      throw new Error("Taskboard restart is waiting before its next attempt");
-    }
-
+    // Own the entire probe/start operation before the first asynchronous read.
+    // A frame-open request may arrive while the watch loop is checking health.
+    const assertRunning = () => {
+      if (stopping) throw new Error("Taskboard supervisor is stopping");
+    };
     ensureInFlight = (async () => {
+      const healthy = await isReachable(taskboardHealthUrl, taskboardHealthTimeoutMs);
+      assertRunning();
+      if (healthy) return { status: "ok", restarted: false };
+      const listening = await isPortListening(taskboardOrigin);
+      assertRunning();
+      if (listening) {
+        throw new Error("Taskboard service owns its port but did not answer /health");
+      }
+      if (!force && Date.now() < retryAfter) {
+        throw new Error("Taskboard restart is waiting before its next attempt");
+      }
       if (child?.exitCode === null && !child.killed) {
         try {
           await waitUntilReachable(taskboardHealthUrl, 3_000);
+          assertRunning();
           return { status: "ok", restarted: false };
-        } catch (_) {}
+        } catch (error) {
+          assertRunning();
+          // Missing health is not evidence that an owned process exited.
+          if (child?.exitCode === null && !child.killed) throw error;
+        }
       }
-
+      assertRunning();
       const started = startTaskboard({ detached });
       child = started;
       if (detached) started.unref();
@@ -195,6 +209,7 @@ function createTaskboardSupervisor({ detached }) {
 
       try {
         await waitUntilReachable(taskboardHealthUrl, 10_000);
+        assertRunning();
         retryAfter = 0;
         return { status: "ok", restarted: true };
       } catch (error) {
@@ -277,10 +292,23 @@ class CdpConnection {
 
   async open() {
     await new Promise((resolve, reject) => {
-      this.socket.addEventListener("open", resolve, { once: true });
-      this.socket.addEventListener("error", () => reject(new Error("CDP WebSocket connection failed")), {
-        once: true,
-      });
+      const finish = (error) => {
+        clearTimeout(timeout);
+        this.socket.removeEventListener("open", onOpen);
+        this.socket.removeEventListener("error", onError);
+        this.socket.removeEventListener("close", onClose);
+        if (error) { this.close(); reject(error); }
+        else resolve();
+      };
+      const onOpen = () => finish();
+      const onError = () => finish(new Error("CDP WebSocket connection failed"));
+      const onClose = () => finish(new Error("CDP WebSocket closed before connecting"));
+      // A socket may accept TCP but never finish the upgrade. Retire it so the
+      // resident watch loop can retry discovery instead of losing its heartbeat.
+      const timeout = setTimeout(() => finish(new Error("Timed out connecting to CDP WebSocket")), 15_000);
+      this.socket.addEventListener("open", onOpen, { once: true });
+      this.socket.addEventListener("error", onError, { once: true });
+      this.socket.addEventListener("close", onClose, { once: true });
     });
     this.socket.addEventListener("message", (event) => {
       const message = JSON.parse(String(event.data));
@@ -839,139 +867,33 @@ async function restoreQuotaPolicies(cdp) {
 }
 
 async function prefillTaskComposerViaCdp(cdp, executionContextId, request) {
-  const {
-    instruction,
-    skillDisplayName,
-    skillName,
-    skillPath,
-  } = request;
   const deadline = Date.now() + 8_000;
-  while (Date.now() < deadline) {
-    const prepared = await cdp.send("Runtime.evaluate", {
-      expression: `(() => {
-        const instruction = ${JSON.stringify(instruction)};
-        const skillName = ${JSON.stringify(skillName)};
-        const skillPath = ${JSON.stringify(skillPath)};
-        const editor = Array.from(document.querySelectorAll(
-          '[data-codex-composer="true"][contenteditable="true"]'
-        )).find((candidate) => candidate.getClientRects().length > 0);
-        if (!editor) return { ready: false };
-        const mention = Array.from(editor.querySelectorAll("[skill-mention-name]"))
-          .find((candidate) => (
-            candidate.getAttribute("skill-mention-name") === skillName
-            && candidate.getAttribute("skill-mention-path") === skillPath
-          ));
-        if (mention && (editor.textContent || "").includes(instruction)) {
-          return { ready: true, matches: true };
-        }
-        editor.focus();
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(editor);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-        return { ready: true, matches: false };
-      })()`,
-      contextId: executionContextId,
-      returnByValue: true,
-    });
-    if (!prepared.result.value?.ready) {
-      await new Promise((resolve) => setTimeout(resolve, 80));
-      continue;
-    }
-    if (prepared.result.value.matches) return { prefilled: true };
-
-    await cdp.send("Input.insertText", { text: "$" });
-    break;
-  }
-
-  let selectedSkill = false;
-  while (Date.now() < deadline) {
-    const selection = await cdp.send("Runtime.evaluate", {
-      expression: `(() => {
-        const displayName = ${JSON.stringify(skillDisplayName)};
-        const overlay = Array.from(document.querySelectorAll(
-          '[data-composer-overlay-floating-ui="true"]'
-        )).find((candidate) => candidate.getClientRects().length > 0);
-        if (!overlay) return { ready: false };
-        const button = Array.from(overlay.querySelectorAll(
-          'button[data-list-navigation-item="true"]'
-        )).find((candidate) => Array.from(candidate.querySelectorAll("span"))
-          .some((label) => (label.textContent || "").trim() === displayName));
-        if (!button) return { ready: true, found: false };
-        button.click();
-        return { ready: true, found: true };
-      })()`,
-      contextId: executionContextId,
-      returnByValue: true,
-    });
-    if (selection.result.value?.found) {
-      selectedSkill = true;
-      break;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 80));
-  }
-  if (!selectedSkill) {
-    throw new Error(`Timed out while selecting the ${skillDisplayName} Skill`);
-  }
-
-  let mentionReady = false;
-  while (Date.now() < deadline) {
-    const mention = await cdp.send("Runtime.evaluate", {
-      expression: `(() => {
-        const skillName = ${JSON.stringify(skillName)};
-        const skillPath = ${JSON.stringify(skillPath)};
-        const editor = Array.from(document.querySelectorAll(
-          '[data-codex-composer="true"][contenteditable="true"]'
-        )).find((candidate) => candidate.getClientRects().length > 0);
-        if (!editor) return { ready: false };
-        const selected = Array.from(editor.querySelectorAll("[skill-mention-name]"))
-          .find((candidate) => candidate.getAttribute("skill-mention-name") === skillName);
-        return {
-          ready: Boolean(selected),
-          pathMatches: selected?.getAttribute("skill-mention-path") === skillPath,
-        };
-      })()`,
-      contextId: executionContextId,
-      returnByValue: true,
-    });
-    if (mention.result.value?.ready) {
-      if (!mention.result.value.pathMatches) {
-        throw new Error(`Codex selected a different ${skillDisplayName} Skill`);
+  // The renderer owns cancellation and the exact composer. Each step checks
+  // its operation token and mutates that editor atomically, including text
+  // insertion; the host never types into whichever element happens to focus.
+  for (const step of ["prepare", "select", "instruction", "verify"]) {
+    let ready = false;
+    while (Date.now() < deadline) {
+      const result = await cdp.send("Runtime.evaluate", {
+        expression: `(() => {
+          const runtime = window.__codexTaskboardInjection__;
+          if (!runtime?.prefillTaskComposerStep) throw new Error("Taskboard 预填连接已过期");
+          return runtime.prefillTaskComposerStep(${JSON.stringify(request.operationId)}, ${JSON.stringify(step)});
+        })()`,
+        contextId: executionContextId,
+        returnByValue: true,
+      });
+      if (result.exceptionDetails) {
+        throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
       }
-      mentionReady = true;
-      break;
+      const status = result.result?.value;
+      if (status?.prefilled) return { prefilled: true };
+      if (status?.ready) { ready = true; break; }
+      await new Promise((resolve) => setTimeout(resolve, 80));
     }
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    if (!ready) throw new Error(`Timed out preparing the Codex composer (${step})`);
   }
-  if (!mentionReady) {
-    throw new Error(`Timed out while creating the ${skillDisplayName} Skill mention`);
-  }
-
-  await cdp.send("Input.insertText", { text: instruction });
-  while (Date.now() < deadline) {
-    const verified = await cdp.send("Runtime.evaluate", {
-      expression: `(() => {
-        const instruction = ${JSON.stringify(instruction)};
-        const skillName = ${JSON.stringify(skillName)};
-        const skillPath = ${JSON.stringify(skillPath)};
-        const editor = Array.from(document.querySelectorAll(
-          '[data-codex-composer="true"][contenteditable="true"]'
-        )).find((candidate) => candidate.getClientRects().length > 0);
-        const mention = editor && Array.from(editor.querySelectorAll("[skill-mention-name]"))
-          .find((candidate) => (
-            candidate.getAttribute("skill-mention-name") === skillName
-            && candidate.getAttribute("skill-mention-path") === skillPath
-          ));
-        return Boolean(mention && (editor.textContent || "").includes(instruction));
-      })()`,
-      contextId: executionContextId,
-      returnByValue: true,
-    });
-    if (verified.result.value === true) return { prefilled: true };
-    await new Promise((resolve) => setTimeout(resolve, 80));
-  }
-  throw new Error("Timed out while writing the issue instruction into the Codex composer");
+  throw new Error("Codex 输入框未确认预填内容");
 }
 
 async function sendHostResponse(cdp, executionContextId, response) {

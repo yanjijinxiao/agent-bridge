@@ -14,6 +14,19 @@ import {
   readCodexDesktopProjects
 } from "../src/server/codex-projects.js";
 
+test("out-of-range Desktop project timestamps cannot hide the complete project list", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-project-date-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, ".codex-global-state.json"), JSON.stringify({ "local-projects": {
+    bad: { id: "bad", name: "Preserved", rootPaths: [root], updatedAt: 1e100 },
+    good: { id: "good", name: "Normal", rootPaths: [root], updatedAt: 1700000000000 }
+  } }));
+  const projects = readCodexDesktopProjects(root);
+  assert.equal(projects.length, 2);
+  assert.equal(projects.find(p => p.projectId === "bad")?.lastUsedAt, new Date(0).toISOString());
+  assert.equal(projects.find(p => p.projectId === "good")?.lastUsedAt, new Date(1700000000000).toISOString());
+});
+
 test("internal reviewers cannot replace a main session or inflate the CLI project catalog", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-catalog-isolation-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

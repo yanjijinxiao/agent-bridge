@@ -2,7 +2,7 @@
 
 Gateway 有两个相互独立的适配维度：IM 渠道负责输入和呈现，原生 App Server 适配器负责项目、会话与执行。选择钉钉、微信或飞书，不会改变执行入口或新会话的项目归属规则。桌面和纯 CLI 环境只区分连接、部署，不拆成两套业务接口。当前入口见[后端契约](codex-backends.md)，逐功能要求与未完成项见[本轮架构清单](architecture/gateway-contracts.md)。
 
-本文累积了多轮实现记录。下文涉及 auto/exec 回退、Desktop follower IPC、私有执行器及其方法名的段落是旧适配器的兼容资料，不是当前生产路由。当前生产默认由 `CodexAppServerGateway` 和 `AppServerRequestMonitor` 使用同一原生接口；断连不切换执行器，已接收或回执未知的输入不重发。保留旧文件或旧测试不代表生产仍启用它们。Taskboard 独立执行面尚存的不同入口在本轮清单明确列为未完成，不能据主入口统一宣称全仓已统一。
+本文累积了多轮实现记录。下文涉及 auto/exec 回退、Desktop follower IPC、私有执行器及其方法名的段落是旧适配器的兼容资料，不是当前生产路由。当前生产默认由 `CodexAppServerGateway` 和 `AppServerRequestMonitor` 使用同一原生接口；断连不切换执行器，已接收或回执未知的输入不重发。保留旧文件或旧测试不代表生产仍启用它们。Taskboard 内嵌服务借用同一原生端口，独立服务加载根构建并使用所配置的原生连接，不再回退 CLI exec；实现边界见[原生执行模块](architecture/modules/taskboard-native-execution.md)，未验证组合仍以[缺口清单](architecture/remaining-work.md)为准。
 
 ## 应用层提交、状态所有权与发布
 

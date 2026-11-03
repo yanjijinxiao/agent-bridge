@@ -2,7 +2,7 @@ import { NATIVE_CONTRACT_METHODS } from "./contract.js";
 import { PeerInteractionClient } from "./interaction-client.js";
 import crypto from "node:crypto";
 import { peerOperationId } from "./identity.js";
-import { findNativeInputReceipts } from "../bridge/native-input-recovery.js";
+import { NativeInputReceiptObserver } from "../bridge/native-input-recovery.js";
 import type { PeerPrincipal } from "./context.js";
 import { CodexBackendCapabilityError, CodexQueueAdmissionError, CodexInterventionError, CodexThreadStateError, CodexRunAdmissionError, CodexTurnExecutionError, EXEC_BACKEND_CAPABILITIES,
   type CodexBridgeBackend, type CodexThreadState, type CodexTurnStatus, type CodexTurnObservation,
@@ -19,6 +19,7 @@ import { downloadPeerFile, uploadPeerFiles } from "./files.js";
 export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistry,
   recoverySource?: (scope: { hostId: string; threadId: string }) => { source: PeerPrincipal; assertCurrent: () => void } | undefined): CodexBridgeBackend {
   const interactions = new PeerInteractionClient(registry);
+  const receiptObserver = new NativeInputReceiptObserver();
   const queueCallbacks = new Map<string, () => void>();
   const queueItems = new Map<string, string>();
   const operations = new Set<{ hostId: string; threadId: string; turnId?: string; independent: boolean; controller: AbortController }>();
@@ -195,7 +196,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     async findNativeInputReceipts(scope, sources) {
       if (!registry.isPeer(scope.hostId)) return local.findNativeInputReceipts
         ? local.findNativeInputReceipts(scope, sources)
-        : findNativeInputReceipts(local, scope, new Set(sources.map(source => source.clientUserMessageId)));
+        : receiptObserver.observe("local", local, scope, new Set(sources.map(source => source.clientUserMessageId)));
       const groups = new Map<string, { principal: PeerPrincipal; ids: Map<string, string> }>();
       for (const source of sources) {
         // Legacy records without exact identity cannot borrow another user's
@@ -210,7 +211,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       }
       const matches = new Map<string, Set<string>>();
       for (const { principal, ids } of groups.values()) {
-        const proofs = await peerPrincipal.run(principal, () => findNativeInputReceipts({
+        const proofs = await peerPrincipal.run(principal, () => receiptObserver.observe(JSON.stringify(principal), {
           getHistoryPage: (id, page, host) => invoke("getHistoryPage", [id, page, host], host!)
         }, scope, new Set(ids.keys())));
         for (const [nativeId, turnId] of proofs) {
@@ -339,7 +340,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       for (const op of operations) if (op.independent && op.turnId) op.controller.abort();
       local.detachIndependentObservations?.();
     },
-    async close() { for (const retire of queueCallbacks.values()) retire(); await interactions.close(); for (const op of operations) op.controller.abort(); await local.close(); }
+    async close() { receiptObserver.clear(); for (const retire of queueCallbacks.values()) retire(); await interactions.close(); for (const op of operations) op.controller.abort(); await local.close(); }
   };
   overrides.addQueuedSubmission = (input, host) => registry.isPeer(host)
     ? invoke("addQueuedSubmission", [input], host!, true, input) : native("addQueuedSubmission", [input, host]);

@@ -1,0 +1,79 @@
+✔ inbox real timer survives normal cleanup and never resubmits accepted input (2477.053625ms)
+✖ inbox real timer survives failure cleanup and never resubmits accepted input (1144.071042ms)
+✖ a failed control choice claim leaves the live journal consistent with disk and permits explicit retry (13.27775ms)
+✖ a failed pre-submit journal write performs no native call and does not leave a phantom live claim (4.758625ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 1
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4512.793666
+
+✖ failing tests:
+
+test at test/audit-inbox-persistence.test.ts:1:406
+✖ inbox real timer survives failure cleanup and never resubmits accepted input (1144.071042ms)
+  AssertionError [ERR_ASSERTION]: [codex-im-gateway] accepted input cleanup deferred; durable native receipt retained
+  /private/tmp/gateway-four-layer-audit-20261103/src/bridge/forwarding-inbox.ts:207
+      try { this.save(); } catch (error) { this.rows[key] = row; throw error; }
+                                                                 ^
+  
+  Error: synthetic ENOSPC
+      at fs.renameSync (file:///private/tmp/gateway-four-layer-audit-20261103/test/fixtures/inbox-timer-failure.mjs:17:78)
+      at writeAtomicTextFile (/private/tmp/gateway-four-layer-audit-20261103/src/state/json-store.ts:33:8)
+      at writeJsonFile (/private/tmp/gateway-four-layer-audit-20261103/src/state/json-store.ts:21:3)
+      at ForwardingInbox.save (/private/tmp/gateway-four-layer-audit-20261103/src/bridge/forwarding-inbox.ts:65:26)
+      at ForwardingInbox.remove (/private/tmp/gateway-four-layer-audit-20261103/src/bridge/forwarding-inbox.ts:207:16)
+      at ForwardingInbox.tick (/private/tmp/gateway-four-layer-audit-20261103/src/bridge/forwarding-inbox.ts:190:78)
+      at Timeout._onTimeout (/private/tmp/gateway-four-layer-audit-20261103/src/bridge/forwarding-inbox.ts:100:60)
+      at listOnTimeout (node:internal/timers:605:17)
+      at process.processTimers (node:internal/timers:541:7) {
+    code: 'ENOSPC'
+  }
+  
+  Node.js v25.8.2
+  
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/audit-inbox-persistence.test.ts:14:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/audit-inbox-persistence.test.ts:1:910
+✖ a failed control choice claim leaves the live journal consistent with disk and permits explicit retry (13.27775ms)
+  Error [CodexInterventionError]: 这条选择已处理或已过期，请勿重复提交。
+      at SessionControlJournal.claimChoice (/private/tmp/gateway-four-layer-audit-20261103/src/bridge/session-control.ts:110:13)
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/audit-inbox-persistence.test.ts:32:25)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+
+test at test/audit-inbox-persistence.test.ts:1:1950
+✖ a failed pre-submit journal write performs no native call and does not leave a phantom live claim (4.758625ms)
+  Error [CodexInterventionError]: 该条消息已尝试提交，但结果尚未确认；请先核对历史，避免重复执行。
+  
+  ```text
+  /history
+  ```
+      at <anonymous> (/private/tmp/gateway-four-layer-audit-20261103/src/bridge/session-control.ts:70:26)
+      at async SessionControlQueue.run (/private/tmp/gateway-four-layer-audit-20261103/src/bridge/session-control.ts:18:18)
+      at async TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/audit-inbox-persistence.test.ts:49:17)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)

@@ -625,9 +625,10 @@ export class BridgeService {
         guard();
         if (target.threadId) {
           const state = await this.runner.inspectThread(target.threadId, target.hostId);
+          guard();
           if (state.persistence === "archived") {
             await this.reply(message.senderId, "设备已配对，指定会话已归档。请在原生 Codex 中恢复后，再通过 /sessions 选择。");
-          } else await this.bindCatalogSession(message.senderId, target.threadId, target.hostId);
+          } else await this.bindCatalogSession(message.senderId, target.threadId, target.hostId, guard);
         }
         else {
           await this.reply(message.senderId, copyableChoices(`设备已配对：${target.label}\n需要选择或切换会话时，请主动查看该设备的会话列表。`, [
@@ -828,7 +829,7 @@ export class BridgeService {
     const expired = this.options.stateStore.getBindingExpiry(senderId, this.options.config.bindingIdleDays)?.endedReason === "idle";
     await this.reply(senderId, copyableChoices(`${expired ? "此 IM 对话因长期没有人工消息已自动解绑；原 session 和任务均保留。\n\n" : ""}当前 IM 对话未绑定任何 session，这条消息未提交给 Codex。先查看会话列表，再使用列表给出的完整切换命令；不会自动恢复旧绑定或启动任务。`, [
       { label: "查看可绑定会话", value: "/sessions" }, { label: "在当前项目新建会话（需先选择项目）", value: "/new" },
-      { label: "新建本机独立会话", value: "/new --standalone" }, { label: "查看绑定帮助", value: "/help session" }
+      { label: "新建独立会话", value: "/new --standalone" }, { label: "查看绑定帮助", value: "/help session" }
     ]));
   }
 
@@ -891,7 +892,7 @@ export class BridgeService {
       if (target.kind === "current") {
         await this.replyActionCard(senderId, createChoiceCard({
           title: "选择新会话的位置",
-          body: "当前没有项目。请选择项目，或新建本机独立会话。",
+          body: "当前没有项目。请选择项目，或新建独立会话。",
           fallbackText: `当前没有项目，不会自动选择其他项目。\n\n${NEW_SESSION_USAGE}`,
           choices: [
             { label: "选择项目", command: "project", arg: "list", style: "primary" },
@@ -921,7 +922,7 @@ export class BridgeService {
     if (!state.cwd || state.persistence !== "active" || state.internal
       || project?.sourceProjectId && state.projectId !== project.sourceProjectId)
       throw new Error(`新会话归属未确认，未改变当前绑定。请核对会话 ${state.threadId}，不要重复创建。`);
-    await this.bindCatalogSession(senderId, state.threadId, hostId);
+    await this.bindCatalogSession(senderId, state.threadId, hostId, assertCurrent);
     return true;
   }
 
@@ -1696,11 +1697,14 @@ export class BridgeService {
         ...(start + listing.pageSize < listing.items.length ? [{ label: "下一页", command: "sessions" as const, arg: "more" }] : [])] }));
   }
 
-  private async bindCatalogSession(senderId: string, threadId: string, hostId?: string): Promise<void> {
+  private async bindCatalogSession(senderId: string, threadId: string, hostId?: string, sourceGuard?: () => void): Promise<void> {
     const principal = peerPrincipal.getStore(), shared = principal && this.options.peer?.sharing?.admitted(principal);
     const required = shared ? "viewer" : "participant";
+    // Keep the initiating operation's generation across pairing/creation and
+    // native reads. Capturing a new generation here would bless stale work.
+    const assertCurrent = sourceGuard ?? this.conversationControlGuard(senderId, required);
     if (!await this.requireRole(senderId, required)) return;
-    const assertCurrent = this.conversationControlGuard(senderId, required);
+    assertCurrent();
     // An unqualified ID already known to this chat must retain its host; IDs
     // alone are not a globally unique routing key. Never probe/resume writers
     // on another backend to guess ownership.
@@ -2522,11 +2526,11 @@ export class BridgeService {
     }
     if (normalized === "clear confirm" || normalized === "c confirm") {
       this.options.stateStore.clearKnowledge();
-      await this.reply(senderId, "已清空此微信账号的个人知识库。");
+      await this.reply(senderId, "已清空当前渠道账号的个人知识库。");
       return;
     }
     if (normalized === "clear" || normalized === "c") {
-      const fallbackText = "这会清空此微信账号的全部个人知识。确认请发送 /memory clear confirm";
+      const fallbackText = "这会清空当前渠道账号的全部个人知识。确认请发送 /memory clear confirm";
       await this.replyActionCard(senderId, createChoiceCard({
         title: "确认清空个人知识库",
         template: "red",
@@ -3238,7 +3242,8 @@ export class BridgeService {
         const target = await this.options.taskboard.projectForWorkspace(project.workspace);
         return target ? this.options.taskboard.issueForThread(target.id, session.threadId) : undefined;
       }),
-      observeStatus(() => this.runner.getRuntimeInfo(workspace, session?.threadId, this.sessionHostId(session), observation)),
+      observeStatus(() => this.runner.getRuntimeInfo(workspace, session?.threadId, this.sessionHostId(session),
+        { timeoutMs: observation.timeoutMs, purpose: observation.purpose })),
       observeStatus(async () => session?.threadId && typeof this.runner.inspectThread === "function"
         ? this.runner.inspectThread(session.threadId, this.sessionHostId(session), observation) : undefined)
     ]);
@@ -3282,8 +3287,8 @@ export class BridgeService {
       `backend：${this.options.config.codexBackend}`,
       `app-server transport：${this.options.config.codexAppServerTransport}`,
       `exec sandbox：${this.options.config.codexExecSandbox ?? "Codex 默认"}`,
-      `model: ${session?.model ?? this.options.config.model ?? runtime.model ?? (runtimeResult.available ? "(Codex default)" : "(暂未读取)")}`,
-      `effort: ${session?.effort ?? this.options.config.effort ?? runtime.effort ?? (runtimeResult.available ? "(Codex default)" : "(暂未读取)")}`,
+      `model: ${session?.model ?? (this.sessionHostId(session).startsWith("peer:") ? undefined : this.options.config.model) ?? runtime.model ?? (runtimeResult.available ? "(Codex default)" : "(暂未读取)")}`,
+      `effort: ${session?.effort ?? (this.sessionHostId(session).startsWith("peer:") ? undefined : this.options.config.effort) ?? runtime.effort ?? (runtimeResult.available ? "(Codex default)" : "(暂未读取)")}`,
       ...(!taskResult.available || !runtimeResult.available || !stateResult.available
         ? ["部分状态未在查询预算内确认；原任务与绑定未改变。"] : []),
       `过程回复：${(session?.streamReplies ?? this.options.config.streamReplies) ? "开启" : "关闭"}${typeof session?.streamReplies === "boolean" ? "（当前会话）" : "（全局）"}`
@@ -3460,10 +3465,11 @@ export class BridgeService {
     // Project notification routes may legitimately have no matching session.
     // A bound task's question, however, cannot outlive its source binding while
     // an optional progress-card update is awaiting its provider.
-    const binding = session?.threadId === request.threadId
+    const hostId = request.hostId ?? "local";
+    const binding = session?.threadId === request.threadId && this.sessionHostId(session) === hostId
       ? sessionExecutionScope(this.options.stateStore, session, senderId) : undefined;
     const active = session && this.activePresentations.get(session.id);
-    if (active?.threadId === request.threadId && active.turnId === request.turnId) {
+    if (active?.hostId === hostId && active.threadId === request.threadId && active.turnId === request.turnId) {
       try { await active.stream.setActivity("waiting-approval"); } catch { /* Presentation cannot block approval. */ }
     }
     if (this.audienceSuspended || binding && !binding.current()) {

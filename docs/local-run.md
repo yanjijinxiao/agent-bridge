@@ -4,6 +4,8 @@ Codex IM Gateway 只通过 GitHub 分发源码，不发布 npm 包。`package.js
 
 ## 首次运行
 
+Node.js 需为 22.x 的 22.13+，或 23.4+。服务直接导入 `node:sqlite`，这些版本才无需额外实验开关；也满足锁定 Vite 的构建要求。依据：[Node.js SQLite 版本记录](https://nodejs.org/api/sqlite.html)、[Vite 安装要求](https://vite.dev/guide/)。不为旧 Node 自动增加实验开关。
+
 ```bash
 git clone https://github.com/yanjijinxiao/codex-im-gateway.git
 cd codex-im-gateway

@@ -1,0 +1,295 @@
+✖ inbound Weixin rejects untrustworthy event identity undefined (1.148375ms)
+✖ inbound Weixin rejects untrustworthy event identity  (0.090208ms)
+✖ inbound Weixin rejects untrustworthy event identity    (0.038916ms)
+✖ inbound Weixin rejects untrustworthy event identity NaN (0.033375ms)
+✖ inbound Weixin rejects untrustworthy event identity Infinity (0.03425ms)
+✖ inbound Weixin rejects untrustworthy event identity 1.5 (0.032458ms)
+✖ inbound Weixin rejects untrustworthy event identity 9007199254740992 (0.039917ms)
+✖ inbound Weixin rejects untrustworthy event identity [object Object] (0.029333ms)
+✖ inbound Weixin rejects untrustworthy event identity  (0.04675ms)
+✔ native string and safe numeric IDs are preserved, senderless control records remain ignored (0.117667ms)
+✖ bad identity or body retains the poll cursor and still dispatches valid neighbours: id (4.938042ms)
+✖ bad identity or body retains the poll cursor and still dispatches valid neighbours: body (0.88975ms)
+✖ non-object poll entries do not consume the source cursor (0.600625ms)
+✖ non-object poll entries do not consume the source cursor (0.803084ms)
+✖ non-object poll entries do not consume the source cursor (0.347167ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 1
+ℹ fail 14
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 225.198459
+
+✖ failing tests:
+
+test at test/weixin-inbound-identity.test.ts:1:264
+✖ inbound Weixin rejects untrustworthy event identity undefined (1.148375ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:9:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /message.*id/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:264
+✖ inbound Weixin rejects untrustworthy event identity  (0.090208ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:9:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /message.*id/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:264
+✖ inbound Weixin rejects untrustworthy event identity    (0.038916ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:9:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /message.*id/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:264
+✖ inbound Weixin rejects untrustworthy event identity NaN (0.033375ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:9:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /message.*id/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:264
+✖ inbound Weixin rejects untrustworthy event identity Infinity (0.03425ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:9:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /message.*id/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:264
+✖ inbound Weixin rejects untrustworthy event identity 1.5 (0.032458ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:9:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /message.*id/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:264
+✖ inbound Weixin rejects untrustworthy event identity 9007199254740992 (0.039917ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:9:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /message.*id/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:264
+✖ inbound Weixin rejects untrustworthy event identity [object Object] (0.029333ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:9:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /message.*id/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:264
+✖ inbound Weixin rejects untrustworthy event identity  (0.04675ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:9:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /message.*id/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:872
+✖ bad identity or body retains the poll cursor and still dispatches valid neighbours: id (4.938042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'old',
+  +   'new'
+  -   'old'
+    ]
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:31:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'old', 'new' ],
+    expected: [ 'old', 'old' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:872
+✖ bad identity or body retains the poll cursor and still dispatches valid neighbours: body (0.88975ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'old',
+  +   'new'
+  -   'old'
+    ]
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:31:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'old', 'new' ],
+    expected: [ 'old', 'old' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:2064
+✖ non-object poll entries do not consume the source cursor (0.600625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'old',
+  +   'new'
+  -   'old'
+    ]
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:42:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'old', 'new' ],
+    expected: [ 'old', 'old' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:2064
+✖ non-object poll entries do not consume the source cursor (0.803084ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'old',
+  +   'new'
+  -   'old'
+    ]
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:42:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'old', 'new' ],
+    expected: [ 'old', 'old' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/weixin-inbound-identity.test.ts:1:2064
+✖ non-object poll entries do not consume the source cursor (0.347167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'old',
+  +   'new'
+  -   'old'
+    ]
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/weixin-inbound-identity.test.ts:42:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'old', 'new' ],
+    expected: [ 'old', 'old' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

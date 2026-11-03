@@ -1,0 +1,229 @@
+TAP version 13
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] handling message task from actor
+# [codex-im-gateway] handled message task from actor
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] inbound receipt persistence failed; source cursor retained
+# Subtest: polling continues for approvals while a task keeps its source cursor uncommitted
+ok 1 - polling continues for approvals while a task keeps its source cursor uncommitted
+  ---
+  duration_ms: 3.32025
+  type: 'test'
+  ...
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] handling message task from actor
+# [codex-im-gateway] handled message task from actor
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] handling message message-1 from actor
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] handling message message-2 from actor
+# [codex-im-gateway] handled message message-2 from actor
+# Subtest: a receipt claim failure keeps the old source cursor for provider redelivery
+ok 2 - a receipt claim failure keeps the old source cursor for provider redelivery
+  ---
+  duration_ms: 0.990167
+  type: 'test'
+  ...
+# [codex-im-gateway] handled message message-1 from actor
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] handling message m-1 from actor
+# [codex-im-gateway] handled message m-1 from actor
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] handling message m-2 from actor
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] handling message m-3 from actor
+# [codex-im-gateway] handled message m-2 from actor
+# [codex-im-gateway] handled message m-3 from actor
+# Subtest: finished later batches cannot commit past an earlier unfinished message
+ok 3 - finished later batches cannot commit past an earlier unfinished message
+  ---
+  duration_ms: 0.403542
+  type: 'test'
+  ...
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] handling message one from actor
+# [codex-im-gateway] handled message one from actor
+# [codex-im-gateway] checkpoint persistence failed; cursor retained for retry
+# Subtest: coalescing completed cursors cannot remove a cursor being persisted
+ok 4 - coalescing completed cursors cannot remove a cursor being persisted
+  ---
+  duration_ms: 0.37775
+  type: 'test'
+  ...
+# Subtest: failed checkpoint writes remain retryable without dispatching the message twice
+ok 5 - failed checkpoint writes remain retryable without dispatching the message twice
+  ---
+  duration_ms: 0.427625
+  type: 'test'
+  ...
+# Subtest: inbound Weixin rejects untrustworthy event identity undefined
+ok 6 - inbound Weixin rejects untrustworthy event identity undefined
+  ---
+  duration_ms: 0.613667
+  type: 'test'
+  ...
+# Subtest: inbound Weixin rejects untrustworthy event identity 
+ok 7 - inbound Weixin rejects untrustworthy event identity 
+  ---
+  duration_ms: 0.061792
+  type: 'test'
+  ...
+# Subtest: inbound Weixin rejects untrustworthy event identity   
+ok 8 - inbound Weixin rejects untrustworthy event identity   
+  ---
+  duration_ms: 0.029875
+  type: 'test'
+  ...
+# Subtest: inbound Weixin rejects untrustworthy event identity NaN
+ok 9 - inbound Weixin rejects untrustworthy event identity NaN
+  ---
+  duration_ms: 0.026625
+  type: 'test'
+  ...
+# Subtest: inbound Weixin rejects untrustworthy event identity Infinity
+ok 10 - inbound Weixin rejects untrustworthy event identity Infinity
+  ---
+  duration_ms: 0.028833
+  type: 'test'
+  ...
+# Subtest: inbound Weixin rejects untrustworthy event identity 1.5
+ok 11 - inbound Weixin rejects untrustworthy event identity 1.5
+  ---
+  duration_ms: 0.02075
+  type: 'test'
+  ...
+# Subtest: inbound Weixin rejects untrustworthy event identity 9007199254740992
+ok 12 - inbound Weixin rejects untrustworthy event identity 9007199254740992
+  ---
+  duration_ms: 0.025875
+  type: 'test'
+  ...
+# Subtest: inbound Weixin rejects untrustworthy event identity [object Object]
+ok 13 - inbound Weixin rejects untrustworthy event identity [object Object]
+  ---
+  duration_ms: 0.023834
+  type: 'test'
+  ...
+# Subtest: inbound Weixin rejects untrustworthy event identity 
+ok 14 - inbound Weixin rejects untrustworthy event identity 
+  ---
+  duration_ms: 0.026125
+  type: 'test'
+  ...
+# Subtest: native string and safe numeric IDs are preserved, senderless control records remain ignored
+ok 15 - native string and safe numeric IDs are preserved, senderless control records remain ignored
+  ---
+  duration_ms: 0.371667
+  type: 'test'
+  ...
+# Subtest: bad identity or body retains the poll cursor and still dispatches valid neighbours: id
+ok 16 - bad identity or body retains the poll cursor and still dispatches valid neighbours: id
+  ---
+  duration_ms: 4.175959
+  type: 'test'
+  ...
+# Subtest: bad identity or body retains the poll cursor and still dispatches valid neighbours: body
+ok 17 - bad identity or body retains the poll cursor and still dispatches valid neighbours: body
+  ---
+  duration_ms: 0.530916
+  type: 'test'
+  ...
+# Subtest: non-object poll entries do not consume the source cursor
+ok 18 - non-object poll entries do not consume the source cursor
+  ---
+  duration_ms: 0.274958
+  type: 'test'
+  ...
+# Subtest: non-object poll entries do not consume the source cursor
+ok 19 - non-object poll entries do not consume the source cursor
+  ---
+  duration_ms: 0.160292
+  type: 'test'
+  ...
+# Subtest: non-object poll entries do not consume the source cursor
+ok 20 - non-object poll entries do not consume the source cursor
+  ---
+  duration_ms: 0.159833
+  type: 'test'
+  ...
+# Subtest: normalizes inbound image items as attachments
+ok 21 - normalizes inbound image items as attachments
+  ---
+  duration_ms: 1.327458
+  type: 'test'
+  ...
+# Subtest: normalizes inbound file and video items as attachments
+ok 22 - normalizes inbound file and video items as attachments
+  ---
+  duration_ms: 0.074583
+  type: 'test'
+  ...
+# Subtest: normalizes inbound voice transcription without audio attachment
+ok 23 - normalizes inbound voice transcription without audio attachment
+  ---
+  duration_ms: 0.048958
+  type: 'test'
+  ...
+# Subtest: normalizes inbound voice media as audio when transcription is unavailable
+ok 24 - normalizes inbound voice media as audio when transcription is unavailable
+  ---
+  duration_ms: 0.048667
+  type: 'test'
+  ...
+# Subtest: normalizes a quoted image as reference context without mixing it into direct attachments
+ok 25 - normalizes a quoted image as reference context without mixing it into direct attachments
+  ---
+  duration_ms: 0.075542
+  type: 'test'
+  ...
+# Subtest: continues polling after a getUpdates failure
+ok 26 - continues polling after a getUpdates failure
+  ---
+  duration_ms: 3.685334
+  type: 'test'
+  ...
+# Subtest: continues polling after a malformed getUpdates response
+ok 27 - continues polling after a malformed getUpdates response
+  ---
+  duration_ms: 0.59325
+  type: 'test'
+  ...
+# Subtest: stops immediately when polling aborts before the retry delay
+ok 28 - stops immediately when polling aborts before the retry delay
+  ---
+  duration_ms: 0.249792
+  type: 'test'
+  ...
+# Subtest: continues with the remaining batch after one message fails
+ok 29 - continues with the remaining batch after one message fails
+  ---
+  duration_ms: 0.885833
+  type: 'test'
+  ...
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] handling message task from alice
+# [codex-im-gateway] received 1 update(s)
+# [codex-im-gateway] handling message approval from alice
+# [codex-im-gateway] handled message task from alice
+# [codex-im-gateway] handled message approval from alice
+# Subtest: skips duplicate message ids and persists the latest sync key
+ok 30 - skips duplicate message ids and persists the latest sync key
+  ---
+  duration_ms: 0.298041
+  type: 'test'
+  ...
+# Subtest: keeps polling while a previous message waits for channel approval
+ok 31 - keeps polling while a previous message waits for channel approval
+  ---
+  duration_ms: 0.336458
+  type: 'test'
+  ...
+1..31
+# tests 31
+# suites 0
+# pass 31
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 382.190375

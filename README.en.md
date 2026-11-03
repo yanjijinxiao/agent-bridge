@@ -67,7 +67,7 @@ The console adds and controls channels, authorizes senders, binds projects, disp
 
 ### Requirements
 
-- Node.js `>=22`
+- Node.js `^22.13.0 || >=23.4.0`
 - Git
 - An installed and authenticated Codex CLI
 
@@ -152,11 +152,11 @@ Lists preserve native pin order, then native project order, then other sessions.
 
 ## Long tasks, progress, and session lifecycle
 
-- Once accepted, an agent task runs until completion, explicit `/stop`, or transport failure. Its total lifetime is not extended only when activity occurs.
+- Work accepted by an independent native core continues through a Gateway observation disconnect; inputs are not replayed and task lifetime does not depend on activity renewal. Private stdio has a host-owned lifecycle and does not provide the independent core's restart guarantee.
 - The gateway shows readable Codex reasoning summaries, commentary, tool/command/file state, and recent results. Hidden raw reasoning is never forwarded.
 - During an active turn, ordinary IM messages follow the saved policy (steer by default); explicit queue uses the native backend queue. Web submissions retain single-writer validation. Unsupported operations are rejected explicitly.
 - Active, running, archived, missing, and system-error session states pass through the backend lifecycle contract. Archived sessions are omitted from the resumable list and return a clear error when addressed.
-- Native progress cards update in place. Failures retain the original handle and delivery evidence, without automatically creating replacement cards or text. Text-only progress uses merged updates; a definitively rejected one-off command card has its own fallback policy.
+- Native progress cards update in place. Failures retain the original handle and delivery evidence, without automatically creating replacement cards or text. Text-only progress uses merged updates. Card or text delivery is selected from the channel's capabilities before sending; a card rejection does not trigger a second delivery route.
 
 ## Codex Desktop integration
 

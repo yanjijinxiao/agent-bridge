@@ -126,7 +126,7 @@ Activity cards restore from their saved handles even when all progress entries a
 
 The app-server protocol implementation is independent of its transport:
 
-- `auto`: prefer the managed standalone daemon; otherwise use the configured Codex command's daemon. Legacy custom wrapper commands whose executable name is not `codex` retain their explicit private-stdio compatibility behavior.
+- `auto`: prefer the managed standalone daemon; otherwise use the configured Codex command's daemon, including custom wrapper commands. If neither a managed install nor a configured command is present, the resolver selects private stdio before connecting. This is deployment selection, not fallback after a failed submission. Select `daemon` explicitly when an independent core is required.
 - `daemon`: idempotently start the managed or configured daemon, then relay JSONL to its native control WebSocket. An unavailable service fails before a turn starts; it does not create another executor as fallback.
 - `stdio`: run `codex app-server` with its default stdio transport.
 - remote projects: use the registered Codex Desktop host and an SSH relay to its app-server control socket.
@@ -176,7 +176,7 @@ Explicit per-session overrides remain intact: `ask` offers only supported guarde
 | `/sessions unbound` | Sessions with explicit native projectless membership; cwd does not establish membership |
 | `/sessions project` | Optional current-project filter using native membership on the selected host |
 | `/session R1` | Bind, replay history, and start following if the backend supports it |
-| `/session THREAD_ID [--host HOST_ID]` | Directly inspect and bind without a project; default host is local |
+| `/session THREAD_ID [--host HOST_ID]` | Directly inspect and bind without a project; retain this chat's known host, require an explicit host if ambiguous. Otherwise use the sole granted peer host for a shared client, or local. |
 | `/project`, `/project C1`, `/project P1` | Optional project-first workflow; selecting registers and switches; `/project add` is a compatibility alias |
 | `/new` | Prepare a new session in the current project; prompt if none is selected, never pick the first saved project implicitly |
 | `/new P2`, `/new C1`, `/new --project NAME` | Prepare and switch to a new session in the selected project, using the same selector as `/project` |

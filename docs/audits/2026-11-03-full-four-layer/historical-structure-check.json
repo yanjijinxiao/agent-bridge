@@ -1,0 +1,1075 @@
+{
+  "scope": "Historical retained evidence, not current source reread or current runtime acceptance. JSON/JSONL/CSV parsed; prose/log/probe provenance, heading and integrity checked.",
+  "files": [
+    {
+      "file": "docs/audits/2026-10-27-full-review/REPORT.md",
+      "sha256": "bec03cb6046fce7be01d2a32002c3fc246c8650305039dbbf30d6e602945f2f3",
+      "kind": ".md",
+      "bytes": 10108,
+      "headings": [
+        "# Gateway 全量架构与代码自检",
+        "## 结论与检查方法",
+        "## 架构边界及本次处理",
+        "## 缺陷与测试映射",
+        "## 验证证据",
+        "## 已知限制与兼容行为",
+        "## 发布约束"
+      ],
+      "lines": 82
+    },
+    {
+      "file": "docs/audits/2026-10-27-full-review/candidates.md",
+      "sha256": "d62e8b5811f4eb3e5c3092fa4c0a492444553e407781a6c9421075ad483ec36b",
+      "kind": ".md",
+      "bytes": 13209,
+      "headings": [
+        "# 候选缺陷（未确认不算已发现）",
+        "# Additional review candidates (not yet verified defects)"
+      ],
+      "lines": 94
+    },
+    {
+      "file": "docs/audits/2026-10-27-full-review/inventory.json",
+      "sha256": "a84cc403ff1a2e10a63fdd3348486a9a9a04d4f7fa17f05622a783543cd3fa07",
+      "kind": ".json",
+      "bytes": 4166226,
+      "entries": 4,
+      "structure": [
+        "baseline",
+        "scope",
+        "files",
+        "functions"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-10-27-full-review/progress.md",
+      "sha256": "ca6d3d825928303881add60483c49a9fcbb7d09d53c9ffda0518954392579372",
+      "kind": ".md",
+      "bytes": 14988,
+      "headings": [
+        "# Gateway 全量自检工作记录（审查完成，等待隔离发布验证）",
+        "## 覆盖与完成标准",
+        "## 已验证并本地修复",
+        "## 已排除或有保护的候选",
+        "## 回归记录",
+        "## 下一阶段仍需完成",
+        "## 最终补充与候选闭环"
+      ],
+      "lines": 109
+    },
+    {
+      "file": "docs/audits/2026-10-27-full-review/reviewed-current.json",
+      "sha256": "e6c3efef856b0c235ed42f9ff2b1b4a77669cb64fa685cabe5a78c6910b55865",
+      "kind": ".json",
+      "bytes": 2722916,
+      "entries": 5,
+      "structure": [
+        "baseline",
+        "scope",
+        "meaning",
+        "summary",
+        "files"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-10-27-round3/command-status-followup.md",
+      "sha256": "af193ec82e438191ad9510d8b168074d5f57cb97a34c18b440536de9ee2f5936",
+      "kind": ".md",
+      "bytes": 2818,
+      "headings": [
+        "# 群命令与诊断延迟补修"
+      ],
+      "lines": 20
+    },
+    {
+      "file": "docs/audits/2026-10-27-round3/counterexamples-output.txt",
+      "sha256": "6be55c5fd7c1adfa14dfc42e3fb76cc99862f7a1599d1924f65c366d03313a3c",
+      "kind": ".txt",
+      "bytes": 1905,
+      "headings": [],
+      "lines": 25
+    },
+    {
+      "file": "docs/audits/2026-10-27-round3/counterexamples.test.ts",
+      "sha256": "66393855285a185bfc73f52f2225595ec3bea6148b12d9f2a04e45c0a8565d2f",
+      "kind": ".ts",
+      "bytes": 12885,
+      "headings": [],
+      "lines": 144
+    },
+    {
+      "file": "docs/audits/2026-10-27-round3/file-review.csv",
+      "sha256": "a09b24a9399f1be1a4e5b50eca75cee4547b368307a5e3291f221a15430155c4",
+      "kind": ".csv",
+      "bytes": 29966,
+      "entries": 198,
+      "structure": [
+        "文件",
+        "行数",
+        "静态扫描",
+        "人工检查层级",
+        "行覆盖率",
+        "分支覆盖率",
+        "函数覆盖率",
+        "未覆盖行"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-10-27-round3/lifecycle-open.test.ts",
+      "sha256": "e1d77fc64a3bb811cab4bb29d039d2ecb4226cec1d60d3169e607c4f7c3370e7",
+      "kind": ".ts",
+      "bytes": 3486,
+      "headings": [],
+      "lines": 45
+    },
+    {
+      "file": "docs/audits/2026-10-27-round3/presentation-admission-followup.md",
+      "sha256": "e1f6c52f3a5fef8d9846dab8fed7ecc033ead5263b915e3f022fed52e367541b",
+      "kind": ".md",
+      "bytes": 5934,
+      "headings": [
+        "# 流式排版、网页凭据与远程准入审批补修",
+        "## 1. 排版与摘要",
+        "## 2. 网页跨重启的请求凭据",
+        "## 3. 准入审批与原生任务审批分工",
+        "## 验证范围"
+      ],
+      "lines": 42
+    },
+    {
+      "file": "docs/audits/2026-10-27-round3/report.md",
+      "sha256": "3cbe0723a3f57fead269ba36258f66103c34e712dba675ed5f0ef225f33aaaba",
+      "kind": ".md",
+      "bytes": 19163,
+      "headings": [
+        "# Gateway 第三轮架构与实现自检（2026-10-27）",
+        "## 检查方法与覆盖边界",
+        "## 第一层：整体架构的共性缺口",
+        "### A. 提交前核验没有贯穿到最后一次原生写入",
+        "### B. 生命周期与配置事务没有统一的资源登记",
+        "### C. 安全身份、展示信息和缓存淘汰没有充分分离",
+        "### D. 浏览器缺少与服务端一致的回执状态机和快照代次",
+        "## 第二、三层：模块与底层实现中的已确认缺陷"
+      ],
+      "lines": 227
+    },
+    {
+      "file": "docs/audits/2026-10-27-round3/resolution.md",
+      "sha256": "e0f32d6f2bb4aafabbc6d3502c70db9cb658deb8c0ded2dfa73797d6f56ccc13",
+      "kind": ".md",
+      "bytes": 6642,
+      "headings": [
+        "# 第三轮问题修复与验证",
+        "## 统一边界",
+        "## 缺陷与回归对应",
+        "## 截图中的远程报错",
+        "## 发布边界"
+      ],
+      "lines": 45
+    },
+    {
+      "file": "docs/audits/2026-10-27-round3/taskboard-open.test.ts",
+      "sha256": "a6e3154a6c6ef69f4a9edbb5a269bbb60c59021d76e88286b50308c5c0f75d6b",
+      "kind": ".ts",
+      "bytes": 809,
+      "headings": [],
+      "lines": 15
+    },
+    {
+      "file": "docs/audits/2026-10-28-intent-review/REVIEW.md",
+      "sha256": "c5e083dd1064c5b3624832cf338e8f9b076128671a7162cea953a801cda6c2aa",
+      "kind": ".md",
+      "bytes": 14388,
+      "headings": [
+        "# Gateway 四层职责自检",
+        "## 为什么此前通过测试仍有问题",
+        "## 四层覆盖与证据",
+        "## 架构结论与责任边界",
+        "## 已确认问题、修复和回归映射",
+        "## 验证结果与反例质量",
+        "## 已知限制与未替代的验收"
+      ],
+      "lines": 109
+    },
+    {
+      "file": "docs/audits/2026-10-28-intent-review/candidates.md",
+      "sha256": "e5a4a31568edeb88edfad17c717219ef0fe77553f6ba705513a66109d044e452",
+      "kind": ".md",
+      "bytes": 21964,
+      "headings": [
+        "# 本轮候选与验证过程",
+        "## 第一批边界验证",
+        "## 第二批状态/生命周期验证",
+        "## 构建与发行边界验证",
+        "## 继续核对的疑点（未算作已确认缺陷）",
+        "## 后续确认与收束（当前仍未发布）",
+        "### 疑点的最终分类",
+        "### 回归说明"
+      ],
+      "lines": 112
+    },
+    {
+      "file": "docs/audits/2026-10-28-intent-review/evidence.json",
+      "sha256": "fa1ddb3746f5b1f02f0eb1fac84c4dab118445283710e59e9b8997770d2aa7c1",
+      "kind": ".json",
+      "bytes": 18071,
+      "entries": 3,
+      "structure": [
+        "baseline",
+        "note",
+        "runs"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-10-28-intent-review/inventory.json",
+      "sha256": "0de33d86b02cc70a34475202f4c3486deb2acd32de35b3abd532ded085320aa6",
+      "kind": ".json",
+      "bytes": 280175,
+      "entries": 2,
+      "structure": [
+        "baseline",
+        "files"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-10-28-intent-review/reviewed-current.json",
+      "sha256": "0453643eea7906d393ccffc832be17b03c8b94aa7ca1ee60fd1ce2fa61ba7615",
+      "kind": ".json",
+      "bytes": 1087887,
+      "entries": 4,
+      "structure": [
+        "baseline",
+        "note",
+        "counts",
+        "files"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-10-28-late-queue-card.md",
+      "sha256": "2a8ac1f0875489db61f760fe06af142dbba16c2f3111db727241bd44ef348e5c",
+      "kind": ".md",
+      "bytes": 4367,
+      "headings": [
+        "# 迟到队列回执与活动卡布局修复",
+        "## 线上证据与根因",
+        "## 修复边界",
+        "## 布局与交互上下文",
+        "## 验证"
+      ],
+      "lines": 34
+    },
+    {
+      "file": "docs/audits/2026-10-28-progress-provenance.md",
+      "sha256": "15b28827a819f3b9c161671aa1721abe2a0612f937d4f7a336c0979c5eb43329",
+      "kind": ".md",
+      "bytes": 3655,
+      "headings": [
+        "# 2026-10-28: progress provenance and cumulative progress repair",
+        "## Confirmed failures",
+        "## Boundaries and implementation",
+        "## Evidence and limits"
+      ],
+      "lines": 22
+    },
+    {
+      "file": "docs/audits/2026-10-28-progress-spacing.md",
+      "sha256": "995507bd9f98a3e53504d8c2a0778d8cc708cf985af341554dc8c112cbffd45e",
+      "kind": ".md",
+      "bytes": 3890,
+      "headings": [
+        "# 钉钉进行中卡片间距回归",
+        "## 缺陷与责任边界",
+        "## 反例和回归",
+        "## 发布门禁捕获的额外到期边界"
+      ],
+      "lines": 31
+    },
+    {
+      "file": "docs/audits/2026-10-28-release-admission.md",
+      "sha256": "fbda30e39ebab319299247849648179a306ca41a0a10e3b2299245e447a6c596",
+      "kind": ".md",
+      "bytes": 3974,
+      "headings": [
+        "# 发布不能打断 Gateway 持有的原生任务",
+        "## 实际事件",
+        "## 所有权与边界",
+        "## 验证与边界",
+        "## 第一次启用的迁移限制"
+      ],
+      "lines": 31
+    },
+    {
+      "file": "docs/audits/2026-10-28-system-error-recovery.md",
+      "sha256": "30c44c54f595c43f7a39d2365adbb9dc7f07e688034fef031551f2bfbfecd338",
+      "kind": ".md",
+      "bytes": 7537,
+      "headings": [
+        "# systemError 条件恢复与故障核对",
+        "## 原生能力验证",
+        "## 架构及约束",
+        "## 测试覆盖",
+        "## workspace routing discovery failed 的证据边界",
+        "## 用户复测补充（2026-10-28）"
+      ],
+      "lines": 50
+    },
+    {
+      "file": "docs/audits/2026-10-29-reliable-forwarding.md",
+      "sha256": "86a42e3988481358583b53955e2bbb9fadce03a1a13dcdbdc0025639f5a16892",
+      "kind": ".md",
+      "bytes": 4539,
+      "headings": [
+        "# Reliable Gateway forwarding and restart boundary",
+        "## Confirmed failures",
+        "## Ownership and delivery contract",
+        "## Bounded native inspection",
+        "## Verification"
+      ],
+      "lines": 32
+    },
+    {
+      "file": "docs/audits/2026-10-29-restart-ownership.md",
+      "sha256": "908d815122ceafc95a30bf2f0065425385a1f2a8bb1f08687666c6a354539f15",
+      "kind": ".md",
+      "bytes": 5015,
+      "headings": [
+        "# Gateway restart admission follows actual ownership",
+        "## Changes and invariants",
+        "## Verification evidence",
+        "## Separate interruption investigation"
+      ],
+      "lines": 27
+    },
+    {
+      "file": "docs/audits/2026-10-29-stop-copy-controls.md",
+      "sha256": "5b7d79b7f6558b3e38c20733faf492e16383de868ed131ce7932b71cfcf2f376",
+      "kind": ".md",
+      "bytes": 1565,
+      "headings": [
+        "# 恢复进展卡的停止命令复制框"
+      ],
+      "lines": 9
+    },
+    {
+      "file": "docs/audits/2026-11-01-approval-review-progress.md",
+      "sha256": "1821fbca341299dc56904a567363ad8311c1ecb31ee37062e53d1a8201f7ceae",
+      "kind": ".md",
+      "bytes": 2358,
+      "headings": [
+        "# Native permission review and human approval are distinct",
+        "## Confirmed defect",
+        "## Automatic review notifications",
+        "## Verification boundary"
+      ],
+      "lines": 43
+    },
+    {
+      "file": "docs/audits/2026-11-01-approval-subscription-recovery.md",
+      "sha256": "23212db8fa5988a02eed25e37d62b61105d20d98ed6d91e03374e3d598e43bd2",
+      "kind": ".md",
+      "bytes": 2452,
+      "headings": [
+        "# Pending native request subscription recovery",
+        "## Reproduced failures",
+        "## Boundary and recovery",
+        "## Validation"
+      ],
+      "lines": 45
+    },
+    {
+      "file": "docs/audits/2026-11-01-fixed-execution-owner.md",
+      "sha256": "ae0bb95eb1b4615259eefe4fc5f3ca1e1ed9e88551aeaefc95ab318ca001a4dc",
+      "kind": ".md",
+      "bytes": 4146,
+      "headings": [
+        "# Fixed execution owner review",
+        "## Architecture and intent",
+        "## Modules, files and overlooked cases",
+        "## Validation"
+      ],
+      "lines": 30
+    },
+    {
+      "file": "docs/audits/2026-11-01-forwarding-liveness.md",
+      "sha256": "f6131ce397eba561738e5ca36bb720dc0f68dd8fa3f7d33b67be946d952ac2e6",
+      "kind": ".md",
+      "bytes": 1463,
+      "headings": [
+        "# Forwarding liveness after an unknown handoff"
+      ],
+      "lines": 9
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-approval-cards.md",
+      "sha256": "3f81459b5c1501de93febad250338ecc8a32067958f313f97fc29fdb4b1adf98",
+      "kind": ".md",
+      "bytes": 1557,
+      "headings": [
+        "# 审批 @ 与确认后新 AI 卡"
+      ],
+      "lines": 9
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md",
+      "sha256": "7ac043cc212ea067008c2681c2ce4814d8cc55ffff073f76c2bc90cc4948b48a",
+      "kind": ".md",
+      "bytes": 13612,
+      "headings": [
+        "# 当前文档与验证边界校准（2026-11-02）",
+        "## 当前事实与历史分开",
+        "## 13项既有断言的边界",
+        "### NATIVE-01.1 · 无桌面注册表也可新建、继续、跟随、交互、排队、目标和历史",
+        "### NATIVE-02.1 · 两个客户端继续同一线程并看到同一活动轮次",
+        "### NATIVE-02.2 · 有无审批回调均不重置已有工作区可写和自动审核",
+        "### NATIVE-02.3 · Gateway 断连重连不抢锁、不改变 core/线程/输入次数",
+        "### NATIVE-03.1 · 本地远程同 threadId 不串状态、模型和额度"
+      ],
+      "lines": 171
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-feishu-wecom-media.md",
+      "sha256": "5fde8eb2f73d099d51101c04a3edda0b72d46cc4c9569cce9f82ebe7c86e815a",
+      "kind": ".md",
+      "bytes": 3262,
+      "headings": [
+        "# 飞书与企微出站媒体适配",
+        "## 架构层",
+        "## 模块层",
+        "## 文件与函数层",
+        "## 静态与配置层",
+        "## 验证边界"
+      ],
+      "lines": 29
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-followup.md",
+      "sha256": "e5a5cfb1b8467ed6d27b42a114b253bc6b634f4c608a38a38cee2a5fd3e164c7",
+      "kind": ".md",
+      "bytes": 4819,
+      "headings": [
+        "# 用户授权push上线后的继续修复",
+        "## 继续按职责复查消息交接",
+        "## 继续复核目标控制的响应归属"
+      ],
+      "lines": 31
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-gap-regressions.md",
+      "sha256": "68ab2aaf418727ae5b697738ad56bee2e63665af93ad84865a92de3d3868b105",
+      "kind": ".md",
+      "bytes": 20825,
+      "headings": [
+        "# 原28项缺测补齐记录（2026-11-02）",
+        "## 确认并修复的缺陷",
+        "## 逐项证据",
+        "### NATIVE-04.2 · 只读重建始终附着原核心，不创建另一个核心",
+        "### STATE-01.1 · 长任务完成不覆盖期间改名/解绑",
+        "### STATE-02.3 · 单个清理失败仍尝试其余清理",
+        "### CAT-03.3 · 立即保存新threadId且标题不受渠道规则污染",
+        "### CAT-04.1 · 支持旧event及新response两种格式并去重"
+      ],
+      "lines": 289
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-ide-progress-followup.md",
+      "sha256": "85ec4abdf49f97090840993db0268baf0e0173d3dc43857de28285b748b76410",
+      "kind": ".md",
+      "bytes": 2566,
+      "headings": [
+        "# IDE 前置读取超时及重连期间进展链接"
+      ],
+      "lines": 13
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md",
+      "sha256": "3fbac074e4ba82edd74cae679867be8fd9f89b818b3a395b28c3e2c1e91f8665",
+      "kind": ".md",
+      "bytes": 8195,
+      "headings": [
+        "# 原生接收与Gateway回执之间的真实崩溃恢复",
+        "## 当前缺口",
+        "## 设计约束",
+        "## 需要直接验证",
+        "## 实际失败与修复",
+        "## 测试与边界",
+        "## 四层核对",
+        "## 完成记录"
+      ],
+      "lines": 62
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md",
+      "sha256": "764f8bb52a9f2b004ea8cd1a8a63eec7bdb0631b2aa5fdd59f51faba55a7ca89",
+      "kind": ".md",
+      "bytes": 4361,
+      "headings": [
+        "# 队列终态与原卡投递联合核对（2026-11-02）",
+        "## 实际路径与事实源",
+        "## 本次验收条件",
+        "## 结果与读取范围",
+        "## 四层核对"
+      ],
+      "lines": 37
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-session-tree.md",
+      "sha256": "20d232aa058663d1f275d6d5ea1ea993d4699d9f5517bb6405440513dc610358",
+      "kind": ".md",
+      "bytes": 2479,
+      "headings": [
+        "# /sessions 项目树与验证缺口"
+      ],
+      "lines": 13
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-task-receipts-remote-output.md",
+      "sha256": "aa111c42dc9c02c0aab857839b562c9a431c6e31359bf9ceb053b37eb3b715a0",
+      "kind": ".md",
+      "bytes": 5391,
+      "headings": [
+        "# IM任务事务回执与远程结果回传",
+        "## 架构与职责",
+        "## 模块和异常场景",
+        "## 文件和底层函数",
+        "## 静态文件与配置",
+        "## 检查结果及实际边界",
+        "## 发布前补查"
+      ],
+      "lines": 42
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-verification-gaps.md",
+      "sha256": "bf534f276ccbe8f8fb78d411bb5e6ba8149bd2c0e71c5a684515d2e000018dfe",
+      "kind": ".md",
+      "bytes": 60874,
+      "headings": [
+        "# 缺测清单历史起点（2026-11-02，补测前）",
+        "## “手机实机验证”指什么",
+        "## 没有直接测试映射的项目",
+        "## 部分覆盖的项目及边界",
+        "### NATIVE-01.1 · Codex原生协议与连接：无桌面注册表也可新建、继续、跟随、交互、排队、目标和历史",
+        "### NATIVE-01.3 · Codex原生协议与连接：旧 auto/exec 配置迁移后只实例化原生适配器",
+        "### NATIVE-02.1 · Codex原生协议与连接：两个客户端继续同一线程并看到同一活动轮次",
+        "### NATIVE-02.2 · Codex原生协议与连接：有无审批回调均不重置已有工作区可写和自动审核"
+      ],
+      "lines": 723
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/README.md",
+      "sha256": "d7a80e0113ee1e92936535eb6ada185752cb3bb925b53ff8fccb484579ce269c",
+      "kind": ".md",
+      "bytes": 19441,
+      "headings": [
+        "# 四层复核记录",
+        "## 首次与持续审查历史快照（以下非当前状态）",
+        "## 记录规则",
+        "## 历史持续检查点",
+        "## 首次审查时的证据与覆盖",
+        "## 已复现并修复（首次审查快照，后续发布另记）",
+        "## 首次审查时尚未解决或尚未验证",
+        "## 本批次解决索引"
+      ],
+      "lines": 134
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/completion-worklog.md",
+      "sha256": "eb0ee7e28ecdc054f82efbaf5a68793ddfe5109d47c1c198358dca011e925069",
+      "kind": ".md",
+      "bytes": 26526,
+      "headings": [
+        "# 持续完成记录（未验收，不是完成报告）",
+        "## 评论部分上传与未知回执",
+        "## 主App项目视图归属",
+        "## 共享浏览器回执的进一步复核",
+        "## 浏览器夹具与当前运行",
+        "## 尚未完成的全局范围",
+        "## 工作流复核（本轮候选）",
+        "## 项目可写范围"
+      ],
+      "lines": 153
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/historical-structure-check.json",
+      "sha256": "47c4a13bd88188b9a88dcdae1b6147cccc294e6581011239306050d80ec075f2",
+      "kind": ".json",
+      "bytes": 1081,
+      "entries": 4,
+      "structure": [
+        "docs/audits/2026-10-27-full-review/inventory.json",
+        "docs/audits/2026-10-27-full-review/reviewed-current.json",
+        "docs/audits/2026-10-28-intent-review/inventory.json",
+        "docs/audits/2026-10-28-intent-review/reviewed-current.json"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/history-images.md",
+      "sha256": "8559029ee572ba54842e8a43f5e5526ccc1c1d3819211b32259511ac1e7f2b88",
+      "kind": ".md",
+      "bytes": 3778,
+      "headings": [
+        "# 历史图片核对范围"
+      ],
+      "lines": 31
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/history-review.jsonl",
+      "sha256": "88a9b2a2c0c90737736b452d63aa534d4fff5f0fabce4884e3b397bc9e13d4d2",
+      "kind": ".jsonl",
+      "bytes": 14701,
+      "entries": 39,
+      "structure": [
+        "chunk",
+        "records",
+        "review",
+        "sha256"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/inventory-additions.jsonl",
+      "sha256": "436be93c080c6a9f9e190a8f91bf15beeb4b3906390f8f2cc34b533a1c90f211",
+      "kind": ".jsonl",
+      "bytes": 42132,
+      "entries": 208,
+      "structure": [
+        "addedAfterBaseline",
+        "kind",
+        "lines",
+        "module",
+        "path",
+        "sha256"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/inventory.jsonl",
+      "sha256": "ba041d07a1027b9785d2f7d52daf786678155ce711fc3c87b3eedb2b3ea1043d",
+      "kind": ".jsonl",
+      "bytes": 123362,
+      "entries": 688,
+      "structure": [
+        "kind",
+        "lines",
+        "module",
+        "path",
+        "sha256"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/pending-findings.md",
+      "sha256": "516fc75429285a6e33ce87b84f7fdc471e04e2794a67c6230c0ac7c2f69c2880",
+      "kind": ".md",
+      "bytes": 16745,
+      "headings": [
+        "# 待复现与待验收项（历史发现及解决索引）",
+        "## 本轮持续检查点的已确认进展（不覆盖原发现历史）",
+        "## 本批次当前解决索引",
+        "## 文档校准后的当前入口（2026-11-02）"
+      ],
+      "lines": 81
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/read-ledger.jsonl",
+      "sha256": "05ac3efe2eadb7c3ee1ada470976ea7a854ec285ab97efc38c05179849869fd5",
+      "kind": ".jsonl",
+      "bytes": 1144777,
+      "entries": 3301,
+      "structure": [
+        "file",
+        "inheritedFrom",
+        "lines",
+        "mode",
+        "review",
+        "sha256"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/review-conclusions-at-7fbc846.md",
+      "sha256": "488523720a88f729226833e18b40d3ca6bda628d89743bda832083b3285497c4",
+      "kind": ".md",
+      "bytes": 15059,
+      "headings": [
+        "# 四层逐行复核记录",
+        "## 可核对的范围",
+        "## 四层审查结论",
+        "## 场景证据",
+        "## 这次没有掩盖的缺口",
+        "## 每条尚缺的直接case",
+        "## 发布状态与复用方式"
+      ],
+      "lines": 109
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/review-conclusions.md",
+      "sha256": "4110a2a85cbb8611d69022ee8f70eb0ee4b347a46a9aa772ab338997e4b41c49",
+      "kind": ".md",
+      "bytes": 3323,
+      "headings": [
+        "# 本轮四层复核结论",
+        "## 这轮完成的修复",
+        "## 验证结果及实际边界",
+        "## 没有冒充完成的验收"
+      ],
+      "lines": 32
+    },
+    {
+      "file": "docs/audits/2026-11-01-four-layer-recheck/test-results.jsonl",
+      "sha256": "f0af1c6e850766885d10e134373295a71e0ae232bdaa6e077b00d1da039cec33",
+      "kind": ".jsonl",
+      "bytes": 7325965,
+      "entries": 29783,
+      "structure": [
+        "failure",
+        "file",
+        "kind",
+        "name",
+        "run",
+        "sha256",
+        "status"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-01-ide-native-regression.md",
+      "sha256": "013d7624bb81edf01e39ba5f105bd040c6420839d15c34c203f52483f54d1835",
+      "kind": ".md",
+      "bytes": 11820,
+      "headings": [
+        "# Native migration: retained-feature review and IDE regression",
+        "## What went wrong",
+        "## Historical requirements reviewed",
+        "## Four-layer review coverage",
+        "## Retained feature matrix",
+        "## Evidence and publication"
+      ],
+      "lines": 73
+    },
+    {
+      "file": "docs/audits/2026-11-01-single-app-server.md",
+      "sha256": "ed233d164b715a47c39375add831505908755ccb774482b43b134bf21a27ed32",
+      "kind": ".md",
+      "bytes": 4503,
+      "headings": [
+        "# Single native App Server review",
+        "## Reviewed scope",
+        "## Native evidence",
+        "## Deployment boundary"
+      ],
+      "lines": 26
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/README.md",
+      "sha256": "3e6cff42d4150e7b76b493a8a362e9bc03cf709673fe3636b1b6adfff0e909bf",
+      "kind": ".md",
+      "bytes": 14134,
+      "headings": [
+        "# 远端 main 四层增量审查 · 2026-11-03",
+        "## 两张截图对应的问题",
+        "## 四层范围与证据边界",
+        "## 确认的运行缺陷",
+        "### F1 · P1 · 新线程持久回执失败后，peer 仍提交原生输入（新增）",
+        "### F2 · 不计入运行缺陷 · 仅直接注入 exec 配置的独立审批观察不一致",
+        "### F3 · P1 · 接收连接 error 被当作停止跟随（既有，截图一）",
+        "### F4 · P2 · 共享编辑器迟到的保存响应清掉后续编辑状态（新增）"
+      ],
+      "lines": 116
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/cases.json",
+      "sha256": "c941ba21e68fbafccb1f30f4eb63a9df03e55b404947ed9abc454c4df8e5f188",
+      "kind": ".json",
+      "bytes": 4640,
+      "entries": 3,
+      "structure": [
+        "schemaVersion",
+        "status",
+        "cases"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/changed-files.json",
+      "sha256": "e9a2ce9fa85343074f9f226147162f958a89810b88ed78989425426472674ca6",
+      "kind": ".json",
+      "bytes": 48636,
+      "entries": 6,
+      "structure": [
+        "target",
+        "base",
+        "scope",
+        "files",
+        "relatedExistingPaths",
+        "oldLedger"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/evidence.json",
+      "sha256": "725d06abe3b750e13b9c57f0f08dd89b16a9ecc1b796aabba659bd799d059828",
+      "kind": ".json",
+      "bytes": 4310,
+      "entries": 8,
+      "structure": [
+        "target",
+        "date",
+        "commands",
+        "tools",
+        "logs",
+        "productionObservation",
+        "notPerformed",
+        "conclusion"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/fix-test-results.jsonl",
+      "sha256": "fb0960d39fc16e48c6be91705c10c442f5300854321175e7a6e7eb1aa00c3bd0",
+      "kind": ".jsonl",
+      "bytes": 697979,
+      "entries": 2882,
+      "structure": [
+        "file",
+        "kind",
+        "name",
+        "sha256",
+        "status"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/fixes.md",
+      "sha256": "000e79dd3fedba591adc9bfae0e35ba6707e3e3a1deaf1266e0620d427e06062",
+      "kind": ".md",
+      "bytes": 2687,
+      "headings": [
+        "# 四项确认缺陷修复记录",
+        "## 实现与验收结果"
+      ],
+      "lines": 22
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/build.txt",
+      "sha256": "aa962bc03a58cc90b9a0fe5a95f578cfcac0193118c31a851a8314919dff1727",
+      "kind": ".txt",
+      "bytes": 1393,
+      "headings": [],
+      "lines": 38
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/counterexamples.txt",
+      "sha256": "86a1d757bf459d127641f6b069c116302167f62598b35d9b21363cb46edfcf2c",
+      "kind": ".txt",
+      "bytes": 5127,
+      "headings": [],
+      "lines": 104
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/fix-build.txt",
+      "sha256": "03d17f914d0602db5c53ae3b70a74684e3f432926321d57bdf0429a9edd9195b",
+      "kind": ".txt",
+      "bytes": 1393,
+      "headings": [],
+      "lines": 38
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/fix-full.txt",
+      "sha256": "d364ed6aea891ab17b43cd5f295d4d86f886e799ff99d3e04a7299dec1cad210",
+      "kind": ".txt",
+      "bytes": 625783,
+      "headings": [],
+      "lines": 6291
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/fix-targeted.txt",
+      "sha256": "94839b05814875dac18b79043b8cce26de0fa8b4a2303a41cc19ae925bf93fcd",
+      "kind": ".txt",
+      "bytes": 22314,
+      "headings": [],
+      "lines": 164
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/fix-typecheck.txt",
+      "sha256": "569495d981c843453331093c461cecbfbef7fb91d51076fc679973fd1262a400",
+      "kind": ".txt",
+      "bytes": 52,
+      "headings": [],
+      "lines": 4
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/full-after-build.txt",
+      "sha256": "08f047a62286b20966fcc1be25f86961808414c6031339b06a075d8c5d8cfd45",
+      "kind": ".txt",
+      "bytes": 624664,
+      "headings": [],
+      "lines": 6277
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/full-initial.txt",
+      "sha256": "63c575516a1fcc7eb38fbe14abb305a3f8ee0299825a81a09343d1fcaf717a48",
+      "kind": ".txt",
+      "bytes": 626218,
+      "headings": [],
+      "lines": 6299
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/install-retest.txt",
+      "sha256": "95b8317b813c5a0ea32e06ce363d32a8e609892e7ad20309c72bb2d5bcd9f30e",
+      "kind": ".txt",
+      "bytes": 212,
+      "headings": [],
+      "lines": 9
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/related.txt",
+      "sha256": "583689ee5a3d63506cf27f82ce0a8386176e24783b8bf37168136478414e3b27",
+      "kind": ".txt",
+      "bytes": 41118,
+      "headings": [],
+      "lines": 469
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/logs/typecheck.txt",
+      "sha256": "569495d981c843453331093c461cecbfbef7fb91d51076fc679973fd1262a400",
+      "kind": ".txt",
+      "bytes": 52,
+      "headings": [],
+      "lines": 4
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/probes/account-fixture.ts",
+      "sha256": "c26d787469c35e2f54901551b68b6687eb7955265ab9904f488abf5beac66ff2",
+      "kind": ".ts",
+      "bytes": 12948,
+      "headings": [],
+      "lines": 276
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/probes/configuration-reachability.test.ts",
+      "sha256": "000af78915d35845e5f130c3f1205850fe772204d82ee4ceb42876531232585c",
+      "kind": ".ts",
+      "bytes": 983,
+      "headings": [],
+      "lines": 19
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/probes/receipt-progress.test.ts",
+      "sha256": "83bb18a5e86d913dd425126be0a5ba99aeea191e1b7e3eafe1074ff9928f9e4b",
+      "kind": ".ts",
+      "bytes": 2014,
+      "headings": [],
+      "lines": 26
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/probes/regressions.test.ts",
+      "sha256": "6b74418d0013c2125abb74cf4f145a5676c681bc29a689992ce34e49afa9cf63",
+      "kind": ".ts",
+      "bytes": 4436,
+      "headings": [],
+      "lines": 66
+    },
+    {
+      "file": "docs/audits/2026-11-03-main-review/probes/workspace-save.test.ts",
+      "sha256": "e4deab6430f8f383046eeed29f70adb1bc259f9a38bf0552d29dab10190f57b9",
+      "kind": ".ts",
+      "bytes": 1839,
+      "headings": [],
+      "lines": 26
+    },
+    {
+      "file": "docs/audits/2026-11-03-peer-contract-review/README.md",
+      "sha256": "f9acb213fce339cc1117dd5c8044f532bc4a285b551d1b8e513f847c7d8956d7",
+      "kind": ".md",
+      "bytes": 10632,
+      "headings": [
+        "# Connector 与 main 功能/模块契约审查（2026-11-03）",
+        "## 历史结论",
+        "## 依据和范围",
+        "## 已确认问题",
+        "### P1 / A1：跨网络适配丢失最终写前的 Gateway 来源检查",
+        "### P1 / A2：审批异常或断连被转换成用户拒绝",
+        "## 架构与产品行为差异",
+        "## 直接验证记录"
+      ],
+      "lines": 102
+    },
+    {
+      "file": "docs/audits/2026-11-03-peer-contract-review/fixes.md",
+      "sha256": "34d779ed263df8c98c7fca12d5851410ee89996904e85cd30934d48dac9ec224",
+      "kind": ".md",
+      "bytes": 6170,
+      "headings": [
+        "# Connector 契约修复与合入范围",
+        "## 已修复",
+        "## 自动化证据",
+        "## Connector 适配矩阵",
+        "## 通用修改与发布约束"
+      ],
+      "lines": 51
+    },
+    {
+      "file": "docs/audits/2026-11-03-peer-contract-review/function-delta-review.json",
+      "sha256": "0d66e31cc01a1aff762b782d49dbfeaed9c3ea6b02cfc09dfd60e3e3545eb151",
+      "kind": ".json",
+      "bytes": 3990,
+      "entries": 22,
+      "structure": [
+        "baselineMatches",
+        "file",
+        "lines",
+        "symbol",
+        "unchanged"
+      ]
+    },
+    {
+      "file": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md",
+      "sha256": "f5e4a94d05b8f90451f6b4f29ec9a150843c36bae2d1776696f906890d24a30a",
+      "kind": ".md",
+      "bytes": 6953,
+      "headings": [
+        "# Connector 合并候选：接口、范围和回归（2026-11-03）",
+        "## 完成范围",
+        "## 拆出的功能",
+        "## 最终验证",
+        "## 发现与修复的反例",
+        "## 合并与发布边界"
+      ],
+      "lines": 71
+    },
+    {
+      "file": "docs/audits/2026-11-03-peer-contract-review/real-validation.md",
+      "sha256": "9a40c85030f18fd623a985629b1bae12f446a0978689337128d5ee163ac19e38",
+      "kind": ".md",
+      "bytes": 4057,
+      "headings": [
+        "# 修复后的真实钉钉验收（2026-11-03）",
+        "## 环境和切换",
+        "## 实际结果",
+        "## 收尾和结论边界"
+      ],
+      "lines": 33
+    },
+    {
+      "file": "docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts",
+      "sha256": "e8991a983fb3a2fb565c2b98f6662373ab47689a6493d2a2e0e234d94b72d82f",
+      "kind": ".ts",
+      "bytes": 4520,
+      "headings": [],
+      "lines": 73
+    },
+    {
+      "file": "docs/audits/2026-11-03-peer-contract-review/reproduction.txt",
+      "sha256": "7142f53730a4e8494bdd316f7e3618cef6ef0a7d3c1edbbc08d630e680793a45",
+      "kind": ".txt",
+      "bytes": 3711,
+      "headings": [],
+      "lines": 78
+    },
+    {
+      "file": "docs/audits/2026-11-03-peer-contract-review/test-results-final.jsonl",
+      "sha256": "55a767239c511587572ecda24158afb7901b6f39c8fcb42351e850341455ed4a",
+      "kind": ".jsonl",
+      "bytes": 693084,
+      "entries": 2861,
+      "structure": [
+        "file",
+        "kind",
+        "name",
+        "sha256",
+        "status"
+      ]
+    }
+  ]
+}

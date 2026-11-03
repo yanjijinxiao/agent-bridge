@@ -1,0 +1,39 @@
+✔ inbox real timer survives normal cleanup and never resubmits accepted input (2394.779375ms)
+✔ inbox real timer survives failure cleanup and never resubmits accepted input (2371.456625ms)
+✔ a failed control choice claim leaves the live journal consistent with disk and permits explicit retry (20.254625ms)
+✔ a failed pre-submit journal write performs no native call and does not leave a phantom live claim (19.840833ms)
+✔ an acceptance already renamed to disk survives a later directory fsync error without replay (12.343167ms)
+✔ native queue journal handles before-submit disk failure without a phantom claim or replay (19.042875ms)
+✔ native queue journal handles after-acceptance disk failure without a phantom claim or replay (10.370208ms)
+✔ queue persistence recovery preserves another thread awaiting native acceptance (19.0675ms)
+✔ a definite busy queue/start rejection preserves the same queued item across restart without another add (57.661417ms)
+✔ native queue owns prompts; receipts retain identity and dedupe across restart (58.739583ms)
+✔ lost add acknowledgement recovers exact client id, never adds again (22.785875ms)
+✔ known preflight failure permits a stable-source queue retry after restart (27.084375ms)
+✔ definitive native queue admission rejection can be retried with the same identity (27.897416ms)
+✔ accepted native queue callbacks outrank a later preflight-labelled failure (14.133291ms)
+✔ a consumed item is reconciled against older history by id, not similar text (38.018208ms)
+✔ absence in queue/history is uncertain, not permission to replay (49.067083ms)
+✔ foreign interrupted history is identity only; authoritative observation=inProgress (25.6955ms)
+✔ foreign interrupted history is identity only; authoritative observation=unknown (21.919583ms)
+✔ foreign interrupted history is identity only; authoritative observation=completed (21.689708ms)
+✔ lost add acknowledgement after consumption can observe its exact turn without a queue id (39.248875ms)
+✔ an unavailable thread does not starve recovery or dispatch on another thread (58.129542ms)
+✔ different threads dispatch concurrently; same thread cannot be dispatched twice (81.596ms)
+✔ terminal results can be recovered read-only after ownership changes (46.726209ms)
+✔ shared dispatch preserves native FIFO, keeps origin, and consumes each item once (61.985917ms)
+✔ start acknowledgement loss is reconciled, never submits or starts it again (66.596416ms)
+✔ cancellation enforces account/conversation/actor and does not interrupt active turns (25.563292ms)
+✔ exec cannot borrow native queue from another backend (0.901ms)
+✔ interactive queue reconciliation is conversation-scoped, single-flight and backend-specific (33.740417ms)
+✔ read-only queue history reconciliation cannot hold up a new native queue submission (53.897791ms)
+✔ a late queue observation cannot restore a cancelled native input (45.819084ms)
+✔ queue observation deadlines preserve uncertainty and ignore late read results (55.33875ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5086.143083

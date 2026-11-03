@@ -1,0 +1,48 @@
+[codex-im-gateway] Codex session watcher unavailable under /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/monitor-no-final-n3sqzy/sessions: Error: EMFILE: too many open files, watch
+✖ completed native turn without final text remains completed (live) (11.080666ms)
+[codex-im-gateway] Codex session watcher unavailable under /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/monitor-no-final-osTF4V/sessions: Error: EMFILE: too many open files, watch
+✖ completed native turn without final text remains completed (recovered) (3.217209ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 243.216125
+
+✖ failing tests:
+
+test at test/codex-session-monitor.test.ts:10:5723
+✖ completed native turn without final text remains completed (live) (11.080666ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /已完成/. Input:
+  
+  'Codex 任务已中断'
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/codex-session-monitor.test.ts:149:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Codex 任务已中断',
+    expected: /已完成/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/codex-session-monitor.test.ts:10:5723
+✖ completed native turn without final text remains completed (recovered) (3.217209ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /已完成/. Input:
+  
+  'Codex 任务已停止或执行失败。'
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/codex-session-monitor.test.ts:149:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Codex 任务已停止或执行失败。',
+    expected: /已完成/,
+    operator: 'match',
+    diff: 'simple'
+  }

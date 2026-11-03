@@ -16,6 +16,16 @@ import { InteractionRoutingJournal } from "../src/bridge/interaction-routing.js"
 
 const scope = { hostId: "local", threadId: "thread", turnId: "failed" };
 
+test("capacity continuation cannot infer an empty native queue from an empty page with a cursor", async t => {
+  const runner = new AppServerCodexRunner({ requestTimeoutMs: 1000, transport: { command: process.execPath,
+    args: [path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures/fake-capacity-app-server.mjs"), "--queue-next-page"], mode: "remote-daemon" } });
+  t.after(() => runner.close());
+  let accepted = 0;
+  await assert.rejects(runner.resumeAfterCapacity({ ...scope, failedTurnId: "failed", clientUserMessageId: "stable-attempt",
+    assertCurrent() {}, onTurnStarted() { accepted++; } }), /queue takes precedence/);
+  assert.equal(accepted, 0);
+});
+
 test("durable capacity backoff does not block Gateway restart", async t => {
   const f = fixture(t);
   const coordinator = new CapacityRecoveryCoordinator({ ...f.options, delaysMs: [60_000] }); t.after(() => coordinator.stop());

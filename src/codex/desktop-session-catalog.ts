@@ -47,10 +47,13 @@ export function readDesktopSessionCatalog(
       // title heuristic: an ordinary conversation named READY remains visible.
       if (row.source_kind === "exec" || row.source_kind.startsWith("subAgent")
         || row.thread_source === "ambient_suggestions" || row.thread_source === "pull_request_fix_automation") continue;
+      const updatedAt = typeof row.source_updated_at === "number" ? new Date(row.source_updated_at * 1000) : undefined;
       const state = membership({
         threadId: row.thread_id, title: row.display_title, cwd: row.cwd ?? undefined,
         ...(row.project_id ? { projectId: row.project_id, projectMembership: "assigned" as const } : {}),
-        updatedAt: new Date(row.source_updated_at * 1000).toISOString(),
+        // A malformed display timestamp does not invalidate the native ID or
+        // authorize repairing the catalog. Leave only that optional fact absent.
+        ...(updatedAt && Number.isFinite(updatedAt.getTime()) ? { updatedAt: updatedAt.toISOString() } : {}),
         catalogOrder: { recency: row.source_recency_at },
         persistence: "active", runtimeStatus: "unknown", activeFlags: []
       });

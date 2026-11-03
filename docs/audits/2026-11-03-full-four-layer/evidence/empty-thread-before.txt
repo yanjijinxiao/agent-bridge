@@ -1,0 +1,10 @@
+✔ native empty session survives metadata reads until its first input (stdio) (1119.908541ms)
+✔ native empty session survives metadata reads until its first input (daemon) (400.811375ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3637.946208

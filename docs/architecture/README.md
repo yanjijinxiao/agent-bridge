@@ -4,16 +4,16 @@
 
 ## 当前未完成工作
 
-[当前剩余清单](remaining-work.md)分开记录未实现功能、缺测组合与真实设备验收。当前310个case全部有测试映射，204项仅在列明边界通过、106项部分覆盖；TB-09.5重复创建已修复，不再列为当前失败。13项原缺少具体边界的记录已按断言补清，状态没有升级。
+[当前剩余清单](remaining-work.md)分开记录未实现功能、缺测组合与真实设备验收。当前374个case全部有测试映射，268项已有窄边界通过记录、106项部分覆盖；TB-09.5重复创建已修复，不再列为当前失败。13项原缺少具体边界的记录已按断言补清，状态没有升级。
 
 ## 阅读顺序
 
 1. [功能契约](gateway-contracts.md)：从公开会话提炼的行为要求，保留历史来源与被后续要求取代的决定。
-2. [实现职责图](gateway-implementation-map.md)：17 个模块的真实入口、状态写入者、原生与 Gateway 的边界。
+2. [实现职责图](gateway-implementation-map.md)：18 个模块的真实入口、状态写入者、原生与 Gateway 的边界。
 3. [需求与 case 清单](gateway-requirements.json)：每个功能的反例、正常对照、精确测试名、源码散列及验证边界。
 4. [场景覆盖摘要](gateway-case-coverage.md)：方便阅读的汇总；数字不表示整个模块已验收。
 5. [函数意图记录](function-contracts.jsonl)：已专门分析的函数职责、范围、限制。该清单只覆盖已列出的函数，不代表仓库所有函数都已逐个验证。
-6. [逐行审查记录](../audits/2026-11-01-four-layer-recheck/README.md)：文件版本、实际阅读范围、失败和修复证据、待办。
+6. [本轮逐行审查记录](../audits/2026-11-03-full-four-layer/README.md)：文件版本、实际阅读范围、失败和修复证据、待办。
 
 ## 模块说明
 
@@ -71,11 +71,15 @@
 | Web区分执行完成与答复待投递；审批漏重放与可信问题快照 | DEL-01.3、INT-02.1/.2 | [管理UI](modules/management-ui.md)、[原生交互](modules/native-interactions.md) |
 | 原28项补测、精确断言和剩余范围；33种流程节点的配置与执行边界 | AUDIT-01、TB-10.3 | [审查方法](modules/audit-method.md)、[节点对照](taskboard-node-contracts.md) |
 
-功能总文档主清单与需求JSON的310个case身份和场景文本同步。精选函数合同只覆盖已登记的151个函数，不代表仓库所有函数均已逐个验收。
+功能总文档与需求JSON的374个case对应；精选函数合同只覆盖已登记的174个函数，不代表仓库所有函数均已逐个验收。
 
-## 当前检查点与历史来源
+## 当前检查点
 
-本轮普通输入真实崩溃恢复新增19项检查；完整根回归2718通过、1项Windows专用跳过，精选函数合同151项。推送、准备制品与实际运行版本分别按发布manifest核验；此前业务版本afbd2d2及其2691/1检查属于上次发布。CTRL-03.3的联合场景另见下列记录。原生workflow未知交接、真实SSH/手机联调、33种工作流节点执行等仍在剩余清单中。
+本轮基线 d2adf14 的四层审阅与隔离验证已完成；Gateway 3009通过/1 Windows跳过，Taskboard 563通过。960个文件范围及各层证据见[本轮结论](../audits/2026-11-03-full-four-layer/conclusions.md)。106个partial保留原限制；推送与实际生产版本单独核验。上轮四项修复及2881/1结果保留于[历史修复记录](../audits/2026-11-03-main-review/fixes.md)。
+
+## 历史检查点与来源
+
+2026-11-02普通输入真实崩溃恢复检查点新增19项检查；完整根回归2718通过、1项Windows专用跳过，精选函数合同151项。推送、准备制品与实际运行版本分别按发布manifest核验；此前业务版本afbd2d2及其2691/1检查属于上次发布。CTRL-03.3的联合场景另见下列记录。原生workflow未知交接、真实SSH/手机联调、33种工作流节点执行等仍在剩余清单中。
 
 - [真实崩溃恢复](../audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md)：先复现两个真实缺口，再验证6种SIGKILL与13项边界，IN-02.2仍保留未测范围。
 - [队列终态与原卡投递联合检查](../audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md)：三终态×有无新轮次、两次管理器重建、原生仍运行冲突与正常执行。
@@ -90,4 +94,4 @@
 
 新增PEER-01～PEER-04及9个明确场景，逐项映射实际测试；主分支原310case的验证边界保留。查看[完整接口表](modules/peer-interface-matrix.md)、[功能文档](../gateway-peers.md)、[本轮合并记录](../audits/2026-11-03-peer-contract-review/merge-completion.md)。本轮没有把已有完整Web IDE/Taskboard的产品入口声称为Connector支持。
 
-当前机器清单共319个case（213个窄边界通过、106个partial），精选函数合同160条。Connector增量不会将主分支未验证的产品组合改成通过。
+Connector合并时的历史检查点为319个case（213个窄边界通过、106个partial）、160条精选函数合同；当前值见首页。Connector增量不会将主分支未验证的产品组合改成通过。

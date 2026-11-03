@@ -206,10 +206,11 @@ export function createCloudProxy({
       }
 
       const sourceUrl = new URL(request.url);
-      const upstreamUrl = new URL(
-        `${sourceUrl.pathname}${sourceUrl.search}`,
-        `${remoteUrl}/`,
-      );
+      // Incoming paths are data, never a new authority (e.g. //host/api/tasks).
+      // Only the configured origin may receive the companion's credentials.
+      const upstreamUrl = new URL(remoteUrl);
+      upstreamUrl.pathname = sourceUrl.pathname;
+      upstreamUrl.search = sourceUrl.search;
       const headers = new Headers(request.headers);
       headers.delete("authorization");
       headers.delete("host");

@@ -9,7 +9,7 @@ export const NEW_SESSION_USAGE = [
   "/new：在当前项目新建会话",
   "/new P2 或 /new C1：在指定项目新建并切换（编号来自 /project）",
   "/new --project 完整项目名：按名称选择项目；同名时请用编号",
-  "/new --standalone：新建本机独立会话，不归属任何项目",
+  "/new --standalone：在当前 Peer 设备新建独立会话；未选择主机时使用唯一已配对设备，多设备时需先选择；其他情况使用本机，不归属任何项目",
   "/session new ... 是 /new ... 的别名。下一条消息才会启动 Codex。"
 ].join("\n\n");
 

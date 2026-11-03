@@ -1,0 +1,3 @@
+{"kind":"test","file":"test/update-restart-failure.test.ts","name":"HTTP update restart handoff keeps service alive and releases only failed launches (sync-failure)","sha256":"4e911a0a4c2bf4b1a8961457ede6ce7f612a4bf8ebf2d4cb6f6dff8ff862463f","status":"passed"}
+{"kind":"test","file":"test/update-restart-failure.test.ts","name":"HTTP update restart handoff keeps service alive and releases only failed launches (async-failure)","sha256":"4e911a0a4c2bf4b1a8961457ede6ce7f612a4bf8ebf2d4cb6f6dff8ff862463f","status":"passed"}
+{"kind":"test","file":"test/update-restart-failure.test.ts","name":"HTTP update restart handoff keeps service alive and releases only failed launches (accepted)","sha256":"4e911a0a4c2bf4b1a8961457ede6ce7f612a4bf8ebf2d4cb6f6dff8ff862463f","status":"passed"}

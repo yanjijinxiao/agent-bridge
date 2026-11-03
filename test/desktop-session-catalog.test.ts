@@ -52,6 +52,18 @@ test("Desktop catalog is authoritative, host scoped, complete beyond 100 rows an
   assert.deepEqual(fs.readFileSync(file), before);
 });
 
+test("an invalid display timestamp does not remove a native catalog entry or fabricate its time", t => {
+  const { home, db, add } = fixture(t);
+  add("invalid-date"); add("normal");
+  db.prepare("UPDATE local_thread_catalog SET source_updated_at=? WHERE thread_id=?").run(1e100, "invalid-date");
+  const before = fs.readFileSync(path.join(home, "sqlite", "codex-dev.db"));
+  const catalog = readDesktopSessionCatalog(home)!;
+  assert.equal(catalog.threads.length, 2);
+  assert.equal(catalog.threads.find(t => t.threadId === "invalid-date")?.updatedAt, undefined);
+  assert.equal(catalog.threads.find(t => t.threadId === "normal")?.updatedAt, new Date(100000).toISOString());
+  assert.deepEqual(fs.readFileSync(path.join(home, "sqlite", "codex-dev.db")), before);
+});
+
 test("Desktop membership uses legacy roots without absorbing explicit independent tasks", t => {
   const { home, add } = fixture(t);
   add("old-project-task"); add("independent"); add("moved"); add("nested", "local", "vscode", 0, "nested", "/repo/subdir");

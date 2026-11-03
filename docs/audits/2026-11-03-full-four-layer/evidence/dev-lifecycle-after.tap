@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: either dev service ending (0/null) stops its sibling
+ok 1 - either dev service ending (0/null) stops its sibling
+  ---
+  duration_ms: 2.713666
+  type: 'test'
+  ...
+# Subtest: either dev service ending (2/null) stops its sibling
+ok 2 - either dev service ending (2/null) stops its sibling
+  ---
+  duration_ms: 0.623875
+  type: 'test'
+  ...
+# Subtest: either dev service ending (null/SIGTERM) stops its sibling
+ok 3 - either dev service ending (null/SIGTERM) stops its sibling
+  ---
+  duration_ms: 0.40825
+  type: 'test'
+  ...
+# Subtest: failed spawn is handled, reports the cause and stops the other dev service
+ok 4 - failed spawn is handled, reports the cause and stops the other dev service
+  ---
+  duration_ms: 0.327167
+  type: 'test'
+  ...
+# Subtest: both development commands use the current Node, without an npm wrapper child
+ok 5 - both development commands use the current Node, without an npm wrapper child
+  ---
+  duration_ms: 0.742417
+  type: 'test'
+  ...
+# Subtest: real temporary child exit closes the remaining process without leaving a half-running stack
+ok 6 - real temporary child exit closes the remaining process without leaving a half-running stack
+  ---
+  duration_ms: 49.520041
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 118.840625

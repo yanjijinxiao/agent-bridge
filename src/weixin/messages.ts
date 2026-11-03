@@ -13,9 +13,19 @@ export type WeixinInboundAttachment = import("../channels/message.js").ChannelAt
 export type NormalizedWeixinMessage = import("../channels/message.js").ChannelMessage;
 
 export function normalizeWeixinMessage(raw: WeixinRawMessage): NormalizedWeixinMessage | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("Weixin message must be an object");
+  }
   const senderId = raw.from_user_id ?? raw.sender;
   if (!senderId) {
     return undefined;
+  }
+  if (typeof senderId !== "string") throw new Error("Weixin message sender must be a string");
+  // The provider's identity is the durable deduplication key. A local clock,
+  // random ID or content hash cannot distinguish retries from new user input.
+  const id = raw.message_id;
+  if (!(typeof id === "string" && id.trim()) && !(typeof id === "number" && Number.isSafeInteger(id))) {
+    throw new Error("Weixin message requires a stable native message_id");
   }
   const textParts: string[] = [];
   if (typeof raw.text === "string") {
@@ -40,7 +50,7 @@ export function normalizeWeixinMessage(raw: WeixinRawMessage): NormalizedWeixinM
       availability: text || media.length ? "available" : "metadata-only" });
   }
   return {
-    id: String(raw.message_id ?? `${senderId}:${Date.now()}`),
+    id: String(id),
     senderId,
     contextToken: raw.context_token,
     text: textParts.join("\n").trim(),

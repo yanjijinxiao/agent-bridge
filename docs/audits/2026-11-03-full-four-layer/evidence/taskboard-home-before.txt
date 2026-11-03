@@ -1,0 +1,33 @@
+✖ an explicit Codex home supplies the AI project's full root set (48.926458ms)
+✔ explicit Codex state paths still override home-derived defaults (0.258542ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 166.292584
+
+✖ failing tests:
+
+test at taskboard/test/codex-home-options.test.mjs:9:1
+✖ an explicit Codex home supplies the AI project's full root set (48.926458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      '/private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/taskboard-home-audit-SXWzSf/first',
+  -   '/private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/taskboard-home-audit-SXWzSf/second'
+    ]
+  
+      at TestContext.<anonymous> (file:///private/tmp/gateway-four-layer-audit-20261103/taskboard/test/codex-home-options.test.mjs:21:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '/private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/taskboard-home-audit-SXWzSf/first' ],
+    expected: [ '/private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/taskboard-home-audit-SXWzSf/first', '/private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/taskboard-home-audit-SXWzSf/second' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

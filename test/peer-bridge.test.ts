@@ -86,7 +86,7 @@ test("DingTalk-normalized chat pairs and continues the exact existing device ses
   const f = await peerFixture(t), paths = resolveStatePaths(path.join(f.root, "gateway-state")), store = new RuntimeStateStore(paths);
   const replies: string[] = [];
   const channel = createChannelClient("dingtalk", TEXT_CAPABILITIES, { async sendText(input) { replies.push(input.text); return { messageId: crypto.randomUUID() }; } });
-  const config = { ...defaultConfig(paths.root), allowedSenderIds: [principal.actorId], model: "gateway-gpt-default", streamReplies: false };
+  const config = { ...defaultConfig(paths.root), allowedSenderIds: [principal.actorId], model: "gateway-gpt-default", effort: "high", streamReplies: false };
   const service = new BridgeService({ config, accountId: principal.accountId, stateStore: store, channel, runner: f.facade, peer: f.registry });
   t.after(() => service.suspendUserInputs());
   const message = (text: string, senderId = principal.actorId) => ({ id: crypto.randomUUID(), senderId, replyTargetId: principal.conversationId,
@@ -104,10 +104,45 @@ test("DingTalk-normalized chat pairs and continues the exact existing device ses
   assert.equal(f.runs.length, 1);
   await service.handleMessage(message("/model"));
   assert.ok(replies.at(-1)?.includes("deepseek-v4.1-flash-1017"));
+  await service.handleMessage(message("/status"));
+  assert.match(replies.at(-1)!, /model: deepseek-v4\.1-flash-1017/);
+  assert.match(replies.at(-1)!, /effort: medium/);
+  assert.doesNotMatch(replies.at(-1)!, /gateway-gpt-default/);
   await service.handleMessage(message("/balance"));
   assert.ok(replies.at(-1)?.includes("device-only-limit"), replies.at(-1));
   await service.handleMessage(message("/leave")); assert.equal(store.getBoundSession(principal.conversationId), undefined);
 });
+
+for (const change of ["unchanged", "binding", "aba", "role"] as const)
+  test(`a delayed connect keeps its original binding authority (${change})`, { timeout: 5000 }, async t => {
+    const f = await peerFixture(t), store = new RuntimeStateStore(resolveStatePaths(path.join(f.root, "connect-state")));
+    const original = store.createSession(principal.conversationId, f.root, "Original", undefined, "session", undefined, { standalone: true });
+    store.setSessionThread(original.id, "original-thread");
+    const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+    let reads = 0;
+    const runner = new Proxy(f.facade, { get(target, key) {
+      if (key === "inspectThread") return async (...args: Parameters<typeof target.inspectThread>) => {
+        if (++reads === 1) { entered.resolve(); await release.promise; }
+        return target.inspectThread(...args);
+      };
+      return Reflect.get(target, key);
+    } });
+    const service = new BridgeService({ accountId: principal.accountId, stateStore: store, runner, peer: f.registry,
+      config: { ...defaultConfig(f.root), allowedSenderIds: [principal.actorId], streamReplies: false },
+      channel: createChannelClient("dingtalk", TEXT_CAPABILITIES, { async sendText() { return { messageId: crypto.randomUUID() }; } }) });
+    t.after(() => service.suspendUserInputs());
+    const pending = service.handleMessage({ id: "connect", senderId: principal.actorId, replyTargetId: principal.conversationId,
+      text: `/connect ${f.ticket.code}`, attachments: [], raw: {} }).catch(error => error);
+    await entered.promise;
+    if (change === "binding" || change === "aba") store.setSessionThread(original.id, "replacement-thread");
+    if (change === "aba") store.setSessionThread(original.id, "original-thread");
+    if (change === "role") store.setRole(principal.conversationId, principal.actorId, "viewer");
+    release.resolve(); await pending;
+    const current = store.getBoundSession(principal.conversationId)!;
+    assert.equal(current.threadId, change === "unchanged" ? f.thread.threadId : change === "binding" ? "replacement-thread" : "original-thread");
+    assert.equal(current.hostId, change === "unchanged" ? f.ticket.hostId : original.hostId);
+    assert.equal(f.runs.length, 0, "pairing and binding never execute a task");
+  });
 
 test("Gateway chat ACL and peer grants both apply even when a group is allowed", async t => {
   const f = await peerFixture(t), store = new RuntimeStateStore(resolveStatePaths(path.join(f.root, "gateway-state")));

@@ -230,7 +230,7 @@ test("archived tasks are excluded from project issue counts", async () => {
   );
 });
 
-test("R2 attachment upload, download, delete, and D1 failure compensation form one closed lifecycle", async () => {
+test("R2 attachment lifecycle preserves staged objects after an unconfirmed D1 failure", async () => {
   const task = await createTask("alpha", "Attachment owner");
   const uploaded = await cloud.request(`/api/tasks/${task.body.task.id}/attachments`, {
     method: "POST",
@@ -267,10 +267,15 @@ test("R2 attachment upload, download, delete, and D1 failure compensation form o
       "content-type": "text/plain",
       "x-taskboard-filename": encodeURIComponent("fail.txt"),
     },
-    body: "must be compensated",
+    body: "must be preserved until confirmed",
   });
   assert.equal(failed.response.status, 500);
-  assert.deepEqual(await cloud.listAttachmentKeys(), beforeKeys);
+  const preserved = (await cloud.listAttachmentKeys()).filter(key => !beforeKeys.includes(key));
+  assert.equal(preserved.length, 1);
+  assert.equal(await cloud.db.prepare("SELECT COUNT(*) AS n FROM attachments WHERE id = ?").bind(preserved[0]).first("n"), 0);
+  // The test knows the trigger rejected; production transport errors carry no
+  // such proof. Explicit fixture cleanup is not a product compensation policy.
+  await cloud.attachments.delete(preserved[0]);
 });
 
 test("the global revision is monotonic and lets clients poll only when data changed", async () => {

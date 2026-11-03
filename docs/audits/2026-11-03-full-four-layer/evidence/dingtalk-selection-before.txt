@@ -1,0 +1,102 @@
+[codex-im-gateway] DingTalk callback identity {"accountId":"isolated","source":"callback","robotCode":null}
+[codex-im-gateway] DingTalk AI Card {"timestamp":"2026-11-03T04:50:03.308Z","event":"operation_failed","outTrackId":"codex_bridge_5cc4975344a644c3bd1672d91a5dc676","operation":"create","code":"InvalidTemplate","httpStatus":400,"uncertain":false}
+[codex-im-gateway] DingTalk AI Card unavailable, falling back to text: 钉钉 AI Card create 请求失败（HTTP 400, code=InvalidTemplate）
+[codex-im-gateway] DingTalk callback identity {"accountId":"isolated","source":"callback","robotCode":null}
+[codex-im-gateway] DingTalk AI Card {"timestamp":"2026-11-03T04:50:03.310Z","event":"operation_failed","outTrackId":"codex_bridge_154ce64239f141ebb83f562ba181029c","operation":"create","code":"InvalidAcknowledgement","httpStatus":200,"uncertain":true}
+[codex-im-gateway] DingTalk callback identity {"accountId":"isolated","source":"callback","robotCode":null}
+[codex-im-gateway] DingTalk AI Card {"timestamp":"2026-11-03T04:50:03.311Z","event":"operation_failed","outTrackId":"codex_bridge_64789107ae614cb1ae2d5bf6990599d5","operation":"create","code":"InvalidTemplate","httpStatus":400,"uncertain":false}
+[codex-im-gateway] DingTalk command card unavailable, falling back to a compact list: 钉钉 AI Card create 请求失败（HTTP 400, code=InvalidTemplate）
+[codex-im-gateway] DingTalk callback identity {"accountId":"isolated","source":"callback","robotCode":null}
+[codex-im-gateway] DingTalk AI Card {"timestamp":"2026-11-03T04:50:03.312Z","event":"operation_failed","outTrackId":"codex_bridge_923b1ecf803f45678227deaea9692e95","operation":"create","code":"InvalidAcknowledgement","httpStatus":200,"uncertain":true}
+[codex-im-gateway] DingTalk callback identity {"accountId":"isolated","source":"callback","robotCode":null}
+[codex-im-gateway] DingTalk callback identity {"accountId":"isolated","source":"callback","robotCode":null}
+✖ static DingTalk text creation rejected does not change the selected transport (11.34525ms)
+✔ static DingTalk text creation unknown does not change the selected transport (1.179125ms)
+✖ static DingTalk action creation rejected does not change the selected transport (0.688417ms)
+✔ static DingTalk action creation unknown does not change the selected transport (0.379833ms)
+✖ DingTalk stream does not infer a private recipient from unconfirmed type "unknown" (0.476125ms)
+✖ DingTalk stream does not infer a private recipient from unconfirmed type "" (0.169ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 2
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 749.042167
+
+✖ failing tests:
+
+test at test/dingtalk-delivery-selection.test.ts:1:1452
+✖ static DingTalk text creation rejected does not change the selected transport (11.34525ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/dingtalk-delivery-selection.test.ts:38:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/dingtalk-delivery-selection.test.ts:1:1452
+✖ static DingTalk action creation rejected does not change the selected transport (0.688417ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/dingtalk-delivery-selection.test.ts:38:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/dingtalk-delivery-selection.test.ts:1:2220
+✖ DingTalk stream does not infer a private recipient from unconfirmed type "unknown" (0.476125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'available'
+  - 'unconfirmed'
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/dingtalk-delivery-selection.test.ts:50:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'available',
+    expected: 'unconfirmed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/dingtalk-delivery-selection.test.ts:1:2220
+✖ DingTalk stream does not infer a private recipient from unconfirmed type "" (0.169ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'available'
+  - 'unconfirmed'
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-four-layer-audit-20261103/test/dingtalk-delivery-selection.test.ts:50:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'available',
+    expected: 'unconfirmed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
