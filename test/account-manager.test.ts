@@ -273,6 +273,39 @@ function setup(t: test.TestContext, options: { taskboardClient?: object; taskCar
   };
 }
 
+test("receive connection errors preserve the original card until an explicit account stop", async t => {
+  let monitor!: import("../src/channels/types.js").ChannelMonitorOptions;
+  const updates: string[] = []; let starts = 0;
+  const f = setup(t, { adapterFactory: () => ({
+    client: { resumableTextStream: true,
+      async sendText(input) { updates.push(input.text); return { messageId: "text" }; },
+      async startTextStream(input) { starts++; updates.push(input.text); return { messageId: "card" }; },
+      async updateTextStream(input) { updates.push(input.text); } },
+    async monitor(options) { monitor = options; await new Promise<void>(resolve => options.signal?.addEventListener("abort", () => resolve(), { once: true })); }
+  }) });
+  Object.assign(f.runner, { async readThreadSnapshot(threadId: string) {
+    return { state: { threadId, persistence: "active", runtimeStatus: "active", activeFlags: [], activeTurnId: "turn" },
+      turns: [{ id: "turn", status: "inProgress", messages: [] }] };
+  } });
+  await f.manager.startAccount("account-one", false);
+  const store = f.bridges.get("account-one")!.stateStore;
+  const session = store.createSession("chat", f.root, "active"); store.setSessionThread(session.id, "thread");
+  const hub = (f.manager as any).threadEvents;
+  await hub.started("local", "thread", "turn", new Date().toISOString());
+  await hub.activity("local", "thread", "turn", "original progress");
+  assert.equal(starts, 1);
+  for (const state of ["error", "connecting", "connected"] as const) {
+    monitor.onStatus?.({ state }); await hub.refresh();
+    assert.equal(store.getBoundSession("chat")?.id, session.id);
+    assert.equal(updates.some(text => text.includes("已停止跟随")), false);
+    assert.equal(starts, 1, "reconnection retains the original card");
+  }
+  await f.manager.stopAccount("account-one", false); await hub.refresh();
+  assert.equal(updates.filter(text => text.includes("已停止跟随")).length, 1);
+  monitor.onStatus?.({ state: "connected" }); await hub.refresh();
+  assert.equal(starts, 1, "a retired monitor cannot re-enable observation");
+});
+
 test("web unbind removes only the selected account/chat edge and immediately refreshes native subscriptions", async t => {
   const f = setup(t);
   Object.assign(f.runner, { async readThreadSnapshot(threadId: string) {

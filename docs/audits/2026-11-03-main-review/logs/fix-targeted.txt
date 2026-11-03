@@ -1,0 +1,164 @@
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:49.496Z","operation":"final-result-delivery","hostId":"peer:laptop:work","threadId":"peer-thread","turnId":"peer-turn","status":"delivered"}
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:49.571Z","hostId":"remote-one","threadId":"failed-thread","operation":"follow-synchronize","status":"failed","code":"unavailable","message":"会话处于系统错误状态（systemError）；已进入受控恢复检查，绑定保留，旧消息未重发。\n上一轮失败原因：Codex 账号工作区路由发现失败。","snapshotRuntime":"systemError","snapshotPersistence":"active","snapshotAt":"2026-11-03T03:14:49.562Z"}
+✔ receive connection errors preserve the original card until an explicit account stop (74.270834ms)
+✔ web unbind removes only the selected account/chat edge and immediately refreshes native subscriptions (55.208ms)
+✔ an exec Gateway delivers Connector results using the peer's live-follow capability (40.748584ms)
+✔ account manager routes follow sync through the shared hub and rejects an old binding (37.4405ms)
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:49.634Z","hostId":"remote-one","threadId":"failed-thread","operation":"follow-synchronize","status":"failed","code":"unavailable","message":"会话处于系统错误状态（systemError）；已进入受控恢复检查，绑定保留，旧消息未重发。\n上一轮失败原因：Codex 账号工作区路由发现失败。","snapshotRuntime":"systemError","snapshotPersistence":"active","snapshotAt":"2026-11-03T03:14:49.626Z"}
+✔ system-error follow observations reach the exact recovery owner and Web status, supported=true (64.53675ms)
+✔ system-error follow observations reach the exact recovery owner and Web status, supported=false (56.01775ms)
+✔ notifies Taskboard review state once as an actionable card with the latest evidence (54.376167ms)
+✔ exposes and manages only workspace-mapped Taskboard issues (23.637583ms)
+✔ rejects Taskboard admin mutations without a Codex thread or valid transition (19.996584ms)
+✔ isolates personal knowledge by WeChat account (19.138833ms)
+✔ starts and stops multiple accounts independently (39.628042ms)
+✔ adds redacted enterprise channels and stops them cleanly (52.446083ms)
+✔ routes a native Feishu menu click through the actor's authorized conversation (87.453ms)
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:50.075Z","operation":"final-result-delivery","hostId":"local","threadId":"bound-desktop-thread","turnId":"bound-desktop-turn","status":"delivered"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:50.173Z","operation":"final-result-delivery","hostId":"local","threadId":"desktop-live-thread","turnId":"desktop-live-turn","status":"delivered"}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T03:14:50.217Z","hostId":"local","threadId":"desktop-approval-thread","turnId":"desktop-turn","code":"unavailable","bindingCount":0}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T03:14:50.515Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"ambiguous","bindingCount":2}
+[codex-im-gateway] approval has no unique active session binding; left for Desktop
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T03:14:50.567Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"ambiguous","bindingCount":2}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T03:14:51.217Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"unavailable","bindingCount":0}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T03:14:51.267Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"unavailable","bindingCount":0}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T03:14:51.319Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"ambiguous","bindingCount":2}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T03:14:51.678Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"unavailable","bindingCount":0}
+[codex-im-gateway] no managed project found for Codex Desktop approval 316
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T03:14:51.731Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"unavailable","bindingCount":0}
+[codex-im-gateway] approval has no unique active session binding; left for Desktop
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T03:14:51.777Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"ambiguous","bindingCount":2}
+[codex-im-gateway] approval has no unique active session binding; left for Desktop
+✔ notifies the configured channel and mirrors the outbound message to its webhook (81.100958ms)
+✔ notifies the configured channel when an existing Codex client task ends (71.155042ms)
+✔ streams externally owned Codex progress into a bound channel session and finalizes it (76.771417ms)
+✔ forwards an existing Codex Desktop approval to the project's configured channel (45.916167ms)
+✔ Web execution cannot synthesize a denial or deliver approval after channel-stopped (40.603916ms)
+✔ Web execution cannot synthesize a denial or deliver approval after binding-replaced (42.535709ms)
+✔ capacity recovery without its original approval route leaves the native request unanswered (17.395458ms)
+✔ remote Desktop questions and approvals stay on their execution host's binding (66.7905ms)
+✔ multi-bound App questions and approvals use the explicit primary, not every progress follower (80.910375ms)
+✔ unrouted interactions produce deduplicated neutral guidance, not leaked questions or repeated cards (190.03325ms)
+✔ selecting a primary cannot reactivate a switched binding or disable another follower (56.875667ms)
+✔ reset reconciles a stale primary and only a newly accepted IM origin can replace it (92.912042ms)
+✔ an already persisted question destination is not changed by a new primary (61.889375ms)
+✔ manager restart retains exact turn origins and the separate primary for new App turns (156.240958ms)
+✔ routes questions and native receipts to the unique originating IM, never an unrelated project target (71.998167ms)
+✔ unsupported Desktop interaction notices use the exact binding without inventing approval choices (68.461167ms)
+✔ leaves remote questions in the App instead of leaking to another IM (49.956541ms)
+✔ leaves not-following questions in the App instead of leaking to another IM (50.881167ms)
+✔ leaves ambiguous questions in the App instead of leaking to another IM (80.839667ms)
+✔ a durable question destination is recovered without broadcasting to every followed group (60.172541ms)
+✔ web-started questions use the same channel handler and native result callback (58.911625ms)
+✔ subscribes standalone bound sessions on startup and reports receipts to their original IM (50.368ms)
+✔ explicit session bindings take precedence over unrelated project notification channels (59.794875ms)
+✔ does not confuse a remote binding with an identically named local thread (54.998208ms)
+✔ leaves remote Desktop approvals for Desktop rather than guessing a destination (47.848584ms)
+✔ leaves not-following Desktop approvals for Desktop rather than guessing a destination (53.834875ms)
+✔ leaves ambiguous Desktop approvals for Desktop rather than guessing a destination (75.5895ms)
+✔ pins a managed turn's approval to its originating binding when several groups follow (84.338875ms)
+✔ web-initiated app-server approvals also use standalone session bindings (57.164334ms)
+✔ refreshes Desktop approval subscriptions when sessions are deleted or a channel stops (51.053166ms)
+✔ starts approval monitoring when the first standalone IM turn creates its thread (62.585458ms)
+✔ refreshes a running account so new credentials take effect (32.426833ms)
+✔ isolates senders and managed sessions by account (44.286458ms)
+✔ Web UI personal admission is IDE authority for running and stopped accounts; removal fences old grants across restart and re-allow (70.786875ms)
+✔ isolates managed projects by WeChat account (21.631917ms)
+✔ tracks currently running Codex client tasks for a managed project (30.215125ms)
+✔ includes the project's bound sessions and active marker in project summaries (34.883458ms)
+✔ session binding projection adds only provider-confirmed conversation identity and preserves historical edges (60.651709ms)
+✔ a retired monitor cannot report an unsaved input as an already durable duplicate (36.774042ms)
+✔ rejects projects outside the configured workspace allowlist (15.704625ms)
+✔ persists channel settings without exposing the webhook URL (19.144792ms)
+✔ configures channel modes from a validated llm-wiki directory (18.005083ms)
+✔ configures channel Q&A from a validated managed Codex project (19.924625ms)
+✔ revalidates an existing knowledge base and applies a corrected project CLI root atomically (16.005667ms)
+✔ revalidates a managed knowledge base before selecting it as the channel default (15.754208ms)
+✔ does not validate or register a hidden Q&A directory when Q&A is disabled (18.294833ms)
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:52.771Z","hostId":"local","threadId":"bound-approval-thread","operation":"follow-synchronize","status":"failed","code":"unavailable","message":"会话处于系统错误状态（systemError）；已进入受控恢复检查，绑定保留，旧消息未重发。\n上一轮失败原因：上游报告所选模型当前容量不足（model at capacity / server overloaded）。","snapshotRuntime":"systemError","snapshotPersistence":"active","snapshotAt":"2026-11-03T03:14:52.771Z"}
+✔ mirrors each inbound channel message to its configured webhook (77.067666ms)
+✔ optionally retains account sessions when removing a WeChat account (41.917708ms)
+✔ reports the effective Codex model and reasoning effort (16.699042ms)
+✔ reports the models and reasoning efforts advertised by Codex (16.159375ms)
+✔ model callbacks keep the remote host, workspace and thread through AccountManager (23.988375ms)
+✔ keeps the GPT-5.6 provider family available after selecting another model (16.884791ms)
+✔ Web input on a capacity-failed bound session uses the same recovery coordinator without submitting the message (61.468ms)
+✔ reads managed thread history and continues the same session from Web (64.8145ms)
+✔ Web turns learn and reuse the owning WeChat account knowledge (62.534917ms)
+✔ uses WeChat session model overrides when continuing the same session from Web (51.183167ms)
+✔ streams Web progress without exposing final-answer deltas (43.816708ms)
+✔ stores Web uploads per session and exposes them in user history (63.159875ms)
+✔ reports a managed session as responding only while its Web turn is active (64.13275ms)
+✔ keeps source citations in session history without fabricated attachments (56.419708ms)
+✔ exposes files sent by Codex as session attachments (58.2245ms)
+✔ running account receives the same admission service and a remote decision updates its existing ACL owner (63.887625ms)
+✔ fresh native input waits for durable thread callback: normal control (153.182792ms)
+✔ fresh native input waits for durable thread callback: failed journal (89.039542ms)
+✔ workspace save receipt only clears its submitted revision: unchanged (9.855958ms)
+✔ workspace save receipt only clears its submitted revision: new edits (0.519084ms)
+✔ a delayed save cannot change a reopened file view: b.txt (0.48725ms)
+✔ a delayed save cannot change a reopened file view: a.txt (0.395625ms)
+✔ rejected workspace save retains the draft and does not re-enable revoked access (0.395ms)
+✔ file loading cannot discard edits made while its read was pending (1.043083ms)
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:48.567Z","hostId":"local","threadId":"thread","operation":"follow-synchronize","status":"failed","code":"unavailable","message":"会话处于系统错误状态（systemError）；绑定已保留，未自动恢复或重发任务。\n上一轮失败原因：上游安全系统拒绝了本轮请求：Potentially unintended activity（可能存在非预期操作）。上游未提供进一步触发细节。\n请在对应 Codex 后端原会话中查看并处理错误。","snapshotRuntime":"systemError","snapshotPersistence":"active","snapshotAt":"2026-11-03T03:14:48.567Z"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.572Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"visible-old-turn","status":"delivered"}
+✔ systemError follow reports the real normalized reason without synthesizing a task completion or new card (4.595584ms)
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:48.588Z","hostId":"local","threadId":"thread","operation":"follow-synchronize","status":"failed","code":"unavailable","message":"会话已归档、不存在或发生系统错误；请在对应 Codex 后端检查。","snapshotRuntime":"idle","snapshotPersistence":"archived","snapshotAt":"2026-11-03T03:14:48.588Z"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.590Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:48.592Z","hostId":"local","threadId":"thread","operation":"follow-synchronize","status":"failed","code":"unavailable","message":"会话已归档、不存在或发生系统错误；请在对应 Codex 后端检查。","snapshotRuntime":"idle","snapshotPersistence":"missing","snapshotAt":"2026-11-03T03:14:48.592Z"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.594Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:48.597Z","hostId":"local","threadId":"thread","operation":"follow-synchronize","status":"failed","code":"unavailable","message":"会话处于系统错误状态（systemError）；绑定已保留，未自动恢复或重发任务。\n请在对应 Codex 后端原会话中查看并处理错误。","snapshotRuntime":"systemError","snapshotPersistence":"active","snapshotAt":"2026-11-03T03:14:48.597Z"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.598Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:48.603Z","hostId":"local","threadId":"thread","operation":"follow-synchronize","status":"unconfirmed","code":"unconfirmed","message":"最近历史未包含原轮次，无法确认其结束或最终答复；保留绑定与原卡片，请用 /history 查询，不生成任务结束通知。","snapshotRuntime":"idle","snapshotPersistence":"active","snapshotAt":"2026-11-03T03:14:48.602Z"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.604Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.606Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:48.609Z","hostId":"local","threadId":"thread","operation":"follow-synchronize","status":"unconfirmed","code":"unconfirmed","message":"旧展示已有完成回执，与原生状态相互冲突；正在核对来源，未中断或重跑主任务。","snapshotRuntime":"active","snapshotPersistence":"active","snapshotAt":"2026-11-03T03:14:48.609Z"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.611Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.620Z","operation":"final-result-delivery","hostId":"local","threadId":"new","turnId":"new-turn","status":"delivered"}
+[codex-im-gateway] channel progress {"timestamp":"2027-01-15T08:00:00.500Z","event":"retry_scheduled","streamId":"codex_bridge_7e6fb07f22d9432fb7e95878b893adc6","messageId":"original","phase":"backoff","recoveryProbes":0,"delayMs":5000}
+✔ background and forced follow retain five unsent historical results without creating a notification burst (8.015667ms)
+✔ archived observations never become a synthetic final result (13.872667ms)
+✔ missing observations never become a synthetic final result (4.529625ms)
+✔ systemError observations never become a synthetic final result (5.149916ms)
+✔ absent-history observations never become a synthetic final result (4.353583ms)
+✔ legacy synthetic observation receipts are quarantined and the same card receives only the real final (3.408666ms)
+✔ an active owner conflicting with acknowledged completion is not blamed on IM permissions (1.293625ms)
+✔ /stream off suppresses followed progress but sends the final result exactly once (2.369833ms)
+✔ a snapshot read before switching bindings cannot open the old session card (0.957916ms)
+✔ switching binding during an active stream closes the old card and follows only the new task (7.780083ms)
+[codex-im-gateway] channel progress {"timestamp":"2027-01-15T08:00:05.500Z","event":"recovered","streamId":"codex_bridge_7e6fb07f22d9432fb7e95878b893adc6","messageId":"original","phase":"active","recoveryProbes":0}
+[codex-im-gateway] result delivery {"timestamp":"2027-01-15T08:00:05.500Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.641Z","operation":"final-result-delivery","hostId":"local","threadId":"main","turnId":"first","status":"delivered"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.642Z","operation":"final-result-delivery","hostId":"local","threadId":"main","turnId":"second","status":"delivered"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.650Z","operation":"final-result-delivery","hostId":"local","threadId":"main","turnId":"user-turn","status":"delivered"}
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:48.653Z","hostId":"local","threadId":"main","operation":"follow-synchronize","status":"unconfirmed","code":"unconfirmed","message":"会话未加载或暂无实时持有者；绑定已保留，跟随继续等待。发送新消息会尝试继续同一会话；同步命令不会启动任务。","snapshotRuntime":"notLoaded","snapshotPersistence":"active","snapshotAt":"2026-11-03T03:14:48.653Z"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.660Z","operation":"final-result-delivery","hostId":"local","threadId":"created-thread","turnId":"new-turn","status":"delivered"}
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:14:48.663Z","hostId":"local","threadId":"thread","operation":"follow-synchronize","status":"unconfirmed","code":"unconfirmed","message":"会话未加载或暂无实时持有者；绑定已保留，跟随继续等待。发送新消息会尝试继续同一会话；同步命令不会启动任务。","snapshotRuntime":"notLoaded","snapshotPersistence":"active","snapshotAt":"2026-11-03T03:14:48.663Z"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.667Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.672Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+[codex-im-gateway] channel terminal progress update failed
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.679Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"pending"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.680Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+✔ session following recovers one card after an outage without replaying a burst of reasoning titles (17.27425ms)
+✔ a loaded snapshot can deliver a short next turn completed between polling ticks (6.075375ms)
+✔ foreign and delayed turn events cannot replace an active card or emit internal results (8.349542ms)
+✔ legacy polluted checkpoints are not replayed after upgrading the event boundary (3.730666ms)
+✔ recovers a managed turn that completed offline before the first snapshot (6.043209ms)
+✔ notLoaded snapshots never finalize a Desktop-owned turn and late progress cannot reopen it (5.95075ms)
+✔ recovers the original card after a turn completes offline and suppresses repeated final events (5.505ms)
+✔ isolates identical thread ids by host and closes a card when follow is disabled (2.197458ms)
+✔ retries the original terminal card after restart without resending its answer or error notice (6.3465ms)
+[codex-im-gateway] input acceptance recovery {"hostId":"local","threadId":"thread","code":"timeout"}
+[codex-im-gateway] input acceptance recovery {"hostId":"local","threadId":"thread","code":"timeout"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T03:14:48.904Z","operation":"final-result-delivery","hostId":"local","threadId":"thread","turnId":"turn","status":"delivered"}
+✔ accepted active snapshot still updates progress: normal control (19.484959ms)
+✔ accepted active snapshot still updates progress: old receipt unavailable (3.567ms)
+✔ receipt failure withholds final effects until recovery and does not replay input (19.952833ms)
+ℹ tests 106
+ℹ suites 0
+ℹ pass 106
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5089.160333

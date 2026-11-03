@@ -350,3 +350,6 @@
 通用`/session rename|archive|restore`、`/sessions archived`及Desktop目录/项目ID展示调整移入独立分支；Connector保留所需的原生管理端口。空线程在首条输入前的持久化由Codex决定，不能承诺此阶段服务重启后仍存在。
 
 当前增量检查、已修缺口、真实设备和夹具边界见[合并记录](../audits/2026-11-03-peer-contract-review/merge-completion.md)。
+# 2026-11-03 审查修复补充
+
+本次定位的四项问题（新线程身份交接失败仍提交、接收 error 错误退出跟随、旧回执核对阻断当前进展、共享编辑器保存迟到清新草稿）已进入独立修复和回归，状态及证据见 docs/audits/2026-11-03-main-review/fixes.md。不改变下列真实手机、远端 SSH、Windows 等未验收边界，不以本次修复代替全库重新逐行审查。旧 exec 注入分支作为兼容类型/合同清理项保留，生产配置已统一为 App Server，不恢复第二套执行业务。

@@ -2,6 +2,12 @@
 
 TurnPresentation/ThreadEventHub 保存按 host/thread/turn、阶段、卡片和页的展示状态。进展摘要、commentary、公开工具状态与最终答案分开，长任务持续刷新；原生 running/terminal 决定执行状态，渠道回执决定平台接收。Task 卡用普通字号状态与原生 loading，不额外附大标题冒充新答案。
 
+## 接收健康、输入恢复与当前进展
+
+账号的接收连接 error 只说明渠道收消息异常，不代表会话解绑。AccountManager 在账号实例未被取消且仍有 client/store 时保留 running/starting/error 的订阅；明确停止、取消实例和解除绑定仍退出跟随。重连保留原卡及游标，不能将故障转换成“已停止同步”。CHAN-04.4 通过真实 monitor 回调验证 error→connecting→connected 和 stop 后迟到回调。
+
+ThreadEventHub 将 inputRecoveryFailure 与当前快照 syncFailure 分开。旧输入核对失败后，仅已加载原生持有者的精确 activeTurn 可以更新当前进展；不推进历史游标，不执行最终动作、补投或确认恢复回执。IM `/follow` 状态和 Web 会话列表单独展示输入回执恢复诊断。核对成功后恢复原结果投递，重复同步不重复执行结果动作；绑定在等待期间改变时不得向旧对话写入。对应 DEL-08.7，详见[修复记录](../../audits/2026-11-03-main-review/fixes.md)。
+
 ## 一次投递的边界
 
 创建、更新、分页和媒体各有回执。sendActionCard/sendTaskCard 的文本能力降级在 ChannelClient 第一次外部写入前选择。任何卡片写异常都不能授权 Bridge 再建卡或把同一正文发文字；partial delivery 只记录已经确认的页并报告剩余未知，不能从头发送。明确命令卡更新失败保留原表面，不推断用户没看见。

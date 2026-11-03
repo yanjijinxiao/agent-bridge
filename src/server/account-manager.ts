@@ -2133,7 +2133,8 @@ export class AccountManager {
     for (const [accountId, entry] of this.entries) {
       // A temporary reconnect is not an unsubscribe. Keep persistent delivery
       // cursors/cards; REST delivery may still work while the receive socket reconnects.
-      if ((entry.status !== "running" && entry.status !== "starting") || !entry.client || !entry.store) continue;
+      if (entry.controller?.signal.aborted
+        || !["running", "starting", "error"].includes(entry.status) || !entry.client || !entry.store) continue;
       const store = entry.store;
       for (const session of store.listSessions()) {
         const hostId = session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local";

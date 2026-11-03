@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "status": "four-runtime-defects-fixed-and-regression-tested",
+  "cases": [
+    {
+      "id": "MR-F1",
+      "finding": "F1",
+      "requirements": [
+        "IN-02",
+        "PEER-01"
+      ],
+      "origin": "new",
+      "testFile": "probes/regressions.test.ts",
+      "failure": "fresh native input waits for durable thread callback: failed journal",
+      "control": "fresh native input waits for durable thread callback: normal control",
+      "invariant": "Native turn/start requires successful durable handoff of the new thread identity.",
+      "state": "fixed-regression-passed",
+      "failureResult": "failed",
+      "controlResult": "passed",
+      "testedCommit": "3d5bff7748a4715f99d6cb762d852045bb1fc70d",
+      "postFix": {
+        "requirementCase": "IN-02.7",
+        "result": "passed",
+        "evidence": "fix-test-results.jsonl",
+        "baseline": "3d5bff7748a4715f99d6cb762d852045bb1fc70d"
+      }
+    },
+    {
+      "id": "MR-F2",
+      "finding": "F2",
+      "requirements": [
+        "NATIVE-03",
+        "INT-02",
+        "INT-03",
+        "PEER-01"
+      ],
+      "origin": "legacy-branch-inconsistency",
+      "testFile": "probes/regressions.test.ts",
+      "failure": "peer independent interactions must survive local backend exec",
+      "control": "peer independent interactions must survive local backend app-server",
+      "invariant": "Remote native interaction observation follows the selected host capability, not the local backend setting.",
+      "state": "injection-only-not-production-defect",
+      "failureResult": "failed",
+      "controlResult": "passed",
+      "testedCommit": "3d5bff7748a4715f99d6cb762d852045bb1fc70d",
+      "productionReachability": "loadConfig/saveConfig normalize exec to app-server before normal service use",
+      "reachabilityTest": "production configuration normalizes retired exec to the single App Server",
+      "reachabilityTestFile": "probes/configuration-reachability.test.ts"
+    },
+    {
+      "id": "MR-F3",
+      "finding": "F3",
+      "requirements": [
+        "CHAN-04",
+        "DEL-08"
+      ],
+      "origin": "pre-existing",
+      "testFile": "probes/regressions.test.ts",
+      "failure": "receive transport error must not detach running task card",
+      "control": "receive transport starting must not detach running task card",
+      "invariant": "A live receive monitor reporting connection failure does not remove bound thread observation or retire its card.",
+      "state": "fixed-regression-passed",
+      "failureResult": "failed",
+      "controlResult": "passed",
+      "testedCommit": "3d5bff7748a4715f99d6cb762d852045bb1fc70d",
+      "postFix": {
+        "requirementCase": "CHAN-04.4",
+        "result": "passed",
+        "evidence": "fix-test-results.jsonl",
+        "baseline": "3d5bff7748a4715f99d6cb762d852045bb1fc70d"
+      }
+    },
+    {
+      "id": "MR-F4",
+      "finding": "F4",
+      "requirements": [
+        "WEB-01",
+        "PEER-04"
+      ],
+      "origin": "new",
+      "testFile": "probes/workspace-save.test.ts",
+      "failure": "workspace save preserves later edits: slow response",
+      "control": "workspace save preserves later edits: normal control",
+      "invariant": "An earlier save receipt must not clear the dirty state of later editor content.",
+      "state": "fixed-regression-passed",
+      "failureResult": "failed",
+      "controlResult": "passed",
+      "testedCommit": "3d5bff7748a4715f99d6cb762d852045bb1fc70d",
+      "postFix": {
+        "requirementCase": "WEB-01.7",
+        "result": "passed",
+        "evidence": "fix-test-results.jsonl",
+        "baseline": "3d5bff7748a4715f99d6cb762d852045bb1fc70d"
+      }
+    },
+    {
+      "id": "MR-F5",
+      "finding": "F5",
+      "requirements": [
+        "IN-02",
+        "DEL-08",
+        "REL-01"
+      ],
+      "origin": "pre-existing",
+      "testFile": "probes/receipt-progress.test.ts",
+      "failure": "accepted active snapshot still updates progress: old receipt unavailable",
+      "control": "accepted active snapshot still updates progress: normal control",
+      "invariant": "Old input acceptance reconciliation failure must not discard independently confirmed read-only active progress; final effects remain gated.",
+      "state": "fixed-regression-passed",
+      "failureResult": "failed",
+      "controlResult": "passed",
+      "testedCommit": "3d5bff7748a4715f99d6cb762d852045bb1fc70d",
+      "postFix": {
+        "requirementCase": "DEL-08.7",
+        "result": "passed",
+        "evidence": "fix-test-results.jsonl",
+        "baseline": "3d5bff7748a4715f99d6cb762d852045bb1fc70d"
+      }
+    }
+  ]
+}

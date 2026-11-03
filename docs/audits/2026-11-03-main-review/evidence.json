@@ -1,0 +1,141 @@
+{
+  "target": "3d5bff7748a4715f99d6cb762d852045bb1fc70d",
+  "date": "2026-11-03",
+  "commands": [
+    {
+      "command": "npm ci --ignore-scripts --no-audit --no-fund",
+      "result": "passed"
+    },
+    {
+      "command": "npm run typecheck",
+      "result": "passed"
+    },
+    {
+      "command": "npm run build",
+      "result": "passed"
+    },
+    {
+      "command": "node --test --test-timeout=120000 --import tsx --test-reporter=spec test/peer-*.test.ts test/backend-transport-contract.test.ts test/codex-app-server.test.ts test/account-manager.test.ts",
+      "result": {
+        "passed": 265,
+        "failed": 0
+      }
+    },
+    {
+      "command": "node --test --test-concurrency=4 --test-timeout=120000 --import tsx --test-reporter=spec test/*.test.ts",
+      "environment": {
+        "TMPDIR": "/private/tmp",
+        "CODEX_NATIVE_QUEUE_TEST_BIN": "installed native binary 0.166.0",
+        "CODEX_CHROME_TEST_BIN": "installed Google Chrome",
+        "CODEX_CONTRACT_SSH_TARGET": "unset; local simulation"
+      },
+      "result": {
+        "total": 2869,
+        "passed": 2868,
+        "failed": 0,
+        "skipped": 1
+      }
+    },
+    {
+      "command": "node scripts/check-audit-evidence.mjs",
+      "result": {
+        "status": "in-progress",
+        "errors": [],
+        "summary": {
+          "baselineFiles": 688,
+          "addedFiles": 145,
+          "fullyRead": 769,
+          "artifactsInspected": 28,
+          "partiallyRead": 0,
+          "unread": 36,
+          "cases": 319,
+          "casesWithTests": 319,
+          "verifiedCases": 213
+        }
+      }
+    },
+    {
+      "command": "node --test --test-timeout=15000 --import tsx --test-reporter=spec docs/audits/2026-11-03-main-review/probes/*.test.ts",
+      "result": {
+        "total": 11,
+        "passed": 6,
+        "failed": 5,
+        "confirmedRuntimeDefectFailures": 4,
+        "injectionOnlyFailures": 1,
+        "note": "F2 is unreachable through normal production config normalization; removed from runtime defect count."
+      }
+    }
+  ],
+  "tools": {
+    "node": "v25.8.2",
+    "npm": "11.11.1",
+    "codexNative": "0.166.0"
+  },
+  "logs": [
+    {
+      "kind": "typecheck",
+      "file": "logs/typecheck.txt",
+      "sha256": "569495d981c843453331093c461cecbfbef7fb91d51076fc679973fd1262a400"
+    },
+    {
+      "kind": "build",
+      "file": "logs/build.txt",
+      "sha256": "aa962bc03a58cc90b9a0fe5a95f578cfcac0193118c31a851a8314919dff1727"
+    },
+    {
+      "kind": "related",
+      "file": "logs/related.txt",
+      "sha256": "583689ee5a3d63506cf27f82ce0a8386176e24783b8bf37168136478414e3b27"
+    },
+    {
+      "kind": "full-initial",
+      "file": "logs/full-initial.txt",
+      "sha256": "63c575516a1fcc7eb38fbe14abb305a3f8ee0299825a81a09343d1fcaf717a48"
+    },
+    {
+      "kind": "install-retest",
+      "file": "logs/install-retest.txt",
+      "sha256": "95b8317b813c5a0ea32e06ce363d32a8e609892e7ad20309c72bb2d5bcd9f30e"
+    },
+    {
+      "kind": "full-after-build",
+      "file": "logs/full-after-build.txt",
+      "sha256": "08f047a62286b20966fcc1be25f86961808414c6031339b06a075d8c5d8cfd45"
+    },
+    {
+      "kind": "archived-counterexamples",
+      "file": "logs/counterexamples.txt",
+      "sha256": "86a1d757bf459d127641f6b069c116302167f62598b35d9b21363cb46edfcf2c"
+    }
+  ],
+  "productionObservation": {
+    "access": "read-only",
+    "screenshotsViewed": 2,
+    "symptoms": [
+      "detached follow card while task continues",
+      "unconfirmed progress card lasting fourteen minutes"
+    ],
+    "matchingEvidence": [
+      "receive disconnect and disconnected_without_retry",
+      "successful thread snapshot followed by input receipt observation timeout",
+      "one legacy unconfirmed input with matching persisted inbound source"
+    ],
+    "limit": "No complete per-card production trace; separate isolated counterexamples prove the code behavior."
+  },
+  "notPerformed": [
+    "production mutations or IM test messages",
+    "deployment or restart",
+    "real phone acceptance",
+    "real remote SSH validation",
+    "Windows test execution",
+    "full unchanged-source reread",
+    "all Taskboard independent tests"
+  ],
+  "conclusion": {
+    "runtimeDefects": 4,
+    "new": 2,
+    "preExisting": 2,
+    "injectionOnlyInconsistencies": 1,
+    "ledgerGap": true
+  }
+}

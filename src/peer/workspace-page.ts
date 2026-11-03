@@ -11,16 +11,31 @@ ${COPY_STYLE}</style><header><b>共享工作区</b><small>CONNECTOR / TEXT WORKS
 <script nonce="${nonce}">${COPY_SCRIPT}</script>
 <script nonce="${nonce}">
 let csrf=${JSON.stringify(csrf)}, code=${JSON.stringify(code)}, ready=false, writable=false, selected='', version='', directory='', dirty=false;
+let editEpoch=0, viewEpoch=0, openEpoch=0, pendingSave;
 const $=id=>document.getElementById(id);
 function message(t){$('message').textContent=t}
-async function api(operation,input={}){const r=await fetch(location.pathname+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Workspace-CSRF':csrf},body:JSON.stringify({operation,...input})});const data=await r.json();if(!r.ok){if(ready){$('text').readOnly=true;$('save').disabled=true;$('mode').textContent='访问已失效';$('files').replaceChildren()}throw Error(data.error||'请求失败')}return data}
+function refreshSave(){$('save').disabled=!writable||!selected||!dirty||Boolean(pendingSave)}
+async function api(operation,input={}){const r=await fetch(location.pathname+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Workspace-CSRF':csrf},body:JSON.stringify({operation,...input})});const data=await r.json();if(!r.ok){if(ready){writable=false;$('text').readOnly=true;refreshSave();$('mode').textContent='访问已失效';$('files').replaceChildren()}throw Error(data.error||'请求失败')}return data}
 async function list(dir){if(dirty&&!confirm('有未保存的修改，仍要切换文件？'))return;const data=await api('list',{path:dir});directory=dir;$('files').replaceChildren();for(const item of data.entries){const b=document.createElement('button');b.className='file';b.textContent=(item.directory?'▸ ':'  ')+item.name;b.title=item.name;b.onclick=()=>{const path=[directory,item.name].filter(Boolean).join('/');(item.directory?list(path):openFile(path)).catch(e=>message(e.message))};$('files').append(b)}}
-async function openFile(path){if(dirty&&!confirm('有未保存的修改，仍要打开其他文件？'))return;const data=await api('read',{path});selected=path;version=data.hash;$('filename').textContent=path;$('text').value=data.text;$('text').readOnly=!writable;dirty=false;$('save').disabled=true;message(writable?'已加载 · 修改后可保存':'只读 · 你可以浏览，无法写入文件')}
+async function openFile(path){if(dirty&&!confirm('有未保存的修改，仍要打开其他文件？'))return;const request=++openEpoch, edits=editEpoch;const data=await api('read',{path});if(request!==openEpoch||edits!==editEpoch)return;viewEpoch++;selected=path;version=data.hash;$('filename').textContent=path;$('text').value=data.text;$('text').readOnly=!writable;dirty=false;refreshSave();message(writable?'已加载 · 修改后可保存':'只读 · 你可以浏览，无法写入文件')}
 async function enter(){const data=await api('session');csrf=data.csrf;writable=data.writable;ready=true;$('login').style.display='none';$('work').classList.remove('hidden');$('mode').textContent=writable?'读写授权':'只读授权';await list('')}
 $('check').onclick=()=>api('exchange').then(data=>{csrf=data.csrf;return enter()}).catch(e=>$('hint').textContent=e.message);
-$('text').oninput=()=>{dirty=true;$('save').disabled=!writable||!selected};
+$('text').oninput=()=>{editEpoch++;dirty=true;refreshSave()};
 $('text').onkeydown=e=>{if(e.key==='Tab'&&writable){e.preventDefault();document.execCommand('insertText',false,'  ')}};
-$('save').onclick=async()=>{try{const data=await api('write',{path:selected,hash:version,text:$('text').value});version=data.hash;dirty=false;$('save').disabled=true;message('已保存 · '+new Date().toLocaleTimeString())}catch(e){message(e.message+' 本地修改仍保留，请刷新文件后比对。')}};
+// A receipt acknowledges one file revision. It never acknowledges later edits
+// or a subsequently opened view, even when that view has the same path.
+$('save').onclick=async()=>{
+  if(pendingSave||!writable||!selected||!dirty)return;
+  const save={path:selected,hash:version,text:$('text').value,edit:editEpoch,view:viewEpoch};
+  pendingSave=save;refreshSave();
+  try{
+    const data=await api('write',{path:save.path,hash:save.hash,text:save.text});
+    if(viewEpoch!==save.view||selected!==save.path)return;
+    version=data.hash;dirty=editEpoch!==save.edit||$('text').value!==save.text;
+    message(dirty?'前一版已保存 · 当前修改尚未保存':'已保存 · '+new Date().toLocaleTimeString());
+  }catch(e){if(viewEpoch===save.view&&selected===save.path)message(e.message+' 本地修改仍保留，请刷新文件后比对。')}
+  finally{if(pendingSave===save)pendingSave=undefined;refreshSave()}
+};
 $('up').onclick=()=>list(directory.split('/').slice(0,-1).join('/')).catch(e=>message(e.message));
 if(code){$('login').style.display='block';}else enter().catch(e=>message(e.message));
 setInterval(()=>{if(ready)api('session').catch(e=>message(e.message))},20000);

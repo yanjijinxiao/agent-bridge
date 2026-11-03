@@ -1,0 +1,1460 @@
+{
+  "target": "3d5bff7748a4715f99d6cb762d852045bb1fc70d",
+  "base": "f108f8177a2496856e983724992452cf5e0909d1",
+  "scope": "97 changed bridge files plus related existing call paths; not a whole-repository reread",
+  "files": [
+    {
+      "path": "README.md",
+      "change": "M",
+      "sha256": "efda884135a938d79d1ae87408ca5f09ff26859ea7dfc351341d2fd90256225d",
+      "lines": 272,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/architecture/README.md",
+      "change": "M",
+      "sha256": "f2e814b69dc0a058054c6a4096d93e8adc5abc01f58aab21a453d6b767ec21f0",
+      "lines": 93,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/architecture/function-contracts.jsonl",
+      "change": "M",
+      "sha256": "dda9e03acfbc2cf8d46df6299afce0aeb6c032a02b79d7a620ee4a7748a6d397",
+      "lines": 160,
+      "reviewMode": "structured-records-and-changed-contracts",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/architecture/gateway-case-coverage.md",
+      "change": "M",
+      "sha256": "eae6e214a6952848b92aa2539bded5902f6838d818c54eec757c14f831363556",
+      "lines": 95,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/architecture/gateway-contracts.md",
+      "change": "M",
+      "sha256": "460c165e119d784b464029b6ebfdeae916e9b71c4614189e0bab62a5047c1e5e",
+      "lines": 1040,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/architecture/gateway-implementation-map.md",
+      "change": "M",
+      "sha256": "596e010f06606893ba241b764f533c8b3e1891a96ad74c6c2dad7b400ff022ed",
+      "lines": 64,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/architecture/gateway-requirements.json",
+      "change": "M",
+      "sha256": "ad5508c9854fee5da2b143ddedf0acc016a595d3daffc6518746a48d5ebb4a8f",
+      "lines": 12727,
+      "reviewMode": "structured-records-and-changed-contracts",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/architecture/modules/peer-interface-matrix.md",
+      "change": "A",
+      "sha256": "819c10515fac4aecb0ca76e4e8f00c2e06da77c7da18d3ad3fc6a1ca07faed94",
+      "lines": 32,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/architecture/modules/peer-transport.md",
+      "change": "A",
+      "sha256": "d161e24c82635f6b4bfbe711c08ea33445797a3139b629a653fa4307f4ca7d84",
+      "lines": 55,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/architecture/remaining-work.md",
+      "change": "M",
+      "sha256": "ad1d52148e612e8bb0b310551d657b1268fa8c250b1759a77f822622b2831267",
+      "lines": 352,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/audits/2026-11-01-four-layer-recheck/test-results.jsonl",
+      "change": "M",
+      "sha256": "46ab5dbe5c603c7ea4a280489c7e93a1b2b5a86ee47958e882b1d5f1ef1d6db1",
+      "lines": 26901,
+      "reviewMode": "structured-records-and-changed-contracts",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/audits/2026-11-03-peer-contract-review/README.md",
+      "change": "A",
+      "sha256": "f9acb213fce339cc1117dd5c8044f532bc4a285b551d1b8e513f847c7d8956d7",
+      "lines": 102,
+      "reviewMode": "historical-evidence-and-scope-review",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/audits/2026-11-03-peer-contract-review/fixes.md",
+      "change": "A",
+      "sha256": "34d779ed263df8c98c7fca12d5851410ee89996904e85cd30934d48dac9ec224",
+      "lines": 51,
+      "reviewMode": "historical-evidence-and-scope-review",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/audits/2026-11-03-peer-contract-review/function-delta-review.json",
+      "change": "A",
+      "sha256": "0d66e31cc01a1aff762b782d49dbfeaed9c3ea6b02cfc09dfd60e3e3545eb151",
+      "lines": 222,
+      "reviewMode": "structured-records-and-changed-contracts",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md",
+      "change": "A",
+      "sha256": "f5e4a94d05b8f90451f6b4f29ec9a150843c36bae2d1776696f906890d24a30a",
+      "lines": 71,
+      "reviewMode": "historical-evidence-and-scope-review",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/audits/2026-11-03-peer-contract-review/real-validation.md",
+      "change": "A",
+      "sha256": "9a40c85030f18fd623a985629b1bae12f446a0978689337128d5ee163ac19e38",
+      "lines": 33,
+      "reviewMode": "historical-evidence-and-scope-review",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts",
+      "change": "A",
+      "sha256": "e8991a983fb3a2fb565c2b98f6662373ab47689a6493d2a2e0e234d94b72d82f",
+      "lines": 73,
+      "reviewMode": "historical-evidence-and-scope-review",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/audits/2026-11-03-peer-contract-review/reproduction.txt",
+      "change": "A",
+      "sha256": "7142f53730a4e8494bdd316f7e3618cef6ef0a7d3c1edbbc08d630e680793a45",
+      "lines": 78,
+      "reviewMode": "historical-evidence-and-scope-review",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/audits/2026-11-03-peer-contract-review/test-results-final.jsonl",
+      "change": "A",
+      "sha256": "55a767239c511587572ecda24158afb7901b6f39c8fcb42351e850341455ed4a",
+      "lines": 2861,
+      "reviewMode": "structured-records-and-changed-contracts",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/gateway-peers.md",
+      "change": "A",
+      "sha256": "4ec18ab6d5c68984bb8762215ed696130170f9b0f1be9804935a09c427f8e369",
+      "lines": 225,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/peer-dingtalk-linux-validation.md",
+      "change": "A",
+      "sha256": "931873c14f6cbc394e690874f5a5a445aa78ec1522ae4bb160c7c9701b6a4ba2",
+      "lines": 67,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/peer-linux-cli-validation.md",
+      "change": "A",
+      "sha256": "19e4d443a864fd251e193fef887690a4f9c20311efd83d89fa9a99e50d57fe48",
+      "lines": 64,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/peer-main-reuse-review.md",
+      "change": "A",
+      "sha256": "3e9c7ee808091387c54d58e796cde4198e1c82a9b88753cf5c920a4247b00ba3",
+      "lines": 55,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/peer-merge-readiness.md",
+      "change": "A",
+      "sha256": "11b2f2688c7b8a79c1462d5aeead8a4b2cfae4ca7ab6e7c166e16033fde65de0",
+      "lines": 65,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "docs/peer-sharing.md",
+      "change": "A",
+      "sha256": "0f3d73ae1c9ded17ef0a76e1a76efa0965bce11e6597be48c789e101fcc86fcc",
+      "lines": 97,
+      "reviewMode": "changed-contracts-and-related-sections",
+      "layers": [
+        "architecture",
+        "module",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "examples/peer-client.json",
+      "change": "A",
+      "sha256": "d5014d05951e5f88e30fde7a428f354a8666b1bb275f36024686f4626b1390fa",
+      "lines": 9,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "examples/peer-server.json",
+      "change": "A",
+      "sha256": "7f9878ad99681006af11b183daa18d583ff8f974501dedd835d5b23fe80b7ade",
+      "lines": 9,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "package-lock.json",
+      "change": "M",
+      "sha256": "778f36e6aa3d4322780b55cbec145d6572e0891a8d37733d3b28fa867063f733",
+      "lines": 6090,
+      "reviewMode": "dependency-diff-and-install-build",
+      "layers": [
+        "static-config"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "package.json",
+      "change": "M",
+      "sha256": "f607c746ea0ab071787927543edc900e023cc75d1defb09191321139ee9ec04f",
+      "lines": 88,
+      "reviewMode": "dependency-diff-and-install-build",
+      "layers": [
+        "static-config"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/bridge/access.ts",
+      "change": "M",
+      "sha256": "9ca049fcf13ab65454d94bc59fe4dc706237bfad333fd8add49c8d1a2ead5075",
+      "lines": 69,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/bridge/channel-command-policy.ts",
+      "change": "M",
+      "sha256": "8beb0dd51e5444f636a041c3668dd24531f3d067f4460155d99f375e11117090",
+      "lines": 81,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/bridge/channel-commands.ts",
+      "change": "M",
+      "sha256": "3eca3c19d89280288317e79d3badf9e77943bcfea39ce2df26b0814209dc2815",
+      "lines": 192,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/bridge/format.ts",
+      "change": "M",
+      "sha256": "d14b9bd82c4810d230b1dab7218b5aaadf785d74bd995621b3f75ff5fadc5a1d",
+      "lines": 211,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/bridge/native-queue.ts",
+      "change": "M",
+      "sha256": "4dad6a9d6658c11c9f94c1e3ba0dfca11d43836ac59c6cccab066e3c2890e68c",
+      "lines": 269,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/bridge/service.ts",
+      "change": "M",
+      "sha256": "b18a22c6e5d5c9847f01445ad311d5d43e01ddb472d87fab55208ef7e9164028",
+      "lines": 3796,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/bridge/turn-submission.ts",
+      "change": "M",
+      "sha256": "2c9722df7b6c1265c811395f4ce6914ebbda37d301761b4ca280a58c68539ad8",
+      "lines": 103,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/codex/app-server-gateway.ts",
+      "change": "M",
+      "sha256": "f4caca54a5df17df2a0dd9a3099aa0b1216b818ad1deed0aa2de92f2b958420a",
+      "lines": 310,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/codex/app-server-runner.ts",
+      "change": "M",
+      "sha256": "d265d7920d74f8f9a5f6c69aaa9ae8cc1ec65de15e4f6efe32257ca3af4155b5",
+      "lines": 3028,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/codex/approval.ts",
+      "change": "M",
+      "sha256": "f698bf35f9ff6af55850627d6feb152b6aad7c7b0b958506007c38743ec5bd7f",
+      "lines": 184,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/codex/backend.ts",
+      "change": "M",
+      "sha256": "52fe3dcf2770229b937f80834f3198907a3f74aa0ffd454e2481972da8f947b8",
+      "lines": 730,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/codex/exec-runner.ts",
+      "change": "M",
+      "sha256": "a9766c33c7bf99c59766e7d0f8304f091eaf4baf2c3d76971689be149f3515b9",
+      "lines": 276,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/codex/inbound-files.ts",
+      "change": "M",
+      "sha256": "9f6ff80312fa5e96220594195c9bc002e3a0dd8d3a2982f4ffb18dfdc4f65941",
+      "lines": 85,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/codex/output-files.ts",
+      "change": "M",
+      "sha256": "9265e49da3319ea0e5e7ff91b199ee23c2eca8c9d2d4e10d8274ddda9af75b22",
+      "lines": 83,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/codex/write-guard.ts",
+      "change": "A",
+      "sha256": "17b5237ae7e9f577155ebec595c44f4c7f0a37b628e83b2fda69a3ee87b94238",
+      "lines": 14,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/ide/authorization.ts",
+      "change": "M",
+      "sha256": "44691259223af525b7c29c3879d9361da4d474704b8dbbec938f2a13541fae78",
+      "lines": 174,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/peer/backend.ts",
+      "change": "A",
+      "sha256": "98d4ca038cf8957d281a8aa1380c041ab8af107be58189b8be688e1b792b3e43",
+      "lines": 360,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/channel.ts",
+      "change": "A",
+      "sha256": "d8c715824c12a5bab8ad9a1216608502fa4b44c5d2aa7bcba351e891a0719c33",
+      "lines": 36,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/context.ts",
+      "change": "A",
+      "sha256": "2a50552f690343380c2e16fcd6858af39cbf2e44a38b003064bd2053b41eb607",
+      "lines": 12,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/contract.ts",
+      "change": "A",
+      "sha256": "0644f4239fcfa0712fdbfb26ce76a5b7ac419ccd047e1565ffa97a52a1a25187",
+      "lines": 26,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/execution-service.ts",
+      "change": "A",
+      "sha256": "4ca5180463b5f52908dcb712f7e89fec85bd8bb0bb20aafcd83387577e5301f7",
+      "lines": 441,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/files.ts",
+      "change": "A",
+      "sha256": "9580fde53f104eb414bd3ad3506f8ec2cd8198816d6e065dea3bcb1190ea56e1",
+      "lines": 226,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/identity.ts",
+      "change": "A",
+      "sha256": "f23cfc63adbe83487107c9da65e2b69f2d3e07b9d03727285aa9e74fb91bd31c",
+      "lines": 7,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/index.ts",
+      "change": "A",
+      "sha256": "2ffb9beb6eab971badc5bde9f1c672c824eb01e973bff908a4398763bda65944",
+      "lines": 76,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/interaction-client.ts",
+      "change": "A",
+      "sha256": "706c168b9d77ef2da494cce65583d2e0a8eec14f59f328dec8ef84f27f2374de",
+      "lines": 71,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/interaction-service.ts",
+      "change": "A",
+      "sha256": "8fae1d652d7eec10968e8489614a491252bb904e29c431bb7cba879d904f1e42",
+      "lines": 70,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/management.ts",
+      "change": "A",
+      "sha256": "be339e4d2ae401c33dd0512916837035b2b01f94bc3aeea90ae7f2c97eba447e",
+      "lines": 145,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/project-catalog.ts",
+      "change": "A",
+      "sha256": "890e1d9d626813ec31f642a67ddc282f8b517baf5f38eed9dbb564162445ada1",
+      "lines": 19,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/receipts.ts",
+      "change": "A",
+      "sha256": "ebb1ad5401faf1586c6d171b60f39da19f64ee03e3d3dde9dcd7ae2e56099ef4",
+      "lines": 37,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/recovery-journal.ts",
+      "change": "A",
+      "sha256": "aba886af2fcbf603273a5256389a33e4b32d1f5c1522d2de82f93d7053de39d0",
+      "lines": 45,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/registry.ts",
+      "change": "A",
+      "sha256": "f17bc49e48194a01c71e5aec275d928c62106ef104600e82405d356bf7503cce",
+      "lines": 181,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/rpc.ts",
+      "change": "A",
+      "sha256": "567ef7908a83f0548ad78fe6c16f031ab92209178fedcb0da855952ced214516",
+      "lines": 109,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/runtime.ts",
+      "change": "A",
+      "sha256": "0f24e6cc71c11938d78590713d766c5282cecf503e7e5f38d8fe0f8790ccef7c",
+      "lines": 30,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/shared-workspace.ts",
+      "change": "A",
+      "sha256": "754bb85ef30f01530d8c97e551e66154432435dd277b12a594cbc6d607375c1f",
+      "lines": 64,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/sharing-authority.ts",
+      "change": "A",
+      "sha256": "33aa8b4d3ed8bcbadc42958d72ec302687bc82a08f66ef4b053a29a0e101ca9c",
+      "lines": 148,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/sharing-gateway.ts",
+      "change": "A",
+      "sha256": "f8094b1ad1da97dac7571deaaec3957aedccf8aa7951a975bebcdf7d6ddb2117",
+      "lines": 106,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/sharing-types.ts",
+      "change": "A",
+      "sha256": "1e2dc7b23f32be6e5b1e49f95c74d5644bbbabb50d0f8a05e68f8d3caf8c9d79",
+      "lines": 29,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/transport.ts",
+      "change": "A",
+      "sha256": "b3b333214c104af9f266d5bec499b9c0aa5959bd83df55e686feb94058d6ab6a",
+      "lines": 101,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/workspace-page.ts",
+      "change": "A",
+      "sha256": "e87a9d7eca9145064b4eaa242b8e4f8b8df567bd2808bb28c9f8f05f01438e03",
+      "lines": 29,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function",
+        "static-config"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/workspace-portal.ts",
+      "change": "A",
+      "sha256": "ca1b36d52cba3fc37c52e070dd93b9673ecf582ca861be590be2a827c86dc4b2",
+      "lines": 123,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/peer/write-guard.ts",
+      "change": "A",
+      "sha256": "1bcf7a7927fb9d9deb42c1a316659364a1ffb0d2816ae5c7d97db63e0bb3ac75",
+      "lines": 18,
+      "reviewMode": "full-file",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "src/server/account-manager.ts",
+      "change": "M",
+      "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25",
+      "lines": 2981,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/server/arguments.ts",
+      "change": "M",
+      "sha256": "eac0ab373480d109f40d4ab5c6929a145d57fcc2a38a8f4ee9a2c0272d210c30",
+      "lines": 30,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/server/codex-projects.ts",
+      "change": "M",
+      "sha256": "9ef9ac59ef58da2ab277f51d00e87b53882a0b3c6b1af538068754da65f60e3c",
+      "lines": 655,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "src/server/index.ts",
+      "change": "M",
+      "sha256": "94d20fefcd2a22c0f3ae9d86bcc4c4d4426ff74aa79032d6bd8acc2e76fc2d1c",
+      "lines": 120,
+      "reviewMode": "diff-and-related-call-paths",
+      "layers": [
+        "architecture",
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "test/account-manager.test.ts",
+      "change": "M",
+      "sha256": "426672b7384f191780d7364b0e0250c725a8d2c400bb6ee2c9ab49be0160afd4",
+      "lines": 1927,
+      "reviewMode": "diff-and-relevant-fixtures",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "test/backend-transport-contract.test.ts",
+      "change": "A",
+      "sha256": "ed676c94116ca89e39a51d57a729ed627d33f1d16d2b686b54ca58adc676ea1e",
+      "lines": 162,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/channel-help.test.ts",
+      "change": "M",
+      "sha256": "2c23fcf0e624f3e07154eb47021c72d09f5f364a7024b6a090f7e357ad7df7b2",
+      "lines": 56,
+      "reviewMode": "diff-and-relevant-fixtures",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "test/codex-app-server.test.ts",
+      "change": "M",
+      "sha256": "c4ddf5780bbe15b20a4803763dc02bc537ed1241767072cb539eab84d065a7af",
+      "lines": 859,
+      "reviewMode": "diff-and-relevant-fixtures",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "test/fixtures/fake-codex-app-server.mjs",
+      "change": "M",
+      "sha256": "05268225706ebe35b8957815eff4ba221634d6f329f285fdb92e84752543a851",
+      "lines": 895,
+      "reviewMode": "diff-and-relevant-fixtures",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "test/fixtures/shared-native-core.mjs",
+      "change": "M",
+      "sha256": "48581999bc4d06f54a2252d71c2fb33bea08c2512630c993c846faf203fd899b",
+      "lines": 91,
+      "reviewMode": "diff-and-relevant-fixtures",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "test/format.test.ts",
+      "change": "M",
+      "sha256": "a22cebdd9791e3db65e6927a82f5ce828b0f6f4a3b0a70a7e3969592aca636d0",
+      "lines": 127,
+      "reviewMode": "diff-and-relevant-fixtures",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "test/intent-review-lifecycle.test.ts",
+      "change": "M",
+      "sha256": "7cf7682808f32d23a4f96953d9d5c2ac24b1252a870795bf5abbccf5c14a1037",
+      "lines": 37,
+      "reviewMode": "diff-and-relevant-fixtures",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "unread",
+      "note": "Review mode is the evidence boundary; not a claim that unchanged portions were reread."
+    },
+    {
+      "path": "test/peer-bridge.test.ts",
+      "change": "A",
+      "sha256": "835784c85861f8600f44a21aa763a15d48a7157db6e6584a719836b40f66c3a7",
+      "lines": 142,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-complete-contract.test.ts",
+      "change": "A",
+      "sha256": "21a38f8976cd2de6fd467a532a41f92abd7c258c74e2c00ca480d7efb364b19b",
+      "lines": 174,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-execution.test.ts",
+      "change": "A",
+      "sha256": "cf058dd1217de9ee66330ab6802f24b4e0f8cc6b53fceac95919623ce0b3d3a4",
+      "lines": 208,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-files.test.ts",
+      "change": "A",
+      "sha256": "86f9727ae26d5a91dc97c7f903d8bcb80c6652292a159615981c8893643ed520",
+      "lines": 197,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-fixture.ts",
+      "change": "A",
+      "sha256": "12d0c0a3a0a2295d85564bd1673d41b3126d13d6bb311c436e6b7aca34bbf0d4",
+      "lines": 101,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-input-recovery.test.ts",
+      "change": "A",
+      "sha256": "d55e6e6d0ecb39c34991152ecdb435fc9ba54c2e08c4d2255c30e45201ec2549",
+      "lines": 93,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-interactions.test.ts",
+      "change": "A",
+      "sha256": "b30969b2ad3cf0babce3f3ac44c99cbdabf6e24864869ec24c4ddc150e92c6aa",
+      "lines": 93,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-main-orthogonality.test.ts",
+      "change": "A",
+      "sha256": "cd619a85fe8bf022c1f5b69573d47df89304f9acb469ed6ee82eb88a51f05426",
+      "lines": 47,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-management.test.ts",
+      "change": "A",
+      "sha256": "0f1ec62a6b9da7fe73802355a97b1f6e7a6ab2c9293646c87d16cb1f02ee9a92",
+      "lines": 145,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-native-compat.test.ts",
+      "change": "A",
+      "sha256": "b65a2c1cd1694f36e57a7ec97d69b0a214a66c86f07bc7dfbfc62536da4bd9ab",
+      "lines": 171,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-project-identity.test.ts",
+      "change": "A",
+      "sha256": "3100aeac1e0853ed28d859f3f765f1915de9f27dbf5bf2d4e69d245f2bd8ea6a",
+      "lines": 25,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-real-native.test.ts",
+      "change": "A",
+      "sha256": "e480e7f8bb68b49de22540e9d7830297b7aef54ee00d628563c53ce4cd3318a7",
+      "lines": 61,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-sharing.test.ts",
+      "change": "A",
+      "sha256": "d5c6f1dea87d8ef7f4b4f66b9a1948d1c3e6905db41b1e9b9c787277c7bd43b3",
+      "lines": 342,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-transport.test.ts",
+      "change": "A",
+      "sha256": "60fb18dfedcdf8765a732374979aca90897712f536ce2d2780c6a902f2e19c4b",
+      "lines": 55,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    },
+    {
+      "path": "test/peer-write-boundary.test.ts",
+      "change": "A",
+      "sha256": "16567fb3b8173411de2add843407b5c4eddd1644c0d4790b87f38f82b37f8646",
+      "lines": 164,
+      "reviewMode": "full-file",
+      "layers": [
+        "module",
+        "function"
+      ],
+      "oldLedgerStatus": "not-in-old-ledger",
+      "note": "All source lines inspected; not a proof of every execution combination."
+    }
+  ],
+  "relatedExistingPaths": [
+    "src/server/thread-event-hub.ts",
+    "src/channels/dingtalk-stream-diagnostics.ts",
+    "src/channels/dingtalk.ts",
+    "src/bridge/native-input-recovery.ts",
+    "src/codex/history-reader.ts",
+    "src/codex/read-connections.ts"
+  ],
+  "oldLedger": {
+    "summary": {
+      "baselineFiles": 688,
+      "addedFiles": 145,
+      "fullyRead": 769,
+      "artifactsInspected": 28,
+      "partiallyRead": 0,
+      "unread": 36,
+      "cases": 319,
+      "casesWithTests": 319,
+      "verifiedCases": 213
+    },
+    "status": "in-progress",
+    "errors": [],
+    "newFilesNotRegistered": [
+      "docs/architecture/modules/peer-interface-matrix.md",
+      "docs/architecture/modules/peer-transport.md",
+      "docs/audits/2026-11-03-peer-contract-review/README.md",
+      "docs/audits/2026-11-03-peer-contract-review/fixes.md",
+      "docs/audits/2026-11-03-peer-contract-review/function-delta-review.json",
+      "docs/audits/2026-11-03-peer-contract-review/merge-completion.md",
+      "docs/audits/2026-11-03-peer-contract-review/real-validation.md",
+      "docs/audits/2026-11-03-peer-contract-review/reproduce.test.ts",
+      "docs/audits/2026-11-03-peer-contract-review/reproduction.txt",
+      "docs/audits/2026-11-03-peer-contract-review/test-results-final.jsonl",
+      "docs/gateway-peers.md",
+      "docs/peer-dingtalk-linux-validation.md",
+      "docs/peer-linux-cli-validation.md",
+      "docs/peer-main-reuse-review.md",
+      "docs/peer-merge-readiness.md",
+      "docs/peer-sharing.md",
+      "examples/peer-client.json",
+      "examples/peer-server.json",
+      "src/codex/write-guard.ts",
+      "src/peer/backend.ts",
+      "src/peer/channel.ts",
+      "src/peer/context.ts",
+      "src/peer/contract.ts",
+      "src/peer/execution-service.ts",
+      "src/peer/files.ts",
+      "src/peer/identity.ts",
+      "src/peer/index.ts",
+      "src/peer/interaction-client.ts",
+      "src/peer/interaction-service.ts",
+      "src/peer/management.ts",
+      "src/peer/project-catalog.ts",
+      "src/peer/receipts.ts",
+      "src/peer/recovery-journal.ts",
+      "src/peer/registry.ts",
+      "src/peer/rpc.ts",
+      "src/peer/runtime.ts",
+      "src/peer/shared-workspace.ts",
+      "src/peer/sharing-authority.ts",
+      "src/peer/sharing-gateway.ts",
+      "src/peer/sharing-types.ts",
+      "src/peer/transport.ts",
+      "src/peer/workspace-page.ts",
+      "src/peer/workspace-portal.ts",
+      "src/peer/write-guard.ts",
+      "test/backend-transport-contract.test.ts",
+      "test/peer-bridge.test.ts",
+      "test/peer-complete-contract.test.ts",
+      "test/peer-execution.test.ts",
+      "test/peer-files.test.ts",
+      "test/peer-fixture.ts",
+      "test/peer-input-recovery.test.ts",
+      "test/peer-interactions.test.ts",
+      "test/peer-main-orthogonality.test.ts",
+      "test/peer-management.test.ts",
+      "test/peer-native-compat.test.ts",
+      "test/peer-project-identity.test.ts",
+      "test/peer-real-native.test.ts",
+      "test/peer-sharing.test.ts",
+      "test/peer-transport.test.ts",
+      "test/peer-write-boundary.test.ts"
+    ],
+    "staleRecordedFiles": [
+      "README.md",
+      "package-lock.json",
+      "package.json",
+      "src/bridge/access.ts",
+      "src/bridge/channel-command-policy.ts",
+      "src/bridge/channel-commands.ts",
+      "src/bridge/format.ts",
+      "src/bridge/native-queue.ts",
+      "src/bridge/service.ts",
+      "src/bridge/turn-submission.ts",
+      "src/codex/app-server-gateway.ts",
+      "src/codex/app-server-runner.ts",
+      "src/codex/approval.ts",
+      "src/codex/backend.ts",
+      "src/codex/exec-runner.ts",
+      "src/codex/inbound-files.ts",
+      "src/ide/authorization.ts",
+      "src/server/account-manager.ts",
+      "src/server/arguments.ts",
+      "src/server/codex-projects.ts",
+      "src/server/index.ts",
+      "test/account-manager.test.ts",
+      "test/channel-help.test.ts",
+      "test/codex-app-server.test.ts",
+      "test/fixtures/fake-codex-app-server.mjs",
+      "test/fixtures/shared-native-core.mjs",
+      "test/format.test.ts",
+      "test/intent-review-lifecycle.test.ts",
+      "docs/architecture/README.md",
+      "docs/architecture/function-contracts.jsonl",
+      "docs/architecture/gateway-case-coverage.md",
+      "docs/architecture/gateway-contracts.md",
+      "docs/architecture/gateway-implementation-map.md",
+      "docs/architecture/gateway-requirements.json",
+      "docs/architecture/remaining-work.md",
+      "src/codex/output-files.ts"
+    ]
+  }
+}

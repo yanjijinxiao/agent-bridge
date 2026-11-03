@@ -53,6 +53,8 @@ type FollowState = {
   lastAttemptAt?: string;
   lastSyncedAt?: string;
   syncFailure?: FollowSyncFailure;
+  /** Input acceptance recovery is independent of read-only runtime health. */
+  inputRecoveryFailure?: FollowSyncFailure;
   presentation?: SessionFollowStatus["presentation"];
   terminalPending?: { turnId: string; text: string; fallbackSent: boolean; outcome?: TurnOutcome };
   /** Failed previous turns own their payload/card; never share a new turn's slot. */
@@ -227,6 +229,7 @@ export class ThreadEventHub {
       ...(matching?.runtimeRecovery ? { runtimeRecovery: { turnId: matching.runtimeRecovery.turnId, phase: matching.runtimeRecovery.phase,
         attempts: matching.runtimeRecovery.attempts, message: matching.runtimeRecovery.message, updatedAt: matching.runtimeRecovery.updatedAt } } : {}),
       snapshotAt: matching?.observedAt, runtime: matching?.runtime, failure: matching?.syncFailure,
+      ...(matching?.inputRecoveryFailure ? { inputRecoveryFailure: matching.inputRecoveryFailure } : {}),
       presentation: matching?.presentation,
       ...(matching?.checkpoint && !matching.checkpoint.finished && (matching.checkpoint.bootstrap
         || matching.checkpoint.messageId || matching.checkpoint.creationAttempted || matching.checkpoint.resultPresentation === "card") ? { progressDelivery: {
@@ -313,25 +316,37 @@ export class ThreadEventHub {
     try {
       const snapshot = await boundedRead(read(), this.options.readTimeoutMs ?? 25_000);
       if (snapshot.state.threadId !== sub.threadId) throw new Error("Backend returned another thread snapshot");
-      // Acceptance recovery must precede final-result effects and delivery.
-      // The existing serial section below rechecks binding/read generation
-      // after this asynchronous, read-only native observation.
-      await this.options.onInputObservation?.(sub, snapshot);
+      // Receipt recovery gates result effects, not independently observed
+      // runtime/progress. A failed old receipt must not discard this snapshot.
+      let inputRecoveryFailure: FollowSyncFailure | undefined;
+      try {
+        await boundedRead(Promise.resolve(this.options.onInputObservation?.(sub, snapshot)), this.options.readTimeoutMs ?? 25_000);
+      } catch (error) {
+        inputRecoveryFailure = { ...followSyncFailure(error),
+          message: "旧输入接受回执尚未核对完成；当前进展继续同步，相关结果等待核对后投递。" };
+      }
       return await this.queue.run(sub.key, async () => {
         const current = this.currentSubscription(sub);
         if (this.stopped || !current) return this.changedBinding();
         // Settings/ownership may change while a backend read is in flight.
         sub = current;
         if (this.readVersions.get(sub.key) !== version) return this.status(sub.key);
+        if (inputRecoveryFailure && state.inputRecoveryFailure?.code !== inputRecoveryFailure.code) {
+          console.warn(`[codex-im-gateway] input acceptance recovery ${JSON.stringify({
+            hostId: sub.hostId, threadId: sub.threadId, code: inputRecoveryFailure.code })}`);
+        }
+        state.inputRecoveryFailure = inputRecoveryFailure;
         if (state.sequence !== sequenceBeforeRead && snapshot.state.activeTurnId !== state.turnId) {
           this.failSync(sub, { code: "unconfirmed", message: "读取期间任务轮次发生变化；未覆盖较新的进展，请重试同步。" }, "unconfirmed");
           return this.status(sub.key);
         }
         // Reject a mismatched response before any progress or cursor can be updated.
         if (snapshot.state.threadId !== sub.threadId) throw new Error("Backend returned another thread snapshot");
-        this.requestProvenanceRepair(sub, snapshot);
-        await this.repairQueueTerminals(sub);
-        await this.closeDeliveredProgress(sub, snapshot);
+        if (!inputRecoveryFailure) {
+          this.requestProvenanceRepair(sub, snapshot);
+          await this.repairQueueTerminals(sub);
+          await this.closeDeliveredProgress(sub, snapshot);
+        }
         if (this.stopped || !this.isLive(sub) || this.readVersions.get(sub.key) !== version) return this.changedBinding();
         // Pre-upgrade Gateway shutdown could poison a suspended card with a
         // local transport error. Only a loaded writer confirming the SAME
@@ -377,7 +392,7 @@ export class ThreadEventHub {
           return this.status(sub.key);
         }
         const restoreCard = !this.streams.has(sub.key) && Boolean(state.checkpoint?.messageId && !state.checkpoint.finished);
-        await this.reconcile(sub, snapshot, force, options);
+        await this.reconcile(sub, snapshot, force, options, !inputRecoveryFailure);
         if (this.stopped || !this.isLive(sub)) return this.changedBinding();
         const runtime = snapshot.state;
         if (runtime.runtimeStatus === "active" && runtime.activeTurnId === state.turnId
@@ -387,8 +402,10 @@ export class ThreadEventHub {
           await this.stream(sub).flush();
         }
         if (runtime.runtimeStatus === "systemError" && runtime.persistence === "active") {
-          this.options.onSystemError?.(sub, snapshot);
-          this.failSync(sub, { code: "unavailable", message: [this.options.onSystemError
+          if (!inputRecoveryFailure) this.options.onSystemError?.(sub, snapshot);
+          this.failSync(sub, { code: "unavailable", message: [inputRecoveryFailure
+            ? "会话处于系统错误状态（systemError）；旧输入回执尚未核对完成，暂未启动自动重载。"
+            : this.options.onSystemError
             ? runtime.lastTurnFailure ? "会话处于系统错误状态（systemError）；已进入受控恢复检查，绑定保留，旧消息未重发。"
               : "会话处于系统错误状态（systemError）；缺少可信失败轮次，暂不能自动重载，绑定保留。"
             : "会话处于系统错误状态（systemError）；绑定已保留，未自动恢复或重发任务。",
@@ -434,7 +451,7 @@ export class ThreadEventHub {
             this.failSync(sub, { code: "presentation", message: this.presentationFailure(sub) });
             return this.status(sub.key);
           }
-          if (state.terminalPending && runtime.runtimeStatus !== "active") {
+          if (!inputRecoveryFailure && state.terminalPending && runtime.runtimeStatus !== "active") {
             this.failSync(sub, { code: "presentation", message: "当前轮次已结束，但最终答复尚未确认送达；后端状态读取成功不表示这一轮同步完成。" });
             return this.status(sub.key);
           }
@@ -448,7 +465,7 @@ export class ThreadEventHub {
             this.save();
           }
         }
-        if (state.turnId && state.completed.includes(state.turnId)) void this.notifyParticipants(sub, state.turnId);
+        if (!inputRecoveryFailure && state.turnId && state.completed.includes(state.turnId)) void this.notifyParticipants(sub, state.turnId);
         return this.status(sub.key);
       });
     } catch (error) {
@@ -641,7 +658,7 @@ export class ThreadEventHub {
     if (delivered) { await stream.suspend(); this.streams.delete(sub.key); }
   }
 
-  private async reconcile(sub: ThreadSubscription, snapshot: CodexThreadSnapshot, force = false, options: FollowSyncOptions = {}): Promise<void> {
+  private async reconcile(sub: ThreadSubscription, snapshot: CodexThreadSnapshot, force = false, options: FollowSyncOptions = {}, resultsReady = true): Promise<void> {
     if (!this.isLive(sub)) return;
     const state = this.state(sub);
     state.runtime = snapshot.state;
@@ -650,6 +667,13 @@ export class ThreadEventHub {
     if (snapshot.state.activeTurnId && this.options.holdsCapacityStart?.({ hostId: sub.hostId,
       threadId: sub.threadId, turnId: snapshot.state.activeTurnId })) return;
     state.observedAt = new Date().toISOString();
+    if (!resultsReady) {
+      // Do not move history boundaries, acknowledge recovered inputs, run
+      // result actions or retry old final deliveries on incomplete acceptance
+      // evidence. Only the loaded owner's exact active turn may update progress.
+      await this.reconcileActiveProgress(sub, snapshot);
+      return;
+    }
     // Runtime availability alone is never a terminal receipt. A system error
     // may nevertheless contain an explicit failure for our exact tracked turn.
     if (["archived", "missing"].includes(snapshot.state.persistence)) return;
@@ -792,6 +816,24 @@ export class ThreadEventHub {
         startedAt: newest.startedAt ?? (newest.id === boundary.turnId ? boundary.startedAt : undefined) });
       this.save();
     }
+  }
+  private async reconcileActiveProgress(sub: ThreadSubscription, snapshot: CodexThreadSnapshot): Promise<void> {
+    const runtime = snapshot.state;
+    if (runtime.persistence !== "active" || runtime.runtimeStatus !== "active" || !runtime.activeTurnId) return;
+    const turn = snapshot.turns.find(turn => turn.id === runtime.activeTurnId && turn.status === "inProgress");
+    const state = this.state(sub);
+    if (!turn || state.completed.includes(turn.id) || sub.managed && state.turnId && state.turnId !== turn.id) return;
+    if (!await this.selectTurn(sub, turn.id, !sub.managed)) return;
+    for (const message of turn.messages) {
+      if (message.role === "assistant" && message.kind === "progress") await this.deliver(sub, turn.id, message.text);
+    }
+    if (state.checkpoint && !state.terminalPending && sub.progressEnabled !== false) {
+      const recovering = runtime.recovery?.threadId === sub.threadId && runtime.recovery.turnId === turn.id;
+      if (recovering) await this.stream(sub).waitForRecovery(codexRecoverySummary(runtime.recovery!));
+      await this.stream(sub).setActivity(runtime.activeFlags.includes("waitingOnApproval") ? "waiting-approval"
+        : runtime.activeFlags.includes("waitingOnUserInput") ? "waiting-input" : recovering ? "recovering" : "running");
+    }
+    this.save();
   }
   /** Settle only an already tracked native failure, not arbitrary history or
    * a systemError observation. Execution availability remains unchanged. */

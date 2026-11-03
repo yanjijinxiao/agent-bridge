@@ -737,7 +737,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/codex/backend.ts",
@@ -754,8 +754,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -905,7 +905,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -923,8 +923,8 @@
           "verifiedBoundary": "实际manager构造和同对象借用；显式stdio属于宿主，不冒充daemon跨宿主退出。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -1176,7 +1176,7 @@
             },
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             },
             {
               "file": "src/channels/progress.ts",
@@ -1186,8 +1186,8 @@
           "verifiedBoundary": "持久binding、只读sync恢复、同handle的notice跨重启和新进展已验证；本case的真实外部连接断开后重连原运行turn仍需独立场景。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -1335,13 +1335,13 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -1502,11 +1502,11 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             }
           ],
           "verifiedBoundary": "真实原生0.166.0核心、本机受控模型、Gateway独立子进程及确认回执IM替身：已有/新线程×执行中/离线完成4种，恢复accepted写前及写后Hub接管前再次SIGKILL共6种；核心PID、原client/thread/turn不变，真实输入、最终结果和记忆各一次，再次重连不重复。13个边界测试覆盖分页/身份/错误/落盘/退休/换绑/新轮次并存。",
@@ -1521,8 +1521,8 @@
           },
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -1720,6 +1720,28 @@
             "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
             "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
           }
+        },
+        {
+          "id": "IN-02.7",
+          "scenario": "新线程身份回调失败时不提交原生输入；正常身份持久交接后只提交一次。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-thread-handoff.test.ts",
+              "name": "fresh native input waits for durable thread callback: normal control"
+            },
+            {
+              "file": "test/peer-thread-handoff.test.ts",
+              "name": "fresh native input waits for durable thread callback: failed journal"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "50696879d61eff576f7d10367e9a6570983045e4cca75be57c9a60bd2b286e51"
+            }
+          ],
+          "verifiedBoundary": "真实Peer WebSocket/RPC、AppServerCodexRunner与JSONL原生夹具；回调拒绝零turn/start、正常一次。非真实磁盘断电/真实模型验收。"
         }
       ]
     },
@@ -2182,7 +2204,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -2192,8 +2214,8 @@
           "verifiedBoundary": "真实AccountManager长轮期间改名/解绑，完成后唯一live store与重新读盘均保留新管理状态。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -2322,14 +2344,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "实际账号启动/刷新及独立停止，但monitor/runner替身，不证明所有并发清理异常。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -2349,7 +2371,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/ide/approval-service.ts",
@@ -2359,8 +2381,8 @@
           "verifiedBoundary": "已覆盖退休入站claim和机器人IDE身份；其他旧连接异步回执仍需逐条核对。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -2405,14 +2427,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "逐一注入8种独立资源stop/close失败，均尝试其余资源并终止自有入口，最后汇总错误。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -2535,14 +2557,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "账号API和webhook投影不输出原token/key；全仓错误日志泄密边界尚未穷尽。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -2649,7 +2671,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -2659,8 +2681,8 @@
           "verifiedBoundary": "真实关系事务和订阅集合，不调用runner；原生任务/queue持续执行用替身零调用证明，非真实执行中重启。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -2838,10 +2860,15 @@
           "implementation": [
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             }
           ],
-          "verifiedBoundary": "hub旧绑定结果/卡关闭；附件及全部handler路径未在该测试。"
+          "verifiedBoundary": "hub旧绑定结果/卡关闭；附件及全部handler路径未在该测试。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "BIND-03.2",
@@ -2856,10 +2883,15 @@
           "implementation": [
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             }
           ],
-          "verifiedBoundary": "archive不造final已断言；archive之后全部订阅资源暂停不由此单例证明。"
+          "verifiedBoundary": "archive不造final已断言；archive之后全部订阅资源暂停不由此单例证明。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "BIND-03.3",
@@ -3033,7 +3065,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/bridge/interaction-routing.ts",
@@ -3043,8 +3075,8 @@
           "verifiedBoundary": "真实管理层来源选择+持久去重；IM传输替身，确认零题目正文泄露。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -3096,10 +3128,15 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             }
           ],
-          "verifiedBoundary": "真实Web脚本VM DOM替身按精确组合筛选，非真实浏览器布局验收。"
+          "verifiedBoundary": "真实Web脚本VM DOM替身按精确组合筛选，非真实浏览器布局验收。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "BIND-05.2",
@@ -3114,10 +3151,15 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             }
           ],
-          "verifiedBoundary": "Web handler只导航，重复原生ID仍按account+managed record；非手机导航验收。"
+          "verifiedBoundary": "Web handler只导航，重复原生ID仍按account+managed record；非手机导航验收。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "BIND-05.3",
@@ -3136,7 +3178,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -3146,8 +3188,8 @@
           "verifiedBoundary": "Web精确原绑定比较，旧页面不能解绑替代记录。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -3875,14 +3917,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "展示引用/字面附件不发送，全部历史分页API及native格式组合仍待映射。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -4354,11 +4396,11 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             }
           ],
           "integrationReview": {
@@ -4372,8 +4414,8 @@
           },
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -4802,7 +4844,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             },
             {
               "file": "src/bridge/service.ts",
@@ -4812,8 +4854,8 @@
           "verifiedBoundary": "首屏和status不挡的各自故障已覆盖；Taskboard挂起时IMstatus的联合场景未专测。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -4911,7 +4953,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -4921,8 +4963,8 @@
           "verifiedBoundary": "ACL原子rename失败的停止/运行账号两种状态；磁盘、manager、Bridge均不放行陌生个人。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -5138,7 +5180,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -5147,8 +5189,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -6347,9 +6389,14 @@
             },
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             }
-          ]
+          ],
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "REC-02.4",
@@ -6467,26 +6514,26 @@
           "implementation": [
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             },
             {
               "file": "src/bridge/session-follow.ts",
-              "sha256": "8cdd3f92ae90e3dde4a020d1b89ffde612d470442052be33a94b4092ddf3b108"
+              "sha256": "25ecf4df6d6120080e7da62d91ac30b16e15b87f1c42e0088516d98922a07b62"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             }
           ],
           "verifiedBoundary": "真实hub+管理HTTP+隔离Chrome及IM文案联合：原生完成/idle但投递失败保留pending；渠道回执后显示已接收，不声称手机已显示。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -6842,10 +6889,15 @@
           "implementation": [
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             }
           ],
-          "verifiedBoundary": "实际1000条历史扩窗/force sync/重启不补卡，后端fixture且历史分类先用权威native order/time。"
+          "verifiedBoundary": "实际1000条历史扩窗/force sync/重启不补卡，后端fixture且历史分类先用权威native order/time。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "DEL-04.2",
@@ -6860,10 +6912,15 @@
           "implementation": [
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             }
           ],
-          "verifiedBoundary": "无界历史不能由未知ID冒充新任务；该测试只用有限历史fixture，force-sync/1000轮另需场景。"
+          "verifiedBoundary": "无界历史不能由未知ID冒充新任务；该测试只用有限历史fixture，force-sync/1000轮另需场景。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "DEL-04.3",
@@ -6886,10 +6943,15 @@
           "implementation": [
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             }
           ],
-          "verifiedBoundary": "已跟踪原card与无card历史分别保留，精确离线完成恢复一次。"
+          "verifiedBoundary": "已跟踪原card与无card历史分别保留，精确离线完成恢复一次。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         }
       ]
     },
@@ -7257,10 +7319,15 @@
             },
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             }
           ],
-          "verifiedBoundary": "真实rollout monitor的公开摘要/工具事件经过hub→卡片；子线程继承父metadata、guardian及foreign终态不污染主任务。"
+          "verifiedBoundary": "真实rollout monitor的公开摘要/工具事件经过hub→卡片；子线程继承父metadata、guardian及foreign终态不污染主任务。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "DEL-08.4",
@@ -7276,7 +7343,7 @@
           "implementation": [
             {
               "file": "src/server/thread-event-hub.ts",
-              "sha256": "73cf07fe83e22ea3d507cd1b8a3bd0f44d5a2d3d6eb5bf5ce5c59f7a5442b90f"
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
             },
             {
               "file": "src/bridge/turn-audience.ts",
@@ -7288,7 +7355,12 @@
             }
           ],
           "verifiedBoundary": "真实hub、accepted input journal和audience：仅真实输入切第二段，最终回执后一次@与IDE页脚，重启/重复终态/迟到摘要不再开空卡。",
-          "testGap": "分段/最终@/页脚的自动化所有权已补；当前真实钉钉端同轮分段显示和历史截图故障的现版对照仍未验。"
+          "testGap": "分段/最终@/页脚的自动化所有权已补；当前真实钉钉端同轮分段显示和历史截图故障的现版对照仍未验。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "DEL-08.5",
@@ -7325,6 +7397,40 @@
             }
           ],
           "verifiedBoundary": "真实临时JSONL/分段增长和Buffer.concat计数；超大hint跳过不结束任务。"
+        },
+        {
+          "id": "DEL-08.7",
+          "scenario": "旧输入回执核对失败仍显示可信活动进展；最终动作等恢复后执行一次；等待中解绑不迟到投递。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/thread-input-recovery-progress.test.ts",
+              "name": "accepted active snapshot still updates progress: normal control"
+            },
+            {
+              "file": "test/thread-input-recovery-progress.test.ts",
+              "name": "accepted active snapshot still updates progress: old receipt unavailable"
+            },
+            {
+              "file": "test/thread-input-recovery-progress.test.ts",
+              "name": "receipt failure withholds final effects until recovery and does not replay input"
+            },
+            {
+              "file": "test/thread-input-recovery-progress.test.ts",
+              "name": "a binding removed during receipt recovery receives no late progress"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "41bbdb2cbbcb9c35cb5026b3ab5d63f6a8db2dc9340415a5f1ae40fb3fcf8bd5"
+            },
+            {
+              "file": "src/bridge/session-follow.ts",
+              "sha256": "25ecf4df6d6120080e7da62d91ac30b16e15b87f1c42e0088516d98922a07b62"
+            }
+          ],
+          "verifiedBoundary": "真实Hub、临时状态日志、受控原生快照与恢复回调；正常/失败/最终恢复/解绑及IM状态格式，未进行生产骤停。"
         }
       ]
     },
@@ -7661,10 +7767,15 @@
             },
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             }
           ],
-          "verifiedBoundary": "copy panel只复制、不决定，原生表单直接提交；所有IM复制按钮原生行为不是本机DOM证据。"
+          "verifiedBoundary": "copy panel只复制、不决定，原生表单直接提交；所有IM复制按钮原生行为不是本机DOM证据。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "DEL-10.3",
@@ -7679,14 +7790,19 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             },
             {
               "file": "src/ide/copy-controls.ts",
               "sha256": "0b3695980994ebae60b939e942037ba1c9c3d85268d2656d6a32569a7f3bb49c"
             }
           ],
-          "verifiedBoundary": "管理UI roots普通展示不复制；模型输出的任意目录树/enum不能仅靠这个表单测试外推。"
+          "verifiedBoundary": "管理UI roots普通展示不复制；模型输出的任意目录树/enum不能仅靠这个表单测试外推。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         }
       ]
     },
@@ -7768,7 +7884,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/channels/feishu.ts",
@@ -7782,8 +7898,8 @@
           "verifiedBoundary": "真实readiness/cleanup边界，所有provider重连状态全排列仍须实际平台验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -8162,14 +8278,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "真实临时文件stat和历史读取；Windows保留内容/归属但不假测POSIX mode。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -8447,6 +8563,24 @@
             }
           ],
           "verifiedBoundary": "过期二维码等待响应后不能确认；其他停止/迟到账号启动路径未同组覆盖。"
+        },
+        {
+          "id": "CHAN-04.4",
+          "scenario": "接收error不关闭原卡；connecting/connected沿用同卡；显式停止后迟到回调不能恢复订阅。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/account-manager.test.ts",
+              "name": "receive connection errors preserve the original card until an explicit account stop"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
+            }
+          ],
+          "verifiedBoundary": "真实AccountManager/ThreadEventHub及monitor回调，渠道发送夹具；不等于钉钉手机呈现或生产网络故障实测。"
         }
       ]
     },
@@ -8490,7 +8624,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/ide/project-identity.ts",
@@ -8503,8 +8637,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -8520,7 +8654,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/ide/manager.ts",
@@ -8529,8 +8663,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -8773,14 +8907,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "可选IDE构造/ingress失败隔离，不借输入；所有运行异常/绑定不变仍需组合。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -8824,14 +8958,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "个人准入唯一权威；群准入不自动授权，停账号/重启保持，不新建额外名单或密码。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -8859,14 +8993,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "持久epoch fencing覆盖重新允许旧grant失效；本地HTTP/WS试验，不是手机端。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -9454,14 +9588,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "原版反例失败，实际Bridge/EndpointManager/ChannelTurnPresentation隔离夹具通过；远程网络恢复及手机实际显示不在本机窄边界验收内。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -9596,7 +9730,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             },
             {
               "file": "src/web/knowledge-bases.js",
@@ -9604,7 +9738,12 @@
             }
           ],
           "verifiedBoundary": "实际Web脚本VM与DOM替身逐handler核对归属；Taskboard iframe内部App的来源与提交另由TB-09记录，不由本组VM场景证明。",
-          "testGap": "实际Web脚本VM与DOM替身逐handler核对归属；Taskboard iframe内部App的来源与提交另由TB-09记录，不由本组VM场景证明。"
+          "testGap": "实际Web脚本VM与DOM替身逐handler核对归属；Taskboard iframe内部App的来源与提交另由TB-09记录，不由本组VM场景证明。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "WEB-01.2",
@@ -9627,14 +9766,19 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             },
             {
               "file": "src/web/knowledge-bases.js",
               "sha256": "0d50f4cd1eb0d077d9206aaee6f3b47bb45634326501e6b8793646b2ae0fc661"
             }
           ],
-          "verifiedBoundary": "知识绑定焦点/保存及QR代次保护；全部脏表单组合不由三个例子外推。"
+          "verifiedBoundary": "知识绑定焦点/保存及QR代次保护；全部脏表单组合不由三个例子外推。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "WEB-01.3",
@@ -9654,10 +9798,15 @@
             },
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             }
           ],
-          "verifiedBoundary": "生产HTML/JS+真实HTTP服务重启+隔离Chrome旧DOM：失效token明确未提交才握手重做一次；服务已提交后模拟响应丢失，不重做。"
+          "verifiedBoundary": "生产HTML/JS+真实HTTP服务重启+隔离Chrome旧DOM：失效token明确未提交才握手重做一次；服务已提交后模拟响应丢失，不重做。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "WEB-01.4",
@@ -9767,13 +9916,18 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             },
             {
               "file": "src/web/knowledge-bases.js",
               "sha256": "0d50f4cd1eb0d077d9206aaee6f3b47bb45634326501e6b8793646b2ae0fc661"
             }
-          ]
+          ],
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "WEB-01.6",
@@ -9782,7 +9936,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             }
           ],
           "tests": [
@@ -9791,7 +9945,50 @@
               "name": "group-channel session pickers do not turn a personal admission id into a conversation target"
             }
           ],
-          "verifiedBoundary": "实际页面函数VM；候选生成和明确选择，非375px视觉验收。"
+          "verifiedBoundary": "实际页面函数VM；候选生成和明确选择，非375px视觉验收。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
+        },
+        {
+          "id": "WEB-01.7",
+          "scenario": "共享编辑器保存期间的新编辑不清脏；重复保存串行；切换或重开文件隔离旧响应；失败及迟到读取保留草稿。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-workspace-page.test.ts",
+              "name": "workspace save receipt only clears its submitted revision: unchanged"
+            },
+            {
+              "file": "test/peer-workspace-page.test.ts",
+              "name": "workspace save receipt only clears its submitted revision: new edits"
+            },
+            {
+              "file": "test/peer-workspace-page.test.ts",
+              "name": "a delayed save cannot change a reopened file view: b.txt"
+            },
+            {
+              "file": "test/peer-workspace-page.test.ts",
+              "name": "a delayed save cannot change a reopened file view: a.txt"
+            },
+            {
+              "file": "test/peer-workspace-page.test.ts",
+              "name": "rejected workspace save retains the draft and does not re-enable revoked access"
+            },
+            {
+              "file": "test/peer-workspace-page.test.ts",
+              "name": "file loading cannot discard edits made while its read was pending"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/workspace-page.ts",
+              "sha256": "260897d1d0a2a3311ca7ec42490ff85f1439b7a3bf33ca61d544555e0ec3af6c"
+            }
+          ],
+          "verifiedBoundary": "执行生产生成的页面脚本，DOM/fetch替身控制异步顺序；六项正常和反例，不冒充手机或完整code-server验收。"
         }
       ]
     },
@@ -9829,10 +10026,15 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             }
           ],
-          "verifiedBoundary": "真实bootstrap/refresh/settings处理器VM场景，Taskboard无限等待不挡核心展示和反馈。"
+          "verifiedBoundary": "真实bootstrap/refresh/settings处理器VM场景，Taskboard无限等待不挡核心展示和反馈。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "WEB-02.2",
@@ -9856,10 +10058,15 @@
             },
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             }
           ],
-          "verifiedBoundary": "生产管理页原生启用按钮→HTTP→同一TaskboardLifecycle→真实嵌入服务；禁用无iframe src，启用一次且Gateway PID不变。"
+          "verifiedBoundary": "生产管理页原生启用按钮→HTTP→同一TaskboardLifecycle→真实嵌入服务；禁用无iframe src，启用一次且Gateway PID不变。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "WEB-02.3",
@@ -9875,7 +10082,7 @@
           "implementation": [
             {
               "file": "src/web/app.js",
-              "sha256": "aca218f426d306c9740d1879dcb0ac40f7ad1b16b2b54efd3f04606e5fd1a885"
+              "sha256": "1dc6f66de38257c77152db86109b09a25578a42dc7e044b90f71b14a07b5a736"
             },
             {
               "file": "src/web/styles.css",
@@ -9887,7 +10094,12 @@
             }
           ],
           "verifiedBoundary": "生产管理页在375px Chrome中逐视图检查、长标题/ID、IDE按钮、所有含form的dialog边界；不是手机设备验收。",
-          "testGap": "实际生产管理页375px Chrome及全部表单已补；真实手机浏览器/键盘/字体环境仍未验。"
+          "testGap": "实际生产管理页375px Chrome及全部表单已补；真实手机浏览器/键盘/字体环境仍未验。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         }
       ]
     },
@@ -10122,14 +10334,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "远程项目不能作为本地目录QA默认值；已绑定QA所有动态tool读取同host仍需执行路径证明。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -10227,7 +10439,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/server/restart.ts",
@@ -10241,8 +10453,8 @@
           "verifiedBoundary": "真实Web/Bridge业务计数分界，native通过fixture接收；accept落盘失败的整个release组合还需联动。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -10563,7 +10775,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/bridge/channel-write-leases.ts",
@@ -10573,8 +10785,8 @@
           "verifiedBoundary": "实际Bridge两原版反例；11个channel写方法、3个非消息方法及异常释放。平台为替身，不替代实际上线重启。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         }
       ]
@@ -11444,7 +11656,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -11454,8 +11666,8 @@
           "verifiedBoundary": "真实安装0.166.0/临时Home/假模型/SQLite，原生审批和双消费者；独立stdio限制明确，真实IM/手机另验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "Connector增量与调用边界复核；原场景验证边界不扩大",
-            "report": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
           }
         },
         {
@@ -12308,11 +12520,16 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "4ca5180463b5f52908dcb712f7e89fec85bd8bb0bb20aafcd83387577e5301f7"
+              "sha256": "50696879d61eff576f7d10367e9a6570983045e4cca75be57c9a60bd2b286e51"
             }
           ],
           "verifiedBoundary": "undefined 与 null 适配、metadata 参数、权限设置、outputSchema、无工具handler不伪造处理器；越界图片在写前拒绝。",
-          "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
+          "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         }
       ]
     },
@@ -12398,11 +12615,16 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "4ca5180463b5f52908dcb712f7e89fec85bd8bb0bb20aafcd83387577e5301f7"
+              "sha256": "50696879d61eff576f7d10367e9a6570983045e4cca75be57c9a60bd2b286e51"
             }
           ],
           "verifiedBoundary": "检查异步准备后撤权与原请求回执；写前回调不是第二套原生工具权限。",
-          "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
+          "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         }
       ]
     },
@@ -12440,7 +12662,7 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "4ca5180463b5f52908dcb712f7e89fec85bd8bb0bb20aafcd83387577e5301f7"
+              "sha256": "50696879d61eff576f7d10367e9a6570983045e4cca75be57c9a60bd2b286e51"
             },
             {
               "file": "src/bridge/native-queue.ts",
@@ -12448,7 +12670,12 @@
             }
           ],
           "verifiedBoundary": "真实WS契约检查接收后回调和原对象；多来源协调器反例同时核对排队与已消费历史。",
-          "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
+          "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "PEER-03.2",
@@ -12479,7 +12706,7 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "4ca5180463b5f52908dcb712f7e89fec85bd8bb0bb20aafcd83387577e5301f7"
+              "sha256": "50696879d61eff576f7d10367e9a6570983045e4cca75be57c9a60bd2b286e51"
             },
             {
               "file": "src/peer/recovery-journal.ts",
@@ -12491,11 +12718,16 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f39d84ae4a1dd05f65d914d9522b7356c9968ba2944d13280d8c1ee395a72a25"
+              "sha256": "bd6e1edc06ee3a03c8405e4710d549bf87dcf2553f4bf67c0eddcc743d7052e3"
             }
           ],
           "verifiedBoundary": "持久补偿对象重建、exact来源守卫、容量随机client ID还原；不声称已验证所有远端进程骤停窗口。",
-          "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
+          "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         },
         {
           "id": "PEER-03.3",
@@ -12518,7 +12750,7 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "4ca5180463b5f52908dcb712f7e89fec85bd8bb0bb20aafcd83387577e5301f7"
+              "sha256": "50696879d61eff576f7d10367e9a6570983045e4cca75be57c9a60bd2b286e51"
             },
             {
               "file": "src/peer/backend.ts",
@@ -12526,7 +12758,12 @@
             }
           ],
           "verifiedBoundary": "实际安装Codex二进制＋隔离本地模型＋真实WS；两次模型调用和原始队列ID有断言，设备服务对象重载不冒充远端SIGKILL。",
-          "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
+          "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "四项修复的变更行/调用边界及原映射测试复核；原验收范围不扩大",
+            "report": "docs/audits/2026-11-03-main-review/fixes.md"
+          }
         }
       ]
     },
@@ -12723,5 +12960,17 @@
     "module": "docs/architecture/modules/peer-transport.md",
     "interfaceMatrix": "docs/architecture/modules/peer-interface-matrix.md",
     "review": "docs/audits/2026-11-03-peer-contract-review/merge-completion.md"
+  },
+  "mainReviewFixUpdate": {
+    "date": "2026-11-03",
+    "baseline": "3d5bff7748a4715f99d6cb762d852045bb1fc70d",
+    "report": "docs/audits/2026-11-03-main-review/fixes.md",
+    "addedCases": [
+      "IN-02.7",
+      "CHAN-04.4",
+      "DEL-08.7",
+      "WEB-01.7"
+    ],
+    "scope": "Four confirmed defects; injection-only F2 excluded; no whole-repository reread claim."
   }
 }

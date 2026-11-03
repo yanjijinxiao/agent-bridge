@@ -1,0 +1,104 @@
+✔ production configuration normalizes retired exec to the single App Server (3.2965ms)
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T03:02:04.155Z","hostId":"local","threadId":"thread","operation":"follow-synchronize","status":"failed","code":"timeout","message":"读取 Codex 当前状态超时；请检查对应主机或 Codex App 的连接后重试。"}
+✔ accepted active snapshot still updates progress: normal control (20.818625ms)
+✖ accepted active snapshot still updates progress: old receipt unavailable (4.94475ms)
+✔ fresh native input waits for durable thread callback: normal control (143.311958ms)
+✖ fresh native input waits for durable thread callback: failed journal (112.562959ms)
+✔ peer independent interactions must survive local backend app-server (38.517416ms)
+✖ peer independent interactions must survive local backend exec (29.589375ms)
+✔ receive transport starting must not detach running task card (60.484041ms)
+✖ receive transport error must not detach running task card (39.697334ms)
+✔ workspace save preserves later edits: normal control (10.193334ms)
+✖ workspace save preserves later edits: slow response (1.54675ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 6
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1468.761666
+
+✖ failing tests:
+
+test at docs/audits/2026-11-03-main-review/probes/receipt-progress.test.ts:1:373
+✖ accepted active snapshot still updates progress: old receipt unavailable (4.94475ms)
+  AssertionError [ERR_ASSERTION]: read-only progress from an active owner must not be discarded by unrelated input receipt recovery
+      at TestContext.<anonymous> (/private/tmp/gateway-main-review-3d5bff7/docs/audits/2026-11-03-main-review/probes/receipt-progress.test.ts:24:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at docs/audits/2026-11-03-main-review/probes/regressions.test.ts:1:529
+✖ fresh native input waits for durable thread callback: failed journal (112.562959ms)
+  AssertionError [ERR_ASSERTION]: do not start an input whose new thread identity was not persisted by Gateway
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-main-review-3d5bff7/docs/audits/2026-11-03-main-review/probes/regressions.test.ts:27:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at docs/audits/2026-11-03-main-review/probes/regressions.test.ts:1:1635
+✖ peer independent interactions must survive local backend exec (29.589375ms)
+  AssertionError [ERR_ASSERTION]: a capable peer must have an independent approval observer
+      at TestContext.<anonymous> (/private/tmp/gateway-main-review-3d5bff7/docs/audits/2026-11-03-main-review/probes/regressions.test.ts:46:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at docs/audits/2026-11-03-main-review/probes/regressions.test.ts:1:2787
+✖ receive transport error must not detach running task card (39.697334ms)
+  AssertionError [ERR_ASSERTION]: receive connection health is not unsubscribe intent
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-main-review-3d5bff7/docs/audits/2026-11-03-main-review/probes/regressions.test.ts:65:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at docs/audits/2026-11-03-main-review/probes/workspace-save.test.ts:1:312
+✖ workspace save preserves later edits: slow response (1.54675ms)
+  AssertionError [ERR_ASSERTION]: a write receipt only confirms the text submitted, not newer editor content
+  
+  false !== true
+  
+      at TestContext.<anonymous> (/private/tmp/gateway-main-review-3d5bff7/docs/audits/2026-11-03-main-review/probes/workspace-save.test.ts:24:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

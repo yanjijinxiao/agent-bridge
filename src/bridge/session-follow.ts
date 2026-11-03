@@ -18,6 +18,8 @@ export type FollowSyncFailure = {
 };
 
 export type SessionFollowStatus = {
+  /** A valid runtime snapshot can coexist with unresolved older input receipts. */
+  inputRecoveryFailure?: FollowSyncFailure;
   status: "disabled" | "suspended" | "pending" | "syncing" | "synced" | "stale" | "unconfirmed" | "failed";
   lastAttemptAt?: string;
   lastSyncedAt?: string;
@@ -57,6 +59,7 @@ export function formatFollowStatus(state: SessionFollowStatus): string[] {
     ...(state.lastAttemptAt ? [`最近尝试：${time(state.lastAttemptAt)}`] : []),
     ...(state.snapshotAt ? [`最近快照读取：${time(state.snapshotAt)}`] : []),
     ...(state.failure ? [`原因：${state.failure.message}（${state.failure.code}）`] : []),
+    ...(state.inputRecoveryFailure ? [`输入回执恢复：${state.inputRecoveryFailure.message}（${state.inputRecoveryFailure.code}）`] : []),
     ...(state.progressDelivery ? [`卡片投递：${({ "create-pending": "创建中", "create-rejected": "尚未创建/创建被拒绝", "create-unconfirmed": "创建结果未知",
       created: "已创建，待投递", "delivery-pending": "投递中", "delivery-rejected": "投递被拒绝，可重试原实例", "delivery-unconfirmed": "已创建，投递结果未知",
       delivered: "已确认投递", "legacy-unconfirmed": "旧记录缺少分阶段回执" })[state.progressDelivery.stage]}`,

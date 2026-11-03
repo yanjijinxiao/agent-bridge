@@ -338,10 +338,15 @@ export class PeerExecutionService {
       if (!queueRetired) { queuePoll = setTimeout(() => void pollQueueTurn(turnId), 5000); queuePoll.unref(); }
     };
     const input = { ...nativeInput!, clientUserMessageId: sourceId, assertCurrent,
-      onThreadCreated: id => {
+      onThreadCreated: async id => {
         if (fresh && threadId === "new") { this.assertThread(id); threadId = id; this.receipts.created(operationId, id); }
         else this.assertThread(id, threadId);
-        return event("onThreadCreated", [id]).then(() => {});
+        // This is the origin's durable identity handoff, not a best-effort
+        // progress notification. The native runner awaits it before turn/start.
+        // Keep the device's created receipt, but never submit if the origin
+        // cannot persist that identity or has revoked this operation.
+        this.sharing.assert(call.grant, method, args);
+        await callback("onThreadCreated", [id]);
       },
       onTurnStarted: async receipt => {
         this.assertThread(receipt.threadId, threadId); this.receipts.accepted(operationId, receipt.turnId);

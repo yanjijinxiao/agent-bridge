@@ -1,0 +1,469 @@
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T02:34:18.397Z","operation":"final-result-delivery","hostId":"peer:laptop:work","threadId":"peer-thread","turnId":"peer-turn","status":"delivered"}
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T02:34:18.470Z","hostId":"remote-one","threadId":"failed-thread","operation":"follow-synchronize","status":"failed","code":"unavailable","message":"会话处于系统错误状态（systemError）；已进入受控恢复检查，绑定保留，旧消息未重发。\n上一轮失败原因：Codex 账号工作区路由发现失败。","snapshotRuntime":"systemError","snapshotPersistence":"active","snapshotAt":"2026-11-03T02:34:18.463Z"}
+✔ web unbind removes only the selected account/chat edge and immediately refreshes native subscriptions (68.910167ms)
+✔ an exec Gateway delivers Connector results using the peer's live-follow capability (42.293416ms)
+✔ account manager routes follow sync through the shared hub and rejects an old binding (38.46675ms)
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T02:34:18.536Z","hostId":"remote-one","threadId":"failed-thread","operation":"follow-synchronize","status":"failed","code":"unavailable","message":"会话处于系统错误状态（systemError）；已进入受控恢复检查，绑定保留，旧消息未重发。\n上一轮失败原因：Codex 账号工作区路由发现失败。","snapshotRuntime":"systemError","snapshotPersistence":"active","snapshotAt":"2026-11-03T02:34:18.528Z"}
+✔ system-error follow observations reach the exact recovery owner and Web status, supported=true (66.668125ms)
+✔ system-error follow observations reach the exact recovery owner and Web status, supported=false (54.927542ms)
+✔ notifies Taskboard review state once as an actionable card with the latest evidence (49.163625ms)
+✔ exposes and manages only workspace-mapped Taskboard issues (32.114583ms)
+✔ rejects Taskboard admin mutations without a Codex thread or valid transition (18.469375ms)
+✔ isolates personal knowledge by WeChat account (16.22075ms)
+✔ starts and stops multiple accounts independently (40.286667ms)
+✔ adds redacted enterprise channels and stops them cleanly (57.632209ms)
+✔ routes a native Feishu menu click through the actor's authorized conversation (97.397042ms)
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T02:34:19.041Z","operation":"final-result-delivery","hostId":"local","threadId":"bound-desktop-thread","turnId":"bound-desktop-turn","status":"delivered"}
+[codex-im-gateway] result delivery {"timestamp":"2026-11-03T02:34:19.148Z","operation":"final-result-delivery","hostId":"local","threadId":"desktop-live-thread","turnId":"desktop-live-turn","status":"delivered"}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T02:34:19.205Z","hostId":"local","threadId":"desktop-approval-thread","turnId":"desktop-turn","code":"unavailable","bindingCount":0}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T02:34:19.570Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"ambiguous","bindingCount":2}
+[codex-im-gateway] approval has no unique active session binding; left for Desktop
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T02:34:19.618Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"ambiguous","bindingCount":2}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T02:34:20.297Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"unavailable","bindingCount":0}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T02:34:20.348Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"unavailable","bindingCount":0}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T02:34:20.400Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"ambiguous","bindingCount":2}
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T02:34:20.762Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"unavailable","bindingCount":0}
+[codex-im-gateway] no managed project found for Codex Desktop approval 316
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T02:34:20.820Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"unavailable","bindingCount":0}
+[codex-im-gateway] approval has no unique active session binding; left for Desktop
+[codex-im-gateway] interaction route unresolved {"timestamp":"2026-11-03T02:34:20.866Z","hostId":"local","threadId":"bound-approval-thread","turnId":"approval-turn","code":"ambiguous","bindingCount":2}
+[codex-im-gateway] approval has no unique active session binding; left for Desktop
+✔ notifies the configured channel and mirrors the outbound message to its webhook (112.522959ms)
+✔ notifies the configured channel when an existing Codex client task ends (106.234709ms)
+✔ streams externally owned Codex progress into a bound channel session and finalizes it (67.778292ms)
+✔ forwards an existing Codex Desktop approval to the project's configured channel (64.884208ms)
+✔ Web execution cannot synthesize a denial or deliver approval after channel-stopped (55.676666ms)
+✔ Web execution cannot synthesize a denial or deliver approval after binding-replaced (38.155667ms)
+✔ capacity recovery without its original approval route leaves the native request unanswered (24.44075ms)
+✔ remote Desktop questions and approvals stay on their execution host's binding (86.723709ms)
+✔ multi-bound App questions and approvals use the explicit primary, not every progress follower (92.191ms)
+✔ unrouted interactions produce deduplicated neutral guidance, not leaked questions or repeated cards (223.294541ms)
+✔ selecting a primary cannot reactivate a switched binding or disable another follower (72.18525ms)
+✔ reset reconciles a stale primary and only a newly accepted IM origin can replace it (108.272125ms)
+✔ an already persisted question destination is not changed by a new primary (55.025834ms)
+✔ manager restart retains exact turn origins and the separate primary for new App turns (139.215166ms)
+✔ routes questions and native receipts to the unique originating IM, never an unrelated project target (60.976208ms)
+✔ unsupported Desktop interaction notices use the exact binding without inventing approval choices (77.218708ms)
+✔ leaves remote questions in the App instead of leaking to another IM (51.652708ms)
+✔ leaves not-following questions in the App instead of leaking to another IM (49.855875ms)
+✔ leaves ambiguous questions in the App instead of leaking to another IM (85.106584ms)
+✔ a durable question destination is recovered without broadcasting to every followed group (56.109125ms)
+✔ web-started questions use the same channel handler and native result callback (59.810958ms)
+✔ subscribes standalone bound sessions on startup and reports receipts to their original IM (54.134041ms)
+✔ explicit session bindings take precedence over unrelated project notification channels (59.267042ms)
+✔ does not confuse a remote binding with an identically named local thread (54.719958ms)
+✔ leaves remote Desktop approvals for Desktop rather than guessing a destination (46.073ms)
+✔ leaves not-following Desktop approvals for Desktop rather than guessing a destination (57.857459ms)
+✔ leaves ambiguous Desktop approvals for Desktop rather than guessing a destination (74.846542ms)
+✔ pins a managed turn's approval to its originating binding when several groups follow (82.803584ms)
+✔ web-initiated app-server approvals also use standalone session bindings (56.975083ms)
+✔ refreshes Desktop approval subscriptions when sessions are deleted or a channel stops (46.264875ms)
+✔ starts approval monitoring when the first standalone IM turn creates its thread (61.976041ms)
+✔ refreshes a running account so new credentials take effect (27.459416ms)
+✔ isolates senders and managed sessions by account (37.47425ms)
+✔ Web UI personal admission is IDE authority for running and stopped accounts; removal fences old grants across restart and re-allow (64.171292ms)
+✔ isolates managed projects by WeChat account (22.235875ms)
+✔ tracks currently running Codex client tasks for a managed project (22.896375ms)
+✔ includes the project's bound sessions and active marker in project summaries (23.176334ms)
+✔ session binding projection adds only provider-confirmed conversation identity and preserves historical edges (33.03275ms)
+✔ a retired monitor cannot report an unsaved input as an already durable duplicate (39.492083ms)
+✔ rejects projects outside the configured workspace allowlist (16.832458ms)
+✔ persists channel settings without exposing the webhook URL (20.150083ms)
+✔ configures channel modes from a validated llm-wiki directory (15.957875ms)
+✔ configures channel Q&A from a validated managed Codex project (20.1565ms)
+✔ revalidates an existing knowledge base and applies a corrected project CLI root atomically (18.977583ms)
+✔ revalidates a managed knowledge base before selecting it as the channel default (17.814ms)
+✔ does not validate or register a hidden Q&A directory when Q&A is disabled (18.250792ms)
+[codex-im-gateway] thread follow sync {"timestamp":"2026-11-03T02:34:21.798Z","hostId":"local","threadId":"bound-approval-thread","operation":"follow-synchronize","status":"failed","code":"unavailable","message":"会话处于系统错误状态（systemError）；已进入受控恢复检查，绑定保留，旧消息未重发。\n上一轮失败原因：上游报告所选模型当前容量不足（model at capacity / server overloaded）。","snapshotRuntime":"systemError","snapshotPersistence":"active","snapshotAt":"2026-11-03T02:34:21.790Z"}
+✔ mirrors each inbound channel message to its configured webhook (83.002875ms)
+✔ optionally retains account sessions when removing a WeChat account (38.609541ms)
+✔ reports the effective Codex model and reasoning effort (16.7785ms)
+✔ reports the models and reasoning efforts advertised by Codex (17.060833ms)
+✔ model callbacks keep the remote host, workspace and thread through AccountManager (27.129584ms)
+✔ keeps the GPT-5.6 provider family available after selecting another model (14.863625ms)
+✔ Web input on a capacity-failed bound session uses the same recovery coordinator without submitting the message (60.397459ms)
+✔ reads managed thread history and continues the same session from Web (55.799292ms)
+✔ Web turns learn and reuse the owning WeChat account knowledge (58.142416ms)
+✔ uses WeChat session model overrides when continuing the same session from Web (50.746375ms)
+✔ streams Web progress without exposing final-answer deltas (44.891667ms)
+✔ stores Web uploads per session and exposes them in user history (59.850291ms)
+✔ reports a managed session as responding only while its Web turn is active (62.402583ms)
+✔ keeps source citations in session history without fabricated attachments (59.849834ms)
+✔ exposes files sent by Codex as session attachments (66.051583ms)
+✔ running account receives the same admission service and a remote decision updates its existing ACL owner (65.766916ms)
+✔ transport contract local: catalog, history, models, limits, skills, MCP and diagnostics (106.107041ms)
+✔ transport contract local: goal mutation and native queue identity, ordering and deletion (95.0365ms)
+✔ transport contract local: streaming, original approval identity and native confirmation (67.660709ms)
+✔ transport contract local: new native thread and dynamic tool callback (65.22025ms)
+✔ transport contract local: user question and original resolution identity (70.118ms)
+✔ transport contract local: empty thread lifecycle does not start a model turn (82.047625ms)
+✔ transport contract local: source revocation blocks queue and goal writes (67.454709ms)
+✔ transport contract ssh: catalog, history, models, limits, skills, MCP and diagnostics (99.674417ms)
+✔ transport contract ssh: goal mutation and native queue identity, ordering and deletion (98.676833ms)
+✔ transport contract ssh: streaming, original approval identity and native confirmation (75.744209ms)
+✔ transport contract ssh: new native thread and dynamic tool callback (62.778292ms)
+✔ transport contract ssh: user question and original resolution identity (69.013625ms)
+✔ transport contract ssh: empty thread lifecycle does not start a model turn (82.986375ms)
+✔ transport contract ssh: source revocation blocks queue and goal writes (74.040625ms)
+✔ transport contract connector: catalog, history, models, limits, skills, MCP and diagnostics (136.035167ms)
+✔ transport contract connector: goal mutation and native queue identity, ordering and deletion (304.20225ms)
+✔ transport contract connector: streaming, original approval identity and native confirmation (158.143166ms)
+✔ transport contract connector: new native thread and dynamic tool callback (158.336833ms)
+✔ transport contract connector: user question and original resolution identity (150.353125ms)
+✔ transport contract connector: empty thread lifecycle does not start a model turn (320.040834ms)
+✔ transport contract connector: source revocation blocks queue and goal writes (120.907125ms)
+✔ a read-only RPC timeout preserves the live transport and does not run a prompt (120.376292ms)
+✔ an unconfirmed turn/start receipt neither closes the transport nor repeats turn/start (120.882792ms)
+✔ creates and names persisted empty threads without running a model turn (83.98675ms)
+✔ empty-thread creation accepts exact Desktop migration identity without changing project discovery (74.670292ms)
+✔ ordinary execution inspection gets metadata and one item-free turn, without full history or prompt submission (76.626208ms)
+✔ resuming an old thread and waiting for idle never requests its unbounded history (74.254542ms)
+✔ native App Server failures retain normalized reasons and explicit systemError: unintended-activity (62.969916ms)
+✔ native App Server failures retain normalized reasons and explicit systemError: context-window (60.439208ms)
+✔ a start acknowledgement cannot overwrite newer native failure state: fixture-failure-before-ack (95.855709ms)
+✔ a start acknowledgement cannot overwrite newer native failure state: fixture-error-before-ack (129.702542ms)
+✔ native queue add/list/delete/start consumes the stored item and retains approval callbacks (66.328958ms)
+✔ an older app-server explicitly rejects native queue without execution fallback (99.775875ms)
+✔ independent app-server start has no project and clears unexpected assignment: infer=false (71.401959ms)
+✔ independent app-server start has no project and clears unexpected assignment: infer=true (102.626125ms)
+✔ uses the Codex V2 initialize, thread, and turn lifecycle (536.144375ms)
+✔ binds new threads to the native app-server project and keeps Bridge policy out of the title (151.385042ms)
+✔ starts a remote thread by cwd when the daemon has no project catalog API (113.038625ms)
+✔ keeps an active channel turn alive from its latest progress reply (321.686292ms)
+✔ lets an accepted agent turn run past the RPC timeout without requiring activity (315.902834ms)
+✔ recycles a private stdio app-server after the last turn releases its thread (73.9185ms)
+✔ streams safe tool status and readable reasoning summaries as progress (65.785833ms)
+✔ propagates an explicit per-input sandbox without changing inheritance defaults (69.126916ms)
+✔ runs AI classification on a persistent ephemeral app-server thread (59.352292ms)
+✔ registers llm-wiki dynamic tools and routes autonomous tool calls (53.874917ms)
+✔ routes Codex request_user_input through a channel-native answer handler (51.406959ms)
+✔ App Server resolved request invalidates a pending IM answer without synthetic skip (72.606583ms)
+✔ declares experimentalApi before starting plan collaboration mode and manages native thread goals (126.237208ms)
+✔ routes command, file, permission and simple MCP approvals to the active channel turn (308.669708ms)
+✔ CLI app-server deduplicates native MCP identity and confirms the exact persistent decision (70.260416ms)
+✔ CLI app-server preserves command, file and extra-permission session decisions (192.894375ms)
+✔ declines an app-server approval when the channel rejects it (67.616167ms)
+✔ App Server and Desktop share the typed MCP form mapping and native resolution receipts (62.481917ms)
+✔ interrupts the active V2 turn with both threadId and turnId (93.646ms)
+✔ steers an active turn with an expected-turn compare guard (91.424125ms)
+✔ rejects steering when the thread has no active turn (137.269791ms)
+✔ models active, archived, missing, and system-error thread lifecycle states (87.10925ms)
+✔ rejects a duplicate start during handoff instead of holding an implicit execution queue (137.141708ms)
+✔ reports an existing active turn without waiting or submitting a later turn (72.559375ms)
+✔ auto backend never moves an existing thread to CLI after an app-server failure (67.356209ms)
+✔ a foreign native writer conflict is visible and never invokes a Desktop follower (58.271125ms)
+✔ new native tasks use thread/start without a private UI refresh protocol (59.821459ms)
+✔ retired exec selection cannot run a streaming request through another executor (0.170625ms)
+✔ app-server backend never silently falls back to codex exec (51.0265ms)
+✔ ordinary App Server turn/start transmits the stable source identity (71.583708ms)
+✔ new native projects receive all selected roots and an unknown explicit identity cannot fall through to cwd (68.963167ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=110 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/2 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/2 页" to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 2/2 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 2/2 页" to room-one
+[codex-im-gateway] sending reply to room-one; text=151 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+✔ peer session trees retain empty device projects without changing session numbers across pages (46.736375ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=110 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 1 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sending reply to room-one; text=237 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "可绑定会话 · 我的笔记本 · 2 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sent action card "可绑定会话 · 我的笔记本 · 2 个 · 第 1/1 页" to room-one
+[codex-im-gateway] sending reply to room-one; text=98 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/another-project
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=88 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/another-project
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+✔ pair the device, choose a session entirely in DingTalk, then switch to another local session (154.605875ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending action card "选择模型" to room-one
+[codex-im-gateway] sent action card "选择模型" to room-one
+[codex-im-gateway] sending reply to room-one; text=48 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=139 chars
+[codex-im-gateway] sent reply to room-one
+✔ DingTalk-normalized chat pairs and continues the exact existing device session (61.3735ms)
+[codex-im-gateway] sending reply to room-one; text=28 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+✔ Gateway chat ACL and peer grants both apply even when a group is allowed (56.949375ms)
+[codex-im-gateway] sending action card "Codex 渠道工作台" to remote-chat
+[codex-im-gateway] sent action card "Codex 渠道工作台" to remote-chat
+✔ a remote conversation acts as a real Bridge channel on the accepted endpoint (4.587125ms)
+[codex-im-gateway] sending action card "Codex 渠道工作台" to remote-chat
+[codex-im-gateway] sent action card "Codex 渠道工作台" to remote-chat
+✔ a remote conversation acts as a real Bridge channel on the dialled endpoint (3.169958ms)
+✔ all public backend ports have an explicit peer transport policy (0.976ms)
+✔ queue callbacks remain live after queue/add returns and retain original request objects (69.009875ms)
+✔ queue admission classification survives RPC and a definitive rejection may be retried (50.887167ms)
+✔ resumeAfterCapacity rechecks the source after native preparation (34.885208ms)
+✔ recoverSystemError rechecks the source after native preparation (32.848875ms)
+✔ background recovery requires a concrete authorized source, not any paired actor (35.645917ms)
+✔ device rollback journal survives restart and never grants a new turn (24.001125ms)
+✔ runtime query preserves the metadata observation options (18.732917ms)
+✔ optional native results retain undefined across JSON transport (32.662791ms)
+✔ native queue cancellation releases callbacks without answering pending approval (52.514917ms)
+✔ native execution options pass through without inventing a dynamic tool handler (33.269916ms)
+✔ capacity snapshot restores its original source receipt (30.438334ms)
+✔ source translation separates actor queues from the thread capacity coordinator (18.0455ms)
+✔ queue reconciliation preserves each actor source on the same native thread (53.143625ms)
+✔ a queue delete that did not remove the item preserves its later callbacks (49.232125ms)
+✔ one-use pairing requires device confirmation and scopes grants to bot, chat and actor (36.218541ms)
+✔ local refusal or a changed chat guard leaves the original binding ungranted (15.607084ms)
+✔ native execution and progress, approval and question callbacks round-trip over the outbound connection (44.155834ms)
+✔ delayed native interactions preserve the channel deadline and confirm the original request (42.281708ms)
+✔ the exported thread/cwd and unsupported native features cannot be substituted remotely (71.792ms)
+✔ completed source identities survive device restart and do not execute twice (58.605875ms)
+✔ equal provider message IDs in separately approved chats retain separate native identities (89.469625ms)
+✔ only a proven native not-submitted receipt permits retry of the same input (50.5705ms)
+✔ an unavailable device receipt disk prevents every native write (16.705833ms)
+✔ ambiguous input is not replayed after a dropped connection (45.774583ms)
+✔ accepted input is not replayed after a dropped connection (45.186792ms)
+✔ offline before handoff is proven not submitted, including after Gateway restart (16.476333ms)
+✔ restart exemption starts after durable Gateway acceptance; detaching never cancels device work (34.805916ms)
+✔ closing one account facade leaves the shared device connection usable for another account (40.979666ms)
+✔ native routing keeps host arguments and guards when the target is local or SSH (1.563625ms)
+✔ files larger than the RPC frame round-trip in bounded chunks with stable paths and private temporary copies (71.439333ms)
+✔ empty files and Unicode names survive staging and checksum verification (26.053584ms)
+✔ chat identity, fixed thread grants and configured size limits apply to both transfer directions (18.958875ms)
+✔ output downloads reject paths and symlinks outside the selected workspace (23.649625ms)
+✔ corrupt, partial, out-of-order and oversized chunks never publish an attachment (22.892459ms)
+✔ uploads cannot follow a substituted storage directory and incomplete leases are removed on disconnect (36.14225ms)
+✔ an attachment prompt contains the device path and an action returns actual device bytes through the channel (37.501792ms)
+✔ a different approved chat cannot consume or cancel another chat's transfer (53.023959ms)
+✔ modified output and corrupted download bytes are rejected without leaving a live descriptor lease (23.317792ms)
+✔ transfer concurrency is bounded and an old Connector gets an explicit upgrade error (26.35525ms)
+[codex-im-gateway] sending reply to room-one; text=65 chars
+[codex-im-gateway] sent reply to room-one
+✔ Gateway output copies are removed on channel-send (24.341917ms)
+✔ Gateway output copies are removed on binding-changed (22.1015ms)
+✔ original Gateway source recovers through persisted peer IDs after Connector restart without replay (69.299583ms)
+✔ recovery cannot borrow another actor, conversation, account or thread grant (39.250125ms)
+✔ partial, ambiguous and uncorrelated native history cannot recover a peer input (43.258375ms)
+✔ AccountManager recovers an unknown peer receipt and persists acceptance without dispatching input (62.966167ms)
+✔ local and SSH receipt recovery keep their native source IDs (18.928166ms)
+✔ independent peer interaction remaps host, preserves request identity and keeps explicit decisions (43.942708ms)
+✔ disconnect retires the pending UI without answering, then a fresh subscription can answer the native replay (46.288875ms)
+✔ observer failures and stale/wrong thread requests cannot manufacture a decision (29.8585ms)
+✔ native JSONL pending approval survives peer reconnect on the same core and receives one explicit answer (1355.776708ms)
+✔ Peer decoration preserves existing backend arguments and object identity: default (2.017292ms)
+✔ Peer decoration preserves existing backend arguments and object identity: local (1.571417ms)
+✔ Peer decoration preserves existing backend arguments and object identity: ssh-contract (0.401ms)
+✔ Connector patch does not introduce the extracted generic lifecycle commands (0.271042ms)
+✔ project discovery and empty-session creation stay on the approved device and do not run a model (80.713958ms)
+✔ a standalone device session uses a private device directory and rejects mixed project paths (49.760917ms)
+✔ fixed-session grants retain lifecycle access to that thread without becoming device grants (83.114959ms)
+✔ project aliases are canonicalized on the device and an existing project worktree can create another session (48.101084ms)
+✔ a dropped creation reply never starts another native session on retry (65.75425ms)
+✔ archiving does not discard queued native work (16.186959ms)
+✔ management writes require chat authority, a live guard, an idle target and a durable journal (21.835708ms)
+[codex-im-gateway] sending action card "Codex 项目 · 1 个 · 1/1 页" to room-one
+[codex-im-gateway] sent action card "Codex 项目 · 1 个 · 1/1 页" to room-one
+[codex-im-gateway] sending reply to room-one; text=158 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-peer-27Mq37/device-project
+[codex-im-gateway] Codex turn completed for room-one; text=7 chars
+[codex-im-gateway] sending reply to room-one; text=7 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=139 chars
+[codex-im-gateway] sent reply to room-one
+✔ DingTalk selects a device project and creates a native session without running a model (126.81225ms)
+[codex-im-gateway] sending reply to room-one; text=226 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=34 chars
+[codex-im-gateway] sent reply to room-one
+✔ an unbound paired chat can create a standalone device session and viewers cannot create another (53.425291ms)
+✔ Gateway restart retains a persisted peer follow binding before device registration (41.154167ms)
+✔ native active admission remains not submitted across peer RPC (58.293333ms)
+✔ native handoff admission remains not submitted across peer RPC (58.350459ms)
+✔ an accepted peer receipt cannot be downgraded by a later admission error (34.494917ms)
+✔ unmapped native ports never fall through to the Gateway core for a peer host (19.376291ms)
+✔ model-specific native limits reach the device without a Gateway host identity (16.514875ms)
+✔ native project roots and public item callbacks survive peer execution (57.938167ms)
+✔ native activity reads use the selected device thread and the exact chat grant (18.688917ms)
+✔ unified App Server facade exposes empty thread lifecycle and preserves live write guards (2.694042ms)
+✔ goal and precise stop ports preserve target identity and use the remote native adapter (64.368959ms)
+✔ Connector project projection matches native session aliases without changing local or SSH discovery (72.097125ms)
+✔ real native Connector preserves queued source receipts across disconnect without replay (1681.553166ms)
+✔ new native activity reads recheck a delegated grant after the device await (130.254125ms)
+✔ only device confirmation creates an owner; a chat controller cannot claim implicitly (30.586875ms)
+✔ an owner approves a scoped visitor without giving device-wide or redelegation rights (123.905ms)
+✔ ownership and grants survive restart; revoked browser and execution grants never revive (145.2945ms)
+✔ claiming a private session prevents another device-paired controller from reading or running it (128.363167ms)
+✔ a grant is rechecked after async preflight, and removing it does not start native work (94.334166ms)
+✔ the device enforces grant expiry and directory changes independently of Gateway roles (82.183792ms)
+✔ resource revocation suppresses callbacks and results without changing the native task (121.626625ms)
+✔ moving ownership requires a fresh device confirmation and invalidates all former delegations (124.657667ms)
+✔ read-only workspace access rejects writes, traversal, symlinks, hard links and credentials (88.170167ms)
+✔ workspace editing requires its own grant and compares the current file version (92.472125ms)
+✔ sharing a session does not implicitly share the workspace (84.486375ms)
+✔ file transfer remains an explicit resource grant and session management uses existing operation guards (106.461667ms)
+✔ a copied Web IDE URL/code, wrong chat, CSRF and revoked cookies cannot authorize workspace access (161.051917ms)
+[codex-im-gateway] sending reply to visitor-room; text=26 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=174 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=11 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending action card "可绑定会话 · 全部 · 1 个 · 第 1/1 页" to visitor-room
+[codex-im-gateway] sent action card "可绑定会话 · 全部 · 1 个 · 第 1/1 页" to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=59 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=59 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] starting Codex turn for visitor-room in /private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-peer-gFOsMm/shared-project
+[codex-im-gateway] Codex turn completed for visitor-room; text=7 chars
+[codex-im-gateway] sending reply to visitor-room; text=7 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=34 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=139 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=59 chars
+[codex-im-gateway] sent reply to visitor-room
+✔ a resource-only visitor uses DingTalk without global admission, cannot reach local resources, and leaves without revoking (157.532334ms)
+[codex-im-gateway] sending reply to visitor-room; text=26 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=174 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=11 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=132 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=38 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=38 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] starting Codex turn for visitor-room in /private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-peer-PFMxgZ/shared-project
+[codex-im-gateway] Codex turn completed for visitor-room; text=7 chars
+[codex-im-gateway] sending reply to visitor-room; text=7 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=24 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=127 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=11 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=34 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=33 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=33 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=29 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] starting Codex turn for visitor-room in /private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-peer-PFMxgZ/shared-project
+[codex-im-gateway] sending reply to visitor-room; text=38 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=28 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=39 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=36 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] Codex turn completed for visitor-room; text=27 chars
+[codex-im-gateway] sending reply to visitor-room; text=27 chars
+[codex-im-gateway] sent reply to visitor-room
+[codex-im-gateway] sending reply to visitor-room; text=14 chars
+[codex-im-gateway] sent reply to visitor-room
+✔ shared visitors use the existing chat roles for inputs, approvals, stops and management (212.251166ms)
+✔ legacy delegated grants require reapproval without losing owners or device pairings (144.604541ms)
+✔ old sharing commands and capability versions cannot silently grant broader access (67.211084ms)
+✔ the accepted and dialled endpoints use the same bidirectional RPC contract (13.527833ms)
+✔ peer ingress rejects bad credentials, unknown device IDs, paths and browser origins (4.691209ms)
+✔ network listeners and clients require TLS unless insecure LAN is explicitly selected (0.191917ms)
+✔ a disconnect rejects an ambiguous request and reconnect does not replay it (14.791875ms)
+✔ malformed and oversized requests are refused without invoking handlers (3.219084ms)
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+[codex-im-gateway] Codex turn completed for room-one; text=4 chars
+[codex-im-gateway] sending reply to room-one; text=4 chars
+[codex-im-gateway] sent reply to room-one
+✔ BIND final native guard allows a live actor (76.533583ms)
+[codex-im-gateway] sending reply to room-one; text=105 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] sending reply to room-one; text=11 chars
+[codex-im-gateway] sent reply to room-one
+[codex-im-gateway] starting Codex turn for room-one in /device-only/workspace
+✔ BIND final native guard rejects a downgraded actor (35.5485ms)
+✔ INT-01 callback transport failure must not manufacture a decline (29.685875ms)
+✔ INT-01 explicit rejection still reaches the native requester (29.949208ms)
+✔ INT-01 disconnect while waiting for the human keeps approval undecided (33.272042ms)
+✔ native JSONL run checks the Gateway after native connection waits (124.746625ms)
+✔ native JSONL steer checks the Gateway after native connection waits (87.460542ms)
+✔ native JSONL stop checks the Gateway after native connection waits (84.775042ms)
+✔ native JSONL renameThread checks the Gateway after native connection waits (86.941209ms)
+✔ native JSONL archiveThread checks the Gateway after native connection waits (85.175083ms)
+✔ native JSONL unarchiveThread checks the Gateway after native connection waits (83.761083ms)
+✔ native JSONL deleteThread checks the Gateway after native connection waits (86.182667ms)
+✔ native JSONL createThread checks the Gateway after native connection waits (86.26225ms)
+✔ native JSONL interruptTurn checks the Gateway after native connection waits (85.902208ms)
+✔ native JSONL setGoal checks the Gateway after native connection waits (85.434959ms)
+✔ native JSONL clearGoal checks the Gateway after native connection waits (86.239042ms)
+✔ old Connectors cannot silently skip the final write check (16.301208ms)
+✔ missing approval handler also means unanswered (32.146792ms)
+✔ role revocation after native resume blocks turn/start and retains a safe retry classification (117.175625ms)
+✔ a disconnected run retires its pending approval UI before independent replay (31.726833ms)
+ℹ tests 265
+ℹ suites 0
+ℹ pass 265
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16181.94475
