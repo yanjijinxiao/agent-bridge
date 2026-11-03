@@ -1,0 +1,26 @@
+[
+  {
+    "name": "code-server-4.141.1-linux-amd64.tar.gz",
+    "size": 240102020,
+    "sha256": "45fd3cfbff9fd0c36fe37105859b0f4f7a0544341ca4e322657f5b3caeca1cbe",
+    "url": "https://github.com/coder/code-server/releases/download/v4.141.1/code-server-4.141.1-linux-amd64.tar.gz"
+  },
+  {
+    "name": "code-server-4.141.1-linux-arm64.tar.gz",
+    "size": 234750384,
+    "sha256": "898903adc4d28dc23b9147073afe36fcafdb49e6ada8e1007bfc62a330ff9315",
+    "url": "https://github.com/coder/code-server/releases/download/v4.141.1/code-server-4.141.1-linux-arm64.tar.gz"
+  },
+  {
+    "name": "code-server-4.141.1-macos-amd64.tar.gz",
+    "size": 231229260,
+    "sha256": "1e738afeacab655ca063d34c9b651f38a3328002a14a3bf0aa8fe16d41dd19ca",
+    "url": "https://github.com/coder/code-server/releases/download/v4.141.1/code-server-4.141.1-macos-amd64.tar.gz"
+  },
+  {
+    "name": "code-server-4.141.1-macos-arm64.tar.gz",
+    "size": 210751651,
+    "sha256": "49535c4c908a499814cc32774bdbb7f23ae42fa301384ab9cf81434915f4279d",
+    "url": "https://github.com/coder/code-server/releases/download/v4.141.1/code-server-4.141.1-macos-arm64.tar.gz"
+  }
+]

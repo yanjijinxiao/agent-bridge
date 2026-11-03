@@ -2,8 +2,8 @@
   "date": "2026-11-03",
   "baseline": "e9ea62f",
   "rootRegression": {
-    "tests": 3119,
-    "passed": 3117,
+    "tests": 3123,
+    "passed": 3121,
     "failed": 0,
     "skipped": 2,
     "skips": [
@@ -13,7 +13,8 @@
   },
   "targetedAfterRoot": [
     "approval case title correction: 3 passed",
-    "WeCom whitespace-only final file: 13 passed"
+    "WeCom whitespace-only final file: 13 passed",
+    "IDE and restart-handoff family after followup: 168 passed"
   ],
   "realSSH": {
     "hosts": 2,
@@ -21,7 +22,6 @@
     "scope": "four attachment kinds, full bytes/hash/0600/idempotent path and owned cleanup"
   },
   "typecheckAndIsolatedBuild": "passed",
-  "previousTaskboardEvidence": "unchanged sources/tests retain prior exact-SHA results; no new Taskboard runtime or UI changes",
   "readScope": "previous full ledger plus specifically listed delta ranges; no blanket new all-lines assertion",
   "evidence": [
     {
@@ -68,11 +68,64 @@
       "name": "completion-real-ssh-fixed.log",
       "sha256": "a9d9854572d9635d9a5e5e0783389ece4ff1309dae5d98378c83611019d1b26f",
       "bytes": 1388
+    },
+    {
+      "name": "completion-taskboard.log",
+      "sha256": "7fccacf34639d122b8682c3ae8555bd5e1159dc40d13a5bcebb1e9e8f950bea7",
+      "bytes": 56987
+    },
+    {
+      "name": "completion-final-input.log",
+      "sha256": "80fce8a994cadf7fad0e008f7a91f02d6ba7aa00237aa6b96eda096826dc7dfc",
+      "bytes": 2027
+    },
+    {
+      "name": "completion-ide-final.log",
+      "sha256": "ea2aa1c16317e0ed837dcb296ae75a6468449267ef0a1a4a1f28ca05ce8febe4",
+      "bytes": 37723
+    },
+    {
+      "name": "completion-linux-compiled.log",
+      "sha256": "6dfbbc222bb18d1723e605334282bb9f6b4cbebc18e555dfe97184d81d3a009a",
+      "bytes": 3406
+    },
+    {
+      "name": "completion-linux-ide-abi.log",
+      "sha256": "079bc57f428effd3d3de4f04b9d757da0028933e186d4ce393b8fe552674ac22",
+      "bytes": 310
+    },
+    {
+      "name": "completion-linux-ide-probe-real.log",
+      "sha256": "4798928e84d93c6f8f98b4bb182b0223af67c490be91234a839de27303d5069f",
+      "bytes": 390
+    },
+    {
+      "name": "completion-linux-ide-smoke.log",
+      "sha256": "5c08f8f6307a7630618770e358452209de447de9fd18ffb7c4ede931122862c1",
+      "bytes": 322
+    },
+    {
+      "name": "completion-mac-ide-probe-real.log",
+      "sha256": "79701cd4a35e6479d55adedaca729de9b984a7dfed3ad1c80c45fab2e0345c2c",
+      "bytes": 128
+    },
+    {
+      "name": "completion-mac-ide-smoke.log",
+      "sha256": "e195cb3298e1f99e4a69f1c3b67aab1e3e873cd5cd309bdfcd2fa8a18c4a1c23",
+      "bytes": 99
+    },
+    {
+      "name": "completion-root-final-sealed.log",
+      "sha256": "5300520af1e0fbd53e7b8123bc945aa810c44c31566283c2104072ccd89ae7ff",
+      "bytes": 665739
     }
   ],
-  "deployment": "pending",
+  "deployment": {
+    "initialBatch": "ecf09445e89201fea990ca38624b3dac65da66a4 live on both Gateways and both Connectors",
+    "followupIDEProbe": "tested; release verification follows"
+  },
   "remaining": [
-    "100 partial requirements retain environment and combination limits",
+    "99 partial requirements retain environment and combination limits",
     "WeCom native mentions contract and real account",
     "Workflow 33-kind executor not implemented",
     "physical phone, Windows, Linux ARM64 ABI"
@@ -81,5 +134,38 @@
     "temporaryWebCopyToOldRuntime": true,
     "restoredTreeHash": "8564ba2c9d346c3b1acb4b712b733ca6b376c8abdf05258d6900a9d50ab2f81b",
     "gatewayOrCoreRestarted": false
+  },
+  "taskboardRegression": {
+    "tests": 563,
+    "passed": 563,
+    "failed": 0,
+    "skipped": 0,
+    "runtimeChanges": false
+  },
+  "linuxCompiledRegression": {
+    "tests": 31,
+    "passed": 31,
+    "failed": 0,
+    "skipped": 0,
+    "scope": "9 native + 9 npm release + 13 WeCom; actual isolated Linux processes"
+  },
+  "ideArtifacts": {
+    "fullArchiveSha256": "4 official assets match",
+    "actualABI": [
+      "Linux x64",
+      "macOS ARM64"
+    ],
+    "httpWorkbench": 200,
+    "health": "expired means no active browser heartbeat; no full browser-session claim"
+  },
+  "previousRootRegression": {
+    "tests": 3123,
+    "passed": 3121,
+    "failed": 0,
+    "skipped": 2,
+    "skips": [
+      "Windows-only",
+      "real SSH opt-in; separately ran 2 actual hosts successfully"
+    ]
   }
 }

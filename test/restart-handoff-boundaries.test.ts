@@ -83,3 +83,39 @@ for(const boundary of ['follow-read','result-send'])test(`accepted Bridge execut
  }finally{release.resolve();finished.resolve();await pending;}
  assert.equal(service.hasRestartBlockingWork(),false);
 });
+
+test("IN-03.3: a held final delivery does not block a new input to the same session", { timeout: 5000 }, async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-final-input-overlap-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const store = new RuntimeStateStore(resolveStatePaths(root)), project = store.createProject("Fixture", root);
+  const session = store.createSession("actor", root, "Fixture", project.id); store.setSessionThread(session.id, "thread");
+  const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>(), second = Promise.withResolvers<void>();
+  t.after(() => release.resolve());
+  const inputs: string[] = [], delivered: string[] = [];
+  const service = new BridgeService({ stateStore: store, config: { ...defaultConfig(root), allowedSenderIds: ["actor"], streamReplies: false },
+    channel: createChannelClient("generic", TEXT_CAPABILITIES, { async sendText({ text }) {
+      if (text === "result-1") { entered.resolve(); await release.promise; }
+      delivered.push(text); return { messageId: `receipt-${text}` };
+    } }),
+    runner: { isIndependentObservation() { return true; }, async run(input) {
+      inputs.push(input.prompt); const n = inputs.length;
+      await input.onTurnStarted?.({ threadId: "thread", turnId: `turn-${n}` });
+      if (n === 2) second.resolve();
+      return { threadId: "thread", turnId: `turn-${n}`, text: `result-${n}`, raw: "" };
+    } } as never });
+  const first = service.handleMessage({ id: "source-1", senderId: "actor", text: "input-one", attachments: [], raw: {} });
+  let next: Promise<void> | undefined;
+  try {
+    await entered.promise;
+    assert.equal(service.hasRestartBlockingWork(), true, "actual outbound write remains protected");
+    next = service.handleMessage({ id: "source-2", senderId: "actor", text: "input-two", attachments: [], raw: {} });
+    let timer: ReturnType<typeof setTimeout>;
+    try { await Promise.race([second.promise, new Promise((_, reject) => { timer = setTimeout(() => reject(Error("new input blocked on previous final delivery")), 1500); })]); }
+    finally { clearTimeout(timer!); }
+    await next; assert.equal(inputs.length, 2);
+    assert.deepEqual(delivered, ["result-2"], "the old unresolved send is still pending");
+    assert.equal(service.hasRestartBlockingWork(), true);
+  } finally { release.resolve(); await Promise.allSettled([first, ...(next ? [next] : [])]); }
+  assert.deepEqual(delivered, ["result-2", "result-1"]); assert.equal(inputs.length, 2);
+  assert.equal(service.hasRestartBlockingWork(), false);
+});

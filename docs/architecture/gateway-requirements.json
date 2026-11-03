@@ -2320,25 +2320,35 @@
         {
           "id": "IN-03.3",
           "scenario": "上一条慢结果投递不把下一条误判为提交中",
-          "status": "partial",
+          "status": "verified",
           "tests": [
             {
               "file": "test/forwarding-inbox.test.ts",
               "name": "accepted native execution does not occupy transport capacity or hold later messages until completion"
+            },
+            {
+              "file": "test/restart-handoff-boundaries.test.ts",
+              "name": "IN-03.3: a held final delivery does not block a new input to the same session"
             }
           ],
           "implementation": [
             {
               "file": "src/bridge/forwarding-inbox.ts",
               "sha256": "ce387c97e0eeeb2ab8c1c0e222c301bb15cbacd587e0109593146f8f299e05d1"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "72ee93b1ea224bc01e1e30e72176207780b0fb13517e5b3e9c7a32e97c1651e5"
             }
           ],
-          "verifiedBoundary": "证明已接收执行等待不占交接；专门卡住最终投递而非执行的组合未在此测试。",
+          "verifiedBoundary": "真实Bridge/RuntimeStateStore：卡住第一条最终结果发送，第二条同session输入仍执行并完成投递；旧发送仍持实际交接保护，释放后全部完成、输入各一次、无残留门禁。原生与渠道传输为替身。",
           "implementationRecheck": {
             "date": "2026-11-03",
             "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
             "report": "docs/audits/2026-11-03-full-four-layer/README.md"
-          }
+          },
+          "previousTestGap": "证明已接收执行等待不占交接；专门卡住最终投递而非执行的组合未在此测试。",
+          "remainingBoundary": "不外推供应商ACK丢失、手机显示或所有并发时序。"
         },
         {
           "id": "IN-03.4",
@@ -10511,6 +10521,33 @@
             }
           ],
           "verifiedBoundary": "真实生产函数与隔离子进程/本机socket/临时SQLite或JSON目录；不操作真实远端、生产任务和安装制品。"
+        },
+        {
+          "id": "IDE-03.5",
+          "scenario": "IDE版本/ABI探测使用独立临时配置，不受用户配置损坏或默认配置目录不可写影响，不改用户配置，失败后清理自有文件。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-installer-probe.test.ts",
+              "name": "IDE-03.5: version probe isolates configuration and cleans its own files (compatible)"
+            },
+            {
+              "file": "test/ide-installer-probe.test.ts",
+              "name": "IDE-03.5: version probe isolates configuration and cleans its own files (different-version)"
+            },
+            {
+              "file": "test/ide-installer-probe.test.ts",
+              "name": "IDE-03.5: version probe isolates configuration and cleans its own files (failed)"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/installer.ts",
+              "sha256": "28236c40925cd00b39e36f20f26f3bffdd348c47d2778bb883aed69311a3bf9d"
+            }
+          ],
+          "verifiedBoundary": "公共ProcessIDEInstallerIO和真实测试子进程：兼容/不同版本/失败三种，配置0600、数据目录私有、清理且原只读坏配置不变；另用官方Linux x64/Mac ARM64二进制实测探测成功及工作台HTTP 200。",
+          "remainingBoundary": "四平台完整包SHA已核对，实际ABI仅Linux x64与Mac ARM64。未验证Linux ARM64、Mac Intel或Windows实机，以及手机/完整终端和Git。"
         }
       ]
     },
@@ -11008,10 +11045,10 @@
           "implementation": [
             {
               "file": "src/ide/installer.ts",
-              "sha256": "777adf8c33ac5b9ebecf437af566eb0dd7dc93879e15bfac2ba09251a53c5ac7"
+              "sha256": "28236c40925cd00b39e36f20f26f3bffdd348c47d2778bb883aed69311a3bf9d"
             }
           ],
-          "verifiedBoundary": "平台/制品选择、激活前撤销保旧版；下载fixture，真实平台安装/hash独立核验仍不足。 增加Linux ARM64 pin、glibc 2.17拒绝/2.28与2.39成功替身；四种官方4.141.1摘要/HEAD大小核对，实际制品下载另留记录，ARM64 Linux ABI未实机运行。",
+          "verifiedBoundary": "平台/制品选择、激活前撤销保旧版；下载fixture，真实平台安装/hash独立核验仍不足。 增加Linux ARM64 pin、glibc 2.17拒绝/2.28与2.39成功替身；四种官方4.141.1摘要/HEAD大小核对，实际制品下载另留记录，ARM64 Linux ABI未实机运行。 四个平台完整官方archive的长度和SHA256全部通过；Linux x64与Mac ARM64实际--version探测及工作台HTTP 200，不把health=expired（无浏览器心跳）称为浏览器会话完成。",
           "implementationRecheck": {
             "date": "2026-11-03",
             "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
@@ -16000,11 +16037,11 @@
   "currentSummary": {
     "audit": "2026-11-03-completion",
     "requirements": 86,
-    "cases": 381,
-    "mappedCases": 381,
-    "recordedNarrowVerified": 281,
-    "partialCases": 100,
-    "selectedFunctionContracts": 198,
+    "cases": 382,
+    "mappedCases": 382,
+    "recordedNarrowVerified": 283,
+    "partialCases": 99,
+    "selectedFunctionContracts": 199,
     "note": "增量复核及同版本回归；历史partial保留边界，不将缺失设备/账号或33kind执行器冒充完成。"
   }
 }

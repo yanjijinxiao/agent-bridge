@@ -122,7 +122,14 @@ const root=path.join(os.homedir(),'.local','share','codex-im-gateway','tools','c
 const version=input.version,pin=input.pins[process.platform+'-'+process.arch];
 const dir=pin?'code-server-'+version+'-'+pin.suffix:undefined,final=dir?path.join(root,dir):undefined,bin=final?path.join(final,'bin','code-server'):undefined;
 const run=(file,args,timeout=20000)=>new Promise((resolve,reject)=>cp.execFile(file,args,{timeout,maxBuffer:16*1024*1024},(e,out)=>e?reject(e):resolve(out)));
-const valid=async binary=>{try{return String(await run(binary,['--version'])).includes(version);}catch{return false;}};
+// code-server reads/writes its YAML configuration even for --version. A probe
+// must not inherit a user's broken/read-only config or create credentials in it.
+const valid=async binary=>{let probe;try{
+ probe=fs.mkdtempSync(path.join(os.tmpdir(),'cig-ide-version-'));
+ const config=path.join(probe,'config.yaml');fs.writeFileSync(config,'{}\n',{mode:0o600});
+ const output=String(await run(binary,['--config',config,'--user-data-dir',path.join(probe,'data'),'--extensions-dir',path.join(probe,'extensions'),'--version']));
+ return output.split(/\r?\n/).some(line=>line.trim().split(/\s+/)[0]===version);
+}catch{return false;}finally{if(probe)fs.rmSync(probe,{recursive:true,force:true});}};
 const answer=value=>process.stdout.write(JSON.stringify(value));
 const safeStage=()=>{if(typeof input.stage!=='string'||path.dirname(input.stage)!==root||!path.basename(input.stage).startsWith('.stage-')||fs.lstatSync(input.stage).isSymbolicLink())throw Error('Invalid stage');};
 const sha=async file=>{const h=crypto.createHash('sha256');for await(const data of fs.createReadStream(file))h.update(data);return h.digest('hex');};

@@ -937,3 +937,4 @@
 {"path": "test/npm-release.test.ts", "kind": "text", "sha256": "a4dccbaa5139bdb0b2b4ea241f973bd9531570d262fffba323120e499a91b966", "lines": 108, "bytes": 7080, "status": "delta-scope"}
 {"path": "test/real-ssh-files.test.ts", "kind": "text", "sha256": "7cef813d7e6f53f301378d30b9768e1a354ab5cec8ce56d9c957d7d198c2d1c9", "lines": 50, "bytes": 4175, "status": "delta-scope"}
 {"path": "test/wecom-inbound.test.ts", "kind": "text", "sha256": "9a325a9d0a599ce3dd087ce811f4a185441dc6e4a84489b165fa3349f0f0bbb4", "lines": 88, "bytes": 6749, "status": "delta-scope"}
+{"path": "test/ide-installer-probe.test.ts", "kind": "text", "sha256": "b9b8d2dc88598ae5824494fae5bca76170268a859e3393d9f0e550c4450335bc", "lines": 52, "status": "delta-scope"}

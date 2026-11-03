@@ -165,10 +165,15 @@
       "module": "inbound",
       "scenario": "上一条慢结果投递不把下一条误判为提交中",
       "baselineGap": "证明已接收执行等待不占交接；专门卡住最终投递而非执行的组合未在此测试。",
-      "state": "retained-partial-boundary",
-      "acceptanceEvidence": [],
-      "currentBoundary": "证明已接收执行等待不占交接；专门卡住最终投递而非执行的组合未在此测试。",
-      "note": "沿用前轮审查边界，本轮回归不等于补齐该项全部缺测。"
+      "state": "verified-listed-boundary",
+      "acceptanceEvidence": [
+        {
+          "file": "test/restart-handoff-boundaries.test.ts",
+          "name": "IN-03.3: a held final delivery does not block a new input to the same session"
+        }
+      ],
+      "currentBoundary": "真实Bridge/RuntimeStateStore：卡住第一条最终结果发送，第二条同session输入仍执行并完成投递；旧发送仍持实际交接保护，释放后全部完成、输入各一次、无残留门禁。原生与渠道传输为替身。",
+      "note": "新增实际卡住最终发送的回归；不外推供应商/手机。"
     },
     {
       "id": "IN-04.2",
@@ -1201,6 +1206,13 @@
       "capability": "Workflow 33 palette kinds execution",
       "status": "not-implemented",
       "remaining": "node execution engine / credentials / durable runtime receipts; configuration editor only"
+    }
+  ],
+  "followupFindings": [
+    {
+      "id": "IDE-03.5",
+      "state": "fixed-and-tested",
+      "source": "官方Linux实际--version因默认配置目录EACCES失败；临时配置的手工成功不等于原安装器探测成功。"
     }
   ]
 }
