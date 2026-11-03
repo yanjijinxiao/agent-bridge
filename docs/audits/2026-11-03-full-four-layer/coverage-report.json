@@ -7102,8 +7102,8 @@
     {
       "file": "test/install-local.test.ts",
       "kind": "text",
-      "lines": 78,
-      "readLines": 78,
+      "lines": 121,
+      "readLines": 121,
       "status": "read",
       "unread": [],
       "changedSinceBaseline": true

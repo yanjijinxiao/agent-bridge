@@ -82,3 +82,4 @@
 {"id": "KB-OUTPUT-CANDIDATE", "status": "superseded", "conclusion": "后续确认为KB-OUTPUT并已修复。"}
 {"id": "QR-ACK-CANDIDATE", "status": "superseded", "conclusion": "后续确认为QR-ACK并已修复。"}
 {"id": "WX-ID-CANDIDATE", "status": "superseded", "conclusion": "后续确认为IN-02.9并已修复。"}
+{"id": "REL-INSTALL-FIXTURE", "status": "fixed-test-isolation", "conclusion": "真实发布 checkout 回归发现 bundled Skill 链接测试依赖线上 installed-lock mtime；源码锁文件更新导致 --check 返回 false。隔离完整安装根，保留缺依赖/缺构建/旧依赖反例及完整正常路径。", "evidence": ["evidence/release-preflight-before.txt", "evidence/installer-release-fixture-after.txt"]}

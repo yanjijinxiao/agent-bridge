@@ -1,0 +1,13 @@
+✔ local installer rejects Node 21.7.3 before building or writing links (47.047083ms)
+✔ local installer rejects Node 22.0.0 before building or writing links (45.659916ms)
+✔ local installer rejects Node 22.12.0 before building or writing links (45.2715ms)
+✔ local installer rejects Node 23.3.0 before building or writing links (44.785709ms)
+✔ local installer links every bundled Skill without named business dependencies (250.509459ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 590.816625
