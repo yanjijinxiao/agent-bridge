@@ -38,6 +38,8 @@ const nativeQueue = new Map();
 let nextQueue = 1;
 let resumedApprovalPolicy = "never";
 const externalObservedTurns = new Map();
+const queueViewRaces = new Map();
+const queueInterimStatus = process.argv.find(arg => arg.startsWith("--queue-terminal-view="))?.split("=")[1];
 
 function send(message) {
   process.stdout.write(`${JSON.stringify(message)}\n`);
@@ -118,7 +120,26 @@ rl.on("line", (line) => {
         input: message.params.input };
       const index = items.findIndex(x => x.clientUserMessageId === item.clientUserMessageId);
       if (index >= 0) items.splice(index, 1);
-      items.push(item); respond(message.id, { queuedSubmission: item }); return;
+      items.push(item);
+      if (queueInterimStatus) {
+        const id = `queue-race-${nextTurn++}`;
+        const turn = { ...completedTurn(id, queueInterimStatus), items: [{ type: "userMessage", id: "queue-user",
+          clientId: item.clientUserMessageId, content: item.input }] };
+        queueViewRaces.set(threadId, turn); items.length = 0;
+        activeTurns.set(threadId, id);
+        send({ method: "turn/started", params: { threadId, turn: completedTurn(id, "inProgress") } });
+        // Real native trace: persisted summary looks terminal while the loaded
+        // owner still reports this exact active turn. Its final event is later.
+        setTimeout(() => {
+          turn.status = "completed";
+          const answer = { type: "agentMessage", id: "queue-answer", text: "QUEUE_RACE_DONE", phase: "final_answer", memoryCitation: null };
+          turn.items.push(answer);
+          send({ method: "item/completed", params: { threadId, turnId: id, item: answer } });
+          send({ method: "turn/completed", params: { threadId, turn } });
+          activeTurns.delete(threadId);
+        }, 150);
+      }
+      respond(message.id, { queuedSubmission: item }); return;
     }
     if (message.method === "thread/queue/list") { respond(message.id, { data: items, nextCursor: null }); return; }
     const index = items.findIndex(x => x.id === message.params.queuedSubmissionId);
@@ -266,9 +287,9 @@ rl.on("line", (line) => {
       fail(message.id, `thread ${message.params.threadId} is still subscribed by this client`);
       return;
     }
-    if (message.params?.developerInstructions) {
-      threadDeveloperInstructions.set(message.params.threadId, message.params.developerInstructions);
-    }
+    // Loaded native threads keep their creation instructions. A resume RPC
+    // carrying new text is not evidence that the model received that text;
+    // continuation rules must arrive in turn/start application context.
     respond(message.id, {
       thread: {
         id: message.params.threadId,
@@ -526,6 +547,8 @@ rl.on("line", (line) => {
   }
 
   if (message.method === "thread/turns/list") {
+    const queueRace = queueViewRaces.get(message.params.threadId);
+    if (queueRace) { respond(message.id, { data: [{ ...queueRace, itemsView: message.params.itemsView }], nextCursor: null }); return; }
     if (!["notLoaded", "summary", "full"].includes(message.params?.itemsView)) {
       fail(message.id, "thread/turns/list requires a valid itemsView");
       return;
@@ -590,8 +613,8 @@ rl.on("line", (line) => {
         fail(message.id, "thread/name/set must run before the first turn");
         return;
       }
-      if (threadDeveloperInstructions.get(message.params.threadId) !== "bridge-only-policy") {
-        fail(message.id, "Bridge policy must be sent as developerInstructions");
+      if ((message.params.additionalContext?.["codex-im-gateway"]?.value ?? threadDeveloperInstructions.get(message.params.threadId)) !== "bridge-only-policy") {
+        fail(message.id, "Bridge policy must reach the native turn as application context or creation instructions");
         return;
       }
     }

@@ -316,7 +316,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
             runtimeWorkspaceRoots: [...input.nativeSettings.runtimeWorkspaceRoots] } : {}),
           cwd: !input.threadId || input.nativeSettings ? input.cwd : undefined,
           model: input.model,
-          developerInstructions: input.developerInstructions,
+          // Resume does not replace instructions on an already loaded native
+          // thread. Keep its original policy and attach this client's current
+          // application rules to the turn below instead.
+          developerInstructions: input.threadId ? undefined : input.developerInstructions,
           ...(!input.threadId && nativeProjectId ? { projectId: nativeProjectId } : {}),
           ...(!input.threadId && input.projectBinding === "none" ? { projectId: null } : {}),
           ...(!input.threadId && input.dynamicTools ? { dynamicTools: input.dynamicTools } : {})
@@ -367,6 +370,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       input: resume ? [] : [{ type: "text", text: input.prompt, text_elements: [] },
         ...(input.imagePaths ?? []).map(image => ({ type: "localImage", path: image }))],
       clientUserMessageId: input.clientUserMessageId,
+      ...(input.threadId && input.developerInstructions ? {
+        additionalContext: { "codex-im-gateway": { kind: "application", value: input.developerInstructions } }
+      } : {}),
       ...(resume ? { clientUserMessageId: resume.clientUserMessageId, turnTrigger: "capacity_retry_automatic" } : {}),
       cwd: input.threadId ? undefined : input.cwd,
       sandboxPolicy: resume || input.nativeSettings ? undefined : appServerSandboxPolicy(input.sandbox ?? (input.threadId ? undefined : this.options.sandbox)),
@@ -1320,6 +1326,13 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private async adoptQueuedTurn(input: CodexQueuedRunInput, turn: Record<string, unknown>): Promise<CodexRunResult> {
+    // Native history and the loaded owner are separate snapshots: a queue
+    // summary can already look terminal while this subscription still owns
+    // its active turn. Keep waiting for that exact turn's final event instead
+    // of treating the transitional view as a failed read-only recovery.
+    if (this.subscribedThreads.has(input.threadId) && this.activeTurns.get(input.threadId) === turn.id) {
+      return this.observeQueuedTurn(input, { ...turn, status: "inProgress" });
+    }
     if (turn.status !== "inProgress") return this.runQueuedSubmission({ ...input, observeOnly: true, acceptedTurnId: String(turn.id) });
     if (!this.subscribedThreads.has(input.threadId)) {
       if (input.onItem) this.itemHandlersByThread.set(input.threadId, input.onItem);

@@ -1,0 +1,9 @@
+{"path": "src/codex/app-server-runner.ts", "kind": "text", "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f", "lines": 3085, "bytes": 157032, "status": "delta-scope"}
+{"path": "src/channels/dingtalk.ts", "kind": "text", "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591", "lines": 1591, "bytes": 77453, "status": "delta-scope"}
+{"path": "test/fixtures/fake-codex-app-server.mjs", "kind": "text", "sha256": "42d21f6675ec83ebac54776c1f88f8929e8dfefbbbac781c6c5b952d37bb42b0", "lines": 917, "bytes": 39223, "status": "delta-scope"}
+{"path": "src/channels/dingtalk-reply-context.ts", "kind": "text", "sha256": "64b46a45fa8c139c3c3afda6cf14d75f7e201897b2f4c79246243828c685aeaf", "lines": 34, "bytes": 1957, "status": "delta-scope"}
+{"path": "test/native-bridge-instructions.test.ts", "kind": "text", "sha256": "c4f21f346422a890b76c80e1a6b67a468fc2d111f0af269daf89dbd7cc40911a", "lines": 23, "bytes": 1834, "status": "delta-scope"}
+{"path": "test/native-queue-terminal-view.test.ts", "kind": "text", "sha256": "a21d1aa2d7e57a6ec2f2c1dda6bd011c7ed1472480e38394951b697202b30b40", "lines": 21, "bytes": 1720, "status": "delta-scope"}
+{"path": "test/dingtalk-file-restart.test.ts", "kind": "text", "sha256": "acae4ef7656c0e4f6cbd781d96d5dd39e916bfcd541e07e671b9875299b8be29", "lines": 131, "bytes": 8909, "status": "delta-scope"}
+{"path": "docs/architecture/modules/native-protocol.md", "kind": "text", "sha256": "9a2bcf1de55219953adf81e44744185418fbaf9786f9b673fab86caa483541c7", "lines": 35, "bytes": 5840, "status": "delta-scope"}
+{"path": "docs/architecture/modules/delivery-channels.md", "kind": "text", "sha256": "502bc5cc7fd3592a0bdee5fbeb660a639138007c1476f144e7e2e07223e5f286", "lines": 48, "bytes": 9178, "status": "delta-scope"}

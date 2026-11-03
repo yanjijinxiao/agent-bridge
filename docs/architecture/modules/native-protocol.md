@@ -8,9 +8,13 @@ Gateway 的业务端口是 src/codex/backend.ts。CodexAppServerGateway 负责 h
 
 普通续聊省略 nativeSettings 并继承已有 sandbox、审批策略和 reviewer。只有拥有设置的 UI 明确提交 nativeSettings 才覆盖。onApproval 回调存在不构成改权限的理由。thread/start/resume 的返回身份、turn/start 的接收、运行终态与投递状态分开；有界 RPC 超时不能结束一个已接收的长任务。
 
+Bridge 的渠道规则与原生执行权限也分开。新线程通过 thread/start 的 developerInstructions 设置创建规则；续接已有线程时，用 turn/start.additionalContext 中稳定的 codex-im-gateway application 项传入本轮规则。不能假定 thread/resume.developerInstructions 会更新已加载线程，也不能因为已经订阅、改走 thread/read 就漏掉规则。每轮规则更新不替换原线程的 developer instructions 或权限，不混入用户输入/会话标题。Mac 0.166 与 Linux 0.163 均提供该原生实验字段；初始化须启用 experimentalApi。
+
 ## 调用边界
 
 新输入在最终写前调用 assertCurrent；续聊身份必须与 thread/read/resume 相同。onTurnStarted 持久接收身份以后，公共 item 才可更新该运行。停止必须使用精确 thread/turn；本地 close 只退休观察。runQueuedSubmission 用已保存原生回执核对，不带 prompt 重放。metadataOnly/historyOnly 连接有方法白名单，不能借只读身份写入。
+
+队列历史和已加载持有者是两个时刻的视图。summary 已标 completed/interrupted，但当前订阅仍持有同一 active turn 时，adoptQueuedTurn 继续等待该精确轮次的最终通知，不能转入只读恢复并误报 queue/observe 断连。只凭“有订阅”或其他活动轮次不适用；没有本地同轮次持有事实时仍走原恢复路径。CTRL-03.5 用两个确定性 JSONL 反例覆盖早到终态，再用真实原生重复运行验证；不因此重发输入、强制 queue/start 或 interrupt。
 
 模型、Skill、MCP 和额度来自原服务。Skill 以 name 和具体文件 path 组成选择身份，不能把不同 scope 的同名项合并；公开 item 映射过滤私有推理、审核器和 hook 内容，命令敏感值检查覆盖完整原串，再做长度裁剪。
 
@@ -25,3 +29,7 @@ SSH连接配置中的目标参数必须仍是目的主机；argv隔离shell不�
 NATIVE-05.7：原生轻读返回的当前状态优先于旧接收缓存；等待中收到新 start 的精确轮次优先于旧读结果。只在同一仍加载的所有者已 idle/systemError、接受的 thread/turn 未变化且 summary 含 items 和明确终态时，沿原完成通知处理器结算本地等待和交互。metadata 的 notLoaded 项目仅供状态观察，不能据此提前结算丢掉最终正文。notLoaded 核心、其他轮次、缺 items、仍 active 均不合成终态；没有重发或停止调用。
 
 NATIVE-03.7：关闭退休整个 Gateway 分派器；晚到的只读查询不能重新创建远端适配器，远端文件传输也不能重新解析已退休连接。读和写共用连接获取边界的关闭检查。
+
+native-bridge-instructions 使用真实安装的原生核心和隔离假模型，检查模型请求而非仅检查 RPC 参数：覆盖新建、同客户端空线程、另一客户端空线程及另一客户端已有历史四种路径，并再次续聊验证规则更新与旧原生规则保留。2026-11-03 的探探实测曾两次生成错误文件动作；旧 JSONL 夹具把 resume 参数当成已经生效，不能作为此契约的验收。实机记录见 audits/2026-11-03-tantan-regression。
+
+已确认剩余缺陷 NATIVE-02.7：空线程首条输入直接 queue/add 自动消费时，runQueuedSubmission 的 developerInstructions 不会进入模型。queue/add/start 的当前原生字段没有 application context；不能把普通 turn/start 的规则修复外推到这条路径。独立真实原生失败 case 保存在探探审计 evidence/pending-queue-context.test.ts，尚未修复。

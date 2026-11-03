@@ -32,6 +32,7 @@ export { assertDingTalkCardMutationSucceeded } from "./dingtalk-card-response.js
 import { createChannelClient, TEXT_CAPABILITIES, NO_MEDIA } from "./client.js";
 import type { ChannelStreamBootstrap, ChannelStreamFailure, ChannelStreamStartInput, ChannelStreamResumeInput } from "./stream-bootstrap.js";
 import { DingTalkCardRouting } from "./dingtalk-card-routing.js";
+import { dingTalkReplyContext, readDingTalkReplyContext } from "./dingtalk-reply-context.js";
 import { dingTalkLoadingBody, dingTalkPlainText, dingTalkProgressContent, normalizeDingTalkCardContent } from "./dingtalk-markdown.js";
 // Keep the existing adapter export stable for embedders and transport tests.
 export { normalizeDingTalkCardContent } from "./dingtalk-markdown.js";
@@ -209,7 +210,7 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
     }, this);
   }
 
-  async sendText(input: { toUserId: string; text: string }): Promise<{ messageId: string }> {
+  async sendText(input: { toUserId: string; text: string; contextToken?: string }): Promise<{ messageId: string }> {
     if (this.account.cardTemplateId) {
       // Choose capability before I/O. A rejected/unknown card write does not
       // authorize a second delivery through a different transport.
@@ -230,24 +231,35 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
     if (input.kind !== "file") throw new ChannelCapabilityError("dingtalk", `outbound.${input.kind}`, "not-implemented");
     // Do not infer private/group routing from a cid prefix or guess a staff ID.
     // Prefer replying to the incoming conversation over unsolicited OpenAPI sends.
-    const inFlight = this.replyContext.getStore();
-    const context = inFlight && (input.toUserId === inFlight.conversationId || input.toUserId === inFlight.actorId)
-      ? inFlight : this.replyTargets.get(input.toUserId);
-    if (!context) throw new Error("钉钉文件接收会话未知，请先向机器人发送一条消息");
-    let proactiveTarget: DingTalkProactiveFileTarget | undefined;
-    if (context.conversationType === "2") proactiveTarget = { type: "group", conversationId: context.conversationId };
-    else if (context.conversationType === "1") {
-      if (context.staffId) proactiveTarget = { type: "user", staffId: context.staffId };
-    } else throw new Error("钉钉文件接收会话缺少有效类型或员工 ID，请检查机器人应用可见范围");
-    const target: DingTalkFileTarget | undefined = context.expiresAt !== undefined
-      ? { type: "session", webhookUrl: context.webhookUrl, expiresAt: context.expiresAt, proactiveTarget }
-      : proactiveTarget;
-    if (!target) throw new Error("钉钉文件接收会话缺少有效回复通道或员工 ID，请重新向机器人发一条消息");
-    const borrowedLifecycle = this.activeNetworkLifecycles.has(context.messageId);
-    const lifecycleId = borrowedLifecycle ? context.messageId : `dingtalk-file-${crypto.randomUUID()}`;
+    const context = this.replyTarget(input.toUserId, input.contextToken);
+    let target: DingTalkFileTarget, robotCode: string;
+    if (context) {
+      let proactiveTarget: DingTalkProactiveFileTarget | undefined;
+      if (context.conversationType === "2") proactiveTarget = { type: "group", conversationId: context.conversationId };
+      else if (context.conversationType === "1") {
+        if (context.staffId) proactiveTarget = { type: "user", staffId: context.staffId };
+      } else throw new Error("钉钉文件接收会话缺少有效类型或员工 ID，请检查机器人应用可见范围");
+      const replyTarget: DingTalkFileTarget | undefined = context.expiresAt !== undefined
+        ? { type: "session", webhookUrl: context.webhookUrl, expiresAt: context.expiresAt, proactiveTarget }
+        : proactiveTarget;
+      if (!replyTarget) throw new Error("钉钉文件接收会话缺少有效回复通道或员工 ID，请重新向机器人发一条消息");
+      target = replyTarget; robotCode = context.robotCode;
+    } else {
+      // Recovery has no inbound AsyncLocalStorage or ephemeral webhook. Reuse
+      // the same confirmed, account-scoped durable recipient as cards; never
+      // guess a group from cid or treat an encrypted sender as a staff ID.
+      const route = this.cardRouting.get(input.toUserId);
+      if (!route) throw new Error("钉钉文件接收会话未知，请先向机器人发送一条消息");
+      target = route.type === "group" ? { type: "group", conversationId: route.targetId }
+        : { type: "user", staffId: route.targetId };
+      robotCode = route.robotCode;
+    }
+    const lifecycleId = context && this.activeNetworkLifecycles.has(context.messageId)
+      ? context.messageId : `dingtalk-file-${crypto.randomUUID()}`;
+    const borrowedLifecycle = this.activeNetworkLifecycles.has(lifecycleId);
     try {
       return await this.fileClient.send({
-        path: input.path, target, robotCode: context.robotCode, lifecycleId,
+        path: input.path, target, robotCode, lifecycleId,
         getAccessToken: () => this.accessToken()
       });
     } finally {
@@ -286,7 +298,7 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
       const card = dingTalkMentionCard(input.text, input.mentions);
       return this.createTextCard(target, card.text, true, undefined, card.atUserIds);
     }
-    const reply = this.replyTargets.get(input.toUserId);
+    const reply = this.replyTarget(input.toUserId, input.contextToken);
     // Select before any external write. Never switch transports after an ambiguous send.
     if (reply && (reply.expiresAt === undefined || reply.expiresAt > this.now())) {
       return this.sendWebhookText({ ...input, text: `${input.mentions.map(item => `@${item.userId}`).join(" ")}\n${input.text}`,
@@ -308,8 +320,9 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
       const parts: ChannelDeliveryPart[] = [];
       try {
         for (const page of resultPages(card.fallbackText, DEFAULT_RESULT_PAGE_BYTES - 1_024)) {
-          const sent = parts.length ? await this.sendText({ toUserId: input.toUserId, text: page.text })
-            : await this.sendMentionNotification({ toUserId: input.toUserId, text: page.text, mentions: input.mentions });
+          const sent = parts.length ? await this.sendText({ toUserId: input.toUserId, text: page.text, contextToken: input.contextToken })
+            : await this.sendMentionNotification({ toUserId: input.toUserId, text: page.text, mentions: input.mentions,
+              contextToken: input.contextToken });
           parts.push({ messageId: sent.messageId, text: page.text });
         }
       } catch (error) { throw new ChannelPartialDeliveryError(parts, error); }
@@ -333,15 +346,15 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
     const parts: ChannelDeliveryPart[] = [];
     try {
       for (const page of resultPages(card.fallbackText, 1800)) {
-        const result = await this.sendWebhookText({ toUserId: input.toUserId, text: page.text });
+        const result = await this.sendWebhookText({ toUserId: input.toUserId, text: page.text, contextToken: input.contextToken });
         parts.push({ messageId: result.messageId, text: page.text });
       }
     } catch (error) { throw new ChannelPartialDeliveryError(parts, error); }
     return { messageId: parts.at(-1)!.messageId, parts };
   }
 
-  private async sendWebhookText(input: { toUserId: string; text: string; atUserIds?: readonly string[] }): Promise<{ messageId: string }> {
-    const target = this.requireReplyTarget(input.toUserId);
+  private async sendWebhookText(input: { toUserId: string; text: string; contextToken?: string; atUserIds?: readonly string[] }): Promise<{ messageId: string }> {
+    const target = this.requireReplyTarget(input.toUserId, input.contextToken);
     const accessToken = await this.accessToken();
     const lifecycleId = target.messageId || `dingtalk-webhook-${crypto.randomUUID()}`;
     const ownedLifecycle = !this.activeNetworkLifecycles.has(lifecycleId);
@@ -360,7 +373,7 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
     }
   }
 
-  async sendProgressText(input: { toUserId: string; text: string }): Promise<{ messageId: string }> {
+  async sendProgressText(input: { toUserId: string; text: string; contextToken?: string }): Promise<{ messageId: string }> {
     return this.sendWebhookText(input);
   }
 
@@ -513,6 +526,7 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
           ? { mention: { userId: body.senderStaffId.trim(), ...(typeof body.senderNick === "string" && body.senderNick.trim()
             ? { name: body.senderNick.trim().slice(0, 100) } : {}) } } : {}),
         replyTargetId: conversationId,
+        contextToken: dingTalkReplyContext(this.account.clientId, replyTarget, this.now()),
         ...(["1", "2"].includes(body.conversationType) ? { conversationKind: body.conversationType === "1" ? "direct" as const : "group" as const } : {}),
         text: dingTalkCommandText(body, decoded.text),
         ...(!decoded.supported ? { unsupportedMessageType: body.msgtype } : {}),
@@ -659,8 +673,14 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
     });
   }
 
-  private requireReplyTarget(toUserId: string): ReplyTarget {
-    const target = this.replyTargets.get(toUserId);
+  private replyTarget(toUserId: string, contextToken?: string): ReplyTarget | undefined {
+    const inFlight = this.replyContext.getStore();
+    return inFlight && (toUserId === inFlight.conversationId || toUserId === inFlight.actorId) ? inFlight
+      : this.replyTargets.get(toUserId) ?? readDingTalkReplyContext(contextToken, this.account.clientId, toUserId, this.now());
+  }
+
+  private requireReplyTarget(toUserId: string, contextToken?: string): ReplyTarget {
+    const target = this.replyTarget(toUserId, contextToken);
     if (!target) {
       throw new Error("钉钉会话尚未建立回复通道，请先在钉钉中向机器人发送一条消息");
     }

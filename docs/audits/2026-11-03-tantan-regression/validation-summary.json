@@ -1,0 +1,125 @@
+{
+  "baseline": "fe2df3d71940a5f1a994eeab292d07fac59b637d",
+  "rootRegression": {
+    "tests": 3029,
+    "passed": 3028,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "Windows-only on macOS"
+  },
+  "knownUnfixed": {
+    "case": "NATIVE-02.7",
+    "tests": 1,
+    "failed": 1,
+    "notIncludedInRootPassCount": true
+  },
+  "taskboard": {
+    "inheritedPassed": 563,
+    "rerunThisPass": false
+  },
+  "repeatNativeQueue": {
+    "afterFix": 40,
+    "passed": 40,
+    "initializationTimeoutMs": 15000
+  },
+  "artifact": {
+    "filename": "tantan-regression-verified.tgz",
+    "sha256": "f43e057ca50465073efe3a2def5a371eff43e646513d672068a89aa8eda3a25e",
+    "bytes": 2090037
+  },
+  "rawEvidence": [
+    {
+      "name": "final4-tests.log",
+      "sha256": "08a317dd0e3d20da90ab7eb1b430a1840693a0644e7b7ccf22431cecc5db6592",
+      "bytes": 650207,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "release-typecheck-final.log",
+      "sha256": "569495d981c843453331093c461cecbfbef7fb91d51076fc679973fd1262a400",
+      "bytes": 52,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "release-build-final.log",
+      "sha256": "3f4b7e8dd4a507a52acb782c801ae0fa75251651408e27305af0045fe9266fcb",
+      "bytes": 188,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "context-action-before.log",
+      "sha256": "f25a11f51e472408755d5968bdccabb7efdfb1f2da2fbcca205e28c829532fd4",
+      "bytes": 4881,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "context-action-after.log",
+      "sha256": "c817742e6a53ded136aa8e01fc998597a82253eac514dcb07f6e8d5426fb4ff6",
+      "bytes": 36941,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "queue-view-before.log",
+      "sha256": "93ccdc59500ce243574240737fb76f341600231a79530d4419d3f53035d04974",
+      "bytes": 2491,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "queue-view-after.log",
+      "sha256": "4ece70e34a8153dca235b48db82c0f36c318fb2dd9ad9d0bdde627e12d02396d",
+      "bytes": 5311,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "known-queue-context-failure.log",
+      "sha256": "95cd908f6580a9d1a7d506b215d641251df3b8b26ec5bad5013a0259585fc56e",
+      "bytes": 1059,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "linux-context-receipts.json",
+      "sha256": "cbb49737a44d88a052c04bfdffc216e0c87eed2fe38f7fb90b6f172e07c149f9",
+      "bytes": 1298,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "final-queue-card.json",
+      "sha256": "34c4ba46aa51bcc1a153591546877788de773177ab4c90f271620daac99b75f7",
+      "bytes": 659,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "final-approval-cards.json",
+      "sha256": "3d4380841ec8a1fbdf8829f780fac76dd413ae213ea77947599964c98bfa9d4e",
+      "bytes": 2977,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "deploy-final.log",
+      "sha256": "a683b6538e94d60387cd2d07f7bba5523eab7bada40a4d1bb6c0b1c0da1320b4",
+      "bytes": 309,
+      "storage": "private local test evidence; raw content not committed"
+    },
+    {
+      "name": "deploy-verified.log",
+      "sha256": "fe7c816ae10757b6bfea87dd9913da016cab9bc238cbc491e9b55f5fd2368587",
+      "bytes": 856,
+      "storage": "private local test evidence; raw content not committed"
+    }
+  ],
+  "evidenceCheck": {
+    "status": "in-progress",
+    "errors": [],
+    "summary": {
+      "baselineFiles": 9,
+      "addedFiles": 0,
+      "fullyRead": 6,
+      "artifactsInspected": 0,
+      "partiallyRead": 3,
+      "unread": 0,
+      "cases": 378,
+      "casesWithTests": 378,
+      "verifiedCases": 271
+    }
+  }
+}

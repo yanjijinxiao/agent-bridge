@@ -38,6 +38,10 @@ FeishuChannelAdapter与WeComChannelAdapter只组合渠道端口；FeishuMediaSen
 
 Bridge仍以显式send动作触发；TurnResultActions在外部I/O前持久认领，确认后才done，未知结果跨重启保留started，不重复上传/发送。缺SDK媒体方法时不宣称available，也不把本地路径作为已送达文字。远程文件仍先通过原执行主机回传端口成为Gateway私有副本。
 
+钉钉文件和卡片共用已确认的持久收件路由。活动入站优先使用该消息的 AsyncLocalStorage/webhook；重启时先恢复原消息仍有效的私有回复凭据，只有没有可用凭据时，才由同账户 clientId 限定的 card-routing.json 恢复精确群 ID 或员工 ID，沿原生主动发送接口投递。主动私聊发送另受平台 OTO 权限限制，不能把有员工 ID 当成已获平台许可。现有文件上传/发送回执和不重试未知写入的规则不变。
+
+私有回复凭据复用已有 ChannelMessage.contextToken → 转发记录 → RuntimeStateStore（0600）→ 渠道投递链路。dingtalk-reply-context 只接受有界、未过期、同 clientId 和精确 conversationId 的结构，webhook 只允许 HTTPS 的 oapi.dingtalk.com/robot/sendBySession；无效凭据不使用。凭据不进入模型、公开 card-routing、知识或日志。公开路由不保存 webhook、token 或正文，也不能从 cid 前缀猜群、把加密 sender 当员工 ID，或借其他机器人记录发送。CHAN-03.9 的 13 个直接测试覆盖持久恢复、Bridge 不向模型泄露凭据、文件与文本回复及错误作用域；探探真实 SIGKILL 验证原任务持续、原卡完成且文件送达。真实群聊和过期 webhook 下平台主动发送权限仍须独立验收。
+
 验证使用实际飞书SDK对隔离HTTP的multipart/业务码与实际企微SDK对隔离WebSocket的init/chunk/finish/send，外加真实Bridge/动作日志；未连接真实账号。平台权限、企业安全策略、视频播放及手机呈现仍待实机验收。协议依据：[飞书消息内容](https://open.feishu.cn/document/server-docs/im-v1/message-content-description/create_json?lang=zh-CN)、[文件上传](https://open.feishu.cn/document/server-docs/im-v1/file/create)、[企微官方SDK](https://github.com/WecomTeam/aibot-node-sdk)。
 ## 微信二维码回执
 

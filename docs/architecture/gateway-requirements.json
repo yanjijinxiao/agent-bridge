@@ -200,14 +200,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "facade三阶段失败和JSONL异常不进入exec/Desktop follower；Taskboard统一执行由TB-04.2补充，不把此窄case外推。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -250,13 +250,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -300,13 +300,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         }
       ]
@@ -442,13 +442,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -458,7 +458,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/codex/public-item.ts",
@@ -550,9 +550,73 @@
           "verifiedBoundary": "实际原生schema/临时Home与协议fixture；公开mapper不含私有推理或secret command，完整敏感串检查后裁剪。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
+        },
+        {
+          "id": "NATIVE-02.6",
+          "scenario": "渠道规则独立于线程权限：新建、同连接空线程、其他连接空线程和其他连接已有历史，实际模型请求都收到当前 Bridge 规则；再次续聊更新规则且保留原生已有规则。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/native-bridge-instructions.test.ts",
+              "name": "native model receives bridge instructions on new thread"
+            },
+            {
+              "file": "test/native-bridge-instructions.test.ts",
+              "name": "native model receives bridge instructions on empty-same-client thread"
+            },
+            {
+              "file": "test/native-bridge-instructions.test.ts",
+              "name": "native model receives bridge instructions on empty-other-client thread"
+            },
+            {
+              "file": "test/native-bridge-instructions.test.ts",
+              "name": "native model receives bridge instructions on continued-other-client thread"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
+            }
+          ],
+          "previousTestGap": "旧 fake-codex 夹具将 thread/resume.developerInstructions 视为已进入模型。探探实际续接已有线程两次缺规则并输出错误文件动作；原生加载线程不会更新该参数，已订阅路径又直接 thread/read。",
+          "verifiedBoundary": "安装的 macOS 原生 0.166.0 核心、临时 Home 和本机假模型；断言模型请求正文及原规则保留。Linux 0.163.0 schema 支持同一 additionalContext 字段，真实 IM 验证另见审计记录，不把 schema 当执行证明。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
+          }
+        },
+        {
+          "id": "NATIVE-02.7",
+          "scenario": "空会话首条输入直接入原生队列时，模型仍应收到 Bridge 渠道规则。",
+          "status": "partial",
+          "confirmedDefect": true,
+          "tests": [
+            {
+              "file": "docs/audits/2026-11-03-tantan-regression/evidence/pending-queue-context.test.ts",
+              "name": "queued first input must receive bridge application rules"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "c536c912cf5d255e76462d5fcfa9fe2fe5c0f2b08d5068e0c11e529382e04d45"
+            },
+            {
+              "file": "src/bridge/native-queue.ts",
+              "sha256": "bf598e96a1aedfa8cd8a98ea2796cd825ebdc1910dea790bf3467bcd6cb30462"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
+            }
+          ],
+          "verifiedBoundary": "实际 0.166.0 原生核心、临时 Home 和假模型已确认失败：队列已消费一次，模型请求没有给 dispatch 的 developerInstructions。单列 known-failure-results.jsonl，不计入根回归通过。",
+          "remainingBoundary": "尚未修复。原生 thread/queue/add/start 不提供 application context；需实现同一原生队列路径的上下文交接及去重/崩溃语义，不可假装 turn/start 修复覆盖自动消费，也不能以重发或关闭队列代替。"
         }
       ]
     },
@@ -749,13 +813,13 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -946,14 +1010,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "真实隔离原生服务中退休/重建轻读连接，核对同一服务PID、accepted turn、模型调用数及仅一条用户输入。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -1039,7 +1103,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/codex/backend.ts",
@@ -1048,8 +1112,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -1096,13 +1160,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -1130,13 +1194,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -1199,14 +1263,14 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "真实JSONL子进程；六种无效状态与稍后有效失败，不代替原生服务畸形数据的恢复验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -1258,7 +1322,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "test/fixtures/snapshot-completion.mjs",
@@ -1268,8 +1332,8 @@
           "verifiedBoundary": "真实JSONL子进程到生产适配器，隔离原生响应；无模型请求、无用户会话改动。原生服务产品实机验收仍独立。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         }
       ]
@@ -1304,14 +1368,14 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "真实JSONL假模型以100ms RPC预算和260ms静默终态验证接收后无整轮定时器；不是等待数小时的实机验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -1331,7 +1395,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/bridge/service.ts",
@@ -1344,8 +1408,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -1462,14 +1526,14 @@
             },
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "引用审批和当前命令分离已有实际适配/Bridge断言；引用/stop全部消息类型尚无同组精确场景。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -1532,7 +1596,7 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             },
             {
               "file": "src/server/account-manager.ts",
@@ -1541,8 +1605,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         }
       ]
@@ -2265,14 +2329,14 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "适配器text/richText矩阵保正文中@和引用、inline code，不把人名随意删掉；其他渠道别名矩阵未同组覆盖。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -2300,14 +2364,14 @@
             },
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "同源并发claim一次、来源冲突拒绝，持久失败可观测；供应商本身重投另验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         }
       ]
@@ -2342,7 +2406,7 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             },
             {
               "file": "src/channels/client.ts",
@@ -2352,8 +2416,8 @@
           "verifiedBoundary": "真实解析和共享引用缓存；各渠道纯图/混排全组合与手机原始事件尚未穷尽。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -2369,14 +2433,14 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "钉钉引用只有名称/无下载凭据明确标缺内容，正常直接文件/链接仍解析；其他渠道另需场景。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -3917,13 +3981,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -3977,7 +4041,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "test/fixtures/snapshot-completion.mjs",
@@ -3987,8 +4051,8 @@
           "verifiedBoundary": "真实JSONL子进程到生产适配器，隔离原生响应；无模型请求、无用户会话改动。原生服务产品实机验收仍独立。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         }
       ]
@@ -4157,14 +4221,14 @@
             },
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "实际 Bridge 命令/原生目录夹具和 DingTalk Markdown 转换断言；原版 e32322f 的真实 Bridge 同例失败。仅本机展示/分页/精确身份边界，未做手机钉钉实机验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         }
       ]
@@ -4235,7 +4299,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/codex/desktop-session-membership.ts",
@@ -4253,8 +4317,8 @@
           "verifiedBoundary": "真实临时Desktop registry及原生线协议fixture；完整远端主机路由已有独立HOST例，未改原生产IDE身份。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -4275,14 +4339,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "真实Bridge新建经隔离原生核心，在模型结果释放前读到持久thread ID，原生标题保持干净。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -4310,13 +4374,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -4417,7 +4481,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/server/codex-projects.ts",
@@ -4431,8 +4495,8 @@
           "verifiedBoundary": "rollout/标准原生history/IM目录联合过滤完整内部信封、developer、guardian和子线程；普通用户引用保留。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -4603,7 +4667,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/bridge/service.ts",
@@ -4613,8 +4677,8 @@
           "verifiedBoundary": "真实JSONL预期turn比较和Bridge默认steer，ACK中的全部thread/turn反例未在这组穷尽。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -4742,7 +4806,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -4752,8 +4816,8 @@
           "verifiedBoundary": "真实隔离原生核心两peer覆盖queue正常链，专门并发append竞争矩阵仍需补，不能只靠both peers标题。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -4773,7 +4837,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/bridge/native-queue.ts",
@@ -4783,8 +4847,8 @@
           "verifiedBoundary": "实际native正常自动消费+协调器FIFO单次；所有接收/消费竞态仍受那一次未明idle失败限制。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -5073,6 +5137,34 @@
             "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
             "report": "docs/audits/2026-11-03-full-four-layer/README.md"
           }
+        },
+        {
+          "id": "CTRL-03.5",
+          "scenario": "原生 queue 历史先出现 completed/interrupted，但本订阅仍持有同一 active turn 时继续等该轮次最终事件，不误报观察断连、不重发输入或强制启动/停止。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/native-queue-terminal-view.test.ts",
+              "name": "an early queue completed history view keeps observing its loaded active turn"
+            },
+            {
+              "file": "test/native-queue-terminal-view.test.ts",
+              "name": "an early queue interrupted history view keeps observing its loaded active turn"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
+            }
+          ],
+          "previousTestGap": "旧 idle queue 测试偶发 queue/observe 断连未捕获精确时序。本轮实际 RPC 证明历史和运行态不同步；两个确定性反例修复前均失败。",
+          "verifiedBoundary": "JSONL 受控早到终态/晚到最终通知，实际 runner 只 add 一次且没有 start/interrupt。真实隔离核心重复 40 次通过；诊断启动预算 15 秒，不能据此外推 5 秒启动限额或所有并发消费/落盘交错。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
+          }
         }
       ]
     },
@@ -5105,14 +5197,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "host/thread/turn精确参数与source，空闲另一thread的真实并行stop需独立native反例。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -5833,14 +5925,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "真实隔离共享core观察者重启保原native request和人工待审，不合成deny；真实钉钉投递另验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -5868,13 +5960,13 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -5894,13 +5986,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -6074,14 +6166,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "JSONL协议子进程首次丢审批重放，真实AppServerRequestMonitor补订阅原host/thread，不发输入或审批答案。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -6098,7 +6190,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/codex/native-async-questions.ts",
@@ -6108,8 +6200,8 @@
           "verifiedBoundary": "原生协议完整可信空items清理已消失问题；非法summary和无关增量不清待办。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -6177,7 +6269,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/channels/turn-progress-card.ts",
@@ -6190,8 +6282,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -6452,13 +6544,13 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -6825,14 +6917,14 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "真实隔离0.166.0 binary的持续WS服务和两个client：实际systemError→idle、完整turns相等且无模型请求；只证明该已复现原因，不代表所有systemError都可复位。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -6860,7 +6952,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/server/system-error-recovery.ts",
@@ -6870,8 +6962,8 @@
           "verifiedBoundary": "已验证write-ahead/未知archive回执/补偿中断、重启无原绑定仍恢复active。项目归属字段迁移和真实中途进程崩溃尚无独立断言。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -6935,7 +7027,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/codex/backend.ts",
@@ -6944,8 +7036,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -7059,14 +7151,14 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "现有JSONL queue优先和coordinator新输入/解绑取消覆盖；最后原生写前执行代次、角色及并发新queue仍需逐分支反例。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -7158,14 +7250,14 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "verifiedBoundary": "真实生产函数与隔离子进程/本机socket/临时SQLite或JSON目录；不操作真实远端、生产任务和安装制品。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         }
       ]
@@ -7204,14 +7296,14 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "钉钉create/deliver/update/sessionWebhook业务回执精确；其余渠道另需映射。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -7318,13 +7410,13 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -7340,7 +7432,7 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             },
             {
               "file": "src/channels/stream-bootstrap.ts",
@@ -7349,8 +7441,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -7446,11 +7538,16 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "真实适配器和HTTPS业务回执解析，注入隔离fetch/Stream事件；不连接真实平台、不声称手机展示验收。",
-          "evidence": "docs/audits/2026-11-03-full-four-layer/evidence/dingtalk-selection-after.jsonl"
+          "evidence": "docs/audits/2026-11-03-full-four-layer/evidence/dingtalk-selection-after.jsonl",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
+          }
         }
       ]
     },
@@ -7480,7 +7577,7 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             },
             {
               "file": "src/channels/stream-bootstrap.ts",
@@ -7490,8 +7587,8 @@
           "verifiedBoundary": "实际渠道创建/delivery确认后首帧故障仍保原handle，后续更新不重复建。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -7541,14 +7638,14 @@
             },
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "按原instance/account/recipient恢复，未知CID不猜group，持久路由无临时webhook秘密。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -7568,11 +7665,16 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "真实适配器和HTTPS业务回执解析，注入隔离fetch/Stream事件；不连接真实平台、不声称手机展示验收。",
-          "evidence": "docs/audits/2026-11-03-full-four-layer/evidence/dingtalk-selection-after.jsonl"
+          "evidence": "docs/audits/2026-11-03-full-four-layer/evidence/dingtalk-selection-after.jsonl",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
+          }
         }
       ]
     },
@@ -7954,14 +8056,14 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "真实adapter+SDK/HTTPS传输替身，@metadata与正文保全，失败不清旧正文；实际钉钉标签和通知可见性另验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         }
       ]
@@ -8036,7 +8138,7 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             },
             {
               "file": "src/channels/dingtalk-mentions.ts",
@@ -8051,8 +8153,8 @@
           "testGap": "自动化容量联合边界已补；真实手机钉钉当前版本渲染仍未验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         }
       ]
@@ -8089,7 +8191,7 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             },
             {
               "file": "src/channels/progress.ts",
@@ -8099,8 +8201,8 @@
           "verifiedBoundary": "生产adapter传输payload状态/圆环参数，实际客户端渲染仍需验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -8457,7 +8559,7 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             },
             {
               "file": "src/channels/turn-presentation.ts",
@@ -8468,8 +8570,8 @@
           "testGap": "连续协议投影和空白预算已补；真实手机模板最终视觉空白和原生控件显示仍未验。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -8740,14 +8842,14 @@
             },
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "70597aa98b9fb6494c3d6b522c8b58f88985cacee06769f908dc6cba52daa977"
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
             }
           ],
           "verifiedBoundary": "真实readiness/cleanup边界，所有provider重连状态全排列仍须实际平台验收。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -9339,6 +9441,90 @@
             }
           ],
           "verifiedBoundary": "实际官方WeCom SDK对隔离WebSocket核file两分片原bytes、filename、type、MD5、关联req_id与一次消息；三种媒体的调用参数/拒绝与缺key/缺ACK/未知发送使用受控SDK端口，真实Bridge与动作日志重建确认/未知均不重传。SDK100×512KiB预算精确边界、空/目录拒绝；未连接真实平台，未证明所有类型/格式/企业策略已通过。"
+        },
+        {
+          "id": "CHAN-03.9",
+          "scenario": "钉钉重启后按原消息仍有效的私有 contextToken 恢复文件和文本回复；否则仅使用同账号已确认的公开路由。未知目标在上传前拒绝，凭据不进入模型、日志或公开路由。 带 @ 的命令/审批文字和后续分页也保留原私有凭据。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk file delivery restores confirmed private route after restart without a new inbound"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk file delivery restores confirmed group route after restart without a new inbound"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk restart refuses an unconfirmed file destination: missing-staff"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk restart refuses an unconfirmed file destination: different-bot"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk restart refuses an unconfirmed file destination: unknown-recipient"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk restart refuses an unconfirmed file destination: encrypted-sender"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk file and text recover the still-valid private reply credential through the existing context store"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk recovered credential is never used outside its exact valid scope: wrong-bot"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk recovered credential is never used outside its exact valid scope: wrong-conversation"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk recovered credential is never used outside its exact valid scope: expired"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk recovered credential is never used outside its exact valid scope: unsafe-url"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk recovered credential is never used outside its exact valid scope: malformed"
+            },
+            {
+              "file": "test/dingtalk-file-restart.test.ts",
+              "name": "DingTalk recovered reply credential is retained by action-card mention delivery"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/dingtalk.ts",
+              "sha256": "06dec8ca48e4422f69265d382d47589e211bee5008ea4a4289a0089b0d31f591"
+            },
+            {
+              "file": "src/channels/dingtalk-card-routing.ts",
+              "sha256": "32b0fce106dd19733c8c336612f085bba762d25f49b1bd81b11994dfe4c3e690"
+            },
+            {
+              "file": "src/channels/dingtalk-files.ts",
+              "sha256": "0369eb7fc3cfe8c29c8f28d78fd933e9ede746ba3dce32e49307aeb5bca3260f"
+            },
+            {
+              "file": "src/channels/dingtalk-reply-context.ts",
+              "sha256": "64b46a45fa8c139c3c3afda6cf14d75f7e201897b2f4c79246243828c685aeaf"
+            }
+          ],
+          "previousTestGap": "原 case 验证同一适配器的 session/user/group 文件路线及卡片持久路由，未组合适配器重建与文件结果。探探真实 SIGKILL 后原生任务和卡片恢复，但文件报收件会话未知；新增私聊/群聊反例均先失败。 首次仅补公开路由后，探探仍被平台 OTO 权限拒绝；第二次实机暴露必须恢复原会话有效 webhook，而非要求额外主动发送权限。",
+          "verifiedBoundary": "13 项直接测试含实际 Bridge/RuntimeStateStore 重建与文件字节核对、私有状态 0600、模型不含凭据和五类无效凭据；探探私聊真实 SIGKILL 后原任务一次、原卡完成、文件回执成功。真实群聊、手机呈现和过期 webhook 的平台权限不由此验收。 补充无卡片模板的 @ 命令首尾分页凭据透传反例。",
+          "implementationRecheck": {
+            "date": "2026-11-03",
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
+          }
         }
       ]
     },
@@ -9518,7 +9704,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -9539,8 +9725,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -11944,7 +12130,7 @@
           "implementation": [
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/bridge/approval.ts",
@@ -11961,8 +12147,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -12010,7 +12196,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/codex/backend.ts",
@@ -12035,8 +12221,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -12891,15 +13077,15 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             }
           ],
           "confirmedFailure": "发布前真实隔离原生接续出现一次超时；单独复跑通过。另用首次runQueuedSubmission断连且无UI轮询稳定复现持续running，原实现4秒超时失败。",
           "verifiedBoundary": "确定性断连由共享native fixture注入，第二次只观察同thread/turn且模型输入仍一次；暂停/关闭停止后续观察。真实隔离原生核心的重启场景另有直接测试。未完整捕获发布前那次真实超时的所有触发时序，不外推所有断连组合。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           }
         },
         {
@@ -14969,7 +15155,7 @@
             },
             {
               "file": "src/codex/app-server-runner.ts",
-              "sha256": "18b3f1506714eb75b98bb502d454f26db1f87582c8150c84aa431082db3d82c1"
+              "sha256": "84886bf72ef2e605d39f534be80e07df1b1b187d765754bc60cc58236bfbc97f"
             },
             {
               "file": "src/peer/project-catalog.ts",
@@ -14983,8 +15169,8 @@
           "verifiedBoundary": "当前候选不新增/session rename、archive、restore、/sessions archived；拆分分支单独评审。 Connector私有投影的明确别名与创建/归属一致；未包装底层目录及错误home保持原生ID。",
           "implementationRecheck": {
             "date": "2026-11-03",
-            "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
-            "report": "docs/audits/2026-11-03-full-four-layer/README.md"
+            "scope": "fe2df3d 后三项修复及调用边界复核；其余函数体沿用已逐行记录且比对未变，原验证边界不扩大。",
+            "report": "docs/audits/2026-11-03-tantan-regression/README.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },
