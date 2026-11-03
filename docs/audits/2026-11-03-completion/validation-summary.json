@@ -14,7 +14,8 @@
   "targetedAfterRoot": [
     "approval case title correction: 3 passed",
     "WeCom whitespace-only final file: 13 passed",
-    "IDE and restart-handoff family after followup: 168 passed"
+    "IDE and restart-handoff family after followup: 168 passed",
+    "release tooling after actual cutover failure: 44 passed"
   ],
   "realSSH": {
     "hosts": 2,
@@ -118,6 +119,11 @@
       "name": "completion-root-final-sealed.log",
       "sha256": "5300520af1e0fbd53e7b8123bc945aa810c44c31566283c2104072ccd89ae7ff",
       "bytes": 665739
+    },
+    {
+      "name": "completion-release-budget.log",
+      "sha256": "3044a13dece98d66fe34762b173e7e73e8d32dbe33e24a5f7e2945bb1858ff60",
+      "bytes": 4898
     }
   ],
   "deployment": {
@@ -167,5 +173,17 @@
       "Windows-only",
       "real SSH opt-in; separately ran 2 actual hosts successfully"
     ]
+  },
+  "cutoverFollowup": {
+    "healthyApiObservedMs": [
+      5031,
+      5060,
+      8786
+    ],
+    "oldPerProbeMs": 5000,
+    "newPerProbeMaxMs": 15000,
+    "overallVerificationMs": 45000,
+    "outerTimeoutInterruptedRollbackCleanup": true,
+    "restoredOriginalArtifactAndOwnAdmission": true
   }
 }

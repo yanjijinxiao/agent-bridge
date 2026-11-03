@@ -12825,7 +12825,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "86a3f4692673429dec35d1d1c77fc9286560ef5a379c4565e62e588be4cb8fdd"
+              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
             },
             {
               "file": "src/server/release-admission.ts",
@@ -12966,7 +12966,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "86a3f4692673429dec35d1d1c77fc9286560ef5a379c4565e62e588be4cb8fdd"
+              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
             }
           ],
           "verifiedBoundary": "stage边界和制品hash，隔离release main另由rollback四场景；未发布真实服务。",
@@ -12993,7 +12993,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "86a3f4692673429dec35d1d1c77fc9286560ef5a379c4565e62e588be4cb8fdd"
+              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
             }
           ],
           "verifiedBoundary": "真实临时lock竞态和错误cleanup；全发布崩溃/各平台回滚尚不完整。",
@@ -13053,7 +13053,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "86a3f4692673429dec35d1d1c77fc9286560ef5a379c4565e62e588be4cb8fdd"
+              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
             }
           ],
           "verifiedBoundary": "实际release命令在隔离Git/launchd/HTTP边界执行10种结果，检查build、绑定、ACL、grant、IDE、90天期限和渠道连接；失败回滚代码不复活旧授权。",
@@ -13109,7 +13109,7 @@
           "implementation": [
             {
               "file": "scripts/release-local.mjs",
-              "sha256": "86a3f4692673429dec35d1d1c77fc9286560ef5a379c4565e62e588be4cb8fdd"
+              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
             }
           ],
           "verifiedBoundary": "发布端点比较函数真实输入组合与既有rollback/lease测试；不宣称远程网络已恢复或完成手机验收。",
@@ -13322,6 +13322,37 @@
             "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
             "report": "docs/audits/2026-11-03-completion/README.md"
           }
+        },
+        {
+          "id": "REL-02.10",
+          "scenario": "健康验收允许正常冷启动慢响应，但响应头/体均受剩余总期限约束；失败保存可诊断原因，不弱化权限/绑定/端点验收。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/release-readiness-budget.test.ts",
+              "name": "REL-02.10: a healthy cold readiness response slower than five seconds succeeds"
+            },
+            {
+              "file": "test/release-readiness-budget.test.ts",
+              "name": "REL-02.10: readiness headers stall obeys the remaining total budget"
+            },
+            {
+              "file": "test/release-readiness-budget.test.ts",
+              "name": "REL-02.10: readiness body stall obeys the remaining total budget"
+            },
+            {
+              "file": "test/release-readiness-budget.test.ts",
+              "name": "REL-02.10: expired readiness never sends a probe"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "scripts/release-local.mjs",
+              "sha256": "d36bbd27efa1fed47f4e7efa5710431ee785a878d6968c1e767de3ab64c6a57d"
+            }
+          ],
+          "verifiedBoundary": "真实隔离HTTP 5.5秒成功；头/体停滞按120ms剩余预算失败，过期零请求；既有完整切换/回滚/权限/端点反例44项全过。",
+          "remainingBoundary": "不证明任意负载下的全部请求时序；总45秒及失败回滚保持。"
         }
       ]
     },
@@ -16037,11 +16068,11 @@
   "currentSummary": {
     "audit": "2026-11-03-completion",
     "requirements": 86,
-    "cases": 382,
-    "mappedCases": 382,
-    "recordedNarrowVerified": 283,
+    "cases": 383,
+    "mappedCases": 383,
+    "recordedNarrowVerified": 284,
     "partialCases": 99,
-    "selectedFunctionContracts": 199,
+    "selectedFunctionContracts": 200,
     "note": "增量复核及同版本回归；历史partial保留边界，不将缺失设备/账号或33kind执行器冒充完成。"
   }
 }

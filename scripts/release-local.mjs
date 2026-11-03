@@ -56,6 +56,16 @@ export function assertReleaseDirectory(dir, repo, state) {
 const save = (file, value) => fs.writeFileSync(file, JSON.stringify(value, null, 2), { mode: 0o600 });
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+/** A cold runtime can spend several seconds restoring its catalog. Each
+ * headers/body read shares one deadline and may never exceed the remaining
+ * overall verification budget; an arbitrary five-second cutoff is too short. */
+export async function readReleaseJson(url, remainingMs = 15000, request = fetch) {
+  if (!(remainingMs > 0)) throw Error('Readiness deadline expired');
+  const response = await request(url, { signal: AbortSignal.timeout(Math.max(1, Math.min(15000, Math.floor(remainingMs)))) });
+  if (!response.ok) throw Error('Readiness HTTP ' + response.status);
+  return response.json();
+}
+
 async function withReleaseOwnership(state, action) {
   const file = path.join(state, 'release.lock');
   let fd;
@@ -158,7 +168,7 @@ export async function main(argv) {
     if (git(['ls-files', '--others', '--exclude-standard', '-z']).split('\0').some(file => file && path.basename(file) !== '.DS_Store')) throw Error('Untracked release inputs must be committed first');
   };
   const pid = () => Number(execFileSync('/bin/launchctl', ['print', options.service], { encoding: 'utf8' }).match(/^\s*pid = (\d+)\s*$/m)?.[1]);
-  const api = async route => { const response = await fetch(new URL(route, origin), { signal: AbortSignal.timeout(5000) }); if (!response.ok) throw Error(`Readiness HTTP ${response.status}`); return response.json(); };
+  const api = (route, remainingMs) => readReleaseJson(new URL(route, origin), remainingMs);
   const grants = () => {
     const root = path.join(state, 'ide'); if (!fs.existsSync(root)) return {};
     return Object.fromEntries(fs.readdirSync(root).filter(name => /^authorization(?:-.*)?\.json$/.test(name)).sort().map(name => [name,
@@ -169,8 +179,8 @@ export async function main(argv) {
       const s = JSON.parse(fs.readFileSync(path.join(state, 'runtime', item.name, 'state.json')));
       return [item.name, hash(JSON.stringify({ active: s.activeSessionIds, qa: s.activeQaSessionIds, paired: s.pairedSenderIds, roles: s.conversationRoles, detached: s.detachedSessionSenders }))];
     }));
-  const health = async () => {
-    const [accounts, ide, sessions] = await Promise.all([api('/api/accounts'), api('/api/ide'), api('/api/sessions')]);
+  const health = async remainingMs => {
+    const [accounts, ide, sessions] = await Promise.all([api('/api/accounts', remainingMs), api('/api/ide', remainingMs), api('/api/sessions', remainingMs)]);
     return { accounts: accounts.accounts.map(a => ({ id: a.accountId, status: a.status, connection: a.connection?.state })),
       ideRunning: ide.running, ttlDays: ide.authorization.sessionTtlDays, authorizationError: Boolean(ide.authorization.error),
       endpoints: ide.endpoints.map(e => ({ key: JSON.stringify([e.hostId, e.publicOrigin, e.shared === true, e.localDirect === true]), state: e.state })).sort((a, b) => a.key.localeCompare(b.key)),
@@ -184,19 +194,23 @@ export async function main(argv) {
   };
   const verify = async m => {
     const before = JSON.parse(fs.readFileSync(path.join(dir, 'before.json')));
-    let current, build, ready = false; const deadline = Date.now() + 45000;
+    let current, build, ready = false, lastFailure; const deadline = Date.now() + 45000;
     while (Date.now() < deadline) {
       try {
-        [current, build] = await Promise.all([health(), api('/api/build')]);
+        const remainingMs = deadline - Date.now();
+        [current, build] = await Promise.all([health(remainingMs), api('/api/build', remainingMs)]);
         ready = build.build?.commit === m.commit && build.build?.sourceHash === m.source
           && !current.authorizationError && current.ideRunning === before.health.ideRunning && current.ttlDays === before.health.ttlDays
           && endpointReadinessPreserved(before.health.endpoints, current.endpoints)
           && before.health.accounts.filter(a => a.status === 'running').every(a => current.accounts.some(b => a.id === b.id && b.status === 'running' && (!a.connection || a.connection === b.connection)));
         if (ready) break;
-      } catch { /* bounded readiness polling, never native task mutation */ }
+        lastFailure = { kind: 'readiness-mismatch', buildMatches: build.build?.commit === m.commit && build.build?.sourceHash === m.source,
+          authorizationError: current.authorizationError, ideRunning: current.ideRunning, ttlDays: current.ttlDays,
+          endpointsPreserved: endpointReadinessPreserved(before.health.endpoints, current.endpoints), accounts: current.accounts };
+      } catch (error) { lastFailure = { kind: 'probe-failed', error: error.name }; }
       await delay(500);
     }
-    if (!ready) throw Error('New service failed readiness or build identity');
+    if (!ready) { save(path.join(dir, 'readiness-failure.json'), lastFailure ?? { kind: 'deadline' }); throw Error('New service failed readiness or build identity'); }
     let retained = 0; const after = grants();
     for (const [name, rows] of Object.entries(before.grants)) for (const row of rows) {
       if (row.expiresAt <= Date.now()) continue;
