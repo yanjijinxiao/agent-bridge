@@ -1,0 +1,111 @@
+{
+  "commit": "b1ab171b2e483b31568eae81fb710081f5378747",
+  "sourceHash": "2c534437ebef7816521f51fd93bda4b2c2e97ad95362c49bf5a7b9b18ac249ab",
+  "services": {
+    "tantan": {
+      "running": true,
+      "pid": 162204,
+      "workingDirectory": "/home/admin/codex-gateway-tantan/releases/workflow-node-release",
+      "build": {
+        "commit": "b1ab171b2e483b31568eae81fb710081f5378747",
+        "sourceHash": "2c534437ebef7816521f51fd93bda4b2c2e97ad95362c49bf5a7b9b18ac249ab",
+        "builtAt": "2026-11-03T16:00:37.703Z"
+      },
+      "runnerSource": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52",
+      "runnerCompiled": "77575713f1218548e595d236f138e7e63e27d9d5c4eb4b5a0bb5177bf0bdf964"
+    },
+    "linuxConnector": {
+      "running": true,
+      "pid": 23078,
+      "workingDirectory": "/home/admin/gateway-connector-linux-test/releases/workflow-node-release",
+      "build": {
+        "commit": "b1ab171b2e483b31568eae81fb710081f5378747",
+        "sourceHash": "2c534437ebef7816521f51fd93bda4b2c2e97ad95362c49bf5a7b9b18ac249ab",
+        "builtAt": "2026-11-03T16:00:37.703Z"
+      },
+      "runnerSource": "89158284032e98218d7b57f8018e38f01d968f5f440c9991ce28919f33407f52",
+      "runnerCompiled": "77575713f1218548e595d236f138e7e63e27d9d5c4eb4b5a0bb5177bf0bdf964"
+    },
+    "macConnector": {
+      "running": true,
+      "build": {
+        "commit": "b1ab171b2e483b31568eae81fb710081f5378747",
+        "sourceHash": "2c534437ebef7816521f51fd93bda4b2c2e97ad95362c49bf5a7b9b18ac249ab",
+        "builtAt": "2026-11-03T16:00:37.703Z"
+      }
+    },
+    "toutou": {
+      "commit": "b1ab171b2e483b31568eae81fb710081f5378747",
+      "pid": 75909,
+      "retainedGrants": 14,
+      "ttlDays": 90,
+      "endpoints": 3,
+      "tests": {
+        "tests": 3182,
+        "passed": 3180,
+        "skipped": 2
+      }
+    }
+  },
+  "tantanHealth": {
+    "build": {
+      "commit": "b1ab171b2e483b31568eae81fb710081f5378747",
+      "sourceHash": "2c534437ebef7816521f51fd93bda4b2c2e97ad95362c49bf5a7b9b18ac249ab",
+      "builtAt": "2026-11-03T16:00:37.703Z"
+    },
+    "accounts": [
+      {
+        "id": "tantan-test",
+        "status": "running",
+        "connection": "connected"
+      }
+    ]
+  },
+  "tantanReleaseAdmission": {
+    "pid": 89014,
+    "prepared": false
+  },
+  "macCores": "PID COMM\n 1272 /Users/xking/.codex/packages/app-server-daemon/releases/0.166.0-aarch64-apple-darwin/bin/codex\n11238 /Users/xking/.codex/packages/app-server-daemon/releases/0.166.0-aarch64-apple-darwin/bin/codex",
+  "linuxCores": "PID COMMAND\n  9955 codex\n 10115 codex",
+  "taskboard": {
+    "toutou": {
+      "enabled": true,
+      "available": true,
+      "workflowRoute": true,
+      "webSha256": "85ceb1b8cb08894bff648c80730aaf106cdeed231696c662fa8fe492ff7c9dba"
+    },
+    "tantan": {
+      "enabled": false,
+      "available": false
+    }
+  },
+  "nativeRoundtrip": {
+    "turnId": "01a1a228-2905-7fd1-8380-f5a690c00cb9",
+    "inputs": 1,
+    "outputs": 1,
+    "status": "delivered",
+    "deliveryAt": "2026-11-03T16:05:05.283Z",
+    "evidence": {
+      "transcriptHash": "f6c8fcfcc58ccd9678fc89f983affe8004fd49c1594b8100ecbbc676a7cdf0bb",
+      "deliveryLogHash": "73a81fdeb39fef85288651b6262429ba38afdf8aa750124e7b198f4dcf6bdfa2"
+    }
+  },
+  "linuxPackagedNativeTests": {
+    "passed": 1,
+    "failed": 1,
+    "reconnect": "passed",
+    "commandExecution": "blocked by container bwrap namespace restriction; native exitCode=1 correctly prevents success despite model ok=true",
+    "workspaceWritePreserved": true,
+    "sourceTest": "test/workflow-native-execution.test.ts",
+    "testLogHash": "ad1546c35797b4c19b8273d8cc421955ab4eaee0249e48832e902e2464964ad0",
+    "testExecution": "same fixture transpiled to JS, importing deployed dist and pinned Taskboard package; no tsx in production container",
+    "hostAttempt": "Node cannot load libatomic.so.1 on host; no system packages or sandbox policy changed"
+  },
+  "remainingImplementation": [
+    "7 supplier adapters",
+    "automatic trigger subscriptions",
+    "cloud-authoritative workflow writes",
+    "artifact attachment output contract"
+  ],
+  "acceptanceLimit": "26 kinds have execution adapters; this is not full 33-kind/real-account/mobile acceptance. Tantan Taskboard is disabled; Linux packaged native tests are separate isolated probes."
+}
