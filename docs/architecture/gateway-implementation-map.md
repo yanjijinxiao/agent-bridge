@@ -64,3 +64,5 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 非peer路径直接委托原facade。新端口没有新的业务调度器；渠道卡片、复制、审批和结果投递继续由原模块处理。`peer/channel`是可组合Channel适配器，未增加第二套渠道业务处理，也没有自动启用远端Channel入口。
 
 [当前增量验收](../audits/2026-11-03-peer-contract-review/merge-completion.md)单列本地、真实SSH、真实Codex及协议夹具；原main的partial和真实设备待办不因Connector回归被升级。
+
+2026-11-04 增量：REL-02.11 的 HTTP 收尾及 GitLens 实际验证见 [验证收尾记录](../audits/2026-11-04-verification-boundaries/README.md)。历史总数不作为本次测试总数。

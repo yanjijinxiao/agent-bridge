@@ -117,7 +117,7 @@ R2  开发网关        /Users/me/project-b
 
 若希望由会话所有者批准别人访问指定 session，可使用 [会话所有权与共享工作区](peer-sharing.md)。这种资源授权不要求访问者取得整个 profile 的设备授权；Peer 的共享 Web 编辑器也按 owner 确认的目录和只读/读写能力分别校验。
 
-`/leave` 只解除聊天的当前绑定，不撤销历史设备授权。若需撤销访问，先停止相应 B 客户端并移除本机授权记录；可停止客户端后删除其状态目录中的 `grants.json`，保留 `receipts.json` 防止历史消息重复执行。撤销整个设备则从 A 的配置删除设备凭据并重启入口。这版尚无细粒度撤销 UI。
+`/leave` 只解除聊天的当前绑定，不撤销历史设备授权。若需撤销访问，先停止相应 B 客户端并移除本机授权记录；可停止客户端后删除其状态目录中的 `grants.json`，保留 `receipts.json` 防止历史消息重复执行。撤销整个设备时先停止该 Connector：旧静态设备从 A 的 listen.devices 删除；自助登记设备从 Peer 配置旁的 .devices.json 删除对应记录。修改前备份，随后重启监听入口以断开已有连接。删除设备凭据不等于撤销个人 IM 准入；若不允许重新登记，还需撤销该用户的登记资格或关闭 enrollment。这版尚无细粒度撤销 UI。
 
 ### 权限展示范围
 
@@ -144,7 +144,7 @@ Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输�
 
 ### 协议 v1
 
-固定路径 `/gateway/v1/peer`，原生客户端在 Upgrade 时发送 `X-Gateway-Peer-Id` 和 `Authorization: Bearer <设备令牌>`。带浏览器 Origin 的直连被拒绝；当前协议不接受浏览器 cookie 作为授权。
+固定路径 `/gateway/v1/peer`，原生客户端在 Upgrade 时发送 `X-Gateway-Peer-Id` 和 `Authorization: Bearer <设备令牌>`。新设备自动生成凭据，并额外发送 X-Gateway-Peer-Enroll: 1。只有监听端显式启用 enrollment 才接受未知设备的受限配对连接；已知设备凭据不符不能退回自助登记。配对经 IM 准入、本机确认和持久化成功后才开放目录、执行与 IDE。Gateway 保存凭据摘要，Connector 本机保存原凭据。带浏览器 Origin 的直连被拒绝；当前协议不接受浏览器 cookie 作为授权。
 
 ```json
 { "version": 1, "type": "request", "id": "请求UUID", "method": "方法名", "params": {} }

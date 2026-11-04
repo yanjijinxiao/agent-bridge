@@ -1,5 +1,7 @@
 # 探探与 Linux CLI Connector 真实钉钉验证
 
+> 这是当时版本的验证记录，保留原测试步骤与结果。当前接入方式请以 [Connector 连接指南](gateway-peers.md) 为准：新设备自动生成身份，探探固定入口可省略 CA；本文旧设备凭据和证书步骤不作为新的接入要求。
+
 验证日期：2026-11-02。分支：`codex/gateway-peer-transport`。
 
 本轮将分支 rebase 到 `origin/main` 的 `57d8b2f`，并部署到实际的探探机器人。与 [此前的 Linux 实机测试](peer-linux-cli-validation.md) 不同，本轮使用真实钉钉 Stream 收消息、真实钉钉私聊收发消息和附件；通过已登录的 `dws` 用户身份发送测试请求，并用事件订阅取得探探的实际回复。

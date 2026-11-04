@@ -3,6 +3,7 @@ import { AdmissionConflictError, admissionId, admissionVersion } from "../bridge
 import { TurnDeliveryError, TurnApplicationError } from "../bridge/turn-submission.js";
 import { readBuildInfo } from "./build-info.js";
 import { cleanupResources } from "./cleanup.js";
+import { trackHTTPShutdown } from "./http-shutdown.js";
 import { RuntimeConfigurationBusyError } from "./account-manager.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
 import { userFacingMessageHandlingError } from "../bridge/errors.js";
@@ -249,6 +250,7 @@ export async function startLocalHttpServer(options: LocalHttpServerOptions): Pro
     });
   });
 
+  const closeHTTP = trackHTTPShutdown(server);
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(options.port ?? 8787, "127.0.0.1", () => resolve());
@@ -264,7 +266,7 @@ export async function startLocalHttpServer(options: LocalHttpServerOptions): Pro
     requestToken,
     close: async () => {
       await cleanupResources([() => { detachApprovals?.(); }, () => ideAccess?.close(),
-        () => new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
+        closeHTTP
       ], "Gateway HTTP/IDE 清理部分失败，其余资源已继续清理");
     }
   };

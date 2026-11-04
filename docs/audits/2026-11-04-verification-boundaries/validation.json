@@ -1,0 +1,12 @@
+{
+  "fullRegression": {
+    "tests": 3235,
+    "pass": 3150,
+    "fail": 0,
+    "skipped": 85,
+    "cancelled": 0
+  },
+  "typecheck": "passed",
+  "beforeFix": "real SIGTERM regression failed: incomplete HTTP header kept process alive",
+  "afterFix": "5 new shutdown cases passed, including real Gateway child and independent executor survival"
+}

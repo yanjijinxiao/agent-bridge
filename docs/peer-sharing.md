@@ -61,13 +61,13 @@ owner 与工作目录的变更需要本机再次确认；变更会撤销原委�
 
 ## 共享 Web 编辑器
 
-这是独立的受控文本工作区入口，复用 Peer 连接和 owner 委托。现有完整 code-server IDE 的本机/SSH 管理流程保持原样；Peer 的 `/ide` 返回此共享入口。它提供文件树、文本读取、只读/读写状态和保存，不提供终端、插件执行、通用代理或完整 VS Code 能力。终端没有可以被前端隐藏后绕过的后端接口。
+这是独立的受控文本工作区入口，复用 Peer 连接和 owner 委托。完整 code-server IDE 也支持已开通的 Connector 项目；仅持文本资源委托的访客使用 `/ide` 时返回本节共享入口，不因此取得完整 IDE 权限。它提供文件树、文本读取、只读/读写状态和保存，不提供终端、插件执行、通用代理或完整 VS Code 能力。终端没有可以被前端隐藏后绕过的后端接口。
 
 在服务器的 Peer 配置中增加：
 
 ```json
 {
-  "listen": { "host": "127.0.0.1", "port": 9478, "devices": [{ "nodeId": "my-laptop", "tokenFile": "./my-laptop.token" }] },
+  "listen": { "host": "127.0.0.1", "port": 9478, "enrollment": true, "devices": [] },
   "resources": { "host": "127.0.0.1", "port": 9479, "publicOrigin": "https://workspace.example.com" }
 }
 ```

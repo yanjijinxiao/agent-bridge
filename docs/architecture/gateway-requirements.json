@@ -13889,6 +13889,49 @@
           ],
           "verifiedBoundary": "真实隔离HTTP 5.5秒成功；头/体停滞按120ms剩余预算失败，过期零请求；既有完整切换/回滚/权限/端点反例44项全过。",
           "remainingBoundary": "不证明任意负载下的全部请求时序；总45秒及失败回滚保持。"
+        },
+        {
+          "id": "REL-02.11",
+          "scenario": "SIGTERM 有界收尾未完成 HTTP 连接，正常响应可完成且独立执行器不停止",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/server-shutdown.test.ts",
+              "name": "HTTP shutdown retires a stalled headers connection"
+            },
+            {
+              "file": "test/server-shutdown.test.ts",
+              "name": "HTTP shutdown retires a stalled body connection"
+            },
+            {
+              "file": "test/server-shutdown.test.ts",
+              "name": "HTTP shutdown retires a stalled upgrade connection"
+            },
+            {
+              "file": "test/server-shutdown.test.ts",
+              "name": "HTTP shutdown lets a normal in-flight response drain before closing"
+            },
+            {
+              "file": "test/server-shutdown.test.ts",
+              "name": "SIGTERM exits the real Gateway with an unfinished HTTP request without stopping an independent executor"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/http-shutdown.ts",
+              "sha256": "a09cc12b25e8fd879f3f637b22257f2d2a7b80e48d354013c1ee607cdf4950c3"
+            },
+            {
+              "file": "src/server/http-server.ts",
+              "sha256": "ee91122d8e2d8c9feb72a423323c9ed60f6fe4bf38ad9b0819f9d65982932743"
+            }
+          ],
+          "verifiedBoundary": "隔离真实 TCP 请求头、请求体、升级连接和正常响应；真实 Gateway 子进程收到 SIGTERM 后退出并释放进程锁，另一个独立进程存活。线上切换结果另记。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "HTTP 连接生命周期、进程关闭与文档静态配置四层增量",
+            "report": "docs/audits/2026-11-04-verification-boundaries/README.md"
+          }
         }
       ]
     },

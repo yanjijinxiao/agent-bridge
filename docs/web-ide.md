@@ -126,6 +126,19 @@ VPN IP **不等于固定 IP**。固定模式中地址变化仍需手动配置；
 
 ## Profile
 
+### 日常使用
+
+在 IDE 设置页修改主题、字体和扩展选项；使用扩展面板安装、停用或卸载扩展。Gateway 不提供固定扩展勾选列表。GitLens 可通过扩展 ID eamodio.gitlens 查找；行作者和提交浮窗需要 Git 仓库及已提交文件，安装成功与功能激活应分别核验。
+
+### 管理员设置初始基线
+
+1. 在 Gateway Web IDE 页选择文件类型并导入原生配置，或编辑 settings.json / extensions.json 表单。
+2. 检查导入提示和内容；导入不会保存、安装或执行任务。
+3. 保存后应用初始基线。此配置由全部已启用主机共用，变更可能停止受影响的 IDE 并撤销其访问资格；先保存编辑内容。
+4. 日后需要重新应用初始扩展清单，先停止相应实例，再选择「准备扩展」。
+
+### 格式与生命周期
+
 管理页使用 VS Code 原生格式：settings.json / JSONC、extensions.json 的 recommendations，以及导出的 .code-profile。原生 Profile 本次导入设置和启用的扩展；keybindings、snippets、tasks 等其他段落明确提示未导入，禁用项跳过，版本由 code-server 注册表选择。导入仅填写表单，保存后才生效；扩展 ID 不再是写死的候选列表，可填写 GitLens 等 publisher.name。设置支持扩展自定义项、数组及语言嵌套覆盖，并限制大小/深度、拒绝原型字段；原管理 API 的鉴权仍生效。
 
 编辑器内的设置和扩展面板负责日常管理。Gateway Profile 仅是所有已启用主机共用的初始基线，不能导入机器私有密码或凭据。项目自带 .vscode/extensions.json 仍然是推荐，不会因 Gateway 自动读取而变成安装授权。显式保存管理页清单才选择初始安装。配置写入新实例，不覆盖项目 .vscode，不读取桌面登录态；内部 Profile 结构保持兼容，无变更升级不会迁移实例、扩展目录或浏览器授权。
@@ -134,7 +147,7 @@ VPN IP **不等于固定 IP**。固定模式中地址变化仍需手动配置；
 
 运行时缺省设置独立于 Profile 身份。Chat 所在的次侧边栏默认 `workbench.secondarySideBar.defaultVisibility: "hidden"`，新实例初始化时应用，旧实例只补缺失项。迁移保留 JSONC 注释、尾逗号和显式用户值，不覆盖用户布局、其他设置或授权；无效/并发修改的设置文件不覆盖，并显示警告。已被浏览器保存为展开的旧布局可能需手动收起一次；这不是永久禁用 Chat。此设置可在 Profile 显式覆盖。
 
-缺省视觉外观是 Dark 2026、Seti (`vs-seti`) 文件图标、Default 界面图标、`Menlo, Monaco, 'Courier New', monospace` 字体族、12px 字号、18px 行高、normal 字重、关闭字体连字、标签页换行。主题和图标来自已固定 code-server 的内置资源，不复制桌面缓存数据库、用户令牌或整个 VS Code 配置。字体由打开浏览器的设备解析，远程 Linux 主机不安装或传输 Menlo；设备没有该字体时按备用族回退。现有实例启动时只补缺失外观项，已显式设置的主题／字体保持不变，项目级设置仍按 VS Code 规则覆盖。白名单可显式覆盖以上外观值；字号、行高、字重与布尔开关由服务端校验。仅升级缺省外观不改变实例身份、扩展目录或浏览器授权。
+缺省视觉外观是 Dark 2026、Seti (`vs-seti`) 文件图标、Default 界面图标、`Menlo, Monaco, 'Courier New', monospace` 字体族、12px 字号、18px 行高、normal 字重、关闭字体连字、标签页换行。主题和图标来自已固定 code-server 的内置资源，不复制桌面缓存数据库、用户令牌或整个 VS Code 配置。字体由打开浏览器的设备解析，远程 Linux 主机不安装或传输 Menlo；设备没有该字体时按备用族回退。现有实例启动时只补缺失外观项，已显式设置的主题／字体保持不变，项目级设置仍按 VS Code 规则覆盖。原生设置可显式覆盖以上外观值；字号、行高、字重与布尔开关由服务端校验。仅升级缺省外观不改变实例身份、扩展目录或浏览器授权。
 
 不支持将 Microsoft Remote SSH、Containers、WSL、Pylance 或微软 C/C++ 扩展直接搬入。平台包与工具链需按所在主机验证；注册表有发布包不等于语言功能已实测。
 

@@ -78,7 +78,7 @@ You do not need to deploy another Gateway or register a bot application. Ask its
 
 1. Prepare a working Codex installation, Node.js, and Git on your device. A CLI-only server does not need a desktop GUI.
 2. Download the project source and run the install/build commands below in its repository directory, or use a prebuilt Connector supplied by the administrator.
-3. Store configuration and credentials in a private directory outside the repository. Select one native service explicitly; daemon mode does not switch executors after a disconnect.
+3. Start from the [Connector example](./examples/peer-client.json), fill in the administrator's Gateway URL, and save it outside the repository. New devices omit nodeId and tokenFile: Connector creates and stores its identity. Select one native service explicitly; daemon mode does not switch executors after a disconnect.
 4. Start Connector in an interactive terminal. Send its complete `/connect PAIRING_CODE` command to the bot; mention the bot when using a group.
 5. Verify the requesting person, chat, and scope in the device terminal, then enter `yes`. Pairing codes last five minutes and are single-use.
 6. Select a session from the returned list and use `/status` to check the device and directory. Pair again when moving to another chat.
@@ -102,6 +102,14 @@ npm run peer -- --config /absolute/path/peer-client.json
 ```
 
 Connector generates and privately stores its device credential. The first restricted connection offers a pairing code; enrollment completes only after the admitted chat user and local device confirm. Reconnects reuse saved grants. `/connect` lists only devices granted to the current person in the current bot account and chat. See [connection setup](./docs/gateway-peers.md) for configuration and lifecycle details, or the [step-by-step Tantan tutorial (Chinese)](./docs/tantan-connector-guide.md).
+
+### Web IDE settings and extensions
+
+Once the device's Web IDE is enabled, use the editor's own settings and extension panels to change appearance or install and uninstall extensions. Gateway no longer limits this to a fixed checkbox list. Extensions such as GitLens still depend on registry and runtime compatibility.
+
+Administrators can import settings.json / JSONC, .vscode/extensions.json, or an exported .code-profile in Gateway's Web IDE page to define the initial baseline shared by enabled hosts. Import fills the form; saving applies the configuration. A profile imports only settings and enabled extensions, with warnings for omitted sections. After initial installation succeeds, reopening preserves the user's extension removals. See [settings, extensions, and profiles](./docs/web-ide.md#profile).
+
+Preserve configuration and stateDir across upgrades: they contain device identity, grants, and receipts. Existing configurations keep their original nodeId and tokenFile; deleting them is not a migration. Administrators must explicitly enable enrollment; ordinary onboarding does not require sharing device secrets.
 
 ## Deploy your own Gateway
 

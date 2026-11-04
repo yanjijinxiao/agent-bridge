@@ -102,3 +102,5 @@ Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audi
 ## 2026-11-04 终态卡片补充
 
 CTRL-03.3 / DEL-09.3 增补“同会话旧队列未映射且历史不可用，纯文字原生结果仍完成原卡；重复回执及重建不重新展示停止入口”。对应 `queue-result-recovery.test.ts` 的 plain-result、`compact-progress-design.test.ts` 的 unconfirmed historical 和 `dingtalk-progress-layout.test.ts` 的 HTTPS/SDK 状态转换。证据见[定向四层记录](../audits/2026-11-04-stale-terminal-card.md)；此增量不刷新既有全库覆盖数字或未经复查的文件哈希。
+
+2026-11-04 增量：REL-02.11 的 HTTP 收尾及 GitLens 实际验证见 [验证收尾记录](../audits/2026-11-04-verification-boundaries/README.md)。历史总数不作为本次测试总数。

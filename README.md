@@ -91,7 +91,7 @@ Gateway 本机管理页监听 `127.0.0.1`，不作为多人登录门户。Connec
 
 1. 设备上先准备好能正常工作的 Codex、Node.js 和 Git。纯 CLI 服务器不需要桌面 GUI。
 2. 下载项目源码，在仓库目录执行下方安装、构建命令；管理员已提供构建好的 Connector 时可直接使用。
-3. 将管理员给出的配置与凭据放在仓库外的私有目录。配置使用同一个明确的原生服务；推荐的 `daemon` 方式不在断连时自动换执行器。
+3. 参考 [Connector 配置模板](./examples/peer-client.json)，填写管理员提供的 Gateway 地址，把配置放在仓库外的私有目录。新设备省略 nodeId、tokenFile，程序会自动生成并保存设备身份。配置使用同一个明确的原生服务；推荐的 `daemon` 方式不在断连时自动换执行器。
 4. 在交互式终端启动 Connector，复制终端显示的完整 `/connect 配对码` 到机器人私聊；群里需先真正 @机器人。
 5. 在设备终端核对申请人、聊天和范围，确认后输入 `yes`。配对码有效期 5 分钟，一次使用后失效。
 6. 配对后直接选择返回的会话，再用 `/status` 核对设备和目录。换聊天需要在新聊天完成自己的设备配对。
@@ -115,6 +115,14 @@ npm run peer -- --config /absolute/path/peer-client.json
 ```
 
 设备凭据由 Connector 在本机生成并保存；配对码在受限连接建立后产生，首次配对通过后才正式登记设备，后续重连无需重复审批。`/connect` 只列当前用户在当前机器人、当前聊天有权使用的设备。完整配置、后台运行边界和故障排查见 [连接指南](./docs/gateway-peers.md)；首次接入探探可直接使用 [逐步教程](./docs/tantan-connector-guide.md)。
+
+### Web IDE 的设置与扩展
+
+开通设备 Web IDE 后，日常使用编辑器自己的设置和扩展面板：修改主题、字体，搜索并安装或卸载扩展。无需在 Gateway 勾选固定候选列表。GitLens 等扩展仍需兼容 code-server 注册表和项目运行环境。
+
+管理员可在 Gateway 的 Web IDE 页导入 settings.json / JSONC、.vscode/extensions.json 或导出的 .code-profile，作为全部已启用主机共用的初始基线。导入先填入表单，保存才生效；Profile 仅导入设置和启用的扩展，其他内容会明确提示。初始安装完成后，后续打开不会重新安装用户主动卸载的扩展。详见 [设置、扩展与初始配置](./docs/web-ide.md#profile)。
+
+升级 Connector 时保留配置及 stateDir，沿用设备身份、授权和回执。已有旧配置保留原 nodeId 和 tokenFile，不要直接删除来迁移。自助登记需要管理员显式启用，普通用户无需接触设备凭据正文。
 
 ## 部署自己的 Gateway
 
