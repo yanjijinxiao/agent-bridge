@@ -74,10 +74,10 @@ Default browser access reuses personal admission: confirm the browser once, then
 
 ## Connect to an existing Gateway
 
-You do not need to deploy another Gateway or register a bot application. Ask its administrator for personal IM admission, a separate device ID and token file, matching client configuration/version, and a CA certificate when required. Never share device tokens or send secret credentials through group chat.
+You do not need to deploy another Gateway or register a bot application. Ask its administrator for personal IM admission, a separate device ID and token file, Connector configuration, and a CA certificate when required. Never share device tokens or send secret credentials through group chat.
 
 1. Prepare a working Codex installation, Node.js, and Git on your device. A CLI-only server does not need a desktop GUI.
-2. Obtain the administrator-specified source version and run the install/build commands below in its repository directory.
+2. Download the project source and run the install/build commands below in its repository directory, or use a prebuilt Connector supplied by the administrator.
 3. Store configuration and credentials in a private directory outside the repository. Select one native service explicitly; daemon mode does not switch executors after a disconnect.
 4. Start Connector in an interactive terminal. Send its complete `/connect PAIRING_CODE` command to the bot; mention the bot when using a group.
 5. Verify the requesting person, chat, and scope in the device terminal, then enter `yes`. Pairing codes last five minutes and are single-use.
