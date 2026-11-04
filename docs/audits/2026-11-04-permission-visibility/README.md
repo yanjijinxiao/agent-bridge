@@ -14,3 +14,7 @@
 full-root.jsonl 保存本次逐项结果；test-results.jsonl 合并仅有需求映射的本次结果及明确标记的历史证据。环境条件跳过不冒充本轮已运行，未改 Taskboard 与原生专项仍保留原有验证边界。19 个既有精选函数用 AST 比较，18 个内容相同，handleCommand 仅改变 /connect 提示；新增登记 AdmissionService 的 4 个函数。read-ledger.jsonl 只记录实际阅读范围，整个仓库并未在本轮重新逐行检查。
 
 需求清单增加 AUTH-02.4/.5，当前 385 个 case 中 301 个有列明边界的通过记录、84 个仍部分覆盖；这些是累计文档记录，不是本轮全部实机验收。证据检查 errors=0。此检查不代替真实钉钉多人跨群、手机渲染或线上双环境验收。
+
+部署核验：代码提交 57cf60dcf6e73bad6bb964dfbf881408164f8648 已推送并上线头头和探探；两端 /api/build 返回相同提交与源代码摘要，机器人账号均 running / connected。两端实际编译产物的隔离权限探针通过：跨聊天列表、详情与决定受限，显式全局查看仅管理员私聊可用。探针使用临时合成身份，未冒充真实钉钉多人跨群操作。
+
+头头切换后 PID 32221，保留 14 项浏览器授权、90 天有效期及 3 个 IDE 入口；探探切换前后的准入、角色、绑定和设备授权摘要一致。Mac 与 Linux Connector 均已重连；本次未改变 Connector 代码，继续使用 b1ab171 制品，其 peer/index.js、peer/execution-service.js、codex/app-server-runner.js 与新制品逐字节一致。四个既有 Codex 执行进程仍在。去除敏感运行数据后的回执见 deployment-verification.json；仅补充部署回执的后续文档提交无需再次重启服务。

@@ -1,0 +1,113 @@
+{
+  "commit": "57cf60dcf6e73bad6bb964dfbf881408164f8648",
+  "sourceHash": "851d0e51125c12bc7e25691c81a43648285b80942d881e121b92d9c38ffc4985",
+  "services": {
+    "toutou": {
+      "build": {
+        "commit": "57cf60dcf6e73bad6bb964dfbf881408164f8648",
+        "sourceHash": "851d0e51125c12bc7e25691c81a43648285b80942d881e121b92d9c38ffc4985",
+        "builtAt": "2026-11-04T01:54:24.781Z"
+      },
+      "accounts": [
+        {
+          "id": "hermes-dingtalk",
+          "status": "running",
+          "connection": "connected"
+        }
+      ]
+    },
+    "tantan": {
+      "build": {
+        "commit": "57cf60dcf6e73bad6bb964dfbf881408164f8648",
+        "sourceHash": "851d0e51125c12bc7e25691c81a43648285b80942d881e121b92d9c38ffc4985",
+        "builtAt": "2026-11-04T01:54:24.781Z"
+      },
+      "accounts": [
+        {
+          "id": "tantan-test",
+          "status": "running",
+          "connection": "connected"
+        }
+      ]
+    },
+    "linuxConnector": {
+      "build": {
+        "commit": "b1ab171b2e483b31568eae81fb710081f5378747",
+        "sourceHash": "2c534437ebef7816521f51fd93bda4b2c2e97ad95362c49bf5a7b9b18ac249ab",
+        "builtAt": "2026-11-03T16:00:37.703Z"
+      },
+      "hashes": {
+        "peer/index.js": "0fdf7c4c253bde9717117dd2d05df2d021c0d64d62239af26eb846d6e105841d",
+        "peer/execution-service.js": "17f79efcc19c48cc14b91b6617562d1bbbe87f8cd4ddecc15e44a30a70050d09",
+        "codex/app-server-runner.js": "77575713f1218548e595d236f138e7e63e27d9d5c4eb4b5a0bb5177bf0bdf964"
+      },
+      "running": true,
+      "connection": "connected",
+      "unchangedConnectorCode": true
+    },
+    "macConnector": {
+      "running": true,
+      "connection": "connected",
+      "unchangedConnectorCode": true,
+      "build": {
+        "commit": "b1ab171b2e483b31568eae81fb710081f5378747",
+        "sourceHash": "2c534437ebef7816521f51fd93bda4b2c2e97ad95362c49bf5a7b9b18ac249ab",
+        "builtAt": "2026-11-03T16:00:37.703Z"
+      }
+    }
+  },
+  "compiledProbes": {
+    "toutou": {
+      "compiledAdmissionScope": true,
+      "denied": 3
+    },
+    "tantan": {
+      "compiledAdmissionScope": true,
+      "denied": 3
+    }
+  },
+  "localRelease": {
+    "commit": "57cf60dcf6e73bad6bb964dfbf881408164f8648",
+    "pid": 32221,
+    "retainedGrants": 14,
+    "ttlDays": 90,
+    "endpoints": 3,
+    "tests": {
+      "tests": 3178,
+      "passed": 3096,
+      "skipped": 82
+    }
+  },
+  "tantanActivation": {
+    "beforePid": 162204,
+    "afterPid": 154704,
+    "running": true,
+    "release": "visibility-release-20261104",
+    "reopened": {
+      "released": true
+    },
+    "authorityPreserved": true
+  },
+  "nativeCores": {
+    "mac": {
+      "pids": [
+        1272,
+        11238
+      ],
+      "preserved": true
+    },
+    "linux": {
+      "pids": [
+        9955,
+        10115
+      ],
+      "preserved": true
+    }
+  },
+  "verifiedAt": "2026-11-04T02:02:17.440506+00:00",
+  "limits": [
+    "Compiled admission probes use isolated synthetic identities, not real DingTalk multi-user accounts.",
+    "Connectors retained the previous release because connector code is unchanged; three execution entry files matched the new build byte for byte.",
+    "No real phone rendering acceptance was performed."
+  ]
+}
