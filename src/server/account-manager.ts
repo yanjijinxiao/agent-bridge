@@ -1906,6 +1906,11 @@ export class AccountManager {
    * A Desktop history/follow subscription alone grants no such authority. The
    * action journal is shared by the original handler and restart recovery. */
   private async applyNativeResult(sub: ThreadSubscription, turnId: string, text: string): Promise<string | undefined> {
+    // Plain final text has no external effects to authorize. An unrelated old
+    // queue receipt must not hold its native completion behind a history read.
+    // Outputs with actions still require the exact input/turn authority below.
+    const { actions } = parseAssistantMessage(text);
+    if (!actions.send.length && !actions.remember.length) return;
     const [accountId, sessionId] = JSON.parse(sub.key) as [string, string];
     const store = this.storeFor(accountId), session = store.getSession(sessionId), entry = this.entries.get(accountId);
     // The Hub can observe completion before the queue monitor reconstructs its

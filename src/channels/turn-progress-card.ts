@@ -54,9 +54,11 @@ function progressParts(input: ProgressFacts) {
   if (recent.length) sections.push(recent.map(entry => `- ${progressProse(entry, 140).replace(/\n/g, "\n  ")}`).join("\n"));
   if (tools.active) sections.push(progressProse(tools.active, 100));
   if (input.answerPreview) sections.push(`回复预览（尚未完成）\n\n${markdownPreview(input.answerPreview, 600)}`);
-  // An executable control needs an exact-reply copy widget. Keep it in the
-  // stable footer so body/heartbeat frames cannot recreate or erase it.
-  const controls = `停止任务（发送后会中断执行）：\n\n${copyBlock("/stop")}\n\n复制不会发送。`;
+  // /stop targets the chat's current task, not the historical card. Once the
+  // native state is unconfirmed, offering it here could interrupt a newer task.
+  // Confirmed active states retain the exact-reply widget in a stable footer.
+  const controls = input.activity === "unconfirmed" ? ""
+    : `停止任务（发送后会中断执行）：\n\n${copyBlock("/stop")}\n\n复制不会发送。`;
   // Always end on a normal paragraph, not a code fence/list/blockquote. The
   // native streaming cursor belongs to DingTalk, never to generated dot frames.
   return { sections, status, controls };

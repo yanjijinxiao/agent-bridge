@@ -91,8 +91,8 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.3: ${mode} repeated t
   for (const activity of ["waiting-input", "waiting-approval", "unconfirmed"] as const) {
     await stream.setActivity(activity); await stream.flush();
     assert.equal(values.flowStatus, "3"); assert.deepEqual(JSON.parse(values.sys_full_json_obj).order, ["staticMsgContent"]);
-    assert.deepEqual(Lexer.lex(values.staticMsgContent).filter(token => token.type === "code").map(token => ({ lang: token.lang, text: token.text })), [{ lang: "text", text: "/stop" }]);
-    assert.equal(view().split("/stop").length - 1, 1);
+    assert.deepEqual(Lexer.lex(values.staticMsgContent).filter(token => token.type === "code").map(token => ({ lang: token.lang, text: token.text })), activity === "unconfirmed" ? [] : [{ lang: "text", text: "/stop" }]);
+    assert.equal(view().split("/stop").length - 1, activity === "unconfirmed" ? 0 : 1);
     assert.equal(calls.at(-1)!.kind, "state", "waiting never finalizes the task stream");
   }
   await stream.setActivity("running"); await stream.flush(); running(first);

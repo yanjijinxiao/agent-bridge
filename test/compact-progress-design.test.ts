@@ -27,11 +27,19 @@ test("formatting-only differences do not repeat the same public summary or remov
 });
 
 test("waiting and recovery retain explicit state while preview code cannot create an extra copy widget", () => {
-  for (const activity of ["waiting-input", "waiting-approval", "recovering", "unconfirmed"] as const) {
+  for (const activity of ["waiting-input", "waiting-approval", "recovering"] as const) {
     const view = renderTurnProgressCard({...facts, activity, notice: "等待原生状态确认", answerPreview: "```ts\nconst x = 1;"});
     assert.match(view, /等待原生状态确认/);
     assert.deepEqual(Lexer.lex(view).filter(token => token.type === "code").map(token => ({ lang: token.lang, text: token.text })), [{ lang: "text", text: "/stop" }]);
     assert.equal((view.match(/\/stop/g) ?? []).length, 1);
     assert.equal(Lexer.lex(view).at(-1)?.type, "paragraph");
   }
+});
+
+test("unconfirmed historical progress never offers a stop command for the chat's current task", () => {
+  const input = { ...facts, activity: "unconfirmed" as const };
+  const layout = renderTurnProgressLayout(input);
+  assert.equal(layout.footer, "");
+  assert.match(layout.body, /执行状态待确认/);
+  assert.doesNotMatch(renderTurnProgressCard(input), /\/stop|停止任务（|复制不会发送/);
 });

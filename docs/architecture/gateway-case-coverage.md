@@ -94,3 +94,7 @@
 当前共 385 个场景，301 项有列明边界的验证记录，84 项保留部分覆盖限制。
 
 2026-11-04 链接直达增量：IDE-14.1–14.3，3 个场景均有直接测试映射，5 个测试（含全新 Chrome）通过。启用账号可持链接进入；未启用账号保留 IDE-13 的本人确认。详见 [增量检查](../audits/2026-11-04-ide-link-access/README.md)。
+
+## 2026-11-04 终态卡片补充
+
+CTRL-03.3 / DEL-09.3 增补“同会话旧队列未映射且历史不可用，纯文字原生结果仍完成原卡；重复回执及重建不重新展示停止入口”。对应 `queue-result-recovery.test.ts` 的 plain-result、`compact-progress-design.test.ts` 的 unconfirmed historical 和 `dingtalk-progress-layout.test.ts` 的 HTTPS/SDK 状态转换。证据见[定向四层记录](../audits/2026-11-04-stale-terminal-card.md)；此增量不刷新既有全库覆盖数字或未经复查的文件哈希。
