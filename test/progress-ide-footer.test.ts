@@ -30,14 +30,16 @@ function fixture(t: test.TestContext) {
   return { starts, frames, get stream() { return stream; }, entry(value?: string) { url = value; },
     async restart() { const restore = stream.checkpoint(); await stream.suspend(); stream = make(restore); } };
 }
-function footer(text: string, url: string) {
+function footer(text: string, url: string, canStop = true) {
   assert.ok(text.endsWith(ideEntryLink(url)), "the single entry is the final card paragraph");
   assert.equal(text.split("[打开项目 Web IDE]").length - 1, 1);
-  assert.deepEqual(Lexer.lex(text).filter(token => token.type === "code").map(token => ({ lang: token.lang, text: token.text })), [{ lang: "text", text: "/stop" }], "only the executable command receives a copy box");
-  assert.match(text, /复制不会发送/);
+  const controls = canStop ? [{ lang: "text", text: "/stop" }] : [];
+  assert.deepEqual(Lexer.lex(text).filter(token => token.type === "code").map(token => ({ lang: token.lang, text: token.text })), controls, "only a confirmed active task receives a stop copy box");
+  if (canStop) assert.match(text, /复制不会发送/);
+  else assert.doesNotMatch(text, /\/stop|复制不会发送/);
   const rendered = normalizeDingTalkCardContent(dingTalkLoadingBody(text));
   assert.ok(rendered.endsWith(ideEntryLink(url)));
-  assert.deepEqual(Lexer.lex(rendered).filter(token => token.type === "code").map(token => ({ lang: token.lang, text: token.text })), [{ lang: "text", text: "/stop" }]);
+  assert.deepEqual(Lexer.lex(rendered).filter(token => token.type === "code").map(token => ({ lang: token.lang, text: token.text })), controls);
 }
 
 test("running, waiting, recovering, unconfirmed and answer-preview cards share the bottom entry; terminal decoration stays independent", async t => {
@@ -47,7 +49,7 @@ test("running, waiting, recovering, unconfirmed and answer-preview cards share t
     assert.equal(f.frames.at(-1)!.activity, activity);
   }
   await f.stream.waitForRecovery("原生后端正在重试"); footer(f.frames.at(-1)!.text, first);
-  await f.stream.waitForBackend("正在核对原任务状态"); footer(f.frames.at(-1)!.text, first);
+  await f.stream.waitForBackend("正在核对原任务状态"); footer(f.frames.at(-1)!.text, first, false);
   await f.stream.answer("正在生成最终说明"); await f.stream.flush(); footer(f.frames.at(-1)!.text, first);
   assert.doesNotMatch(JSON.stringify(f.stream.checkpoint()), /203\.0\.113|打开项目 Web IDE/, "generated links are not task/checkpoint facts");
   const result = withIDEEntry("完整结果", first); await f.stream.finalize(result);
