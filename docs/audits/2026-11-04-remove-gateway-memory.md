@@ -27,3 +27,7 @@
 验证文件及测试内容散列见 [validation.json](2026-11-04-remove-gateway-memory/validation.json)、[最终根回归](2026-11-04-remove-gateway-memory/final-results.jsonl)、[原生隔离结果](2026-11-04-remove-gateway-memory/native-results.jsonl)。KB-02.1–.4 已加入功能清单；22 个既有函数合同以 AST 对比更新，其中 6 个方法体改变，其余仅位移；新增解析、提示词及附件日志合同见 function-contracts.jsonl。
 
 真实钉钉供应商发送确认丢失后的人工收件核对、手机端下载及系统断电不在本次验收范围内。发送未知仍不自动重发。原生记忆是否开启由 Codex 管理，此次不会修改它的开关。
+
+## 双环境上线
+
+代码提交 42dae52 已 push，头头 PID 22359、探探 PID 104371 均报告同一构建提交，账号 running。两边准入/绑定与浏览器授权指纹保持，旧记忆字段已迁移去除，发布交接恢复接入。头头三个既有 IDE 端点 ready，六个原生核心 PID 保持；探探重启前没有本地托管会话，仅重启 Gateway 容器，没有重启 Connector 或 Codex App。部署回执见 [deployment.json](2026-11-04-remove-gateway-memory/deployment.json)。

@@ -1,0 +1,70 @@
+{
+  "runtimeCommit": "42dae52fe70638a2fe260a9641c6fe67c14edcc6",
+  "toutou": {
+    "beforePid": 40342,
+    "pid": 22359,
+    "commit": "42dae52fe70638a2fe260a9641c6fe67c14edcc6",
+    "accounts": [
+      {
+        "id": "hermes-dingtalk",
+        "status": "running"
+      }
+    ],
+    "endpoints": [
+      {
+        "host": "local",
+        "state": "ready"
+      },
+      {
+        "host": "remote-ssh-discovered:11.158.199.43",
+        "state": "ready"
+      },
+      {
+        "host": "local",
+        "state": "ready"
+      }
+    ],
+    "ttlDays": 90,
+    "permissionsAndBindingsPreserved": true,
+    "browserGrantsPreserved": true,
+    "retiredMemoryRemoved": true,
+    "admissionReopened": true
+  },
+  "tantan": {
+    "beforePid": 102522,
+    "pid": 104371,
+    "commit": "42dae52fe70638a2fe260a9641c6fe67c14edcc6",
+    "accounts": [
+      {
+        "id": "tantan-test",
+        "status": "running"
+      }
+    ],
+    "endpoints": [],
+    "ttlDays": 90,
+    "permissionsAndBindingsPreserved": true,
+    "browserGrantsPreserved": true,
+    "retiredMemoryRemoved": true,
+    "admissionReopened": true
+  },
+  "localNativeProcesses": {
+    "preserved": true,
+    "before": [
+      1272,
+      11238,
+      24463,
+      43982,
+      45628,
+      50236
+    ],
+    "after": [
+      1272,
+      11238,
+      24463,
+      43982,
+      45628,
+      50236
+    ]
+  },
+  "boundary": "Only Gateway processes restarted. Tantan had no local managed sessions before container restart; Connector processes and Codex App were not restarted. No live IM attachment test was sent."
+}
