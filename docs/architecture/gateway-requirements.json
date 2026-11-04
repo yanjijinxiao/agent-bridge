@@ -16561,6 +16561,294 @@
           }
         }
       ]
+    },
+    {
+      "id": "IDE-11",
+      "module": "ide",
+      "title": "Connector完整IDE与设备权限",
+      "sourceNote": "2026-11-04 用户明确要求同时开发 Connector 完整 IDE；旧文本页不能冒充完整 IDE。",
+      "contract": "复用既有IDE主机/授权契约，通过主动WSS传输完整工作台；本人非委托授权才能获得终端，设备明确启用并选择程序；不更换或停止原生Codex执行器。",
+      "implementationReview": "本次增量四层审查；真实Linux浏览器结果另记审计报告。",
+      "cases": [
+        {
+          "id": "IDE-11.1",
+          "scenario": "HTTP/WS多根传输、角色隔离和断连恢复",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-ide.test.ts",
+              "name": "Connector full IDE preserves HTTP bytes, WebSocket traffic and both project roots without SSH"
+            },
+            {
+              "file": "test/peer-ide.test.ts",
+              "name": "Connector IDE rejects foreign identities, delegation, roots, session scope and arbitrary proxy targets"
+            },
+            {
+              "file": "test/peer-ide.test.ts",
+              "name": "Connector disconnect retires only IDE resources; reconnect opens the same profile without a native input"
+            },
+            {
+              "file": "test/peer-ide.test.ts",
+              "name": "Connector full IDE browser approval requires the paired person; HTTP credentials stay at Gateway"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/ide-service.ts",
+              "sha256": "b411fe7847f7f9577258413eaa7df90130c27f1890a2b1b5a838836681cb92f7"
+            },
+            {
+              "file": "src/peer/ide-transport.ts",
+              "sha256": "dfc0d4276a83a20a29821e267b15b5e999c43f55516fb76877c4a0373051031e"
+            },
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "bd319b18d9b8a0220dffb418d26c6247af2b2e09d830605c4a601c3db3efad9b"
+            },
+            {
+              "file": "src/ide/access-server.ts",
+              "sha256": "b0c9747b684878055eb6b686c40aab3460a49e7ddb99c61e63d689eee06f608f"
+            }
+          ],
+          "verifiedBoundary": "隔离真实HTTP/WS传输和授权，不冒充完整code-server或手机；实际工作台另记。"
+        },
+        {
+          "id": "IDE-11.2",
+          "scenario": "有界流、异常块与晚到启动清理",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-ide-stream.test.ts",
+              "name": "IDE stream sequence violation closes only that stream"
+            },
+            {
+              "file": "test/peer-ide-stream.test.ts",
+              "name": "IDE stream oversize violation closes only that stream"
+            },
+            {
+              "file": "test/peer-ide-stream.test.ts",
+              "name": "IDE stream encoding violation closes only that stream"
+            },
+            {
+              "file": "test/peer-ide-stream.test.ts",
+              "name": "IDE stream after-end violation closes only that stream"
+            },
+            {
+              "file": "test/peer-ide-stream.test.ts",
+              "name": "IDE streams cap sockets, release capacity and reject concurrent unacknowledged blocks"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/ide-stream.ts",
+              "sha256": "7e325629992c90468dcbb4c761a5c605c23bb49372fa7a8a39e48f6daa14b81b"
+            }
+          ],
+          "verifiedBoundary": "测试自有连接，64流上限及恶意输入只销毁目标流。"
+        },
+        {
+          "id": "IDE-11.3",
+          "scenario": "取消后晚到receipt必须停止原IDE子进程",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-ide.test.ts",
+              "name": "cancelled Connector launch retires its late lease receipt without stopping Codex"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/ide-transport.ts",
+              "sha256": "dfc0d4276a83a20a29821e267b15b5e999c43f55516fb76877c4a0373051031e"
+            },
+            {
+              "file": "src/peer/ide-service.ts",
+              "sha256": "b411fe7847f7f9577258413eaa7df90130c27f1890a2b1b5a838836681cb92f7"
+            }
+          ],
+          "verifiedBoundary": "真实测试子进程+受控延迟；未提交或停止原生Codex输入。"
+        },
+        {
+          "id": "IDE-11.4",
+          "scenario": "管理配置不虚构SSH或设备安装权限",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-web.test.ts",
+              "name": "Connector IDE configuration explains device ownership and saves without SSH or installer fields"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/web/ide.js",
+              "sha256": "56b4a61006ff431439e5a7841b3968aa3691b596bea2aff5aa2ec8bd5b89ccd8"
+            },
+            {
+              "file": "src/ide/config.ts",
+              "sha256": "b171ec4f589cfaa69d1e4cd2eb6061c37b86e6f2129d2858c31900b81d6a77f9"
+            },
+            {
+              "file": "src/peer/index.ts",
+              "sha256": "1802012e570b1a20a06da9626700c9869e6ef00534c4e2698097d4ec13cb21be"
+            }
+          ],
+          "verifiedBoundary": "执行真实页面JS并验证保存数据；设备webIDE默认关闭。"
+        },
+        {
+          "id": "IDE-11.5",
+          "scenario": "真实Linux CLI工作台及重连",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-ide-real-browser.test.ts",
+              "name": "real CLI Connector code-server workbench, authorization and reconnect"
+            },
+            {
+              "file": "test/peer-ide-tls-front.test.ts",
+              "name": "fixed TLS entrance routes IDE HTTP and both WebSockets without exposing management"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/ide-service.ts",
+              "sha256": "b411fe7847f7f9577258413eaa7df90130c27f1890a2b1b5a838836681cb92f7"
+            },
+            {
+              "file": "src/peer/ide-transport.ts",
+              "sha256": "dfc0d4276a83a20a29821e267b15b5e999c43f55516fb76877c4a0373051031e"
+            },
+            {
+              "file": "scripts/peer-ide-tls-front.mjs",
+              "sha256": "a1cec773bc3e6d8826fde048da2ae4787597db1521fe19a9a103a512602b8e34"
+            }
+          ],
+          "verifiedBoundary": "2026-11-04 Linux x64官方code-server4.141.1与真实CLI，独立Chrome；两个Git根、终端pwd、Emacs编辑保存、重连及撤权通过。手机和其他平台未实际验证。"
+        }
+      ]
+    },
+    {
+      "id": "IDE-12",
+      "module": "ide",
+      "title": "IDE准备同页展示与失败恢复",
+      "sourceNote": "2026-11-04 用户截图：workspace/open无限循环，随后IDE暂不可用。",
+      "contract": "准备中显示同页进度，成功只跳转一次；失败停止轮询且可重试；保留浏览器授权和CSRF/Origin边界。",
+      "implementationReview": "增量四层检查，现场恢复及真实Chrome结果见审计。",
+      "cases": [
+        {
+          "id": "IDE-12.1",
+          "scenario": "安装pending/错误不循环导航且保持请求校验",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-open-progress.test.ts",
+              "name": "IDE preparation JSON keeps progress in place, preserves CSRF and stops on failure"
+            },
+            {
+              "file": "test/ide-open-progress.test.ts",
+              "name": "real browser stays on one IDE document while downloading and on preparation failure"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/open-progress.ts",
+              "sha256": "ace3bd6c3ee3ec2a7076f58a3b1a182ac61d701b1e376205e685a98453412916"
+            },
+            {
+              "file": "src/ide/access-server.ts",
+              "sha256": "b0c9747b684878055eb6b686c40aab3460a49e7ddb99c61e63d689eee06f608f"
+            },
+            {
+              "file": "src/ide/manager.ts",
+              "sha256": "f2ee5c6e87e1946522b0ace250c8b98a24f92bfb12e0257b36a97b37020c794e"
+            }
+          ],
+          "verifiedBoundary": "真实隔离Chrome记录导航次数、下载进度、失败后无请求；CSP允许同源fetch且不开放跨源。"
+        },
+        {
+          "id": "IDE-12.2",
+          "scenario": "取消制品传输不引发未处理AbortError",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-host-command.test.ts",
+              "name": "IDE upload cancellation closes its source and transfer process without an unhandled abort"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/host-command.ts",
+              "sha256": "3d5aec5e22adad9181f8cb3bd132cf4accb5480a3dd1a2a6307185ba1c8c6e82"
+            }
+          ],
+          "verifiedBoundary": "本机真实临时上传子进程取消；网络吞吐及远端完整安装另记。"
+        }
+      ]
+    },
+    {
+      "id": "IDE-13",
+      "module": "ide",
+      "title": "个人浏览器一次确认与默认信任",
+      "sourceNote": "2026-11-04 用户要求默认批准信任，并简化 connect/access。",
+      "contract": "复用个人准入；首次浏览器证明本人后，在同账号已授权资源内自动核对并信任项目。首次配对设备后直接展示该设备会话。撤权、期限、外人设备与群聊隔离不变。",
+      "implementationReview": "本轮增量检查见 Connector IDE 审计；非全库重新验收。",
+      "cases": [
+        {
+          "id": "IDE-13.1",
+          "scenario": "个人身份跨项目复用、固定期限和撤销",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-authorization.test.ts",
+              "name": "one personal browser identity reuses approved authority across projects with fixed expiry, restart and logout"
+            },
+            {
+              "file": "test/ide-authorization.test.ts",
+              "name": "browser identity is never inferred from local or legacy grants, and bound subjects must match"
+            },
+            {
+              "file": "test/ide.test.ts",
+              "name": "personal browser enters another permitted project automatically; foreign devices, accounts and revoked identities remain denied"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/authorization.ts",
+              "sha256": "86d004420773a4d9f7ff8b07de536c3ac571f2dbcfb06f397f0abd1f851f1fcc"
+            },
+            {
+              "file": "src/ide/access-server.ts",
+              "sha256": "b0c9747b684878055eb6b686c40aab3460a49e7ddb99c61e63d689eee06f608f"
+            },
+            {
+              "file": "src/ide/endpoint-manager.ts",
+              "sha256": "0494b11b2fcd5bdc8c2de83715a466f5afaeafed9ab4e3ff91c35cc6737d63e2"
+            }
+          ],
+          "verifiedBoundary": "隔离真实 HTTP；不把浏览器证明当匿名访问，不从旧的仅访问授权升级。"
+        },
+        {
+          "id": "IDE-13.2",
+          "scenario": "配对成功直接展示当前设备的会话",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-bridge.test.ts",
+              "name": "pair the device, choose a session entirely in DingTalk, then switch to another local session"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "3e6c2307a41278bb5abc25e96ebe2be5028477e7b9dae68f6ef7681ddfa533fd"
+            },
+            {
+              "file": "src/bridge/admission.ts",
+              "sha256": "e2b4f0abadb8fc6a5ab8309d7425315340826541f361d0914f71fe9145264d3f"
+            }
+          ],
+          "verifiedBoundary": "Gateway与Connector真实测试连接；未冒充第二位人类或真实群。"
+        }
+      ]
     }
   ],
   "reviewPass": "2026-11-03 full-four-layer: source, comments, documentation, tests, static/configuration reviewed; isolated regressions passed; deployment separately recorded",
@@ -16707,5 +16995,10 @@
     "partialCases": 84,
     "selectedFunctionContracts": 217,
     "note": "逐项验收边界，不等于所有平台和任意时序；历史证据与本轮运行分别保存。"
+  },
+  "connectorIDEUpdate": {
+    "date": "2026-11-04",
+    "report": "docs/audits/2026-11-04-connector-ide/README.md",
+    "scope": "Connector完整IDE与原IDE准备循环的增量检查；不宣称重新完成全库审查。"
   }
 }

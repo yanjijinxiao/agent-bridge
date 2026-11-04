@@ -3,7 +3,8 @@ import http from "node:http";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { IDEConfigStore, type IDEConfig } from "./config.js";
-import { ProcessIDEHostTransport, type IDEHostTransport, type IDELaunch } from "./transport.js";
+import { ProcessIDEHostTransport, type IDEHostTransport, type IDELaunch, type IDEHostContext } from "./transport.js";
+import type { IDEAccessSubject } from "./access-subject.js";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import { CodeServerInstaller, type IDEInstallerIO } from "./installer.js";
 import type { IDEProfileStatus } from "./profile.js";
@@ -136,6 +137,21 @@ export class WorkspaceIDEManager {
     throw new Error("项目关系无法确认，IDE 入口失效");
   }
   accountForEntry(id: string): string { this.resolve(id); return this.references[id].accountId; }
+  private hostContext(id: string, subject?: IDEAccessSubject): IDEHostContext {
+    const { reference, target } = this.referenceTarget(id);
+    return { accountId: reference.accountId, threadId: target.nativeThreadId, workspace: target.workspace, rootPaths: target.rootPaths, subject };
+  }
+  canAccess(id: string, subject?: IDEAccessSubject): boolean {
+    const target = this.resolve(id);
+    return this.transport.canAccess?.(target.hostId, this.hostContext(id, subject)) ?? !target.hostId.startsWith("peer:");
+  }
+  async preparationStatus(id: string, subject?: IDEAccessSubject) {
+    if (!this.canAccess(id, subject)) throw new Error("当前身份未获项目 IDE 授权");
+    const { hostId } = this.resolve(id);
+    return this.transport.preparationStatus && hostId.startsWith("peer:")
+      ? this.transport.preparationStatus(hostId, this.hostContext(id, subject))
+      : this.installer.list().find(s => s.hostId === hostId);
+  }
   authorizationScope(id: string): string { return workspaceAuthorizationScope(this.resolve(id)); }
   resolve(id: string): IDEWorkspace {
     const { reference, target: resolved } = this.referenceTarget(id);
@@ -158,23 +174,25 @@ export class WorkspaceIDEManager {
     return digest([this.options.root, target.owner, target.hostId, workspace, "code-server", JSON.stringify(this.configStore.config().profile),
       ...(trustWorkspace ? ["gateway-trusted-workspace-v1"] : []), ...(rootPaths ? ["multi-root-v1", rootPaths] : [])]);
   }
-  private async canonical(target: IDEWorkspace): Promise<IDECanonicalWorkspace> {
-    const workspace = await this.transport.canonicalDirectory(target.hostId, target.workspace);
+  private async canonical(target: IDEWorkspace, context: IDEHostContext): Promise<IDECanonicalWorkspace> {
+    const workspace = await this.transport.canonicalDirectory(target.hostId, target.workspace, context);
     if (!target.rootPaths) return { workspace };
     const rootPaths = await Promise.all(target.rootPaths.map(root => root === target.workspace ? workspace
-      : this.transport.canonicalDirectory(target.hostId, root)));
+      : this.transport.canonicalDirectory(target.hostId, root, context)));
     if (new Set(rootPaths).size !== rootPaths.length) throw new Error("项目包含重复的实际目录，请先核对项目配置");
     return { workspace, rootPaths: [workspace, ...rootPaths.filter(root => root !== workspace).sort()] };
   }
-  async canonicalForTrust(id: string): Promise<IDECanonicalWorkspace> {
+  async canonicalForTrust(id: string, subject?: IDEAccessSubject): Promise<IDECanonicalWorkspace> {
+    if (!this.canAccess(id, subject)) throw new Error("当前浏览器身份未获该 Connector 的完整 IDE 授权");
     const base = this.resolve(id), expected = digest(base);
     const current = await this.refresh(id);
     if (!current || digest(current) !== expected || digest(this.resolve(id)) !== expected) throw new Error("项目目录已改变，请同步 session 后重新授权");
-    const directory = await this.canonical(base);
+    const directory = await this.canonical(base, this.hostContext(id, subject));
     if (digest(this.resolve(id)) !== expected) throw new Error("项目已改变，未授权目录");
     return directory;
   }
-  async start(id: string, prepare = false, trustWorkspace = false, trustedDirectory?: string, trustedRootPaths?: readonly string[]): Promise<IDEInstanceStatus> {
+  async start(id: string, prepare = false, trustWorkspace = false, trustedDirectory?: string, trustedRootPaths?: readonly string[], subject?: IDEAccessSubject): Promise<IDEInstanceStatus> {
+    if (!this.canAccess(id, subject)) throw new Error("当前浏览器身份未获该 Connector 的完整 IDE 授权");
     if (this.closing) throw new Error("IDE 正在停止或重新配置，请稍后重试");
     const base = this.resolve(id), generation = this.generation;
     const hostGeneration = this.hostGenerations.get(base.hostId) ?? 0;
@@ -193,7 +211,8 @@ export class WorkspaceIDEManager {
     const { config, host } = this.host(target);
     const binary = host.autoInstall && host.binary === "code-server" ? await this.installer.binary(target.hostId) : host.binary;
     check();
-    const { workspace, rootPaths } = await this.canonical(target);
+    const context = this.hostContext(id, subject);
+    const { workspace, rootPaths } = await this.canonical(target, context);
     if (trustWorkspace && (workspace !== trustedDirectory || JSON.stringify(rootPaths && [...rootPaths].sort()) !== JSON.stringify(trustedRootPaths && [...trustedRootPaths].sort())))
       throw new Error("实际目录与已信任目录不一致，请重新核对授权");
     if (digest(base) !== digest(this.resolve(id))) throw new Error("项目目录已改变，未启动 IDE");
@@ -219,7 +238,7 @@ export class WorkspaceIDEManager {
       this.instances.set(instanceId, instance);
       try {
         instance.launch = await this.transport.launch({ hostId: target.hostId, workspace, ...(rootPaths ? { rootPaths } : {}), id: instanceId,
-          binary, settings: config.profile.settings, extensions: config.profile.extensions, prepare, trustWorkspace,
+          binary, context, settings: config.profile.settings, extensions: config.profile.extensions, prepare, trustWorkspace,
           signal: cancellation.signal,
           onProfile: status => { if (this.instances.get(instanceId) === instance && generation === this.generation
             && hostGeneration === (this.hostGenerations.get(target.hostId) ?? 0)) instance.profile = status; } });
@@ -265,9 +284,9 @@ export class WorkspaceIDEManager {
     }
   }
   private readonly opened = new Map<string, { instanceId: string; target: string }>();
-  async open(id: string, trustWorkspace = false, trustedDirectory?: string, trustedRootPaths?: readonly string[]): Promise<IDEInstanceStatus> {
+  async open(id: string, trustWorkspace = false, trustedDirectory?: string, trustedRootPaths?: readonly string[], subject?: IDEAccessSubject): Promise<IDEInstanceStatus> {
     const base = this.resolve(id), target = digest(base), generation = this.generation, hostGeneration = this.hostGenerations.get(base.hostId) ?? 0;
-    const instance = await this.start(id, false, trustWorkspace, trustedDirectory, trustedRootPaths);
+    const instance = await this.start(id, false, trustWorkspace, trustedDirectory, trustedRootPaths, subject);
     this.host(base);
     if (target !== digest(this.resolve(id)) || this.closing || this.reconfiguring.has(base.hostId) || generation !== this.generation
       || hostGeneration !== (this.hostGenerations.get(base.hostId) ?? 0)) throw new Error("项目或 IDE 配置已改变，请刷新后重试");

@@ -3,8 +3,8 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import type { TestContext } from "node:test";
 
-export async function eventually<T>(read: () => T | Promise<T>, message: string): Promise<NonNullable<T>> {
-  const end = Date.now() + 10000;
+export async function eventually<T>(read: () => T | Promise<T>, message: string, timeoutMs = 10000): Promise<NonNullable<T>> {
+  const end = Date.now() + timeoutMs;
   while (Date.now() < end) { const value = await read(); if (value) return value as NonNullable<T>; await new Promise(resolve => setTimeout(resolve, 25)); }
   throw Error(message);
 }

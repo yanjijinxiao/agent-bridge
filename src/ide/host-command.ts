@@ -39,8 +39,12 @@ export async function uploadIDEHost(hostId: string, script: string, input: objec
       if (settled || !copied || !exited) return;
       settled = true; clearTimeout(timer); resolve();
     };
-    const timer = setTimeout(() => fail(new Error("SSH 制品传输超时，可重试")), 120_000);
-    child.once("error", fail);
+    // Official archives are about 240 MB. Keep a bounded total deadline sized
+    // for artifact transport; cancellation still destroys both streams now.
+    const timer = setTimeout(() => fail(new Error("SSH 制品传输超时，可重试")), 600_000);
+    // An aborted spawn can emit another error if cleanup races the exit.
+    // Keep the listener until close; fail itself is idempotent.
+    child.on("error", fail);
     child.once("close", code => {
       if (code !== 0) { fail(new Error("SSH 制品传输失败，可重试")); return; }
       exited = true; complete();

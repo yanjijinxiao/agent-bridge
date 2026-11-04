@@ -27,7 +27,7 @@ test("peer session trees retain empty device projects without changing session n
   t.after(() => service.suspendUserInputs());
   const send = (text: string) => service.handleMessage({ id: crypto.randomUUID(), senderId: principal.actorId, replyTargetId: principal.conversationId, text, attachments: [], raw: {} });
   await send(`/connect ${f.ticket.code}`);
-  assert.doesNotMatch(replies.at(-1)!, /空设备项目|唯一 CLI 会话/);
+  assert.match(replies.at(-1)!, /空设备项目|唯一 CLI 会话/, "successful pairing directly presents the scoped catalog");
   await send(`/sessions --host ${f.ticket.hostId}`);
   await send("/sessions size 5");
   assert.match(replies.at(-1)!, /空设备项目/);
@@ -61,11 +61,10 @@ test("pair the device, choose a session entirely in DingTalk, then switch to ano
   await send(`/connect ${f.ticket.code}`);
   assert.equal(store.getBoundSession(principal.conversationId), undefined);
   assert.ok(replies.some(text => text.includes("我的笔记本")));
-  assert.equal(catalogReads, 0, "pairing must not query or disclose the device session catalog");
-  assert.ok(replies.at(-1)?.includes("/sessions"));
-  assert.ok(!replies.at(-1)?.includes(f.thread.title!)); assert.ok(!replies.at(-1)?.includes(f.thread.cwd!));
+  assert.equal(catalogReads, 1, "confirmed pairing presents only this device's catalog, without another command");
+  assert.ok(replies.at(-1)?.includes(f.thread.title!)); assert.ok(replies.at(-1)?.includes(f.thread.cwd!));
   await send("/sessions");
-  assert.equal(catalogReads, 1);
+  assert.equal(catalogReads, 2);
   assert.ok(replies.at(-1)?.includes(f.thread.title!)); assert.ok(replies.at(-1)?.includes(f.thread.cwd!));
   await send("还没选择会话的普通消息"); assert.equal(f.runs.length, 0);
   await send("/session R1"); await send("继续第一个任务");

@@ -142,7 +142,7 @@ window.gatewayIDE = (() => {
       current = data; const config = current.config;
       $("#ideEnabled").checked = config.enabled; $("#ideOrigin").value = config.publicOrigin; $("#idePort").value = config.port;
       $("#idePerHostRouting").checked = config.routing === "per-host";
-      const ingressHosts = config.hosts.filter(host => host.hostId !== "local");
+      const ingressHosts = config.hosts.filter(host => host.hostId !== "local" && !host.hostId.startsWith("peer:"));
       $("#ideSharedIngressHost").innerHTML = '<option value="">未选择：按项目主机分别生成链接</option>' + ingressHosts.map(host => `<option value="${escapeAttr(host.hostId)}">${escapeHtml(host.hostId)}${host.enabled && host.access ? "" : "（需启用并配置固定 HTTPS）"}</option>`).join("");
       $("#ideSharedIngressHost").value = config.sharedIngressHostId || "";
       $("#ideLocalDirectEnabled").checked = Boolean(config.localAccess);
@@ -166,6 +166,7 @@ window.gatewayIDE = (() => {
       $("#ideHosts").innerHTML = current.hosts.map(hostId => {
         const host = config.hosts.find(h => h.hostId === hostId);
         const access = host?.access;
+        if (hostId.startsWith("peer:")) return `<div class="ide-host"><label><input type="checkbox" data-ide-host="${escapeAttr(hostId)}" ${host?.enabled ? "checked" : ""}>${escapeHtml(hostId)}</label><p>通过 Connector 的已认证连接访问完整 IDE，共用 Gateway 的 HTTPS 入口。请先在设备的 Connector 配置中启用 webIDE 并选择 code-server；安装和执行权限由设备控制，无需开放额外端口。</p></div>`;
         const entrance = hostId === "local" ? "" : `<label class="ide-access-field">固定 HTTPS 入口<input type="url" data-ide-access-origin="${escapeAttr(hostId)}" value="${escapeAttr(access?.publicOrigin || "")}" placeholder="https://固定IP:映射端口"></label><label class="ide-access-field">远程容器 / 主机的精确监听 IP<input type="text" data-ide-access-bind="${escapeAttr(hostId)}" value="${escapeAttr(access?.bindAddress || "")}" placeholder="远程实际网卡地址，不是宿主机映射 IP"></label><label class="ide-access-field">映射到的远程监听端口<input type="number" min="1" max="65535" data-ide-access-port="${escapeAttr(hostId)}" value="${access?.port || ""}"></label><small>仅分主机模式生效。三个字段需一起填写；空白表示此主机不提供远程入口。Gateway 不创建 Docker 映射、不修改 sshd、不使用 sudo；固定映射需已配置。</small>`;
         return `<div class="ide-host"><label><input type="checkbox" data-ide-host="${escapeAttr(hostId)}" ${host?.enabled ? "checked" : ""}>${escapeHtml(hostId === "local" ? "本机" : hostId)}</label><input aria-label="${escapeAttr(hostId)} code-server 可执行文件" data-ide-binary="${escapeAttr(hostId)}" value="${escapeAttr(host?.binary || "code-server")}" placeholder="code-server 或绝对路径"><label><input type="checkbox" data-ide-auto="${escapeAttr(hostId)}" ${host?.autoInstall ? "checked" : ""}>缺失时自动安装（用户目录）</label><button type="button" class="button button-secondary" data-ide-install="${escapeAttr(hostId)}">检测 / 安装 / 重试</button>${entrance}</div>`;
       }).join("");
@@ -188,8 +189,8 @@ window.gatewayIDE = (() => {
         return { access: { publicOrigin, bindAddress, port: Number(port) } };
       };
       const hosts = [...document.querySelectorAll("[data-ide-host]")].map(input => ({ hostId: input.dataset.ideHost, enabled: input.checked, ...accessFor(input.dataset.ideHost),
-        autoInstall: [...document.querySelectorAll("[data-ide-auto]")].find(el => el.dataset.ideAuto === input.dataset.ideHost).checked,
-        binary: [...document.querySelectorAll("[data-ide-binary]")].find(el => el.dataset.ideBinary === input.dataset.ideHost).value.trim() }));
+        autoInstall: [...document.querySelectorAll("[data-ide-auto]")].find(el => el.dataset.ideAuto === input.dataset.ideHost)?.checked ?? false,
+        binary: [...document.querySelectorAll("[data-ide-binary]")].find(el => el.dataset.ideBinary === input.dataset.ideHost)?.value.trim() || "code-server" }));
       const config = { enabled: $("#ideEnabled").checked, port: Number($("#idePort").value), publicOrigin: perHost ? `http://127.0.0.1:${Number($("#idePort").value)}` : $("#ideOrigin").value.trim(), hosts,
         ...(perHost ? { routing: "per-host", ...($("#ideSharedIngressHost").value ? { sharedIngressHostId: $("#ideSharedIngressHost").value } : {}) } : {}),
         ...(!perHost && $("#ideTLSEnabled").checked ? { tls: { bindAddress: $("#ideTLSAddress").value, certFile: $("#ideTLSCert").value.trim(), keyFile: $("#ideTLSKey").value.trim() } } : {}),

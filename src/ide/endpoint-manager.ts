@@ -189,8 +189,11 @@ export class IDEEndpointManager {
       refresh: async id => { resolve(id); await this.manager.refresh(id); return resolve(id); },
       authorizationFile: () => spec.localDirect ? path.join(path.dirname(this.manager.authorizationFile()), "authorization-local-direct.json")
         : hostId ? path.join(path.dirname(this.manager.authorizationFile()), `authorization-${hostKey(hostId)}.json`) : this.manager.authorizationFile(),
-      canonicalForTrust: id => { resolve(id); return this.manager.canonicalForTrust(id); },
-      open: (id, trust, directory, roots) => { resolve(id); return this.manager.open(id, trust, directory, roots); },
+      canAccess: (id, subject) => { resolve(id); return this.manager.canAccess(id, subject); },
+      accountForEntry: id => { resolve(id); return this.manager.accountForEntry(id); },
+      preparationStatus: (id, subject) => { resolve(id); return this.manager.preparationStatus(id, subject); },
+      canonicalForTrust: (id, subject) => { resolve(id); return this.manager.canonicalForTrust(id, subject); },
+      open: (id, trust, directory, roots, subject) => { resolve(id); return this.manager.open(id, trust, directory, roots, subject); },
       endpoint: (id, trust) => { resolve(id); return this.manager.endpoint(id, trust); },
       resume: () => this.manager.resume(), close: async () => {}
     };

@@ -5,6 +5,7 @@ export type PeerPrincipal = { accountId: string; conversationId: string; actorId
 export const peerPrincipal = new AsyncLocalStorage<PeerPrincipal>();
 
 export type PeerBridgePort = {
+  fullIDEAvailable?(principal: PeerPrincipal, target: { hostId: string; threadId: string }): boolean;
   sharing?: PeerSharingPort;
   connect(code: string, principal: PeerPrincipal, assertCurrent: () => void): Promise<{ hostId: string; threadId?: string; label: string }>;
   hosts(principal: PeerPrincipal): string[];

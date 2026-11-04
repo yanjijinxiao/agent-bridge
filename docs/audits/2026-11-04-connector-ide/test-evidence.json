@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-04",
+  "logs": [
+    {
+      "name": "connector-ide-root-final-2-20261104.log",
+      "sha256": "9b62faaa92e1a59989421193814d621721165e7f1d9de48850cdea8ff51a01c9",
+      "summary": " its exact AI conversation (0.473292ms) # SKIP\n﹣ workflow custom code actually executes on the native core and checks its command receipt (0.596459ms) # SKIP\n﹣ workflow reconnects the same native node after owner restart and advances the writeback exactly once (0.042459ms) # SKIP\n✔ workspace allowlists compare real directory scope while preserving explicitly configured aliases (1.938292ms)\nℹ tests 3198\nℹ suites 0\nℹ pass 3114\nℹ fail 0\nℹ cancelled 0\nℹ skipped 84\nℹ todo 0\nℹ duration_ms 79709.85875\n"
+    },
+    {
+      "name": "connector-ide-linux-browser-20261104-2.log",
+      "sha256": "d217ad32a8b96e3f20d10ba5b2e4a29d7dd885a31e2b861aea10262972eea932",
+      "summary": ", Emacs navigation and actual remote file save work (5177.87275ms)\n  ✔ Gateway IDE restart preserves browser grant and file, without resubmitting native input (4837.900625ms)\n  ✔ revocation blocks the old browser session (215.968708ms)\n✔ real CLI Connector code-server workbench, authorization and reconnect (120097.177042ms)\nℹ host=linux/x64; native CLI project confirmed; initial native inputs=1\nℹ tests 6\nℹ suites 0\nℹ pass 6\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 120344.597791\n"
+    },
+    {
+      "name": "ide-open-progress-fixed-20261104.log",
+      "sha256": "7feb4a2cfab1ac924f891b832a30c7292bdceeeff077f7c620c3f1e5e0a3a1d3",
+      "summary": "✔ IDE preparation JSON keeps progress in place, preserves CSRF and stops on failure (47.978ms)\n✔ real browser stays on one IDE document while downloading and on preparation failure (11521.188416ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 11848.993041\n"
+    },
+    {
+      "name": "connector-ide-deployment-tests.log",
+      "sha256": "53681ce1b24b40a2549e5e62d9119640b33690a50ec71d981a3f2942dac8a4e9",
+      "summary": "tate for done responses (0.374209ms)\n✔ review presentation protects literal code, escaped quotes and braces; inert findings reach card and plain text (10.669959ms)\n✔ preflight timeout names the failed read without suggesting successful queueing or adding a large optional command block (0.352791ms)\n✔ fixed TLS entrance routes IDE HTTP and both WebSockets without exposing management (298.124375ms)\nℹ tests 13\nℹ suites 0\nℹ pass 13\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 544.066583\n"
+    }
+  ]
+}

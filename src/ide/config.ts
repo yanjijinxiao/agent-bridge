@@ -92,6 +92,8 @@ export const ideConfigSchema = z.object({
     .refine(ids => new Set(ids).size === ids.length, "扩展重复") }).strict()
 }).strict().superRefine((config, context) => {
   if (!URL.canParse(config.publicOrigin)) return;
+  if (config.hosts.some(h => h.hostId.startsWith("peer:") && (h.autoInstall || h.binary !== "code-server" || h.access)))
+    context.addIssue({ code: "custom", path: ["hosts"], message: "Connector 的安装及可执行文件由设备 webIDE 配置负责；Gateway 使用 code-server、关闭自动安装并复用 Gateway 的 HTTPS 入口" });
   const origin = new URL(config.publicOrigin);
   if (config.sharedIngressHostId && (config.routing !== "per-host" || config.sharedIngressHostId === "local"
     || !config.hosts.some(host => host.hostId === config.sharedIngressHostId && host.enabled && host.access)))

@@ -125,6 +125,20 @@ test("endpoint polling reports per-host reconnect failures safely without replac
   node("#ideEndpoints").innerHTML = "stable DOM"; ui.renderActivity({ ...data, endpoints }); assert.equal(node("#ideEndpoints").innerHTML, "stable DOM");
 });
 
+test("Connector IDE configuration explains device ownership and saves without SSH or installer fields", async () => {
+  let saved: any;
+  const { ui, node, context } = fixture(async (url, options) => {
+    if (options) { saved = options.body.config; return {}; }
+    return { config: { enabled: true, port: 8790, publicOrigin: "https://gateway.example.test", hosts: [{ hostId: "peer:device:work", enabled: true, binary: "code-server" }], profile: { settings: {}, extensions: [] } },
+      hosts: ["peer:device:work"], extensionChoices: [], instances: [], endpoints: [] };
+  });
+  await ui.refresh(); const html = node("#ideHosts").innerHTML;
+  assert.match(html, /设备的 Connector 配置/); assert.doesNotMatch(html, /data-ide-binary|data-ide-auto|data-ide-install|data-ide-access-/);
+  context.document.querySelectorAll = (selector: string) => selector === "[data-ide-host]" ? [{ dataset: { ideHost: "peer:device:work" }, checked: true }] : [];
+  await ui.save({ preventDefault() {} });
+  assert.deepEqual(JSON.parse(JSON.stringify(saved.hosts)), [{ hostId: "peer:device:work", enabled: true, autoInstall: false, binary: "code-server" }]);
+});
+
 test("shared ingress management retains its selection, distinguishes the maintenance listener, and saves publication separately from project hosts", async () => {
   const config={ enabled:true,routing:"per-host",sharedIngressHostId:"remote:test",port:8790,publicOrigin:"http://127.0.0.1:8790",
     hosts:[{hostId:"local",enabled:true,binary:"code-server"},{hostId:"remote:test",enabled:true,binary:"code-server",access:{publicOrigin:"https://203.0.113.10:20015",bindAddress:"192.168.5.3",port:80}}],profile:{settings:{},extensions:[]} };

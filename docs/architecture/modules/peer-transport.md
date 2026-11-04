@@ -64,6 +64,12 @@
 - `peer-real-native.test.ts`：真实 Codex daemon + 临时 Home + 本地模型，验证断线后的原生队列及来源恢复。
 - 原有 peer 文件、共享、审批、恢复测试继续运行；main 全量回归单独报告。
 
-完整 code-server、Taskboard UI 的远端产品接入和通用远端 Channel 是独立集成范围；本模块提供原生端口，不声称这些产品入口已经接线。Windows 路径、真实第二用户和所有 IM 客户端不以 Linux/macOS 协议测试代替验收。当前结果以 [合入审查记录](../../peer-merge-readiness.md) 为准。
+完整 code-server 通过 IDEHostTransport 和独立 ide.call/ide.stream 接线，职责见 IDE 模块文档及本次审计。Taskboard UI 的远端产品接入和通用远端 Channel 仍是独立集成范围。Windows 路径、真实第二用户和所有 IM 客户端不以 Linux/macOS 协议测试代替验收。当前结果以 [合入审查记录](../../peer-merge-readiness.md) 为准。
 
 共享入口的登记也属于持久状态：entry(ref) 只有在快照写盘成功后才更新内存并返回链接；失败不能累积占用入口额度。200 条上限只计算授权仍存在且资源身份仍匹配的入口；本地明确撤销/过期的授权可在下一次登记时清理，不能依赖重启，因为入口本来就跨重启保存。离线设备、网络失败不等于授权撤销，不能据此清理仍有效的固定入口。PEER-04.3 已用四个原版失败反例验证修复，并通过既有共享授权回归。
+
+## 完整 IDE 传输
+
+可选 `fullIDE: 1` 声明设备明确启用的完整 IDE。`ide-service.ts` 持有设备侧原生项目和租约，`ide-transport.ts` 适配既有 IDEHostTransport，`ide-stream.ts` 在已有 WSS 上有界传输 HTTP/WS。它们不新增 Codex 执行端、不复用原生任务为 SSH 命令通道。设备授权与浏览器个人身份双重核验，委托文本权限不能获得终端。
+
+关闭、撤权、取消和迟到 launch receipt 必须只清理自有 lease；连接关闭退休字节流。非法块、并发未确认块、重复/乱序、EOF 后数据销毁该流，不关闭其他原生会话。管理 UI 不向 Connector 展示无效的 SSH/binary/自动安装输入，设备配置拥有这些选择。

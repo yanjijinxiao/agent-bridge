@@ -478,13 +478,15 @@ for (const conversationKind of ["direct", "group"] as const) for (const choice o
   ide.configStore.save({...ide.config(),enabled:true,port,publicOrigin:`http://127.0.0.1:${port}`,hosts:[{hostId:"local",enabled:true,binary:"code-server"}]});
   const http=await startLocalHttpServer({paths:resolveStatePaths(f.root),port:0,accountManager:{ide,ideApprovals:approvals,listProjects:()=>[]} as never});t.after(()=>http.close());
   const entry=ide.entry("account","single")!,initial=await fetch(entry.url + "?auth_check=1"),html=await initial.text(),proof=initial.headers.get("set-cookie")!.split(";")[0];
-  const primary=html.split("<details")[0];assert.match(primary,/发送一次/);assert.match(primary,/不会再要求第二条/);
+  const primary=html.split("<details")[0];assert.match(primary,/确认一次本人身份/);assert.match(primary,/默认批准并信任目录/);
   assert.match(primary,/项目：/);assert.match(primary,/主机：local/);assert.match(primary,/目录：/);
   assert.match(primary,/&lt;script&gt;bad&lt;\/script&gt;/);assert.doesNotMatch(primary,/\/ide auth/);
-  assert.equal((primary.match(/<button[^>]*data-copy-button/g)||[]).length,3);
+  assert.equal((primary.match(/<button[^>]*data-copy-button/g)||[]).length,1);
+  assert.doesNotMatch(primary,/仅批准访问|请选择一种权限/);
   assert.doesNotMatch(primary, /<textarea[^>]*>\d{6}<\/textarea>/, "browser code is reference-only; copy complete reply commands instead");
-  const command=new RegExp(`/ide ${choice} [a-f0-9]{12}`).exec(primary)![0];
-  const reloaded=await fetch(entry.url + "?auth_check=1",{headers:{Cookie:proof}});assert.ok((await reloaded.text()).includes(command),"polling preserves the displayed command");
+  const defaultCommand=/\/ide trust [a-f0-9]{12}/.exec(primary)![0];
+  const command=defaultCommand.replace(" trust ",` ${choice} `); // Older explicit access/deny commands remain compatible.
+  const reloaded=await fetch(entry.url + "?auth_check=1",{headers:{Cookie:proof}});assert.ok((await reloaded.text()).includes(defaultCommand),"polling preserves the displayed command");
   assert.match(await(await fetch(entry.url + "?auth_check=1",{headers:{Cookie:proof}})).text(),/等待 Gateway/);
   const sendCommand = () => b.send(command, "owner", conversationKind, conversationKind === "group" ? "group" : "dm-conversation");
   assert.equal(b.cards.length,0);await sendCommand();assert.equal(b.cards.length,0,"no second confirmation card");

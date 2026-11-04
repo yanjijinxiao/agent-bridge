@@ -138,7 +138,7 @@ export class AdmissionService {
     const sources = status ? [status.personal ? "个人授权" : "", kind === "group" && status.conversation ? "本群授权" : ""].filter(Boolean) : [];
     return ["本人在当前聊天的权限", `IM 准入：${admitted ? "已获准" : "未获准"}`,
       `授权来源：${sources.length ? sources.join("、") : admitted ? "已有准入记录" : "无"}`,
-      `本人 Web IDE 配对资格：${status?.ide == null ? "暂未核验" : status.ide ? "已获准（仍需确认当前浏览器）" : "未获准"}`,
+      `本人 Web IDE 配对资格：${status?.ide == null ? "暂未核验" : status.ide ? "已获准（浏览器首次确认本人，之后自动信任有权访问的项目）" : "未获准"}`,
       `准入审批管理员：${this.isAdmin(p) ? "是" : "否"}`].join("\n");
   }
   /** List, details and decisions share this boundary, including old/copied

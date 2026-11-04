@@ -1,5 +1,7 @@
 import { withChannelWriteLeases } from "../bridge/channel-write-leases.js";
 import { PeerRegistry } from "../peer/registry.js";
+import { ConnectorIDEHostTransport } from "../peer/ide-transport.js";
+import { ProcessIDEHostTransport } from "../ide/transport.js";
 import { withPeerBackend } from "../peer/backend.js";
 import { AdmissionService } from "../bridge/admission.js";
 import crypto from "node:crypto";
@@ -394,6 +396,8 @@ export class AccountManager {
         return [...paired, ...configured].some(id => id === actorId || id === conversationId);
       }, allow: (accountId, target) => this.allowSender(accountId, target) });
     this.ide = new WorkspaceIDEManager({ root: options.paths.root, resolve: (accountId, sessionId) => this.ideWorkspace(accountId, sessionId),
+      ...(options.peerRegistry ? { transport: new ConnectorIDEHostTransport(options.peerRegistry,
+        new ProcessIDEHostTransport({ localDataRoot: path.join(options.paths.root, "ide", "instances") })) } : {}),
       refresh: (accountId, sessionId) => this.refreshIDEWorkspace(accountId, sessionId) });
     this.interactionRouting = new InteractionRoutingJournal(path.join(options.paths.runtimeDir, "interaction-routing.json"));
     this.sessionControls = new SessionControlJournal(path.join(options.paths.runtimeDir, "session-controls.json"));

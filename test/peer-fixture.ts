@@ -13,7 +13,7 @@ import type { PeerConnection } from "../src/peer/rpc.js";
 
 export const principal: PeerPrincipal = { accountId: "bot-one", conversationId: "room-one", actorId: "owner" };
 export const token = "synthetic-device-credential-for-tests-only";
-export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExecutionOptions, "approve" | "approveOwner" | "independent">> & { device?: boolean } = {}) {
+export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExecutionOptions, "approve" | "approveOwner" | "independent" | "webIDE">> & { device?: boolean } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-peer-"));
   const thread: CodexThreadState = { threadId: "existing-native", cwd: "/device-only/workspace", title: "Local existing task",
     persistence: "active", runtimeStatus: "idle", activeFlags: [], projectMembership: "none" };
@@ -66,7 +66,7 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
   } as unknown as CodexBridgeBackend;
   const registry = new PeerRegistry(path.join(root, "server", "grants.json"));
   let service = await PeerExecutionService.create({ backend, threadId: options.device ? undefined : thread.threadId, label: "我的笔记本", profileId: "work", stateDir: path.join(root, "client"),
-    independent: options.independent ?? true, approve: options.approve ?? (async () => true), approveOwner: options.approveOwner });
+    independent: options.independent ?? true, approve: options.approve ?? (async () => true), approveOwner: options.approveOwner, webIDE: options.webIDE });
   let serverConnection!: PeerConnection, clientConnection!: PeerConnection;
   const server = await GatewayPeerServer.listen({ host: "127.0.0.1", port: 0, credentials: { laptop: token },
     accept: (id, connection) => { serverConnection = connection; registry.accept(id, connection); } });
@@ -84,7 +84,7 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
     return Reflect.get(target, key);
   } });
   const facade = withPeerBackend(local, registry);
-  t.after(async () => { client.close(); registry.close(); await server.close(); fs.rmSync(root, { recursive: true, force: true }); });
+  t.after(async () => { client.close(); registry.close(); await service.close(); await server.close(); fs.rmSync(root, { recursive: true, force: true }); });
   return { root, backend, facade, registry, server, client, ticket, thread, threads, projects, management, runs, stops,
     get serverConnection() { return serverConnection; }, get clientConnection() { return clientConnection; },
     set run(value: typeof run) { run = value; },
@@ -94,7 +94,7 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
       hostId: ticket.hostId, clientUserMessageId: "source-one", assertCurrent() {}, ...extra }),
     async reconnect(reloadService = false) {
       if (reloadService) service = await PeerExecutionService.create({ backend, threadId: options.device ? undefined : thread.threadId, label: "我的笔记本", profileId: "work", stateDir: path.join(root, "client"),
-        independent: true, approve: options.approve ?? (async () => true), approveOwner: options.approveOwner });
+        independent: true, approve: options.approve ?? (async () => true), approveOwner: options.approveOwner, webIDE: options.webIDE });
       next = Promise.withResolvers(); serverConnection.close(); return next.promise;
     }
   };

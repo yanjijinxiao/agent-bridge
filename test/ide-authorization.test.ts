@@ -6,6 +6,47 @@ import path from "node:path";
 import { IDEAuthorization, IDE_SESSION_DAYS } from "../src/ide/authorization.js";
 import type { IDEAccessSubject } from "../src/ide/access-subject.js";
 
+test("one personal browser identity reuses approved authority across projects with fixed expiry, restart and logout", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cig-browser-person-")), file = path.join(root, "auth.json");
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let now = 1000, epoch = 0;
+  const subject: IDEAccessSubject = { principal: { accountId: "account", channel: "dingtalk", providerId: "bot", actorId: "alice" }, basis: "im-personal", epoch };
+  const create = () => new IDEAuthorization(() => now, file, "origin", s => s.epoch === epoch);
+  const auth = create(), request = auth.request("a"); auth.approve(request.request.id, "a", "a", true, "/a", undefined, subject);
+  const first = auth.exchangeRequest(request.request.id, request.proof, "a")!, remembered = auth.rememberBrowser(first.session)!;
+  assert.ok(remembered); assert.equal(auth.identify("copied-public-code"), undefined);
+  now += 86400000;
+  const second = auth.enterProject(remembered.identity, "b", "scope-b", "/b", ["/b", "/sibling"]);
+  assert.equal(second.session.expiresAt, first.session.expiresAt);
+  assert.equal(second.session.csrf, remembered.identity.csrf, "preparation retries keep the authenticated form nonce");
+  assert.equal(second.session.trustWorkspace, true); assert.deepEqual(second.session.trustedRootPaths, ["/b", "/sibling"]);
+  let restarted = create(); assert.ok(restarted.identify(remembered.token));
+  assert.ok(restarted.authenticate(second.token, "b", "scope-b"));
+  assert.equal(restarted.authenticate(second.token, "b", "changed-roots"), undefined);
+  const disk = fs.readFileSync(file, "utf8"); assert.equal(JSON.parse(disk).version, 3); assert.equal(disk.includes(remembered.token), false);
+  restarted.logout(restarted.authenticate(second.token, "b", "scope-b")!);
+  restarted = create(); assert.equal(restarted.identify(remembered.token), undefined); assert.equal(restarted.authenticate(first.token, "a"), undefined);
+  const next = auth.enterProject(remembered.identity, "c", "c", "/c");
+  epoch++; assert.equal(auth.identify(remembered.token), undefined); assert.equal(auth.authenticate(next.token, "c"), undefined);
+  auth.reconcileAccess(); epoch--; assert.equal(create().identify(remembered.token), undefined, "re-allow never resurrects old browser authority");
+});
+
+test("browser identity is never inferred from local or legacy grants, and bound subjects must match", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cig-browser-boundary-")), file = path.join(root, "auth.json");
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let now = 1000; const auth = new IDEAuthorization(() => now, file, "origin", () => true);
+  const local = auth.consume(auth.grant("local"), "local")!; assert.equal(auth.rememberBrowser(local.session), undefined);
+  const subject: IDEAccessSubject = { principal: { accountId: "account", channel: "dingtalk", providerId: "bot", actorId: "alice" }, basis: "legacy-approver", epoch: 0 };
+  const make = () => { const p = auth.request("a"); auth.approve(p.request.id, "a", "a", true, "/a", undefined, subject); return auth.exchangeRequest(p.request.id, p.proof, "a")!; };
+  assert.equal(auth.rememberBrowser(make().session), undefined);
+  subject.basis = "im-personal"; const first = make(), browser = auth.rememberBrowser(first.session)!;
+  const data = JSON.parse(fs.readFileSync(file, "utf8")); data.sessions.find((r: any) => r.session.browserId).session.subject.principal.actorId = "bob";
+  fs.writeFileSync(file, JSON.stringify(data));
+  assert.equal(new IDEAuthorization(() => now, file, "origin", () => true).authenticate(first.token, "a"), undefined);
+  now = browser.identity.expiresAt; assert.equal(auth.identify(browser.token), undefined);
+  assert.throws(() => auth.enterProject(browser.identity, "b", "b", "/b"), /失效/);
+});
+
 test("IM provenance persists, is private, and is checked for exchange, HTTP authentication, active connections and restart", t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cig-personal-auth-")), file = path.join(root, "auth.json");
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

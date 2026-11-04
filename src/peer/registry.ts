@@ -7,6 +7,7 @@ import { peerPrincipal, type PeerBridgePort, type PeerPrincipal } from "./contex
 import { PeerConnection, PeerConnectionError, PeerError, PEER_EXECUTION_TIMEOUT_MS } from "./rpc.js";
 import { peerGrantSchema } from "./sharing-types.js";
 import { PeerSharingGateway } from "./sharing-gateway.js";
+import type { IDEHostContext } from "../ide/transport.js";
 
 const principalSchema = z.object({ accountId: z.string().min(1).max(512), conversationId: z.string().min(1).max(512), actorId: z.string().min(1).max(512) }).strict();
 export const grantSchema = peerGrantSchema;
@@ -18,12 +19,13 @@ const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/
   writeGuard: z.literal(1).optional(),
   interactions: z.literal(1).optional(),
   nativeContract: z.literal(1).optional(),
+  fullIDE: z.literal(1).optional(),
   files: z.object({ version: z.literal(1) }).strict().optional(),
   management: z.object({ version: z.literal(1) }).strict().optional(),
   sharing: z.object({ version: z.union([z.literal(1), z.literal(2)]) }).strict().optional(),
   info: z.object({ id: z.enum(["exec", "app-server"]), capabilities: z.record(z.string(), z.boolean()) }),
   independent: z.boolean() }).strict();
-export type PeerDescription = { profileId: string; label?: string; writeGuard?: 1; interactions?: 1; nativeContract?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
+export type PeerDescription = { profileId: string; label?: string; writeGuard?: 1; interactions?: 1; nativeContract?: 1; fullIDE?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
   info: { id: CodexBackendId; capabilities: CodexBackendCapabilities }; independent: boolean };
 type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection };
 const samePrincipal = (a: PeerPrincipal, b: PeerPrincipal) => a.accountId === b.accountId && a.conversationId === b.conversationId && a.actorId === b.actorId;
@@ -113,6 +115,29 @@ export class PeerRegistry implements PeerBridgePort {
     return { hostId: grant.hostId, threadId: grant.threadId, label: this.label(grant.hostId) };
   }
   hosts(principal: PeerPrincipal): string[] { return [...new Set(this.grantsFor(principal).map(g => g.hostId))]; }
+  fullIDEAvailable(principal: PeerPrincipal, target: { hostId: string; threadId: string }): boolean {
+    return this.entries.get(target.hostId)?.description.fullIDE === 1 && this.grantsFor(principal)
+      .some(g => !g.delegation && g.hostId === target.hostId && (g.scope === "device" || g.threadId === target.threadId));
+  }
+  /** Browser authority is a person, never an unscoped observation fallback.
+   * A person's device pairing in another chat is still theirs; other actors,
+   * accounts and text-sharing delegations are never candidates. */
+  private ideGrant(hostId: string, context: IDEHostContext): PeerGrant | undefined {
+    const person = context.subject?.principal;
+    if (!person || person.accountId !== context.accountId || !context.threadId || this.entries.get(hostId)?.description.fullIDE !== 1) return;
+    return this.grants.find(g => !g.delegation && g.hostId === hostId && g.principal.accountId === person.accountId
+      && g.principal.actorId === person.actorId && (g.scope === "device" || g.threadId === context.threadId));
+  }
+  canAccessIDE(hostId: string, context: IDEHostContext): boolean { return !!this.ideGrant(hostId, context); }
+  ideConnection(hostId: string, context: IDEHostContext) {
+    const grant = this.ideGrant(hostId, context), connection = this.entries.get(hostId)?.connection;
+    if (!grant) throw new PeerError("access", "完整 IDE 需要本人已确认的 Connector 授权，请由同一用户配对浏览器。");
+    if (!connection?.open) throw new PeerConnectionError(false);
+    return { grant, connection, guard: () => {
+      if (!connection.open || this.entries.get(hostId)?.connection !== connection || this.ideGrant(hostId, context)?.id !== grant.id)
+        throw new PeerError("access", "Connector IDE 连接或授权已改变。");
+    } };
+  }
   label(hostId: string): string { const host = this.entries.get(hostId); return host?.description.label ?? host?.nodeId ?? hostId; }
   isPeer(hostId?: string): boolean { return hostId?.startsWith("peer:") === true; }
   description(hostId: string): PeerDescription {

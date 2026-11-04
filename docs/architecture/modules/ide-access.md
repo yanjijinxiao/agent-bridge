@@ -4,9 +4,13 @@ IDE 是独立进程/网络服务，不是 Codex 任务。WorkspaceIDEManager 从
 
 ## 身份、根和授权
 
-scope 包含 owner/host/project/workspace/完整根；名称或 IM 管理别名不扩大范围。旧 scope 迁移要求同一原生身份或唯一完整根集合，不能按主目录模糊迁移。真实路径和私有 workspace 配置限定编辑范围，符号链接/其他 host 不串用。
+scope 包含 owner/host/project/workspace/完整根；名称或 IM 管理别名不扩大范围。旧 scope 迁移要求同一原生身份或唯一完整根集合，不能按主目录模糊迁移。真实路径和私有 workspace 配置限定本次项目入口的根集合，符号链接/其他 host 不串用。完整 IDE 的终端仍具有执行用户的系统权限，项目根集合不是操作系统沙箱。
 
 复用个人准入与原浏览器证明，明确确认一次后持久授权 90 天，不加第二套登录密码。浏览器识别码是确认用途，不是访问凭证；秘密 proof 不放 IM。撤销 epoch 使旧 grant 和旧窗口失效，不能因重启恢复已撤权访问。Gateway 重启与 code-server/原生任务生命周期分开，仍要重新校验新请求。
+
+2026-11-04 简化：首次浏览器只展示一条“确认本人并进入”命令，默认批准并信任目录。已完成个人准入、浏览器证明及信任的登录，在同一渠道账号已有资源权限内复用身份；打开新项目时经同源 CSRF POST、原生归属及 canonical roots 校验，自动签发该项目精确 scope 的会话。GET 不启动 IDE。旧版仅访问、本机管理临时 grant、独立 legacy approver 不自动提升为跨项目身份。仍兼容旧的 access/deny 命令。
+
+v3 授权文件仅保存身份 token 哈希、个人来源/epoch、CSRF 与原截止时间；项目会话关联浏览器身份。新项目期限不超过原身份，退出登录关闭同浏览器各项目长连接，撤销个人准入后重加也不复活旧登录。v1/v2 原项目授权可读且不改原 token/deadline；旧二进制不理解 v3 时应拒绝读取，不能以降版本忽略个人权限。发布回滚必须保留当前授权文件，不可恢复过期授权快照。
 
 展示地址和就绪/授权是不同事实。进展卡调用 `entry(..., { presentationOnly: true })`，仅对仍在运行且远程中继处于 reconnecting 的原端点保留同一固定地址；不换主机或改为回环地址。普通 entry/freshEntry、授权和 HTTP/WS 检查保持原边界。本机网卡离线/地址歧义、停用/关闭端点不沿用旧地址。批准前读取原生项目超时应明确“未批准此浏览器”，不会将其说成 Codex 任务失败或成功授权。
 
@@ -28,3 +32,13 @@ IDE-03.4沿安装器upload到uploadIDEHost验证传输失败资源回收：源�
 IDE-03.5：官方 code-server 在处理 `--version` 前仍读取并可能创建 YAML 配置。版本/ABI 探测使用本次自有临时目录、0600 空配置及其中的数据/扩展目录，精确比较版本 token，成功和失败都清理；不能把用户配置损坏或默认目录不可写误报为二进制不兼容，也不能为只读探测创建用户密码。四个平台完整 archive 摘要通过；Linux x64 与 Mac ARM64 已实际运行探测和 HTTP 工作台，未把无浏览器心跳的 health=expired 当作完整浏览器会话验收。
 
 本轮实际浏览器验收路径：测试专属项目的两个 Git 根 → WorkspaceIDEManager 生成工作区并启动官方 code-server → IDEAccessServer 签发该测试项目授权 → 独立 Chrome 打开同一固定入口。以工作台 DOM、Git 根列表、编辑器字体和实际终端写出的 cwd 为证据；再次打开及撤权检查原授权与实例。浏览器模拟尺寸不记作手机实机，测试项目与线上 IDE 授权隔离。
+
+## Connector 完整 IDE 与准备状态
+
+`ConnectorIDEHostTransport` 仅替换主机传输，沿用 Manager、AccessServer、profile、完整根和 90 天个人浏览器授权。`peer:` 不能配置 SSH 入口或由 Gateway 下发 binary；共用 Gateway 的 HTTPS 入口。设备明确启用 `webIDE.enabled` 并决定 binary/autoInstall。非委托本人授权才允许完整 IDE，文本共享的 ide-read/ide-write 继续使用原文本页。
+
+`PeerIDEService` 在设备核对已确认的 grant、原生 thread/project、真实根集合，创建最多 8 个 IDE lease。`ide.stream` 只连接本连接已创建 lease 的私有 socket，不接受任意目标；最多 64 条流、32 KiB 块、一方向一个未确认块、顺序检查和写超时。Gateway Cookie/Authorization 不传给 code-server。HTTP/WS 持续核验，撤权关闭连接；原生项目归属每 10 秒复核。Connector 断开清理 IDE 进程，重连保留原 profile 与浏览器证明；Codex 原生任务不因此停止或重发。IDE 终端不承诺跨这类断连存活。
+
+已批准浏览器在 `/workspace` 同一页 POST 查询准备状态，保留 CSRF 和 Origin 检查；`202` 显示下载阶段/字节，ready 后仅导航一次，错误停留并提供重试，不在 workspace/open 间循环。JSON 错误不暴露 SSH/provider 输出，授权失败仍不放行。安装包上传有独立有限总时限，取消立即回收源流和自有 SSH 子进程；它不使用 Codex 任务生命周期。
+
+本次边界与实际测试记录见 `docs/audits/2026-11-04-connector-ide/README.md`。传输夹具不代替完整工作台验收，真实 Chrome 也不代替手机实机。

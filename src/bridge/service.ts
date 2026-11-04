@@ -643,16 +643,16 @@ export class BridgeService {
           } else await this.bindCatalogSession(message.senderId, target.threadId, target.hostId, guard);
         }
         else {
-          await this.reply(message.senderId, copyableChoices(`设备已配对：${target.label}\n需要选择或切换会话时，请主动查看该设备的会话列表。`, [
-            { label: "查看该设备会话", value: `/sessions --host ${target.hostId}` }
-          ]));
+          await this.reply(message.senderId, `设备已配对：${target.label}。请选择要绑定的会话。`);
+          await this.handleSessionCommand(message.senderId, `--host ${target.hostId}`, message.id);
         }
         return;
       }
       case "ide": {
         const session = this.executionSession(message.senderId);
         const hostId = session && this.sessionHostId(session);
-        if (session?.threadId && hostId?.startsWith("peer:") && this.options.peer?.sharing) {
+        if (session?.threadId && hostId?.startsWith("peer:") && this.options.peer?.sharing
+          && !this.options.peer.fullIDEAvailable?.(peerPrincipal.getStore()!, { threadId: session.threadId, hostId })) {
           const url = await this.options.peer.sharing.ide(peerPrincipal.getStore()!, { threadId: session.threadId, hostId }, this.conversationControlGuard(message.senderId, "viewer"));
           await this.reply(message.senderId, `[打开共享 Web 编辑器](${url})\n浏览器需通过 /share browser 六位码确认。权限由会话所有者授予；共享编辑器不提供终端。`); return;
         }

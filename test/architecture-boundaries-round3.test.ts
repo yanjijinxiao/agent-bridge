@@ -54,6 +54,8 @@ test("legacy browser grants migrate additively, retain exact credentials and sco
   let auth = create(); const migrated = auth.authenticate(browser.token, "entry", current())!; assert.ok(migrated);
   assert.deepEqual({ ...migrated, securityScope: undefined }, { ...browser.session, securityScope: undefined });
   assert.equal(grantFingerprint(before.sessions[0]), grantFingerprint(JSON.parse(fs.readFileSync(file, "utf8")).sessions[0]));
+  assert.ok(auth.rememberBrowser(migrated));
+  assert.equal(grantFingerprint(before.sessions[0]), grantFingerprint(JSON.parse(fs.readFileSync(file, "utf8")).sessions[0]), "personal browser linkage preserves the original grant fingerprint");
   target = { ...target, projectName: "Renamed", sessionId: "another-alias", rootPaths: ["/other", "/work"] };
   auth = create(); assert.ok(auth.authenticate(browser.token, "entry", current()));
   target = { ...target, rootPaths: ["/work", "/other", "/extra"] };
@@ -65,6 +67,7 @@ test("legacy browser grants migrate additively, retain exact credentials and sco
     assert.notEqual(grantFingerprint(changed), grantFingerprint(before.sessions[0]), field);
   }
   assert.throws(() => grantFingerprint({ ...before.sessions[0], session: { ...before.sessions[0].session, securityScope: "invalid" } }));
+  assert.throws(() => grantFingerprint({ ...before.sessions[0], session: { ...before.sessions[0].session, browserId: "invalid" } }));
 });
 
 test("unverifiable legacy grants are not upgraded or renewed", t => {

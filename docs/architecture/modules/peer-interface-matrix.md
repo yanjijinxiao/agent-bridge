@@ -30,3 +30,10 @@
 - 审批/问答的结果回调使用原请求对象；无 handler、断连或回调失败不生成拒绝决定。动态工具回调不存在时不伪装工具成功。
 - capability、queue-admission、run-admission、thread-state、intervention、turn-failed 和 communication 进行类型适配。通信区分未提交、可能提交和已接受后的观察失败；原生错误里的私有 provider 正文不回传。
 - 帧上限 1 MiB、每方向 256 个在途 RPC、回调注册上限 512。超限报错，不截断后伪造完整历史。长任务断连按观察失败处理，不触发第二执行器。
+
+## IDE 主机端口（独立于 Codex facade）
+
+- `ide.call/resolve,status,launch`：需要本人 grant 与原生 thread/完整根；resolve 仅允许根集合成员，status 仅返回安全阶段/字节。launch 的程序由设备选定，Gateway 不传任意 binary。
+- `ide.call/connect,stop`：仅本连接创建的 lease；connect 连接其私有 Unix socket，stop 在撤权后仍能清理原 lease。
+- `ide.stream`：有界双向流；64 流、32 KiB 块、单块确认、顺序/结束检查；独立 HTTP/WS 浏览器授权仍在 AccessServer。
+- `fullIDE: 1` 为可选能力，旧 Connector 保留文本共享入口。协议测试见 peer-ide、peer-ide-stream；CLI 工作台测试见 peer-ide-real-browser（显式环境启用）。

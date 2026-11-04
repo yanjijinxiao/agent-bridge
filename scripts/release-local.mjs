@@ -10,10 +10,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 /** Existing credentials/deadlines/legacy scope must remain byte-for-byte
- * equivalent. Only the additive, validated stable-scope migration is ignored. */
+ * equivalent. Additive stable scope and personal-browser linkage do not renew
+ * or replace the original project credential or its authority. */
 export function grantFingerprint(row) {
-  const { securityScope, ...session } = row.session;
+  const { securityScope, browserId, ...session } = row.session;
   if (securityScope !== undefined && !/^v2:[a-f0-9]{64}$/.test(securityScope)) throw Error('Invalid IDE scope migration');
+  if (browserId !== undefined && !/^[a-f0-9]{64}$/.test(browserId)) throw Error('Invalid IDE browser identity migration');
   return hash(JSON.stringify({ ...row, session }));
 }
 export function treeHash(root) {

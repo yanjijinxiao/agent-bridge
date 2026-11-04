@@ -4,6 +4,10 @@
 
 服务器 A 运行 Gateway 和机器人，设备 B 主动连接 A。先配对设备，再在钉钉中查看、选择和切换 B 的 Codex 会话。本机配置无需填写 session ID，服务器按需向客户端查询会话目录。B 无需开放入站端口，A 无需 SSH 登录 B；双方需要网络互通。
 
+流程简化（2026-11-04）：`/access` 管理本人/当前聊天的准入，个人准入同时用于 IDE，不重复登记；`/connect 配对码` 经设备确认后立即显示该设备的项目与会话，不再要求补发 `/sessions`。配对不执行或自动选择任务。首次浏览器只确认本人一次，默认信任有权访问的项目；已有浏览器登录复用到本人其他项目，不把其他用户或群的设备权限合并进来。
+
+已有单一 HTTPS 前端的部署可使用 `scripts/peer-ide-tls-front.mjs`：Peer WebSocket 转到 loopback 19478，IDE HTTP/WS 转到 loopback 28480，保留 Host/Origin/Cookie 供原授权模块验证，不发布 `/api` 管理面。端口和证书目录可通过脚本列出的环境变量配置；Gateway IDE 配置的 publicOrigin 必须与外部固定入口一致。
+
 ```text
 钉钉私聊 / 群聊 @机器人
           ↕ 现有 DingTalk ChannelAdapter
@@ -23,7 +27,7 @@ npm ci
 npm run build:bridge
 ```
 
-B 需能以当前系统用户正常运行本地 Codex。设备配对成功后，主动发送 `/sessions` 才查询并显示已有会话，按标题、目录和编号选择即可。CLI 与 App 均使用项目统一的原生 App Server 适配器（`CodexBackendRouter` 为兼容名称）；本功能不把远程进程注入一个正在运行的交互式 CLI 终端。A 的远程设备列表查询和执行转发不依赖 A 上安装 Codex。
+B 需能以当前系统用户正常运行本地 Codex。设备配对成功后直接显示该设备已有会话，按标题、目录和编号选择即可。CLI 与 App 均使用项目统一的原生 App Server 适配器（`CodexBackendRouter` 为兼容名称）；本功能不把远程进程注入一个正在运行的交互式 CLI 终端。A 的远程设备列表查询和执行转发不依赖 A 上安装 Codex。
 
 如果目标来自 App，需要 B 上已有的 Desktop 适配支持、相同用户和正确的 `CODEX_HOME`。已在 macOS Codex App/独立 app-server 与 Linux 容器 Gateway 之间完成设备配对、会话选择、文字往返和文件收发联调；其他系统、版本和真实审批仍需分别验证。
 
@@ -95,7 +99,7 @@ npm run peer -- --config /absolute/path/peer-client.json
 1. B 主动连接 A，终端显示类似 `A1B2C3-D4E5F6` 的设备配对码，5 分钟有效；这时无需选定会话。
 2. 钉钉私聊机器人发送 `/connect A1B2C3-D4E5F6`；群里则先 @机器人再发送此命令。
 3. B 终端显示申请人、机器人账号、聊天 ID，以及“允许列出、选择并操作此 profile 普通会话”的范围。核对后输入 `yes`，这是设备访问授权。
-4. 钉钉只提示设备配对成功，不自动查询或展示会话。需要时发送 `/sessions`，或使用提示中的 `/sessions --host 主机ID`，查看该设备的标题、工作目录、状态和 R 编号，再点击选择按钮或发送 `/session R2` 绑定。若 Connector 固定到某个未归档会话，仍直接绑定该指定会话。
+4. 钉钉确认配对后直接显示当前设备的标题、工作目录、状态和 R 编号，点击选择按钮或发送 `/session R2` 绑定；以后仍可发送 `/sessions` 或 `/sessions --host 主机ID` 刷新。若 Connector 固定到某个未归档会话，仍直接绑定该指定会话。
 5. 后续文字消息继续所选会话。发送 `/sessions` 可刷新当前设备的列表，再通过 `/session R编号` 切换；新增的本机会话无需重启客户端即可发现。`/history` 查看历史，`/stop` 请求停止，`/leave` 退出当前聊天绑定。
 
 例如钉钉显示：
@@ -209,7 +213,7 @@ Codex 公共 facade 端口按 [接口表](architecture/modules/peer-interface-ma
 - 独立 app-server daemon / Desktop 的执行可以在 Gateway 观察连接断开后继续；Gateway 仅在其接受回执持久化后允许安全分离观察。显式 `stdio` 连接属于客户端进程生命周期，不获得这一豁免。
 - 默认沿用 B 的模型、effort、认证和本地资源配置。A 的全局模型默认值不覆盖它；聊天中显式设置的 `/model` 或 `/effort` 仍会传给 B。
 - 每个客户端连接一个本地 Codex profile，支持选择、创建、重命名、归档和恢复普通会话，可选固定到单个 thread。主要验证 macOS/Linux 的绝对路径；不附着任意终端进程。
-- 原生队列、目标、容量/系统恢复、Skills/MCP、精确中断、独立交互、动态工具和结构化输出已接入公共端口；见接口表与逐项测试。项目增删改、完整 code-server 和 Taskboard 产品入口不由 Connector 自动新增。
+- 原生队列、目标、容量/系统恢复、Skills/MCP、精确中断、独立交互、动态工具和结构化输出已接入公共端口；见接口表与逐项测试。项目增删改和 Taskboard 产品入口不由 Connector 自动新增。完整 code-server 需按下节显式启用。
 - 显式 nativeSettings 限获准设备用户；资源委托沿用原生权限。所有文件路径属于设备，不读取 Gateway 同名文件。
 - Web 管理的远程发送入口仍需用户级 Peer 授权接入；当前产品使用已有 IM 渠道。双向远端 Channel 保留独立原型，不属于此次机器人 Connector 合入范围。
 
@@ -231,3 +235,13 @@ node --test --test-timeout=20000 --import tsx test/peer-transport.test.ts test/p
 共享准入只决定谁能访问哪个原生会话；操作权限复用现有 `/role`，不另设 `read / chat / control` 分档。文件回传与 Web 编辑器仍单独授权。升级时旧分档委托必须重新批准，Gateway 与 Connector 需配套升级，详见[会话所有权与共享工作区](./peer-sharing.md)。
 
 Connector导出的项目ID使用设备当前host/home的明确Desktop迁移映射，与原生session归属一致；这一适配只在Connector进程内启用，本地及SSH列表保持main行为。
+
+## 完整 Web IDE
+
+Connector 配置可增加 `webIDE`：`enabled` 默认 false；`binary` 默认 code-server，亦可选择本机已安装的绝对路径；`autoInstall` 默认 false，设为 true 时按固定官方版本、长度和 SHA256 安装到本用户目录。设备需要可用 Git 和终端 shell；Linux 需满足官方 code-server 的 glibc 条件。配置后重启 Connector，独立 daemon 上已接收的 Codex 任务继续。
+
+Gateway 的 IDE 页面启用该 peer 主机，并使用可访问的共享 HTTPS 入口。无需为 Connector 开放 SSH、code-server TCP 端口或另一套密码。已配对的本人在所选原生项目发送 /ide，沿用个人准入、浏览器证明及 90 天登录。仅 ide-read/ide-write 的共享访客继续使用文本页，不能获得 Git/终端。
+
+完整 IDE 具有运行 Connector 用户的系统权限；项目根不是系统沙箱。已有本人设备授权在显式启用 webIDE 后可用该能力，新增配对的本机确认会明确显示终端权限。Gateway/Connector 重连会重建 IDE 流和实例，保留 profile、文件和有效浏览器登录，但不保证终端任务存活；不会借此重发 Codex 输入。
+
+安装和准备在同一浏览器页面显示进度，失败停止自动重试。实际验证边界、环境及未测组合见 `audits/2026-11-04-connector-ide/README.md`。

@@ -11,6 +11,7 @@ import { withConnectorProjects } from "./project-catalog.js";
 import { PeerExecutionService } from "./execution-service.js";
 import { GatewayPeerClient } from "./transport.js";
 import { acquireServiceProcessLock } from "../server/process-lock.js";
+import { peerIDEConfigSchema } from "./ide-service.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -23,6 +24,7 @@ async function main(): Promise<void> {
     allowInsecureLan: z.boolean().default(false), profileId: z.string().default("default"), label: z.string().min(1).max(80).optional(), threadId: z.string().min(1).optional(),
     codexHome: z.string().optional(), codexBin: z.string().default("codex"), backend: z.literal("app-server").default("app-server"),
     appServerTransport: z.enum(["daemon", "stdio"]).default("daemon"),
+    webIDE: peerIDEConfigSchema.optional(),
     stateDir: z.string().optional() }).strict().parse(readJsonFile(file, null));
   const resolve = (name: string) => path.resolve(path.dirname(file), name);
   const backend = withConnectorProjects(new CodexBackendRouter({ backend: config.backend, appServerTransport: config.appServerTransport,
@@ -33,9 +35,10 @@ async function main(): Promise<void> {
   const lock = acquireServiceProcessLock(stateDir);
   const terminal = readline.createInterface({ input: process.stdin, output: process.stdout });
   let client: GatewayPeerClient | undefined;
+  let service: PeerExecutionService | undefined;
   try {
-    const service = await PeerExecutionService.create({ backend, threadId: config.threadId, profileId: config.profileId, label: config.label ?? config.nodeId,
-      stateDir,
+    service = await PeerExecutionService.create({ backend, threadId: config.threadId, profileId: config.profileId, label: config.label ?? config.nodeId,
+      stateDir, webIDE: config.webIDE,
       independent: config.appServerTransport === "daemon",
       approveOwner: confirmation => {
         const answer = questions.then(async () => {
@@ -48,6 +51,7 @@ async function main(): Promise<void> {
       approve: grant => {
         const answer = questions.then(async () => {
           if (!process.stdin.isTTY) return false;
+          if (config.webIDE?.enabled) console.log("完整 Web IDE 已在本机启用：本人浏览器可使用文件、Git 和终端，权限等同于运行 Connector 的系统用户；目录列表不是系统沙箱。文本共享访客不会获得终端。");
           console.log(`\n设备访问申请：${JSON.stringify(grant.principal)}\n范围：${config.threadId ? `仅会话 ${JSON.stringify(config.threadId)}（历史、执行、重命名及生命周期管理）` : "此 Codex profile 的普通会话（列出、选择、查看历史、执行、新建、重命名及生命周期管理）"}\n文件：接收聊天附件；回传所选会话工作目录或其附件目录中的文件。`);
           return (await terminal.question("允许这个用户在此聊天中访问上述本机会话？输入 yes 确认：")).trim() === "yes";
         });
@@ -57,13 +61,14 @@ async function main(): Promise<void> {
       ca: config.caFile ? fs.readFileSync(resolve(config.caFile)) : undefined,
       status: state => console.log(`Gateway peer: ${state}`),
       connected: async connection => {
-        service.attach(connection);
-        const ticket = await connection.request<{ code: string; hostId: string }>("peer.register", service.description);
+        service!.attach(connection);
+        const ticket = await connection.request<{ code: string; hostId: string }>("peer.register", service!.description);
         console.log(`已连接。请在钉钉私聊发送 /connect ${ticket.code}，或在群聊 @机器人 后发送。\n设备：${config.label ?? config.nodeId}\n配对码有效期 5 分钟；本机确认后，在钉钉选择要绑定的会话。`);
       } });
     let stopping: Promise<void> | undefined;
     const stop = () => stopping ??= (async () => {
       client?.close(); terminal.close(); backend.detachIndependentObservations();
+      await service!.close();
       try { await backend.close(); } finally { lock.release(); }
     })();
     const shutdown = () => void stop().then(() => { process.exitCode = 0; }, () => { process.exitCode = 1; });
@@ -71,6 +76,6 @@ async function main(): Promise<void> {
     process.once("SIGINT", shutdown);
     process.once("SIGTERM", shutdown);
     client.start();
-  } catch (error) { client?.close(); terminal.close(); try { await backend.close(); } finally { lock.release(); } throw error; }
+  } catch (error) { client?.close(); terminal.close(); await service?.close(); try { await backend.close(); } finally { lock.release(); } throw error; }
 }
 main().catch(() => { console.error("Gateway peer client failed. Check the local configuration, exported session, and device logs. Credentials are not printed."); process.exitCode = 1; });

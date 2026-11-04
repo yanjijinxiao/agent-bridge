@@ -40,3 +40,14 @@ test("IDE upload completes only after its owned process consumes the full artifa
     process.stdin.pipe(fs.createWriteStream(input.output));`, { output }, file, new AbortController().signal);
   assert.deepEqual(fs.readFileSync(output), bytes);
 });
+
+test("IDE upload cancellation closes its source and transfer process without an unhandled abort", { timeout: 5000 }, async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ide-upload-abort-")), marker = path.join(root, "pid");
+  const source = new PassThrough(), abort = new AbortController(); let pid: number | undefined;
+  t.after(() => { source.destroy(); if (pid && alive(pid)) process.kill(pid); fs.rmSync(root, { recursive: true, force: true }); });
+  t.mock.method(fs, "createReadStream", () => source as unknown as fs.ReadStream);
+  const rejected = assert.rejects(uploadIDEHost("local", `const fs=require('node:fs'),input=JSON.parse(Buffer.from(process.argv[1],'base64'));
+    fs.writeFileSync(input.marker,String(process.pid));process.stdin.resume();`, { marker }, "fixture", abort.signal), /abort/i);
+  await until(() => fs.existsSync(marker)); pid = Number(fs.readFileSync(marker, "utf8")); abort.abort();
+  await rejected; await until(() => !alive(pid!)); assert.equal(source.destroyed, true);
+});

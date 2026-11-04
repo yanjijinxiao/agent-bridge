@@ -124,6 +124,42 @@ test("external first hop silently rechecks Strict cookies without approval UI, g
   assert.equal(transport.launches.length, 1);
 });
 
+test("personal browser enters another permitted project automatically; foreign devices, accounts and revoked identities remain denied", async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cig-personal-projects-")), transport = new FakeTransport();
+  Object.assign(transport, { canAccess: (host: string) => host !== "remote:test" });
+  const manager = new WorkspaceIDEManager({ root, transport, resolve: (_account, session) => ({ owner: "owner", sessionId: session,
+    projectId: session, projectName: session, workspace: `/alias/${session}`, hostId: session === "foreign" ? "remote:test" : "local" }) });
+  const port = await freePort(), origin = `http://127.0.0.1:${port}`; manager.configStore.save(config(manager.configStore, port));
+  const access = new IDEAccessServer(manager); let allowed = true;
+  const subject = { principal: { accountId: "account", actorId: "alice", channel: "dingtalk" as const, providerId: "bot" }, basis: "im-personal" as const, epoch: 0 };
+  access.setAccessAuthority({ isSubjectAllowed: () => allowed }); await access.reload(false);
+  t.after(async () => { await access.close(); fs.rmSync(root, { recursive: true, force: true }); });
+  const first = manager.entry("account", "first")!, second = manager.entry("account", "second")!;
+  const pending = await fetch(first.url + "?auth_check=1"), proof = pending.headers.getSetCookie()[0].split(";")[0];
+  const request = access.pendingAccess()[0]; await access.approveAccess(request.id, first.id, true, undefined, subject);
+  const exchange = await fetch(first.url + "?auth_check=1", { headers: { Cookie: proof }, redirect: "manual" });
+  assert.equal(exchange.status, 303);
+  const cookies = exchange.headers.getSetCookie().map(c => c.split(";")[0]).join("; "); assert.match(cookies, /cig_browser_person=/);
+  const page = await (await fetch(second.url + "?auth_check=1", { headers: { Cookie: cookies } })).text();
+  assert.match(page, /自动信任目录/); assert.doesNotMatch(page, /<section data-ide-wait/); assert.equal(access.pendingAccess().length, 0);
+  assert.equal(transport.launches.length, 0, "identity read never starts a process");
+  const csrf = /name="csrf" value="([^"]+)"/.exec(page)![1];
+  const open = (csrf: string, Origin = origin) => fetch(`${origin}/open/${second.id}`, { method: "POST", redirect: "manual",
+    headers: { Cookie: cookies, Origin, Accept: "application/json" }, body: new URLSearchParams({ csrf }) });
+  assert.equal((await open(csrf, "https://attacker.example")).status, 403); assert.equal((await open("wrong")).status, 403);
+  const opened = await open(csrf); assert.equal(opened.status, 200); assert.match((await opened.json() as any).location, /^\/ide\//);
+  assert.equal(transport.launches[0].trustWorkspace, true); assert.equal(transport.launches[0].workspace, "/canonical/second");
+  const other = manager.entry("other-account", "third")!, foreign = manager.entry("account", "foreign")!;
+  for (const target of [other, foreign]) {
+    const denied = await fetch(target.url + "?auth_check=1", { headers: { Cookie: cookies } });
+    assert.match(await denied.text(), /等待 Gateway 授权/);
+    assert.equal((await fetch(`${origin}/open/${target.id}`, { method: "POST", headers: { Origin: origin, Cookie: cookies }, body: new URLSearchParams({ csrf }) })).status, 401);
+  }
+  allowed = false;
+  const revoked = await fetch(second.url + "?auth_check=1", { headers: { Cookie: cookies } }); assert.match(await revoked.text(), /等待 Gateway 授权/);
+  assert.equal(transport.launches.length, 1);
+});
+
 test("temporary membership failure returns retryable 503, preserves existing grants and POST tickets, and never opens a stale target", async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cig-ide-membership-unavailable-")), transport = new FakeTransport();
   let unavailable = false, removed = false;
@@ -177,8 +213,8 @@ for (const source of ["local", "personal"] as const) test(`${source} browser aut
   assert.match(anon.headers.get("content-security-policy")!,new RegExp(`script-src 'nonce-${nonce.replace(/[+]/g,"\\+")}'`));
   assert.match(waitingPage,/data-ide-wait/);assert.match(waitingPage,/data-copy-button/);assert.match(waitingPage,/window\.location\.reload/);
   const primary=waitingPage.split("<details")[0];
-  assert.match(primary,/当前浏览器尚未授权，不代表个人准入丢失/);
-  assert.doesNotMatch(primary,/请先.*登记|首次.*登记|尚未登记管理员/);
+  assert.match(primary,/首次使用此浏览器，只需确认一次本人身份/);
+  assert.doesNotMatch(primary,/请先.*登记|首次使用必须登记|尚未登记管理员/);
   assert.match(primary,/申请有效期为 5 分钟/);assert.match(primary,/访问授权有效期为 90 天/);
   assert.match(primary,/Gateway 重启保留，不自动延期/);
   assert.match(primary,/撤销个人准入.*重新允许也不会恢复旧登录/);

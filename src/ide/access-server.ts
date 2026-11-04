@@ -13,9 +13,10 @@ import type { IDEApprovalCopyPort } from "./approval-service.js";
 import type { IDEAccessAuthority, IDEAccessSubject } from "./access-subject.js";
 import { IDE_APPROVAL_CHOICES, ideConfirmationCommand } from "./approval-presentation.js";
 import { workspaceAuthorizationScope, legacyWorkspaceScope } from "./workspace-scope.js";
+import { IDE_OPEN_PROGRESS_SCRIPT } from "./open-progress.js";
 
 type BrowserSession = IDEBrowserSession;
-export type IDEAccessContext = Pick<WorkspaceIDEManager, "configStore" | "config" | "resolve" | "refresh" | "authorizationFile" | "canonicalForTrust" | "open" | "endpoint" | "resume" | "close" | "onStop" | "accessAvailable">;
+export type IDEAccessContext = Pick<WorkspaceIDEManager, "configStore" | "config" | "resolve" | "refresh" | "authorizationFile" | "canonicalForTrust" | "open" | "endpoint" | "resume" | "close" | "onStop" | "accessAvailable"> & Partial<Pick<WorkspaceIDEManager, "canAccess" | "preparationStatus" | "accountForEntry">>;
 const COOKIE = "cig_ide_";
 const escape = (text: string) => text.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
 
@@ -73,7 +74,8 @@ export class IDEAccessServer {
     const config = this.manager.config(); if (!config.enabled) return;
     if (!this.authorizationError) this.authorization.setAudience(new URL(config.publicOrigin).origin);
     const handler = (req: IncomingMessage, res: ServerResponse) => void this.handle(req, res).catch(() => {
-      if (!res.headersSent) this.page(res, 503, "IDE 暂不可用", "请在本地 Gateway 管理台检查主机状态。"); else res.destroy();
+      if (!res.headersSent && req.headers.accept === "application/json") this.json(res, 503, { error: "IDE 准备或连接失败。浏览器授权已保留，请稍后重试；管理员可在主机安装状态中查看失败步骤。" });
+      else if (!res.headersSent) this.page(res, 503, "IDE 暂不可用", "主机准备或连接未完成，浏览器授权已保留。请重新打开项目入口重试，或在 Gateway 管理台查看该主机的安装状态。"); else res.destroy();
     });
     let server: http.Server | https.Server;
     try {
@@ -112,6 +114,7 @@ export class IDEAccessServer {
   }
   async grant(entryId: string, trustWorkspace = false, expectedScope?: string): Promise<{ action: string; entryId: string; token: string }> {
     this.assertEntry(entryId);
+    if (this.manager.canAccess?.(entryId) === false) throw new Error("Connector IDE 请通过本人 IM 身份确认浏览器，以核对设备授权。");
     const decision = { entryId, invalidated: false }; this.decisions.add(decision);
     try {
       const scope = this.scope(entryId);
@@ -134,10 +137,12 @@ export class IDEAccessServer {
     const decision = { entryId, invalidated: false }; this.decisions.add(decision);
     try {
       await this.refreshWorkspace(entryId);
-      this.assertEntry(entryId); const scope = this.scope(entryId), directory = trustWorkspace ? await this.manager.canonicalForTrust(entryId) : undefined;
+      if (this.manager.canAccess?.(entryId, subject) === false) throw new Error("此身份未获 Connector 完整 IDE 授权；共享文本权限不包含终端。");
+      this.assertEntry(entryId); const scope = this.scope(entryId), directory = trustWorkspace ? await this.manager.canonicalForTrust(entryId, subject) : undefined;
       this.assertEntry(entryId); if (scope !== this.scope(entryId)) throw new Error("项目已改变，未批准授权");
       if (decision.invalidated) throw new Error("项目授权配置已改变，未批准授权");
       beforeCommit?.();
+      if (this.manager.canAccess?.(entryId, subject) === false) throw new Error("Connector 授权已改变，未批准浏览器。");
       this.authorization.approve(requestId, entryId, scope, trustWorkspace, directory?.workspace, directory?.rootPaths, subject);
     } finally { this.decisions.delete(decision); }
   }
@@ -188,10 +193,12 @@ export class IDEAccessServer {
   }
   private authenticate(req: IncomingMessage, id: string): BrowserSession | undefined {
     if (!id) return;
-    return this.authorization.authenticate(this.cookie(req, COOKIE + id), id, this.scope(id));
+    const session = this.authorization.authenticate(this.cookie(req, COOKIE + id), id, this.scope(id));
+    return session && this.manager.canAccess?.(id, session.subject) !== false ? session : undefined;
   }
   private setCookie(res: ServerResponse, name: string, value: string, maxAge: number): void {
-    res.setHeader("Set-Cookie", `${name}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${this.manager.config().publicOrigin.startsWith("https:") ? "; Secure" : ""}`);
+    const prior = res.getHeader("Set-Cookie");
+    res.setHeader("Set-Cookie", [...(Array.isArray(prior) ? prior : prior ? [String(prior)] : []), `${name}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${this.manager.config().publicOrigin.startsWith("https:") ? "; Secure" : ""}`]);
   }
   private async refreshEntry(id: string, req: IncomingMessage, res: ServerResponse): Promise<boolean> {
     // Missing/moved/foreign entries are distinct from a backend whose current
@@ -224,7 +231,10 @@ export class IDEAccessServer {
     const url = new URL(req.url ?? "/", this.manager.config().publicOrigin);
     const entryId = /^\/(?:workspace|open|ide|logout)\/([a-f0-9]{32})(?:\/|$)/.exec(url.pathname)?.[1] ?? "";
     if (entryId && !await this.refreshEntry(entryId, req, res)) return;
-    const session = this.authenticate(req, entryId), method = req.method ?? "GET";
+    let session = this.authenticate(req, entryId);
+    const method = req.method ?? "GET", identity = this.authorization.identify(this.cookie(req, "cig_browser_person"));
+    const mayEnter = () => !!identity && identity.subject.principal.accountId === this.manager.accountForEntry?.(entryId)
+      && this.manager.canAccess?.(entryId, identity.subject) !== false;
     const copyPanel = /^\/approval\/([a-f0-9]{32})$/.exec(url.pathname);
     if (copyPanel) {
       // No POST action, cookie, proof exchange or management authority here.
@@ -260,7 +270,8 @@ export class IDEAccessServer {
     if (method === "POST" && url.pathname === `/logout/${entryId}` && session) {
       const form = new URLSearchParams(await readBody(req)); if (form.get("csrf") !== session.csrf) { res.writeHead(403).end(); return; }
       this.authorization.logout(session);
-      for (const [socket, value] of this.connections) if (value.session === session) socket.destroy();
+      for (const [socket, value] of this.connections) if (!this.authorization.active(value.session)) socket.destroy();
+      this.setCookie(res, "cig_browser_person", "", 0);
       this.setCookie(res, COOKIE + entryId, "", 0); this.redirect(res, `/workspace/${entryId}`); return;
     }
     if (method === "GET" && (workspace || url.pathname === "/")) {
@@ -280,16 +291,30 @@ export class IDEAccessServer {
         }
         const pairCookie = this.cookie(req, `cig_request_${id}`)?.split(".");
         const approved = pairCookie?.length === 2 && this.authorization.exchangeRequest(pairCookie[0], pairCookie[1], id, this.scope(id));
-        if (approved) { this.setCookie(res, COOKIE + id, approved.token, IDE_SESSION_TTL_MS / 1000); this.redirect(res, `/workspace/${id}`); return; }
+        if (approved) {
+          this.setCookie(res, COOKIE + id, approved.token, IDE_SESSION_TTL_MS / 1000);
+          const remembered = this.authorization.rememberBrowser(approved.session);
+          if (remembered) this.setCookie(res, "cig_browser_person", remembered.token, Math.max(0, Math.floor((remembered.identity.expiresAt - Date.now()) / 1000)));
+          this.redirect(res, `/workspace/${id}`); return;
+        }
+        if (mayEnter()) {
+          this.page(res, 200, "正在打开 Web IDE", "已确认本人身份，正在核对当前项目并自动信任目录。",
+            this.openForm(id, identity!.csrf), IDE_OPEN_PROGRESS_SCRIPT); return;
+        }
         const pending = this.authorization.request(id, pairCookie?.length === 2 ? { id: pairCookie[0], proof: pairCookie[1] } : undefined, this.scope(id));
         this.setCookie(res, `cig_request_${id}`, `${pending.request.id}.${pending.proof}`, 300);
         const local = ["127.0.0.1", "localhost", "[::1]"].includes(new URL(this.manager.config().publicOrigin).hostname);
         const offer = this.approvalCopies?.offer(pending.request.id, id);
         const choiceControls = offer
-          ? `<p>项目：<strong>${escape(offer.request.projectName)}</strong><br>主机：${escape(offer.request.hostId)}</p>${workspaceScopeHtml(offer.request)}<p>IDE 允许项目编辑和终端访问，具备运行用户的开发权限，不是文件系统沙箱。请选择一种权限，复制对应命令并在本人的机器人私聊或群聊发送一次；不会再要求第二条确认命令。</p>${IDE_APPROVAL_CHOICES.map(c => `<section><h2>${escape(c.label)}</h2><p>${escape(c.detail)}</p>${copyField(`「${c.label}」命令`, ideConfirmationCommand(offer.shortCode, c.choice), { purpose: "reply", rows: 2 })}</section>`).join("")}`
+          ? `<p>项目：<strong>${escape(offer.request.projectName)}</strong><br>主机：${escape(offer.request.hostId)}</p>${workspaceScopeHtml(offer.request)}<p>在对应机器人私聊或群聊发送下面这条命令，确认浏览器是你本人使用。确认后默认批准并信任目录，允许文件、Git 和终端；后续直接进入已有权限的项目，无需逐项审批。</p>${copyField("确认本人并进入", ideConfirmationCommand(offer.shortCode, "trust"), { purpose: "reply", rows: 2 })}`
           : `${workspaceScopeHtml(this.manager.resolve(id))}<p>一次确认命令暂未就绪，可使用兼容流程在机器人私聊或群聊核对申请。</p>${copyField("兼容流程：先核对申请", `/ide auth ${pending.request.code}`, { purpose: "reply" })}`;
-        this.page(res, 200, "等待 Gateway 授权", "当前浏览器尚未授权，不代表个人准入丢失。已在 Gateway 获准的个人无需额外登记 IDE 管理员；核对下方项目、主机、目录和权限，再复制所选命令发给对应机器人。无需 Web IDE 密码。",
+        this.page(res, 200, "等待 Gateway 授权", "首次使用此浏览器，只需确认一次本人身份。复用已有个人准入，无需另设密码或重复登记。",
           `<section data-ide-wait>${choiceControls}<p>浏览器识别码（仅核对用，无需单独发送）：<strong>${escape(pending.request.code)}</strong></p></section><p>只配对你本人发起的申请。复制不会发送命令或批准访问；剪贴板受限时，可长按短命令复制或直接输入。</p><p>本次浏览器申请有效期为 5 分钟；批准后，浏览器访问授权有效期为 ${IDE_SESSION_DAYS} 天，Gateway 重启保留，不自动延期。撤销个人准入会使由该资格签发的浏览器授权失效，重新允许也不会恢复旧登录。</p><p>批准后本页会自动继续；复制操作期间暂缓刷新。</p><a href="/workspace/${id}">批准后继续</a><details data-ide-registration-help><summary>首次使用：如何核对个人准入</summary><p>本页尚未验证你的 IM 身份。请在对应机器人私聊或群聊发送下方命令，查看本人资格；已获个人准入者无需重复设置。</p>${copyField("查询本人准入状态的命令", "/ide identity", { purpose: "reply" })}<p>未获准时，请管理员在运行 Gateway 的电脑管理页聊天授权中「允许此用户」，不要仅允许整个群。群白名单和 session 角色不授予个人 IDE 资格；旧版独立登记的身份仍兼容。</p>${this.managementOrigin && local ? `<p><a href="${escape(this.managementOrigin)}">打开本机 Gateway 管理页（仅运行 Gateway 的电脑）</a></p>` : ""}</details>`); return;
+      }
+      if (session.subject?.basis === "im-personal" && (!identity || identity.subject.principal.accountId !== session.subject.principal.accountId
+        || identity.subject.principal.actorId !== session.subject.principal.actorId)) {
+        const remembered = this.authorization.rememberBrowser(session);
+        if (remembered) this.setCookie(res, "cig_browser_person", remembered.token, Math.max(0, Math.floor((remembered.identity.expiresAt - Date.now()) / 1000)));
       }
       const endpoint = this.manager.endpoint(id, session.trustWorkspace === true);
       if (endpoint) { this.redirect(res, editorDestination(id, endpoint)); return; }
@@ -298,26 +323,39 @@ export class IDEAccessServer {
       // workspace trust. With scripts disabled there is an explicit fallback.
       const target = this.manager.resolve(id);
       this.page(res, 200, "正在打开 Web IDE", `${target.projectName} · ${target.hostId} · ${target.workspace}`,
-        `<p>当前浏览器已授权，正在自动进入 code-server，无需再次批准。${session.trustWorkspace ? "Gateway 已授权并信任当前目录，沿用既有权限。" : "本次仅批准访问，沿用既有权限，不自动信任目录代码。"}</p><form data-ide-auto-open method="post" action="/open/${id}"><input type="hidden" name="csrf" value="${session.csrf}"><button type="submit">未自动继续时，点击进入</button></form>`,
-        `document.querySelector('[data-ide-auto-open]').requestSubmit();`); return;
+        `<p>当前浏览器已授权，正在自动进入 code-server，无需再次批准。${session.trustWorkspace ? "Gateway 已授权并信任当前目录，沿用既有权限。" : "本次仅批准访问，沿用既有权限，不自动信任目录代码。"}</p>${this.openForm(id, session.csrf)}`,
+        IDE_OPEN_PROGRESS_SCRIPT); return;
     }
     const open = /^\/open\/([a-f0-9]{32})$/.exec(url.pathname);
-    if (method === "POST" && open && session) {
+    if (method === "POST" && open && (session || mayEnter())) {
       const form = new URLSearchParams(await readBody(req));
+      if (!session && identity) {
+        if (form.get("csrf") !== identity.csrf) { res.writeHead(403).end(); return; }
+        const scope = this.scope(open[1]), directory = await this.manager.canonicalForTrust(open[1], identity.subject);
+        if (!mayEnter() || scope !== this.scope(open[1])) { res.writeHead(403).end(); return; }
+        const access = this.authorization.enterProject(identity, open[1], scope, directory.workspace, directory.rootPaths);
+        session = access.session;
+        this.setCookie(res, COOKIE + open[1], access.token, Math.max(0, Math.floor((access.session.expiresAt - Date.now()) / 1000)));
+        // The same authenticated POST continues with the newly issued CSRF.
+        form.set("csrf", session.csrf);
+      }
+      if (!session) { res.writeHead(401).end(); return; }
       if (form.get("csrf") !== session.csrf) { res.writeHead(403).end(); return; }
       if (!this.authorization.active(session)) { res.writeHead(401).end(); return; }
       let instance;
-      try { instance = await this.manager.open(open[1], session.trustWorkspace === true, session.trustedDirectory, session.trustedRootPaths); }
+      try { instance = await this.manager.open(open[1], session.trustWorkspace === true, session.trustedDirectory, session.trustedRootPaths, session.subject); }
       catch (error) {
         if (!(error instanceof IDEInstallPendingError)) throw error;
-        this.page(res, 202, "正在准备 code-server", error.message, `<p>准备完成后会自动进入，无需再次批准。</p><a data-ide-retry href="/workspace/${open[1]}">立即检查进度</a>`,
-          `setTimeout(()=>location.replace(document.querySelector('[data-ide-retry]').href),3000);`); return;
+        const progress = await this.manager.preparationStatus?.(open[1], session.subject);
+        if (req.headers.accept === "application/json") { this.json(res, 202, { status: "preparing", phase: progress?.phase, bytes: progress?.bytes, total: progress?.total }); return; }
+        this.page(res, 202, "正在准备 code-server", "准备完成后自动进入，浏览器授权已保留。", this.openForm(open[1], session.csrf), IDE_OPEN_PROGRESS_SCRIPT); return;
       }
-      if (!this.authorization.active(session)) { res.writeHead(401).end(); return; }
+      if (!this.authorization.active(session) || this.manager.canAccess?.(open[1], session.subject) === false) { res.writeHead(401).end(); return; }
       const destination = editorDestination(open[1], instance);
       // Extension preparation warnings remain visible in management status;
       // they must not add another gate in front of an authorized editor.
-      this.redirect(res, destination); return;
+      if (req.headers.accept === "application/json") this.json(res, 200, { status: "ready", location: destination });
+      else this.redirect(res, destination); return;
     }
     const ide = /^\/ide\/([a-f0-9]{32})(\/.*)$/.exec(url.pathname);
     if (ide) {
@@ -368,7 +406,7 @@ export class IDEAccessServer {
       remote.setTimeout(0);
       try {
         const current = this.manager.endpoint(match[1], session.trustWorkspace === true);
-        if (!this.authorization.active(session) || (session.securityScope ?? session.scope) !== this.scope(session.entryId)
+        if (!this.authorization.active(session) || this.manager.canAccess?.(session.entryId, session.subject) === false || (session.securityScope ?? session.scope) !== this.scope(session.entryId)
           || current?.instanceId !== endpoint.instanceId || current.socketPath !== endpoint.socketPath) {
           remote.destroy(); socket.destroy(); return;
         }
@@ -387,7 +425,7 @@ export class IDEAccessServer {
     const verify = async () => {
       if (this.connections.get(socket) !== entry || socket.destroyed) return;
       try {
-        if (!this.authorization.active(session)) { disconnect("authorization-inactive"); return; }
+        if (!this.authorization.active(session) || this.manager.canAccess?.(session.entryId, session.subject) === false) { disconnect("authorization-inactive"); return; }
         await this.refreshWorkspace(session.entryId);
         if (this.connections.get(socket) !== entry || socket.destroyed) return;
         if (!this.authorization.active(session) || (session.securityScope ?? session.scope) !== this.scope(session.entryId)) { disconnect("authorization-or-scope-changed"); return; }
@@ -406,10 +444,14 @@ export class IDEAccessServer {
     if (!previous) socket.once("close", () => { const entry = this.connections.get(socket); if (entry) clearTimeout(entry.timer); this.connections.delete(socket); });
   }
   private redirect(res: ServerResponse, location: string): void { res.writeHead(303, { Location: location }).end(); }
+  private json(res: ServerResponse, status: number, value: object): void { res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" }).end(JSON.stringify(value)); }
+  private openForm(id: string, csrf: string): string {
+    return `<p data-ide-open-status role="status" aria-live="polite">正在检查安装和连接状态…</p><form data-ide-auto-open method="post" action="/open/${id}"><input type="hidden" name="csrf" value="${csrf}"><button type="submit">继续检查并进入</button></form>`;
+  }
   private page(res: ServerResponse, status: number, title: string, text: string, body = "", script = ""): void {
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     const nonce = crypto.randomBytes(16).toString("base64");
-    res.setHeader("Content-Security-Policy", `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`);
+    res.setHeader("Content-Security-Policy", `default-src 'none'; script-src 'nonce-${nonce}'; connect-src 'self'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`);
     res.writeHead(status).end(`<!doctype html><html lang="zh-CN"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(title)}</title><style>body{margin:10vh auto;max-width:620px;padding:24px;color:#25342d;background:#f6f8f5;font:17px Georgia,serif}h1{font-size:30px}p{line-height:1.7;overflow-wrap:anywhere}label{display:grid;gap:8px}input,button{font:inherit;padding:12px;margin:12px 0}button{background:#214f3a;color:white;border:0;border-radius:6px;cursor:pointer}input{border:1px solid #aab7af}${COPY_STYLE}</style><h1>${escape(title)}</h1><p>${escape(text)}</p>${body}<script nonce="${nonce}">${COPY_SCRIPT}\n${script}</script></html>`);
   }
 }

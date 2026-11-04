@@ -5,17 +5,24 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { ideSshConnection } from "./host-command.js";
 import { IDE_PROFILE_HELPER, IDE_SETTING_DEFAULTS, type IDEProfileStatus } from "./profile.js";
+import type { IDEAccessSubject } from "./access-subject.js";
+import type { IDEInstallStatus } from "./installer.js";
 
 const exec = promisify(execFile);
 export type IDELaunch = { socketPath: string; workspaceFile?: string; alive: () => boolean; stop: () => Promise<void> };
 export type IDELaunchInput = { hostId: string; workspace: string; id: string; binary: string;
+  context?: IDEHostContext;
   rootPaths?: readonly string[];
   settings: Record<string, unknown>; extensions: readonly string[]; prepare?: boolean; trustWorkspace?: boolean;
   onProfile?: (status: IDEProfileStatus) => void; signal?: AbortSignal };
 export interface IDEHostTransport {
-  canonicalDirectory(hostId: string, workspace: string): Promise<string>;
+  canAccess?(hostId: string, context: IDEHostContext): boolean;
+  preparationStatus?(hostId: string, context: IDEHostContext): Promise<Pick<IDEInstallStatus, "phase" | "bytes" | "total"> | undefined>;
+  canonicalDirectory(hostId: string, workspace: string, context?: IDEHostContext): Promise<string>;
   launch(input: IDELaunchInput): Promise<IDELaunch>;
 }
+/** Identity accompanies a host operation; it never comes from a browser path. */
+export type IDEHostContext = { accountId: string; threadId?: string; workspace: string; rootPaths?: readonly string[]; subject?: IDEAccessSubject };
 
 /** Fixed helper; variable input is base64 JSON, never shell source. Each host
  * owns its tools/data. A disconnected parent terminates its own child group. */
@@ -113,7 +120,7 @@ export class ProcessIDEHostTransport implements IDEHostTransport {
   }
   async launch(input: IDELaunchInput): Promise<IDELaunch> {
     if (input.signal?.aborted) throw new Error("IDE 启动已取消");
-    const { onProfile, signal, ...payload } = input;
+    const { onProfile, signal, context: _context, ...payload } = input;
     const call = this.invocation(input.hostId, { ...payload, defaults: IDE_SETTING_DEFAULTS });
     const processChild = spawn(call.command, call.args, { stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
     let stopping = false, hostReason = "unknown";
@@ -180,7 +187,7 @@ export class ProcessIDEHostTransport implements IDEHostTransport {
   }
 }
 
-function parseProfileStatus(text: string, extensions: readonly string[]): IDEProfileStatus | undefined {
+export function parseProfileStatus(text: string, extensions: readonly string[]): IDEProfileStatus | undefined {
   try {
     const value = JSON.parse(text);
     if (!["checking", "installing", "ready", "error"].includes(value.phase) || !Array.isArray(value.installed)) return;

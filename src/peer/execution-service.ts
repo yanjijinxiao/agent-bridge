@@ -17,6 +17,7 @@ import { PeerConnection, PeerError, PEER_EXECUTION_TIMEOUT_MS } from "./rpc.js";
 import { FILE_METHODS, PeerFiles } from "./files.js";
 import { MANAGEMENT_METHODS, PeerManagement } from "./management.js";
 import { PeerSharingAuthority, type OwnerConfirmation } from "./sharing-authority.js";
+import { PeerIDEService, type PeerIDEConfig } from "./ide-service.js";
 
 const callSchema = z.object({ grant: grantSchema, method: z.enum(["listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "readTurnActivities", "getHistory", "getHistoryPage",
   "getRuntimeInfo", "warmUp", "listSkills", "listMcpServers", "serverIdentity", "readThreadProvenance", "listQueuedSubmissions", "addQueuedSubmission", "deleteQueuedSubmission", "runQueuedSubmission", "resumeAfterCapacity", "recoverSystemError", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "interruptTurn", "getGoal", "setGoal", "clearGoal", "receipt", "observeThreadInteractions", "unobserveThreadInteractions", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
@@ -47,6 +48,7 @@ export type PeerExecutionOptions = {
   independent?: boolean;
   approve: (grant: PeerGrant) => Promise<boolean>;
   approveOwner?: (confirmation: OwnerConfirmation) => Promise<boolean>;
+  webIDE?: PeerIDEConfig;
 };
 
 /** Pair a local Codex profile with a chat, then choose sessions in the chat.
@@ -62,6 +64,7 @@ export class PeerExecutionService {
   private readonly management: PeerManagement;
   private readonly interactions: PeerInteractionService;
   private readonly sharing: PeerSharingAuthority;
+  private readonly ide?: PeerIDEService;
   private constructor(private readonly options: PeerExecutionOptions, description: PeerDescription) {
     this.description = description;
     this.recovery = new PeerRecoveryJournal(options.stateDir);
@@ -73,6 +76,12 @@ export class PeerExecutionService {
     this.interactions = new PeerInteractionService(options.backend);
     this.management = new PeerManagement(options.backend, options.stateDir, this.receipts);
     this.sharing = new PeerSharingAuthority(path.join(options.stateDir, "sharing.json"), options.backend, options.approveOwner ?? (async () => false));
+    if (options.webIDE?.enabled) this.ide = new PeerIDEService({ config: options.webIDE, backend: options.backend, stateDir: options.stateDir,
+      authorize: (grant, threadId) => {
+        this.assertThread(threadId);
+        if (grant.delegation || !this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant))) throw new PeerError("access", "设备授权已失效。");
+        this.sharing.assert(grant, "inspectThread", [threadId]);
+      } });
     if (this.sharing.hasResources() && !this.privatePolicy) this.saveGrants(this.grants, true);
   }
   private saveGrants(grants: PeerGrant[], privatePolicy = this.privatePolicy): void {
@@ -97,6 +106,7 @@ export class PeerExecutionService {
       projects: !options.threadId && info.capabilities.projects };
     const service = new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
       writeGuard: 1, nativeContract: 1,
+      ...(options.webIDE?.enabled ? { fullIDE: 1 as const } : {}),
       ...(options.backend.observeThreadInteractions ? { interactions: 1 as const } : {}),
       files: { version: 1 },
       management: { version: 1 },
@@ -107,6 +117,7 @@ export class PeerExecutionService {
     return service;
   }
   attach(connection: PeerConnection): void {
+    this.ide?.attach(connection);
     const queues = new Map<string, () => void>(); this.queueLeases.set(connection, queues);
     connection.onClose(() => { this.files.close(connection); for (const retire of queues.values()) retire(); });
     const approved = (grant: PeerGrant) => grant.delegation ? this.sharing.valid(grant) : this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant));
@@ -166,6 +177,7 @@ export class PeerExecutionService {
     if (typeof value !== "string" || !value || expected !== undefined && value !== expected)
       throw new PeerError("scope", "Only the locally selected thread is exported");
   }
+  async close(): Promise<void> { await this.ide?.close(); }
   private async readState(id: unknown, write = false, observation?: import("../codex/backend.js").CodexMetadataObservation): Promise<CodexThreadState & { cwd: string }> {
     this.assertThread(id);
     const state = await this.options.backend.inspectThread(id, undefined, observation);
