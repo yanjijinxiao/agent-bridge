@@ -11418,7 +11418,7 @@
         1949,
         1961
       ],
-      "contract": "用户目录固定制品校验/版本/平台自动安装；Profile只补缺省和缺失扩展，保留JSONC、个人布局与工作区设置。",
+      "contract": "用户目录固定制品校验/版本/平台自动安装；原生 JSONC/Profile 作为显式初始基线，保留个人设置；首次扩展核验成功后由 IDE 自主管理，显式准备可重新应用清单。",
       "implementationReview": "pending",
       "cases": [
         {
@@ -11531,6 +11531,74 @@
             "date": "2026-11-03",
             "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
             "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+          }
+        },
+        {
+          "id": "IDE-08.4",
+          "scenario": "VS Code 原生配置导入及 IDE 自主扩展管理",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-native-config.test.ts",
+              "name": "native JSONC preserves URLs, escaped strings, comments and trailing comma semantics"
+            },
+            {
+              "file": "test/ide-native-config.test.ts",
+              "name": "native settings support arbitrary extension keys, language overrides and nested JSON"
+            },
+            {
+              "file": "test/ide-native-config.test.ts",
+              "name": "extensions.json imports arbitrary publisher IDs but excludes unwanted recommendations"
+            },
+            {
+              "file": "test/ide-native-config.test.ts",
+              "name": "exported Profile imports only selected fields and explicitly reports disabled or unhandled content"
+            },
+            {
+              "file": "test/ide-profile.test.ts",
+              "name": "native uninstall survives reopen; explicit prepare can restore the initial list"
+            },
+            {
+              "file": "test/ide-web.test.ts",
+              "name": "native configuration import only stages the selected fields and reports unsupported Profile sections"
+            },
+            {
+              "file": "test/ide.test.ts",
+              "name": "local Gateway mints IDE access only behind mutation protection and no password API remains"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/native-profile.ts",
+              "sha256": "5b46062a1a6b126effcf15a0a39d450d35469da402b291f97bc7fa22054167b0"
+            },
+            {
+              "file": "src/ide/config.ts",
+              "sha256": "7727561b89d3af1159f19a97ada7423c2c2f5f54872a25466d87964fd54c78e7"
+            },
+            {
+              "file": "src/ide/transport.ts",
+              "sha256": "fe52d9807b92f19fe9e1c4c4be07ddb03e7f0d4dfaae23cba775ddff0af140b3"
+            },
+            {
+              "file": "src/server/http-server.ts",
+              "sha256": "38ff59080b5cf85462dcaf278ff1d6fa6629cf134f56664e150e9f458e643980"
+            },
+            {
+              "file": "src/web/ide.js",
+              "sha256": "1169136304935264eb29fe4cd498e46da234bb3e470514a005002cfa5d590370"
+            },
+            {
+              "file": "src/web/index.html",
+              "sha256": "ab3f3be420cf1f193f2a49f8af2fe655c111343e218b7073436d7584777479f0"
+            }
+          ],
+          "verifiedBoundary": "标准 JSONC/Profile 解析、表单仅暂存、HTTP 管理鉴权、模拟真实进程安装核验和卸载保留；实际扩展运行与手机显示另列。",
+          "verificationLimit": "仅本次命名测试和审计回执；不代表真实多人钉钉端、任意扩展或全部平台已验收。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "两项用户变更涉及的四层增量审查",
+            "report": "docs/audits/2026-11-04-native-config-enrollment/README.md"
           }
         }
       ]
@@ -16193,6 +16261,82 @@
             "date": "2026-11-04",
             "scope": "证书选择、传输、配置文档和部署迁移的四层局部复核",
             "report": "docs/audits/2026-11-04-connector-ca/README.md"
+          }
+        },
+        {
+          "id": "PEER-01.4",
+          "scenario": "设备凭据自动生成与首次受限登记、重连和旧配置兼容",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-enrollment.test.ts",
+              "name": "automatic identity is private, stable, Gateway-scoped and never regenerated after corruption"
+            },
+            {
+              "file": "test/peer-enrollment.test.ts",
+              "name": "real Connector entrypoint starts without nodeId or tokenFile and reuses its private identity"
+            },
+            {
+              "file": "test/peer-enrollment.test.ts",
+              "name": "enrollment is quarantined until IM guard plus device confirmation; reconnect restores grants"
+            },
+            {
+              "file": "test/peer-enrollment.test.ts",
+              "name": "wrong credentials for registered or legacy identities cannot fall back to enrollment"
+            },
+            {
+              "file": "test/peer-enrollment.test.ts",
+              "name": "self enrollment requires explicit listener configuration"
+            },
+            {
+              "file": "test/peer-enrollment.test.ts",
+              "name": "denial and final IM revocation do not publish devices or commit credentials"
+            },
+            {
+              "file": "test/peer-enrollment.test.ts",
+              "name": "two pending sockets cannot race to replace the same device identity"
+            },
+            {
+              "file": "test/peer-enrollment.test.ts",
+              "name": "credential storage failure publishes neither identity nor grant"
+            },
+            {
+              "file": "test/peer-enrollment.test.ts",
+              "name": "grant storage failure leaves identity recoverable but not usable"
+            },
+            {
+              "file": "test/peer-enrollment.test.ts",
+              "name": "expired pairing cannot enroll and disconnected candidates are retired"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/credentials.ts",
+              "sha256": "0dd9c0bb780e99f549259871513c26469422587257d45d194b37f7cd2144f5b5"
+            },
+            {
+              "file": "src/peer/index.ts",
+              "sha256": "e0cd61792804ee18b3840bedce069e760e7da3fe30986a92dd88e0ef8c8c95b4"
+            },
+            {
+              "file": "src/peer/transport.ts",
+              "sha256": "947cba13d2d45092db1d8f9903266204326bd79843bdb6eb969f9a990cf176fd"
+            },
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "9067f9692b37f788bf3b8231222fd2a465dc921e7621ca2bbf7b98da160f9a50"
+            },
+            {
+              "file": "src/peer/runtime.ts",
+              "sha256": "284506832b2bff9c57267ee68126ddb9dcc70acee45210d57ff826022f927a08"
+            }
+          ],
+          "verifiedBoundary": "真实本机 WebSocket 与 Connector 子进程；未登记不可见、错误凭据拒绝、确认/撤权/过期/竞争、存储失败和重连。线上多用户 IM 与所有操作系统另列。",
+          "verificationLimit": "仅本次命名测试和审计回执；不代表真实多人钉钉端、任意扩展或全部平台已验收。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "两项用户变更涉及的四层增量审查",
+            "report": "docs/audits/2026-11-04-native-config-enrollment/README.md"
           }
         }
       ]

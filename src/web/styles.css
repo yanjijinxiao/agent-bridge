@@ -784,12 +784,11 @@ input[aria-invalid="true"] { border-color: #d6908d; outline-color: rgb(200 64 61
 .ide-form fieldset { border: 1px solid var(--ide-rule); border-radius: 10px; padding: 20px; }
 .ide-form legend { font-weight: 700; padding: 0 8px; }
 .ide-form small, .ide-form fieldset p { color: #617069; line-height: 1.7; }
-.ide-form .ide-inline, .ide-host label, .ide-extensions label { display: flex; align-items: center; gap: 9px; }
+.ide-form .ide-inline, .ide-host label { display: flex; align-items: center; gap: 9px; }
 .ide-host { display: grid; grid-template-columns: minmax(180px, 1fr) 1fr; gap: 16px; align-items: center; margin: 12px 0; overflow-wrap: anywhere; }
 .ide-host .ide-access-field { display: grid; align-items: start; gap: 8px; min-width: 0; }
 .ide-host > small { grid-column: 1 / -1; }
 .ide-form .ide-tls[hidden] { display: none; }
-.ide-extensions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; overflow-wrap: anywhere; }
 .ide-instance { display: flex; gap: 20px; justify-content: space-between; align-items: center; border-top: 1px solid var(--ide-rule); padding: 18px 0; }
 .ide-instance p { overflow-wrap: anywhere; }
 .ide-root-list { padding-left: 20px; line-height: 1.7; }
@@ -807,7 +806,7 @@ input[aria-invalid="true"] { border-color: #d6908d; outline-color: rgb(200 64 61
 .ide-tls select { width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid var(--ide-rule); border-radius: 7px; background: #fff; }
 .ide-tls p { margin: 0; overflow-wrap: anywhere; }
 .ide-tls > button { justify-self: start; }
-@media (max-width: 650px) { .ide-host, .ide-extensions { grid-template-columns: 1fr; } .ide-instance { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 650px) { .ide-host { grid-template-columns: 1fr; } .ide-instance { align-items: flex-start; flex-direction: column; } }
 .session-expiry { display: block; color: var(--ink-soft); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 .session-expiry.is-due { color: #9a6700; }
 .session-expiry.is-expired { color: var(--ink-soft); }

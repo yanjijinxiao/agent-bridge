@@ -4,18 +4,22 @@ import crypto from "node:crypto";
 import WebSocket, { WebSocketServer } from "ws";
 import { PeerConnection } from "./rpc.js";
 import { peerCertificateAuthority } from "./gateway-trust.js";
+import { type PeerCredentialStore, type PeerEnrollment } from "./credentials.js";
 
 export type PeerServerOptions = {
   host: string; port: number; credentials: Readonly<Record<string, string>>;
   tls?: { key: Buffer; cert: Buffer };
   allowInsecureLan?: boolean;
-  accept: (nodeId: string, connection: PeerConnection) => void;
+  deviceStore?: PeerCredentialStore;
+  enrollment?: boolean;
+  accept: (nodeId: string, connection: PeerConnection, enrollment?: PeerEnrollment) => void;
 };
 export type PeerClientOptions = {
   url: string; nodeId: string; token: string; ca?: Buffer; allowInsecureLan?: boolean;
   connected: (connection: PeerConnection) => void | Promise<void>;
   status?: (state: "connecting" | "connected" | "disconnected") => void;
   reconnectMs?: number;
+  enroll?: boolean;
 };
 const loopback = (host: string) => ["127.0.0.1", "localhost", "::1", "[::1]"].includes(host);
 function checkIdentity(id: string, token: string): void {
@@ -31,20 +35,46 @@ export class GatewayPeerServer {
     readonly url: string) {}
   static async listen(options: PeerServerOptions): Promise<GatewayPeerServer> {
     if (!options.tls && !loopback(options.host) && !options.allowInsecureLan) throw new Error("Peer LAN ingress requires TLS or explicit allowInsecureLan");
-    if (!Object.keys(options.credentials).length) throw new Error("Peer ingress requires device credentials");
+    if (!Object.keys(options.credentials).length && !options.deviceStore) throw new Error("Peer ingress requires device credentials");
+    if (options.enrollment && !options.deviceStore) throw new Error("Enrollment requires a persistent device store");
     for (const [id, token] of Object.entries(options.credentials)) checkIdentity(id, token);
     const response: http.RequestListener = (_req, res) => { res.writeHead(404).end(); };
     const server = options.tls ? https.createServer(options.tls, response) : http.createServer(response);
     const sockets = new WebSocketServer({ noServer: true, maxPayload: 1024 * 1024, perMessageDeflate: false });
+    const pending = new Set<PeerConnection>();
+    let windowStart = Date.now(), enrollments = 0;
     server.on("upgrade", (request, socket, head) => {
       const id = request.headers["x-gateway-peer-id"], authorization = request.headers.authorization;
       const expected = typeof id === "string" && Object.hasOwn(options.credentials, id) ? options.credentials[id] : undefined;
-      if (request.url !== "/gateway/v1/peer" || request.headers.origin || !expected
-        || !authorization || !matches(authorization, `Bearer ${expected}`)) {
+      const secret = authorization?.startsWith("Bearer ") ? authorization.slice(7) : "";
+      const valid = typeof id === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(id) && secret.length >= 32 && secret.length <= 512 && !/[\r\n]/.test(secret);
+      const authenticated = valid && (expected !== undefined ? matches(authorization!, `Bearer ${expected}`) : options.deviceStore?.matches(id, secret));
+      // Never downgrade a known ID with an invalid secret into enrollment.
+      const enrolling = valid && !authenticated && expected === undefined && !options.deviceStore?.has(id)
+        && options.enrollment && request.headers["x-gateway-peer-enroll"] === "1";
+      if (request.url !== "/gateway/v1/peer" || request.headers.origin || !(authenticated || enrolling)) {
         socket.end("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"); return;
       }
+      if (enrolling) {
+        if (Date.now() - windowStart >= 60_000) { windowStart = Date.now(); enrollments = 0; }
+        if (pending.size >= 64 || ++enrollments > 64) {
+          socket.end("HTTP/1.1 429 Too Many Requests\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"); return;
+        }
+      }
       sockets.handleUpgrade(request, socket, head, websocket => {
-        try { options.accept(id as string, new PeerConnection(websocket)); }
+        const connection = new PeerConnection(websocket);
+        let enrollment: PeerEnrollment | undefined;
+        if (enrolling) {
+          pending.add(connection);
+          const timer = setTimeout(() => connection.close(), 5 * 60_000); timer.unref();
+          connection.onClose(() => { pending.delete(connection); clearTimeout(timer); });
+          enrollment = { commit(principal) {
+            if (!connection.open || !pending.has(connection)) throw new Error("Enrollment connection expired");
+            options.deviceStore!.enroll(id as string, secret, principal);
+            pending.delete(connection); clearTimeout(timer);
+          } };
+        }
+        try { options.accept(id as string, connection, enrollment); }
         catch { websocket.terminate(); }
       });
     });
@@ -81,7 +111,8 @@ export class GatewayPeerClient {
   private dial(): void {
     if (this.stopped) return;
     this.options.status?.("connecting");
-    const socket = new WebSocket(this.options.url, { headers: { authorization: `Bearer ${this.options.token}`, "x-gateway-peer-id": this.options.nodeId },
+    const socket = new WebSocket(this.options.url, { headers: { authorization: `Bearer ${this.options.token}`, "x-gateway-peer-id": this.options.nodeId,
+      ...(this.options.enroll ? { "x-gateway-peer-enroll": "1" } : {}) },
       ca: peerCertificateAuthority(this.options.url, this.options.ca), rejectUnauthorized: true,
       followRedirects: false, maxPayload: 1024 * 1024, handshakeTimeout: 10_000, perMessageDeflate: false });
     this.socket = socket;

@@ -2,23 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import net from "node:net";
 import { z } from "zod";
+import { extensionListSchema, nativeSettingsSchema } from "./native-profile.js";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 
-// Deliberately not arbitrary VS Code configuration: imports cannot smuggle
-// executable paths, environment variables, proxy credentials or extension state.
-export const PORTABLE_SETTINGS = new Set([
-  "workbench.editor.wrapTabs", "workbench.colorTheme", "workbench.iconTheme", "workbench.productIconTheme",
-  "editor.fontSize", "editor.fontFamily", "editor.lineHeight", "editor.fontWeight", "editor.fontLigatures",
-  "editor.tabSize", "editor.insertSpaces", "editor.wordWrap", "editor.minimap.enabled",
-  "editor.renderWhitespace", "editor.formatOnSave", "files.trimTrailingWhitespace",
-  "files.insertFinalNewline", "files.watcherExclude", "diffEditor.maxComputationTime",
-  "diffEditor.ignoreTrimWhitespace", "terminal.integrated.initialHint", "workbench.secondarySideBar.defaultVisibility"
-]);
-export const IDE_EXTENSIONS = ["redhat.vscode-yaml", "dotjoshjohnson.xml", "mechatroner.rainbow-csv",
-  "redhat.java", "vscjava.vscode-maven", "scalameta.metals", "josevseb.google-java-format-for-vs-code", "tuttieee.emacs-mcx"] as const;
-const settingsSchema = z.record(z.string(), z.union([z.string().max(500), z.boolean(), z.number().finite(),
-  z.record(z.string().max(300), z.boolean())])).superRefine((settings, context) => {
-  for (const key of Object.keys(settings)) if (!PORTABLE_SETTINGS.has(key)) context.addIssue({ code: "custom", message: `不支持导入的设置：${key}` });
+// Native editor settings are a deliberately imported administrator baseline.
+// Runtime credentials, access policy and process arguments stay outside it.
+const settingsSchema = nativeSettingsSchema.superRefine((settings, context) => {
   const visibility = settings["workbench.secondarySideBar.defaultVisibility"];
   if (visibility !== undefined && !["hidden", "visibleInWorkspace", "visible", "maximizedInWorkspace", "maximized"].includes(String(visibility)))
     context.addIssue({ code: "custom", message: "无效的次侧边栏默认可见性" });
@@ -32,7 +21,6 @@ const settingsSchema = z.record(z.string(), z.union([z.string().max(500), z.bool
     context.addIssue({ code: "custom", message: "editor.fontWeight 必须为 normal、bold 或 100 至 900 的字重字符串" });
   for (const key of ["editor.fontLigatures", "workbench.editor.wrapTabs"])
     if (settings[key] !== undefined && typeof settings[key] !== "boolean") context.addIssue({ code: "custom", message: `${key} 必须为布尔值` });
-  if (JSON.stringify(settings).length > 16_000) context.addIssue({ code: "custom", message: "Profile 过大" });
 });
 const exactAddress = z.string().refine(value => Boolean(net.isIP(value)) && !["0.0.0.0", "::"].includes(value), "需要精确 IP，不允许监听全部接口");
 export const remoteIDEAccessSchema = z.object({
@@ -93,8 +81,7 @@ export const ideConfigSchema = z.object({
     access: remoteIDEAccessSchema.optional(),
     binary: z.string().min(1).max(500).refine(value => value === "code-server" || (path.posix.isAbsolute(value) && !/[\r\n\0]/.test(value)), "使用 code-server 或绝对可执行文件路径")
   }).strict()).max(50).refine(hosts => new Set(hosts.map(host => host.hostId)).size === hosts.length, "主机重复"),
-  profile: z.object({ settings: settingsSchema, extensions: z.array(z.enum(IDE_EXTENSIONS)).max(20)
-    .refine(ids => new Set(ids).size === ids.length, "扩展重复") }).strict()
+  profile: z.object({ settings: settingsSchema, extensions: extensionListSchema }).strict()
 }).strict().superRefine((config, context) => {
   if (!URL.canParse(config.publicOrigin)) return;
   if (config.hosts.some(h => h.hostId.startsWith("peer:") && (h.autoInstall || h.binary !== "code-server" || h.access)))

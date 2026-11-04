@@ -87,7 +87,7 @@ Gateway 本机管理页监听 `127.0.0.1`，不作为多人登录门户。Connec
 
 ## 连接已有 Gateway（只安装 Connector）
 
-使用别人提供的机器人时，不需要重新部署 Gateway 或申请机器人应用凭据。先向管理员领取独立设备 ID、设备令牌文件、Connector 连接配置，以及需要时的 CA 证书，并开通本人的 IM 准入。不要共用设备令牌或通过群聊传递秘密凭据。
+使用别人提供的机器人时，不需要重新部署 Gateway 或申请机器人应用凭据。先由管理员开通本人的 IM 准入及设备自助登记，再填写 Gateway 地址启动 Connector。设备身份自动保存，通过一次 /connect 和本机确认完成配对，不用领取或群发 device.token；已有旧凭据继续兼容。
 
 1. 设备上先准备好能正常工作的 Codex、Node.js 和 Git。纯 CLI 服务器不需要桌面 GUI。
 2. 下载项目源码，在仓库目录执行下方安装、构建命令；管理员已提供构建好的 Connector 时可直接使用。
@@ -114,7 +114,7 @@ npm run build:bridge
 npm run peer -- --config /absolute/path/peer-client.json
 ```
 
-设备令牌用于连接认证；配对码在 Connector 连上后产生，不是通过 HTTP/curl 自助领取设备凭据。`/connect` 只列当前用户在当前机器人、当前聊天有权使用的设备。完整配置、后台运行边界和故障排查见 [连接指南](./docs/gateway-peers.md)；首次接入探探可直接使用 [逐步教程](./docs/tantan-connector-guide.md)。
+设备凭据由 Connector 在本机生成并保存；配对码在受限连接建立后产生，首次配对通过后才正式登记设备，后续重连无需重复审批。`/connect` 只列当前用户在当前机器人、当前聊天有权使用的设备。完整配置、后台运行边界和故障排查见 [连接指南](./docs/gateway-peers.md)；首次接入探探可直接使用 [逐步教程](./docs/tantan-connector-guide.md)。
 
 ## 部署自己的 Gateway
 

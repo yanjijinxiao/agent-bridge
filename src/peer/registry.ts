@@ -8,6 +8,7 @@ import { PeerConnection, PeerConnectionError, PeerError, PEER_EXECUTION_TIMEOUT_
 import { peerGrantSchema } from "./sharing-types.js";
 import { PeerSharingGateway } from "./sharing-gateway.js";
 import type { IDEHostContext } from "../ide/transport.js";
+import type { PeerEnrollment } from "./credentials.js";
 
 const principalSchema = z.object({ accountId: z.string().min(1).max(512), conversationId: z.string().min(1).max(512), actorId: z.string().min(1).max(512) }).strict();
 export const grantSchema = peerGrantSchema;
@@ -35,7 +36,7 @@ export class PeerRegistry implements PeerBridgePort {
   readonly sharing: PeerSharingGateway;
   private readonly entries = new Map<string, Host>();
   private grants: PeerGrant[];
-  private readonly tickets = new Map<string, { hostId: string; connection: PeerConnection; expiresAt: number }>();
+  private readonly tickets = new Map<string, { hostId: string; host: Host; connection: PeerConnection; expiresAt: number; enrollment?: PeerEnrollment }>();
   private readonly callbacks = new WeakMap<PeerConnection, Map<string, (name: string, args: unknown[]) => Promise<unknown>>>();
   constructor(private readonly stateFile: string) {
     this.grants = z.object({ version: z.literal(1), grants: z.array(grantSchema) })
@@ -67,7 +68,7 @@ export class PeerRegistry implements PeerBridgePort {
     guard(); const result = await host.connection.request("sharing.call", { method, input: method === "request" ? { ...input, principal } : input, ...(method === "request" ? {} : { grant }) }, method === "claim" ? 120_000 : 30_000); guard();
     return result;
   }
-  accept(nodeId: string, connection: PeerConnection): void {
+  accept(nodeId: string, connection: PeerConnection, enrollment?: PeerEnrollment): void {
     const callbacks = new Map<string, (name: string, args: unknown[]) => Promise<unknown>>();
     this.callbacks.set(connection, callbacks);
     let registered = false;
@@ -85,15 +86,20 @@ export class PeerRegistry implements PeerBridgePort {
       const description = { ...raw, info: { id: raw.info.id, capabilities } } as PeerDescription;
       const suffix = description.thread ? `:${crypto.createHash("sha256").update(description.thread.threadId).digest("hex").slice(0, 16)}` : "";
       const hostId = `peer:${nodeId}:${description.profileId}${suffix}`;
-      this.entries.get(hostId)?.connection?.close();
       const host: Host = { nodeId, description, connection };
-      this.entries.set(hostId, host); registered = true;
+      // Pending devices live only in the pairing ticket. They cannot publish
+      // IDE/session hosts, displace a healthy connection or use old grants.
+      if (!enrollment) { this.entries.get(hostId)?.connection?.close(); this.entries.set(hostId, host); }
+      registered = true;
       connection.onClose(() => { if (host.connection === connection) host.connection = undefined; });
       const code = crypto.randomBytes(6).toString("hex").toUpperCase();
       const expiresAt = Date.now() + 5 * 60_000;
       for (const [key, ticket] of this.tickets) if (ticket.expiresAt < Date.now() || !ticket.connection.open) this.tickets.delete(key);
-      this.tickets.set(this.codeKey(code), { hostId, connection, expiresAt });
-      return { hostId, code: `${code.slice(0, 6)}-${code.slice(6)}`, expiresAt };
+      const key = this.codeKey(code);
+      this.tickets.set(key, { hostId, host, connection, expiresAt, enrollment });
+      connection.onClose(() => { this.tickets.delete(key); });
+      return { hostId, code: `${code.slice(0, 6)}-${code.slice(6)}`, expiresAt,
+        enrollment: !!enrollment, paired: !enrollment && this.grants.some(g => g.hostId === hostId && !g.delegation) };
     });
   }
   private codeKey(code: string): string { return crypto.createHash("sha256").update(code.replace(/-/g, "").toUpperCase()).digest("hex"); }
@@ -103,16 +109,28 @@ export class PeerRegistry implements PeerBridgePort {
     const key = this.codeKey(code), ticket = this.tickets.get(key);
     if (!ticket || ticket.expiresAt < Date.now() || !ticket.connection.open) throw new PeerError("code", "绑定码已过期或设备离线，请在本机重新连接获取。");
     this.tickets.delete(key);
-    const host = this.entries.get(ticket.hostId);
-    if (!host || host.connection !== ticket.connection) throw new PeerError("code", "设备连接已改变，请使用新的绑定码。");
+    const host = ticket.host;
+    const current = () => ticket.connection.open && host.connection === ticket.connection
+      && (ticket.enrollment ? !this.entries.has(ticket.hostId) : this.entries.get(ticket.hostId) === host);
+    if (!current()) throw new PeerError("code", "设备连接已改变，请使用新的绑定码。");
     const grant: PeerGrant = { id: crypto.randomUUID(), principal, hostId: ticket.hostId,
       ...(host.description.thread ? { threadId: host.description.thread.threadId } : { scope: "device" as const }) };
-    const accepted = await ticket.connection.request("binding.approve", grant, 120_000);
-    assertCurrent();
-    if (accepted !== true || !ticket.connection.open || host.connection !== ticket.connection) throw new PeerError("declined", "本机未确认绑定，原聊天绑定未改变。");
-    const next = [...this.grants.filter(g => !(g.hostId === grant.hostId && samePrincipal(g.principal, principal))), grant];
-    writeJsonFile(this.stateFile, { version: 1, grants: next }, { durable: true }); this.grants = next;
-    return { hostId: grant.hostId, threadId: grant.threadId, label: this.label(grant.hostId) };
+    try {
+      const accepted = await ticket.connection.request("binding.approve", grant, 120_000);
+      assertCurrent();
+      if (accepted !== true || !current() || Date.now() >= ticket.expiresAt) throw new PeerError("declined", "本机未确认绑定或申请已过期，原聊天绑定未改变。");
+      const next = [...this.grants.filter(g => !(g.hostId === grant.hostId && samePrincipal(g.principal, principal))), grant];
+      // Persist identity before grants. A later grant-write failure leaves an
+      // authenticated but ungranted device that can pair again after reconnect.
+      ticket.enrollment?.commit(principal);
+      writeJsonFile(this.stateFile, { version: 1, grants: next }, { durable: true }); this.grants = next;
+      if (ticket.enrollment) this.entries.set(ticket.hostId, host);
+      return { hostId: grant.hostId, threadId: grant.threadId, label: this.label(grant.hostId) };
+    } finally {
+      // A consumed failed enrollment must not leave a live socket with no
+      // usable code. Reconnect obtains a fresh ticket; no input is replayed.
+      if (ticket.enrollment && this.entries.get(ticket.hostId) !== host) ticket.connection.close();
+    }
   }
   hosts(principal: PeerPrincipal): string[] { return [...new Set(this.grantsFor(principal).map(g => g.hostId))]; }
   /** Local management discovery only. A configured host is not a browser
@@ -208,5 +226,5 @@ export class PeerRegistry implements PeerBridgePort {
     if (!connection?.open) { handler(); return () => {}; }
     return connection.onClose(handler);
   }
-  close(): void { for (const host of this.entries.values()) host.connection?.close(); this.tickets.clear(); }
+  close(): void { for (const host of this.entries.values()) host.connection?.close(); for (const ticket of this.tickets.values()) ticket.connection.close(); this.tickets.clear(); }
 }

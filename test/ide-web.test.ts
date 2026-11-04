@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 import test from "node:test";
+import { importNativeIDEProfile } from "../src/ide/native-profile.js";
 
 const source = fs.readFileSync(new URL("../src/web/ide.js", import.meta.url), "utf8");
 const request = { id: "request-one", entryId: "project-one", code: "123456", expiresAt: Date.now() + 300_000,
@@ -15,9 +16,9 @@ function fixture(api: (...args: any[]) => Promise<unknown> = async () => ({})) {
   };
   const escape = (v: unknown) => String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
   const context = vm.createContext({ window: { confirm() { throw new Error("Native confirmation must not gate approval"); } },
-    document: { querySelector: (selector: string) => selector === "[data-ide-wait]" ? null : node(selector), addEventListener() {} }, setInterval() {}, api, escapeHtml: escape, escapeAttr: escape, toast() {} });
+    document: { querySelector: (selector: string) => selector === "[data-ide-wait]" ? null : node(selector), addEventListener() {} }, setInterval() {}, api: (url: string, options: any) => url === "/api/ide/profile/import" ? Promise.resolve(importNativeIDEProfile(options.body)) : api(url, options), escapeHtml: escape, escapeAttr: escape, toast() {} });
   vm.runInContext(fs.readFileSync(new URL("../src/web/copyable.js", import.meta.url), "utf8"), context);
-  vm.runInContext(source.replace("return { refresh };", "return { refresh, renderActivity, beginApproval, confirmApproval, prepareTLS, open, save };"), context);
+  vm.runInContext(source.replace("return { refresh };", "return { refresh, renderActivity, beginApproval, confirmApproval, prepareTLS, open, save, importProfileFile };"), context);
   const ui = context.window.gatewayIDE;
   const panel = { innerHTML: "", querySelector: node, querySelectorAll: () => [node("confirm"), node("cancel")] };
   const button = { dataset: { ideApprove: request.id, ideEntry: request.entryId, ideTrust: "true" }, closest: () => panel };
@@ -254,4 +255,24 @@ test("local automatic management saves the selected interface and reports automa
   assert.equal(saved.localAccess.interfaceName, "en1"); assert.equal(saved.localAccess.bindAddress, "30.1.2.4", "offline policy retains the most recently saved binding, never the VPN IP");
   ui.renderActivity({ endpoints: [{ hostId: "local", localDirect: true, interfaceName: "en1", state: "error", publicOrigin: localAccess.publicOrigin }] });
   assert.match(node("#ideEndpoints").innerHTML, /等待网卡自动恢复/); assert.match(node("#ideEndpoints").innerHTML, /自动跟随 en1/);
+});
+
+test("native configuration import only stages the selected fields and reports unsupported Profile sections", async () => {
+  let writes = 0;
+  const { ui, node } = fixture(async () => { writes++; throw Error("Must not save during import"); });
+  node("#ideExtensions").value = '{"recommendations":["keep.extension"]}';
+  node("#ideProfileKind").value = "profile";
+  const content = JSON.stringify({ name: "Work", settings: '{"gitlens.currentLine.enabled":true}', keybindings: '[]' });
+  node("#ideProfileFile").files = [{ size: content.length, text: async () => content }];
+  await ui.importProfileFile();
+  assert.deepEqual(JSON.parse(node("#ideProfile").value), { "gitlens.currentLine.enabled": true });
+  assert.match(node("#ideExtensions").value, /keep.extension/);
+  assert.match(node("#ideProfileImportStatus").textContent, /尚未保存.*keybindings/);
+  assert.equal(writes, 0);
+  node("#ideProfileFile").files = [{ size: 3, text: async () => "bad" }];
+  await ui.importProfileFile();
+  assert.match(node("#ideProfileImportStatus").textContent, /导入失败/);
+  assert.match(node("#ideProfile").value, /gitlens/);
+  const html = fs.readFileSync(new URL("../src/web/index.html", import.meta.url), "utf8");
+  assert.match(html, /textarea id="ideExtensions"/); assert.doesNotMatch(source, /extensionChoices|#ideExtensions input:checked/);
 });

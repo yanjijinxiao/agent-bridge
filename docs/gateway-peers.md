@@ -29,11 +29,9 @@ B 需能以当前系统用户正常运行本地 Codex。设备配对成功后直
 
 ## 2. 设备凭据与服务器入口
 
-为每台设备生成独立的高熵令牌文件，分别放到 A、B 的配置目录，通过你已有的安全方式传递。令牌不放在 URL、聊天消息或仓库中。例如在配置目录执行：
+管理员显式开启自助登记后，新设备不需要管理员发放 token 文件。Connector 在本机生成并保存随机身份，Gateway 在已准入用户的 /connect 和设备确认都通过后保存凭据摘要。尚未配对的连接只能完成登记，不能发布可用 host 或替换已有设备。
 
-```sh
-node -e 'require("node:fs").writeFileSync("my-laptop.token", require("node:crypto").randomBytes(32).toString("hex") + "\n", { mode: 0o600, flag: "wx" })'
-```
+旧 devices/tokenFile 配置继续兼容，不改变原 hostId、授权和回执。新设备不要配置 nodeId/tokenFile；新设备凭据保存在 stateDir/device-identity.json。Gateway 的已登记设备摘要位于 Peer 配置文件旁的 .devices.json；更新时两端状态均须保留。自助登记默认关闭，以下模板明确开启。关闭 enrollment 后已登记设备仍可重连。
 
 以 `examples/peer-server.json` 为模板创建 A 的配置：
 
@@ -42,7 +40,8 @@ node -e 'require("node:fs").writeFileSync("my-laptop.token", require("node:crypt
   "listen": {
     "host": "127.0.0.1",
     "port": 9478,
-    "devices": [{ "nodeId": "my-laptop", "tokenFile": "./my-laptop.token" }]
+    "enrollment": true,
+    "devices": []
   }
 }
 ```
@@ -57,7 +56,7 @@ CODEX_IM_GATEWAY_PEER_CONFIG=/absolute/path/peer-server.json npm run dev
 
 默认监听回环地址。跨机器可选择以下一种方式：
 
-- 使用现有 HTTPS 反向代理将 `/gateway/v1/peer` 转发到 `http://127.0.0.1:9478`，保留 Upgrade、Connection、Authorization、X-Gateway-Peer-Id 头，允许长连接和至少 60 秒的空闲时间。B 使用代理的 `wss://` 地址。
+- 使用现有 HTTPS 反向代理将 `/gateway/v1/peer` 转发到 `http://127.0.0.1:9478`，保留 Upgrade、Connection、Authorization、X-Gateway-Peer-Id、X-Gateway-Peer-Enroll 头，允许长连接和至少 60 秒的空闲时间。B 使用代理的 `wss://` 地址。
 - A 直接提供 TLS：设置 `host: "0.0.0.0"` 并添加 `"tls": { "keyFile": "./server.key", "certFile": "./server.crt" }`。B 的地址须匹配证书 SAN；内部 CA 可在 B 配置 `caFile`，不会跳过证书验证。
 - 仅在受控内网临时测试：A 设置 `host: "0.0.0.0", allowInsecureLan: true`，B 同样设置 `allowInsecureLan: true` 并使用 `ws://服务器IP:9478/gateway/v1/peer`。此模式明文传输凭据和内容。
 
@@ -70,16 +69,14 @@ B 按 `examples/peer-client.json` 创建配置：
 ```json
 {
   "url": "wss://gateway.example.com/gateway/v1/peer",
-  "nodeId": "my-laptop",
   "label": "我的笔记本",
-  "tokenFile": "./my-laptop.token",
   "profileId": "work",
   "backend": "app-server",
   "appServerTransport": "daemon"
 }
 ```
 
-`nodeId` 与 A 的设备记录一致，`label` 是钉钉显示的设备名。`profileId` 是连接资源的标识，不等同于 Codex CLI 的 `-p` 配置 profile。可选 `codexHome`、`codexBin` 指定本地安装和资源目录；各路径相对配置文件解析，`codexBin` 按普通可执行命令解析。`stateDir` 可指定本机配对和回执目录，请保持稳定且不要由多个客户端进程同时写入。
+`label` 是钉钉显示的设备名；新配置的设备身份由程序生成。旧配置的 `nodeId` 与 A 的设备记录一致，必须和 `tokenFile` 一同保留。`profileId` 是连接资源的标识，不等同于 Codex CLI 的 `-p` 配置 profile。可选 `codexHome`、`codexBin` 指定本地安装和资源目录；各路径相对配置文件解析，`codexBin` 按普通可执行命令解析。`stateDir` 可指定本机配对和回执目录，请保持稳定且不要由多个客户端进程同时写入。
 
 Gateway 和 Connector 均沿用主分支统一的原生 App Server 适配器。Connector 的 `backend` 只接受 `app-server`；旧的 `exec` 配置需迁移。`appServerTransport` 默认 `daemon`，连接本机原生 daemon，不隐式回退到另一执行器。显式选择 `stdio` 可运行 CLI 私有 App Server，但任务属于该 Connector 进程，不能获得独立执行的重启豁免。
 

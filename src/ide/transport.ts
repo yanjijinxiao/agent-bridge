@@ -73,18 +73,22 @@ async function run(args){if(stopping||Date.now()>=preparationDeadline)throw Erro
  command.once('error',error=>{done();reject(error);});command.once('close',code=>{done();code===0&&!timedOut&&!stopping?resolve(out):reject(Error('Extension preparation failed'));});
 });}
 const requested=[...new Set(input.extensions)],installed=new Map();let extensionWarning;
+const marker=path.join(root,'extensions-initialized.json');let userManaged=false;
 function report(phase,activeExtension){process.stdout.write('CIG_PROFILE '+JSON.stringify({phase,requested,installed:requested.filter(id=>installed.has(id)).map(id=>({id,version:installed.get(id)})),missing:requested.filter(id=>!installed.has(id)),...(activeExtension?{activeExtension}:{}),...(extensionWarning||settingsWarning?{warning:extensionWarning||settingsWarning}:{})})+'\n');}
 async function listExtensions(){
  const text=await run([...prefix,'--list-extensions','--show-versions']);installed.clear();
- for(const line of text.split(/\r?\n/)){const match=/^([a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9-]*)@([a-zA-Z0-9.+-]{1,100})$/.exec(line.trim());if(match)installed.set(match[1].toLowerCase(),match[2]);}
+ for(const line of text.split(/\r?\n/)){const match=/^([a-z0-9][a-z0-9_-]*\.[a-z0-9][a-z0-9_-]*)@([a-zA-Z0-9.+-]{1,100})$/i.exec(line.trim());if(match)installed.set(match[1].toLowerCase(),match[2]);}
 }
 (async()=>{
  report('checking');
  if(requested.length)try{
+  if(fs.existsSync(marker)){const saved=JSON.parse(fs.readFileSync(marker,'utf8'));if(saved.version!==1||JSON.stringify(saved.requested)!==JSON.stringify(requested))throw Error('Invalid initial extension receipt');userManaged=!input.prepare;}
   await listExtensions();
-  for(const id of requested){if(installed.has(id))continue;report('installing',id);await run([...prefix,'--install-extension',id]);await listExtensions();if(!installed.has(id))throw Error('Extension missing after successful install');}
+  if(!userManaged)for(const id of requested){if(installed.has(id))continue;report('installing',id);await run([...prefix,'--install-extension',id]);await listExtensions();if(!installed.has(id))throw Error('Extension missing after successful install');}
+  if(!userManaged){const temp=marker+'.'+process.pid+'.tmp';fs.writeFileSync(temp,JSON.stringify({version:1,requested}),{mode:0o600,flag:'wx'});fs.renameSync(temp,marker);}
+  else if(requested.some(id=>!installed.has(id)))extensionWarning='extensions-user-managed';
  }catch{extensionWarning='extensions-unavailable';}
- report(extensionWarning?'error':'ready');
+ report(extensionWarning&&extensionWarning!=='extensions-user-managed'?'error':'ready');
  if(input.prepare){if(extensionWarning)throw Error('Extensions unavailable');process.stdout.write('CIG_PREPARED\n');process.exit(0);}
  if(stopping)throw Error('Cancelled');
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'cig-ide-'));fs.chmodSync(temp,0o700);
@@ -197,7 +201,7 @@ export function parseProfileStatus(text: string, extensions: readonly string[]):
     return { phase: value.phase, requested, installed: installed.map((item: { id: string; version: string }) => ({ id: item.id, version: item.version })),
       missing: requested.filter(id => !installed.some((item: { id: string }) => item.id === id)),
       ...(requested.includes(value.activeExtension) ? { activeExtension: value.activeExtension } : {}),
-      ...(["extensions-unavailable", "settings-unmodified"].includes(value.warning) ? { warning: value.warning } : {}) };
+      ...(["extensions-unavailable", "extensions-user-managed", "settings-unmodified"].includes(value.warning) ? { warning: value.warning } : {}) };
   } catch { return; }
 }
 

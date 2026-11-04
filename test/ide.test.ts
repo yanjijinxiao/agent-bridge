@@ -56,7 +56,7 @@ class FakeTransport implements IDEHostTransport {
   }
 }
 
-test("IDE config is opt-in, needs no separate password and rejects unsafe origins/settings/extensions", async t => {
+test("IDE config is opt-in, needs no separate password and rejects unsafe origins and invalid native configuration", async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cig-ide-config-")); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new IDEConfigStore(root); assert.equal(store.config().enabled, false);
   store.save(config(store));
@@ -66,8 +66,9 @@ test("IDE config is opt-in, needs no separate password and rejects unsafe origin
   assert.equal(fs.readFileSync(store.filePath, "utf8").includes("passwordHash"), false);
   assert.equal(fs.statSync(store.filePath).mode & 0o777, 0o600);
   for (const origin of ["http://example.com", "https://user:pass@example.com", "https://example.com/path", "https://example.com/?token=x"]) assert.throws(() => store.save({ ...config(store), publicOrigin: origin }));
-  for (const settings of [{ "terminal.integrated.env.linux": { KEY: "secret" } }, { "github.copilot.chat.otel.outfile": "/tmp/log" }, { "python.defaultInterpreterPath": "/evil" }]) assert.throws(() => store.save({ ...config(store), profile: { settings, extensions: [] } }));
-  assert.throws(() => store.save({ ...config(store), profile: { settings: {}, extensions: ["ms-python.vscode-pylance"] } }));
+  assert.doesNotThrow(() => store.save({ ...config(store), profile: { settings: { "gitlens.currentLine.enabled": true }, extensions: ["eamodio.gitlens"] } }));
+  for (const settings of [[], null, { "bad": { constructor: "pollution" } }]) assert.throws(() => store.save({ ...config(store), profile: { settings, extensions: [] } }));
+  assert.throws(() => store.save({ ...config(store), profile: { settings: {}, extensions: ["--install-extension"] } }));
 });
 
 test("canonical host/owner/profile instance reuse, concurrent opens and fresh target validation", async t => {
@@ -397,6 +398,11 @@ test("local Gateway mints IDE access only behind mutation protection and no pass
   const headers = { Origin: server.url, "X-Codex-IM-Gateway-Token": server.requestToken, "Content-Type": "application/json" };
   const settings = config(ide.configStore, await freePort());
   settings.hosts = settings.hosts.filter(host => host.hostId === "local");
+  const importBody = JSON.stringify({ kind: "extensions", content: '{"recommendations":["eamodio.gitlens"]}' });
+  assert.equal((await fetch(`${server.url}/api/ide/profile/import`, { method: "POST", body: importBody })).status, 403);
+  const imported = await fetch(`${server.url}/api/ide/profile/import`, { method: "POST", headers, body: importBody });
+  assert.equal(imported.status, 200); assert.deepEqual((await imported.json()).extensions, ["eamodio.gitlens"]);
+  assert.deepEqual(ide.config().profile.extensions, [], "import does not save or install");
   assert.equal((await fetch(`${server.url}/api/ide/config`, { method: "PUT", headers, body: JSON.stringify({ config: settings, password: "obsolete-password" }) })).status, 400);
   const saved = await fetch(`${server.url}/api/ide/config`, { method: "PUT", headers, body: JSON.stringify({ config: settings }) });
   assert.equal(saved.status, 200, await saved.text());

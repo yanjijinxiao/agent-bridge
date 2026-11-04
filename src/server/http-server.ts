@@ -32,8 +32,9 @@ import { PROJECT_INTERACTION_MODES } from "../channels/channel-mode-settings.js"
 import { selectLocalDirectory } from "./directory-picker.js";
 import { SessionBindingConflictError } from "../state/runtime-state.js";
 import { ApprovalDecisionConflictError } from "../bridge/approval.js";
+import { importNativeIDEProfile, profileImportSchema } from "../ide/native-profile.js";
 import { IDEEndpointManager } from "../ide/endpoint-manager.js";
-import { IDE_EXTENSIONS, ideConfigSchema } from "../ide/config.js";
+import { ideConfigSchema } from "../ide/config.js";
 import { localIDEAddresses } from "../ide/tls.js";
 import { IDE_SESSION_DAYS } from "../ide/authorization.js";
 import { ideApproverSchema } from "../ide/approval-service.js";
@@ -337,8 +338,12 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
         authorization: { sessionTtlDays: IDE_SESSION_DAYS, ...(context.accountManager.ideApprovals?.personalAccessError
           ? { error: context.accountManager.ideApprovals.personalAccessError } : {}) },
         running: context.ideAccess?.running() ?? false, error: ide.configStore.error ?? context.ideAccess?.error,
-        instances: ide.list(), installations: ide.installer.list(), extensionChoices: IDE_EXTENSIONS,
+        instances: ide.list(), installations: ide.installer.list(),
         hosts: context.accountManager.listIDEHosts?.() ?? [...new Set(["local", ...context.accountManager.listProjects().map(p => p.hostId ?? "local")])] }); return;
+    }
+    if (method === "POST" && url.pathname === "/api/ide/profile/import") {
+      const input = profileImportSchema.parse(await readJsonBody(request));
+      sendJson(response, 200, importNativeIDEProfile(input)); return;
     }
     if (method === "PUT" && url.pathname === "/api/ide/config") {
       const input = z.object({ config: ideConfigSchema }).strict().parse(await readJsonBody(request));

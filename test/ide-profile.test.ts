@@ -116,6 +116,18 @@ test("install exit zero without list confirmation is not reported as ready", asy
   assert.deepEqual(opened.profile?.installed, []); assert.deepEqual(opened.profile?.missing, ["tuttieee.emacs-mcx"]);
 });
 
+test("native uninstall survives reopen; explicit prepare can restore the initial list", async t => {
+  const { manager, entry, root, calls } = fixture(t);
+  const first = await manager.open(entry.id); await manager.stop(first.id);
+  const installed = path.join(root, "ide/instances", first.id, "extensions/fixture-installed.json");
+  fs.writeFileSync(installed, "{}"); // The editor's extension manager uninstalled it.
+  const reopened = await manager.open(entry.id);
+  assert.equal(reopened.profile?.phase, "ready"); assert.equal(reopened.profile?.warning, "extensions-user-managed");
+  assert.equal(calls().filter(args => args.includes("--install-extension")).length, 1);
+  await manager.stop(first.id); await manager.start(entry.id, true);
+  assert.equal(calls().filter(args => args.includes("--install-extension")).length, 2);
+});
+
 test("old settings migration keeps the instance, comments, explicit choices and invalid originals", async t => {
   const { manager, entry, root, plan } = fixture(t); plan({});
   const instance = await manager.open(entry.id); await manager.stop(instance.id);

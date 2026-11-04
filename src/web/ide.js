@@ -85,7 +85,7 @@ window.gatewayIDE = (() => {
     const labels = { checking: "正在核验实际安装", installing: "正在安装缺失扩展", ready: "所选扩展已安装并核验", error: "扩展未就绪，可重试" };
     const markup = instances.length ? instances.map(instance => {
       const p = instance.profile;
-      const profile = p ? `<p role="status">${escapeHtml(labels[p.phase] || p.phase)}${p.activeExtension ? `：${escapeHtml(p.activeExtension)}` : ""}</p>${p.installed?.length ? `<small>已安装：${p.installed.map(item => `${escapeHtml(item.id)} @ ${escapeHtml(item.version)}`).join("、")}</small>` : ""}${p.missing?.length ? `<p>未就绪：${p.missing.map(escapeHtml).join("、")}</p>` : ""}${p.warning ? `<p class="ide-error">${p.warning === "settings-unmodified" ? "IDE 设置无法安全补充，原文件未改动。请检查 settings.json。" : "扩展准备失败，编辑器仍可使用；请检查 Open VSX 网络、扩展兼容性及目录权限，停止该 IDE 后重试准备扩展。"}</p>` : ""}` : "<p>尚未核验扩展；下次启动时检查。</p>";
+      const profile = p ? `<p role="status">${escapeHtml(labels[p.phase] || p.phase)}${p.activeExtension ? `：${escapeHtml(p.activeExtension)}` : ""}</p>${p.installed?.length ? `<small>已安装：${p.installed.map(item => `${escapeHtml(item.id)} @ ${escapeHtml(item.version)}`).join("、")}</small>` : ""}${p.missing?.length ? `<p>${p.warning === "extensions-user-managed" ? "已由 IDE 卸载，保留用户选择" : "未就绪"}：${p.missing.map(escapeHtml).join("、")}</p>` : ""}${p.warning ? `<p class="ide-error">${p.warning === "extensions-user-managed" ? "初始配置已完成，扩展由 IDE 管理；需要恢复清单时可显式准备扩展。" : p.warning === "settings-unmodified" ? "IDE 设置无法安全补充，原文件未改动。请检查 settings.json。" : "扩展准备失败，编辑器仍可使用；请检查 Open VSX 网络、扩展兼容性及目录权限，停止该 IDE 后重试准备扩展。"}</p>` : ""}` : "<p>尚未核验扩展；下次启动时检查。</p>";
       return `<article class="ide-instance"><div><strong>${escapeHtml(instance.status)}</strong><p>${escapeHtml(instance.hostId)}</p>${rootFields(instance)}${profile}${instance.error ? `<p class="ide-error">${escapeHtml(instance.error)}</p>` : ""}</div><button class="button button-secondary" data-ide-stop="${escapeAttr(instance.id)}" ${["starting", "stopped"].includes(instance.status) ? "disabled" : ""}>停止 IDE</button></article>`;
     }).join("") : '<p class="empty-state">尚无 IDE 实例。保存后从会话中的「Web IDE」进入。</p>';
     if (markup !== instanceMarkup) { instanceMarkup = markup; $("#ideInstances").innerHTML = markup; }
@@ -176,15 +176,33 @@ window.gatewayIDE = (() => {
         return `<div class="ide-host"><label><input type="checkbox" data-ide-host="${escapeAttr(hostId)}" ${host?.enabled ? "checked" : ""}>${escapeHtml(hostId === "local" ? "本机" : hostId)}</label><input aria-label="${escapeAttr(hostId)} code-server 可执行文件" data-ide-binary="${escapeAttr(hostId)}" value="${escapeAttr(host?.binary || "code-server")}" placeholder="code-server 或绝对路径"><label><input type="checkbox" data-ide-auto="${escapeAttr(hostId)}" ${host?.autoInstall ? "checked" : ""}>缺失时自动安装（用户目录）</label><button type="button" class="button button-secondary" data-ide-install="${escapeAttr(hostId)}">检测 / 安装 / 重试</button>${entrance}</div>`;
       }).join("");
       routingFields();
-      $("#ideExtensions").innerHTML = current.extensionChoices.map(id => `<label><input type="checkbox" value="${escapeAttr(id)}" ${config.profile.extensions.includes(id) ? "checked" : ""}>${escapeHtml(id)}</label>`).join("");
+      $("#ideExtensions").value = JSON.stringify({ recommendations: config.profile.extensions }, null, 2);
       message(current.error || (current.running ? "IDE 访问入口已就绪；实例按需启动。" : "未启用 IDE 访问入口，IM 与 Codex 不受影响。"), Boolean(current.error));
       if (activity === activityGeneration) renderActivity(current);
     } catch (error) { if (!busy && generation === refreshGeneration) message(error.message, true); }
+  }
+  async function importProfileFile() {
+    if (busy) return;
+    const file = $("#ideProfileFile").files?.[0]; if (!file) return;
+    busy = true; ++refreshGeneration;
+    try {
+      if (file.size > 512000) throw new Error("导入文件过大（最多 512 KB）");
+      const kind = $("#ideProfileKind").value;
+      const result = await api("/api/ide/profile/import", { method: "POST", body: { kind, content: await file.text() } });
+      if (result.settings !== undefined) $("#ideProfile").value = JSON.stringify(result.settings, null, 2);
+      if (result.extensions !== undefined) $("#ideExtensions").value = JSON.stringify({ recommendations: result.extensions }, null, 2);
+      $("#ideProfileImportStatus").textContent = ["已载入表单，尚未保存或安装。请核对后保存。", ...(result.warnings || [])].join(" ");
+    } catch (error) { $("#ideProfileImportStatus").textContent = `导入失败：${error.message}`; }
+    finally { busy = false; $("#ideProfileFile").value = ""; }
   }
   async function save(event) {
     event.preventDefault(); if (busy || !current) return;
     const button = $("#ideSave"); ++refreshGeneration; busy = true; button.disabled = true;
     try {
+      const [editorSettings, editorExtensions] = await Promise.all([
+        api("/api/ide/profile/import", { method: "POST", body: { kind: "settings", content: $("#ideProfile").value } }),
+        api("/api/ide/profile/import", { method: "POST", body: { kind: "extensions", content: $("#ideExtensions").value } })
+      ]);
       const perHost = $("#idePerHostRouting").checked;
       const accessFor = hostId => {
         const value = (selector, key) => [...document.querySelectorAll(selector)].find(el => el.dataset[key] === hostId)?.value.trim() || "";
@@ -209,7 +227,7 @@ window.gatewayIDE = (() => {
         }),
         ...(perHost ? { routing: "per-host", ...($("#ideSharedIngressHost").value ? { sharedIngressHostId: $("#ideSharedIngressHost").value } : {}) } : {}),
         ...(!perHost && $("#ideTLSEnabled").checked ? { tls: { bindAddress: $("#ideTLSAddress").value, certFile: $("#ideTLSCert").value.trim(), keyFile: $("#ideTLSKey").value.trim() } } : {}),
-        profile: { settings: JSON.parse($("#ideProfile").value), extensions: [...document.querySelectorAll("#ideExtensions input:checked")].map(el => el.value) } };
+        profile: { settings: editorSettings.settings, extensions: editorExtensions.extensions } };
       if (perHost && $("#ideLocalDirectEnabled").checked) {
         const port = Number($("#ideLocalDirectPort").value), automatic = $("#ideLocalDirectAuto").checked;
         const interfaceName = automatic ? $("#ideLocalDirectInterface").value : undefined;
@@ -274,6 +292,7 @@ window.gatewayIDE = (() => {
     });
   }
   document.addEventListener("DOMContentLoaded", () => {
+    $("#ideProfileFile").addEventListener("change", () => void importProfileFile());
     $("#ideApproverForm").addEventListener("submit", event => {
       event.preventDefault();
       try {

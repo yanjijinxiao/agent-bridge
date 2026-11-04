@@ -12,6 +12,7 @@ import { PeerExecutionService } from "./execution-service.js";
 import { GatewayPeerClient } from "./transport.js";
 import { acquireServiceProcessLock } from "../server/process-lock.js";
 import { peerIDEConfigSchema } from "./ide-service.js";
+import { deviceIdSchema, loadPeerIdentity } from "./credentials.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -20,12 +21,13 @@ async function main(): Promise<void> {
   }
   if (args.length !== 2 || args[0] !== "--config") throw new Error("Use --config /absolute/path/peer-client.json (or --help)");
   const file = path.resolve(args[1]);
-  const config = z.object({ url: z.string().url(), nodeId: z.string(), tokenFile: z.string(), caFile: z.string().optional(),
+  const config = z.object({ url: z.string().url(), nodeId: deviceIdSchema.optional(), tokenFile: z.string().min(1).optional(), caFile: z.string().optional(),
     allowInsecureLan: z.boolean().default(false), profileId: z.string().default("default"), label: z.string().min(1).max(80).optional(), threadId: z.string().min(1).optional(),
     codexHome: z.string().optional(), codexBin: z.string().default("codex"), backend: z.literal("app-server").default("app-server"),
     appServerTransport: z.enum(["daemon", "stdio"]).default("daemon"),
     webIDE: peerIDEConfigSchema.optional(),
-    stateDir: z.string().optional() }).strict().parse(readJsonFile(file, null));
+    stateDir: z.string().optional() }).strict().refine(value => Boolean(value.nodeId) === Boolean(value.tokenFile),
+      "旧凭据必须同时保留 nodeId 和 tokenFile；新设备请同时省略，由 Connector 自动生成身份").parse(readJsonFile(file, null));
   const resolve = (name: string) => path.resolve(path.dirname(file), name);
   const backend = withConnectorProjects(new CodexBackendRouter({ backend: config.backend, appServerTransport: config.appServerTransport,
     codexBin: config.codexBin, codexHome: config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME }), config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME);
@@ -37,7 +39,10 @@ async function main(): Promise<void> {
   let client: GatewayPeerClient | undefined;
   let service: PeerExecutionService | undefined;
   try {
-    service = await PeerExecutionService.create({ backend, threadId: config.threadId, profileId: config.profileId, label: config.label ?? config.nodeId,
+    const identity = config.tokenFile ? { nodeId: config.nodeId!, token: fs.readFileSync(resolve(config.tokenFile), "utf8").trim() }
+      : loadPeerIdentity(stateDir, config.url);
+    const label = config.label ?? os.hostname();
+    service = await PeerExecutionService.create({ backend, threadId: config.threadId, profileId: config.profileId, label,
       stateDir, webIDE: config.webIDE,
       independent: config.appServerTransport === "daemon",
       approveOwner: confirmation => {
@@ -57,13 +62,13 @@ async function main(): Promise<void> {
         });
         questions = answer.catch(() => {}); return answer;
       } });
-    client = new GatewayPeerClient({ ...config, token: fs.readFileSync(resolve(config.tokenFile), "utf8").trim(),
+    client = new GatewayPeerClient({ ...config, ...identity, enroll: !config.tokenFile,
       ca: config.caFile ? fs.readFileSync(resolve(config.caFile)) : undefined,
       status: state => console.log(`Gateway peer: ${state}`),
       connected: async connection => {
         service!.attach(connection);
-        const ticket = await connection.request<{ code: string; hostId: string }>("peer.register", service!.description);
-        console.log(`已连接。请在钉钉私聊发送 /connect ${ticket.code}，或在群聊 @机器人 后发送。\n设备：${config.label ?? config.nodeId}\n配对码有效期 5 分钟；本机确认后，在钉钉选择要绑定的会话。`);
+        const ticket = await connection.request<{ code: string; hostId: string; enrollment?: boolean; paired?: boolean }>("peer.register", service!.description);
+        console.log(`${ticket.enrollment ? "设备待登记；完成配对前不能访问会话。" : ticket.paired ? "已连接，正在恢复已有授权，无需重复配对。" : "已连接。"}\n${ticket.paired ? "如需授权新的聊天，" : ""}请在钉钉私聊发送 /connect ${ticket.code}，或在群聊 @机器人 后发送。\n设备：${label}\n配对码有效期 5 分钟；本机确认后，在钉钉选择要绑定的会话。设备凭据由程序保存，无需分发。`);
       } });
     let stopping: Promise<void> | undefined;
     const stop = () => stopping ??= (async () => {

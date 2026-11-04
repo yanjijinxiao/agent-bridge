@@ -74,7 +74,7 @@ Default browser access reuses personal admission: confirm the browser once, then
 
 ## Connect to an existing Gateway
 
-You do not need to deploy another Gateway or register a bot application. Ask its administrator for personal IM admission, a separate device ID and token file, Connector configuration, and a CA certificate when required. Never share device tokens or send secret credentials through group chat.
+You do not need to deploy another Gateway or register a bot application. Ask its administrator for personal IM admission and enabled device enrollment. Configure the Gateway URL; Connector creates and stores its own identity. Pair once through /connect and local confirmation. No manually distributed device.token is required; existing tokenFile configurations remain compatible.
 
 1. Prepare a working Codex installation, Node.js, and Git on your device. A CLI-only server does not need a desktop GUI.
 2. Download the project source and run the install/build commands below in its repository directory, or use a prebuilt Connector supplied by the administrator.
@@ -101,7 +101,7 @@ Start command template; replace the configuration path with your actual file:
 npm run peer -- --config /absolute/path/peer-client.json
 ```
 
-Device tokens authenticate the connection. Pairing codes are issued after Connector connects, not by an HTTP/curl self-enrollment endpoint. `/connect` lists only devices granted to the current person in the current bot account and chat. See [connection setup](./docs/gateway-peers.md) for configuration and lifecycle details, or the [step-by-step Tantan tutorial (Chinese)](./docs/tantan-connector-guide.md).
+Connector generates and privately stores its device credential. The first restricted connection offers a pairing code; enrollment completes only after the admitted chat user and local device confirm. Reconnects reuse saved grants. `/connect` lists only devices granted to the current person in the current bot account and chat. See [connection setup](./docs/gateway-peers.md) for configuration and lifecycle details, or the [step-by-step Tantan tutorial (Chinese)](./docs/tantan-connector-guide.md).
 
 ## Deploy your own Gateway
 

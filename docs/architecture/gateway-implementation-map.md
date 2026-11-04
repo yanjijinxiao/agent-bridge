@@ -1,5 +1,7 @@
 # 功能契约对应的实现边界（本轮复核记录）
 
+原生配置与设备自助登记增量：IDE-08.4、PEER-01.4，见[本次四层检查及命名用例](../audits/2026-11-04-native-config-enrollment/README.md)。旧汇总数字是对应历史检查点，不能代替增量证据。
+
 配套文件：gateway-contracts.md 记录历史要求；gateway-requirements.json 记录每个场景及证据；本文件定位实际入口和状态写入者。下列是实现关系，不是“已经检查通过”的清单。关键函数的输入、状态义务和异步边界另记 function-contracts.jsonl，仅包含已有明确逐函数记录的部分，不以全文件读过冒充全部函数行为均已验证。逐行范围、内容散列、未读文件在本轮 read-ledger.jsonl 和只读报告中单独保留。
 
 ## 主链路

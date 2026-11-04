@@ -2,8 +2,7 @@
   "listen": {
     "host": "127.0.0.1",
     "port": 9478,
-    "devices": [
-      { "nodeId": "my-laptop", "tokenFile": "./my-laptop.token" }
-    ]
+    "devices": [],
+    "enrollment": true
   }
 }

@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-04",
+  "scope": "Incremental four-layer review for native IDE config and device enrollment; not a full source reread",
+  "fullRegression": {
+    "tests": 3230,
+    "passed": 3145,
+    "skipped": 85,
+    "failed": 0
+  },
+  "cases": [
+    {
+      "id": "IDE-08.4",
+      "namedCases": 7,
+      "passed": true
+    },
+    {
+      "id": "PEER-01.4",
+      "namedCases": 10,
+      "passed": true
+    }
+  ],
+  "typecheck": "passed",
+  "buildBridge": "passed",
+  "limits": [
+    "Conditional real browser/platform tests were skipped unless explicitly enabled.",
+    "Not a real second-person DingTalk/phone test."
+  ]
+}

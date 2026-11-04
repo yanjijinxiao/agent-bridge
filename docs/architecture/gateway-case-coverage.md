@@ -1,5 +1,7 @@
 # 需求与 case 核对表
 
+原生配置与设备自助登记增量：IDE-08.4、PEER-01.4，见[本次四层检查及命名用例](../audits/2026-11-04-native-config-enrollment/README.md)。旧汇总数字是对应历史检查点，不能代替增量证据。
+
 由 gateway-requirements.json 汇总。verified 只证明其记录的具体边界；最新权限展示增量见[检查记录](../audits/2026-11-04-permission-visibility/README.md)。其他未完成范围沿用原清单。
 
 Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audits/2026-11-04-connector-ca/README.md)。
