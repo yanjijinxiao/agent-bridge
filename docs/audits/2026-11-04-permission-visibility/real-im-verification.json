@@ -1,0 +1,112 @@
+{
+  "codeCommit": "57cf60dcf6e73bad6bb964dfbf881408164f8648",
+  "date": "2026-11-04",
+  "timezone": "Asia/Shanghai",
+  "transport": "真实 dws 用户发送 → 钉钉 → Gateway → 钉钉个人事件订阅",
+  "humanIdentityCount": 1,
+  "checks": [
+    {
+      "id": "REAL-01",
+      "scenario": "探探私聊列出已有设备",
+      "status": "passed",
+      "messageId": "msgR+p4AIm2sHTT4tHbIp2smA==",
+      "boundary": "仅证明真实列表返回 3 台获准设备，未证明第二用户或跨群不可见"
+    },
+    {
+      "id": "REAL-02",
+      "scenario": "探探普通用户当前聊天权限",
+      "status": "passed",
+      "messageId": "msgIVH4nk7TGG+OwfWJTNvv3Q==",
+      "boundary": "真实个人准入、IDE 资格、非管理员身份；当前无待处理申请"
+    },
+    {
+      "id": "REAL-03",
+      "scenario": "真实非管理员私聊全局查询拒绝",
+      "status": "passed",
+      "messageId": "msg04vCMh7arDSOkkIrkISJQQ=="
+    },
+    {
+      "id": "REAL-04",
+      "scenario": "头头管理员群聊默认范围",
+      "status": "passed",
+      "messageId": "msgRwemCwsoBLvHPBN3uRWynA==",
+      "boundary": "真实群聊仅显示当前聊天；当前无待处理申请，不能证明有其他人申请时的隔离"
+    },
+    {
+      "id": "REAL-05",
+      "scenario": "真实管理员在群聊全局查询拒绝",
+      "status": "passed",
+      "messageId": "msg0AXxkmrbDUdf37xZY8tKZw=="
+    },
+    {
+      "id": "REAL-06",
+      "scenario": "头头验证群 Connector 隔离",
+      "status": "not-applicable",
+      "messageId": "msgQ0sCB3SqT3unmW9IacoCRg==",
+      "reason": "头头未启用远程设备接入，此回复不计为设备隔离通过"
+    },
+    {
+      "id": "REAL-07",
+      "scenario": "头头管理员私聊全局查询",
+      "status": "partial",
+      "reason": "两条用户消息取得发送受理，Gateway 日志记录回复成功；监听未取得相应私聊回复，单次历史读取被 dws CrossOrgPermissionDenied 拒绝；未扩张跨组织数据授权"
+    },
+    {
+      "id": "REAL-08",
+      "scenario": "探探同一用户跨聊天设备隔离",
+      "status": "blocked",
+      "reason": "现有自用验证群只有用户一位人类成员，尚无探探；添加探探被工具自动审批拒绝，已向用户请求具体授权，未绕过"
+    },
+    {
+      "id": "REAL-09",
+      "scenario": "第二真实用户及其他群的申请/设备隔离",
+      "status": "not-run",
+      "reason": "只有一个已登录真实钉钉用户；没有第二个独立测试身份"
+    },
+    {
+      "id": "REAL-10",
+      "scenario": "转发审批卡与原生按钮点击",
+      "status": "not-run",
+      "reason": "没有第二用户/目标测试群；原生客户端观察返回 cgWindowNotFound，未进行 UI 操作"
+    }
+  ],
+  "replies": [
+    {
+      "messageId": "msgR+p4AIm2sHTT4tHbIp2smA==",
+      "time": "2026-11-04 10:07:13",
+      "bot": "探探",
+      "text": "你在当前聊天已获授权的设备，选择后查看可绑定的会话。 \n 发送命令操作（复制不会发送）： \n peer:xking-mac:local-codex \n /sessions --host peer:xking-mac:local-codex\n \n Linux 12（Codex CLI） \n /sessions --host peer:linux12:headless\n \n Mac Connector 回归验证 \n /sessions --host peer:xking-mac-regression:desktop\n"
+    },
+    {
+      "messageId": "msgIVH4nk7TGG+OwfWJTNvv3Q==",
+      "time": "2026-11-04 10:08:04",
+      "bot": "探探",
+      "text": "本人在当前聊天的权限 IM 准入：已获准 授权来源：个人授权 本人 Web IDE 配对资格：已获准（仍需确认当前浏览器） 准入审批管理员：否 \n 本人在当前聊天的申请 \n 暂无待处理申请。"
+    },
+    {
+      "messageId": "msg04vCMh7arDSOkkIrkISJQQ==",
+      "time": "2026-11-04 10:09:07",
+      "bot": "探探",
+      "text": "仅准入审批管理员可以查看全部申请。"
+    },
+    {
+      "messageId": "msgRwemCwsoBLvHPBN3uRWynA==",
+      "time": "2026-11-04 10:09:20",
+      "bot": "头头",
+      "text": "本人在当前聊天的权限 IM 准入：已获准 授权来源：个人授权 本人 Web IDE 配对资格：已获准（仍需确认当前浏览器） 准入审批管理员：是 \n 当前聊天待处理申请 \n 暂无待处理申请。 \n 跨聊天管理请在机器人私聊发送 /access all。"
+    },
+    {
+      "messageId": "msg0AXxkmrbDUdf37xZY8tKZw==",
+      "time": "2026-11-04 10:10:10",
+      "bot": "头头",
+      "text": "跨聊天准入管理仅限机器人私聊，请在私聊发送 /access all。"
+    },
+    {
+      "messageId": "msgQ0sCB3SqT3unmW9IacoCRg==",
+      "time": "2026-11-04 10:10:29",
+      "bot": "头头",
+      "text": "此 Gateway 尚未启用远程设备接入。"
+    }
+  ],
+  "effects": "仅发送查询测试消息、临时事件监听；未修改准入/角色/设备授权、未新建或绑定 Codex 会话、未重启服务、未添加机器人"
+}
