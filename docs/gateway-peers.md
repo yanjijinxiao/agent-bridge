@@ -1,20 +1,14 @@
 # Gateway 的监听端、拨号端与远程 Codex
 
-当前为显式启用的实验功能：未设置 `CODEX_IM_GATEWAY_PEER_CONFIG` 时不启动 Peer 监听，也不改变原有机器人后端。多人共享与共享工作区仍需按实际部署完成独立验收。
+本功能由管理员显式启用：未设置 `CODEX_IM_GATEWAY_PEER_CONFIG` 时不启动 Peer 监听，也不改变原有机器人后端。多人共享与共享工作区仍需按实际部署完成独立验收。第一次使用探探可先阅读 [Connector 与使用教程](tantan-connector-guide.md)；本文主要说明通用部署和接口。
 
 服务器 A 运行 Gateway 和机器人，设备 B 主动连接 A。先配对设备，再在钉钉中查看、选择和切换 B 的 Codex 会话。本机配置无需填写 session ID，服务器按需向客户端查询会话目录。B 无需开放入站端口，A 无需 SSH 登录 B；双方需要网络互通。
 
-流程简化（2026-11-04）：`/access` 管理本人/当前聊天的准入，个人准入同时用于 IDE，不重复登记；`/connect 配对码` 经设备确认后立即显示该设备的项目与会话，不再要求补发 `/sessions`。配对不执行或自动选择任务。首次浏览器只确认本人一次，默认信任有权访问的项目；已有浏览器登录复用到本人其他项目，不把其他用户或群的设备权限合并进来。
+流程简化（2026-11-04）：`/access` 管理本人/当前聊天的准入，个人准入同时用于 IDE，不重复登记；`/connect 配对码` 经设备确认后立即显示该设备的项目与会话，不再要求补发 `/sessions`。配对不执行或自动选择任务。IDE 默认采用个人浏览器确认，管理员也可显式开启持链接直接进入；后者目前每个账号只有一个固定授权来源，仍需具有目标设备权限，不能视为新用户自动获得自己机器的 IDE。详见 [Web IDE 访问模式](web-ide.md)。
 
 已有单一 HTTPS 前端的部署可使用 `scripts/peer-ide-tls-front.mjs`：Peer WebSocket 转到 loopback 19478，IDE HTTP/WS 转到 loopback 28480，保留 Host/Origin/Cookie 供原授权模块验证，不发布 `/api` 管理面。端口和证书目录可通过脚本列出的环境变量配置；Gateway IDE 配置的 publicOrigin 必须与外部固定入口一致。
 
-```text
-钉钉私聊 / 群聊 @机器人
-          ↕ 现有 DingTalk ChannelAdapter
-服务器 A：BridgeService → withPeerBackend → PeerConnection
-                                               ↕ WSS（由 B 主动发起）
-设备 B：Codex CLI / App ← CodexBackendRouter ← PeerExecutionService
-```
+消息路径：钉钉 → 服务器 A 的 ChannelAdapter / BridgeService → PeerConnection → 设备 B 的 PeerExecutionService → 同一套 Codex App Server 适配器。WSS 由 B 主动建立，回复沿该连接返回。
 
 监听和拨号属于传输角色，两端都能发起请求、接收请求和返回事件。代码放在同一个项目，分别由 `GatewayPeerServer` 和 `GatewayPeerClient` 建立连接。机器人适配器、远端执行器和远端对话适配器复用现有业务边界，不另写一套会话管理。
 
@@ -120,6 +114,8 @@ R2  开发网关        /Users/me/project-b
 
 默认设备授权对应 **accountId + conversationId + actorId + 本地 profile**，允许该用户在这个聊天中查看目录、选择并操作普通会话。受限模式则额外固定到指定 thread。允许设备连接并不等于允许所有机器人用户操作它。群聊绑定后，其他成员仍需取得自己的本机授权（可重连生成新码，再由该成员发 `/connect`）。已有机器人准入和角色检查同时生效。
 
+**群聊绑定是一份共享状态。** 已获准的普通 participant 可以解绑或切换到自己有权访问的会话，并不要求原绑定者同意；原任务不会因此停止，也不转移原设备权限。资源共享访客另有进入/退出已授权资源的绑定路径。需要每个人互不影响时，使用私聊或不同专用群；当前没有首次绑定者独占锁。
+
 若希望由会话所有者批准别人访问指定 session，可使用 [会话所有权与共享工作区](peer-sharing.md)。这种资源授权不要求访问者取得整个 profile 的设备授权；Peer 的共享 Web 编辑器也按 owner 确认的目录和只读/读写能力分别校验。
 
 `/leave` 只解除聊天的当前绑定，不撤销历史设备授权。若需撤销访问，先停止相应 B 客户端并移除本机授权记录；可停止客户端后删除其状态目录中的 `grants.json`，保留 `receipts.json` 防止历史消息重复执行。撤销整个设备则从 A 的配置删除设备凭据并重启入口。这版尚无细粒度撤销 UI。
@@ -145,7 +141,7 @@ Gateway 本机管理 UI 保留管理员控制台边界；它没有按钉钉用�
 
 远端对话适配器目前是可嵌入 API，测试已分别接到监听端和拨号端的真实 `BridgeService`。配置文件和 CLI 首先覆盖“机器人 → 远端 Codex”的执行器场景，尚未提供对话客户端的管理 UI 或独立交互 CLI。
 
-Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输层不理解第三方 SDK，执行层继续使用统一后端接口。会话附件传输已接入；Web IDE、通用文件浏览和代码只读预览链接仍需独立适配。
+Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输层不理解第三方 SDK，执行层继续使用统一后端接口。会话附件和显式启用的完整 Web IDE 已接入；仅有文本共享授权的访客继续使用受限文本页，不获得终端。
 
 ### 协议 v1
 
@@ -240,7 +236,7 @@ Connector导出的项目ID使用设备当前host/home的明确Desktop迁移映�
 
 Connector 配置可增加 `webIDE`：`enabled` 默认 false；`binary` 默认 code-server，亦可选择本机已安装的绝对路径；`autoInstall` 默认 false，设为 true 时按固定官方版本、长度和 SHA256 安装到本用户目录。设备需要可用 Git 和终端 shell；Linux 需满足官方 code-server 的 glibc 条件。配置后重启 Connector，独立 daemon 上已接收的 Codex 任务继续。
 
-Gateway 的 IDE 页面启用该 peer 主机，并使用可访问的共享 HTTPS 入口。无需为 Connector 开放 SSH、code-server TCP 端口或另一套密码。已配对的本人在所选原生项目发送 /ide，沿用个人准入、浏览器证明及 90 天登录。仅 ide-read/ide-write 的共享访客继续使用文本页，不能获得 Git/终端。
+Gateway 的 IDE 页面启用该 peer 主机，并使用可访问的共享 HTTPS 入口。无需为 Connector 开放 SSH、code-server TCP 端口或另一套密码。在所选原生项目发送 /ide；浏览器按账号配置使用个人确认或显式链接直达，最长 90 天，不自动续期。链接直达授权来源必须有目标设备的有效非委托授权；新用户配对后仍需单独核对，不能复用别人设备的权限。仅 ide-read/ide-write 的共享访客继续使用文本页，不能获得 Git/终端。
 
 完整 IDE 具有运行 Connector 用户的系统权限；项目根不是系统沙箱。已有本人设备授权在显式启用 webIDE 后可用该能力，新增配对的本机确认会明确显示终端权限。Gateway/Connector 重连会重建 IDE 流和实例，保留 profile、文件和有效浏览器登录，但不保证终端任务存活；不会借此重发 Codex 输入。
 

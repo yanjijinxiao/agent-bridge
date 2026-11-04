@@ -12,24 +12,25 @@
   <strong>通过个人微信、企业微信、飞书和钉钉使用本机或远程 OpenAI Codex。</strong>
 </p>
 
-`codex-im-gateway` 是一个跨平台、本机运行的即时通信网关。它把多个消息渠道连接到统一的 Codex 项目、会话和任务生命周期，桌面与纯 CLI 部署统一使用标准 Codex App Server 接口。
+`codex-im-gateway` 把即时通信消息转发给选定设备上的 Codex，并将进展、审批和结果送回原聊天。桌面和纯 CLI 环境统一使用标准 Codex App Server 接口；设备可通过本机连接、SSH 或主动拨号的 Connector 接入。
 
-```text
-个人微信 / 企业微信 / 飞书 / 钉钉
-                  │
-                  ▼
-          Codex IM Gateway
-          ├─ 项目与会话路由
-          ├─ 长任务进度与审批
-          ├─ 附件、通知和知识
-          └─ 本机 Web 管理页
-                  │
-                  ▼
-       Codex CLI / Codex Desktop
-       本机项目 / SSH 远程项目
-```
+| 执行位置 | 接入方式 |
+| --- | --- |
+| Gateway 所在电脑 | 连接该电脑已配置的原生 App Server |
+| 已登记的 SSH 主机 | 沿用主机标识及 SSH 配置 |
+| 用户自己的电脑或服务器 | Connector 主动连接 Gateway，配对后在 IM 中选择会话；设备无需开放入站端口 |
 
-服务只监听 `127.0.0.1`，渠道凭据、附件、会话绑定和个人知识均保存在本机。
+Gateway 本机管理页监听 `127.0.0.1`，不作为多人登录门户。Connector 的 WSS 入口和项目 Web IDE 的 HTTPS 入口由管理员单独启用；不要公开整个管理端口。渠道配置和转发状态保存在 Gateway，原生会话、模型凭据和 Connector 配对回执保存在相应设备。
+
+## 从哪里开始
+
+| 你的目标 | 阅读入口 |
+| --- | --- |
+| 使用别人提供的 Gateway，把自己的电脑接进去 | 下方「连接已有 Gateway」，以及 [Connector 连接指南](./docs/gateway-peers.md) |
+| 在钉钉使用探探 | [探探 Connector 与使用教程](./docs/tantan-connector-guide.md)，包含配对、命令、群聊和管理员开通条件 |
+| 自己部署机器人和 Gateway | 下方「部署自己的 Gateway」及 [渠道配置](./docs/channel-setup.md) |
+| 开通浏览器编辑、Git 和终端 | [Web IDE 配置与访问模式](./docs/web-ide.md) |
+| 查看架构、功能要求和验证范围 | [架构文档](./docs/architecture/README.md) 与 [需求及 case 核对表](./docs/architecture/gateway-case-coverage.md) |
 
 ### 运行中消息与原生队列
 
@@ -48,10 +49,12 @@
 
 - **多渠道统一接入**：个人微信、企业微信、飞书和钉钉可以同时连接，同一套项目、会话、审批和通知能力按账号隔离运行。
 - **一套 Codex 原生接口**：桌面 App、Gateway 与 CLI 客户端连接选定主机的同一个 App Server；覆盖新建、继续、跟随、交互和远端任务，断连不切换执行器。
+- **Connector 设备接入**：每台设备使用独立凭据，设备端确认具体用户和聊天的访问申请；配对后可在 IM 中选择原生项目、会话及收发附件。
 - **项目与 Session 管理**：从 Codex Desktop 项目注册表和 Codex 会话数据发现本机或远程项目，支持绑定、切换、新建、继续、归档状态检查和任务排队。
 - **长任务持续运行**：已接受的 Agent 任务没有固定总时长上限；渠道端会持续显示可读进度、工具状态和累计用时，最终答案保持完整。
 - **媒体、审批与通知**：按渠道能力处理图片、语音、视频和文件；Codex 的命令、文件修改及额外权限审批会回到原账号和原会话。
 - **本机管理与扩展**：Web 页面集中管理渠道、项目、Session、模型和通知；内置 Taskboard，并允许已安装 Skill 通过声明式能力接入渠道工作台。
+- **可选完整 Web IDE**：项目可使用 code-server 文件编辑、Git 和终端；支持本机、SSH 和显式启用的 Connector，访问条件和多用户限制见下文。
 
 ## 渠道支持
 
@@ -76,9 +79,44 @@
 
 管理页可以添加和启停渠道、授权联系人、绑定项目、查看 Session 与运行任务、继续对话，并配置模型、推理强度、过程进度和任务结束通知。
 
-可选的「Web IDE」入口支持在本机／远程项目所在主机按需运行 code-server，由 Gateway 统一浏览器鉴权，并在最终回复中附项目入口。支持主机增量热接入，复用固定 HTTPS 入口；默认关闭，无需额外 IDE 密码。详见[Web IDE 配置与安全边界](./docs/web-ide.md)。
+可选的「Web IDE」在项目主机按需运行 code-server；进行中的 AI 卡和最终回复均可显示同一项目入口。默认关闭，无需额外 IDE 密码，但仍需启用主机并核对原生项目及访问权限。无项目会话不自动获得项目 IDE。
 
-## 快速开始
+浏览器访问支持两种明确的策略：默认复用个人准入，首次确认本人浏览器后自动信任有权访问的项目；管理员也可显式启用「持链接直接进入」，新浏览器无需确认码或钉钉免登，持链接者可使用文件、Git 和终端。授权最长 90 天，不因访问或重启自动续期。
+
+**链接直达目前每个渠道账号只配置一个授权来源。** 它仍须有目标 Connector 的有效设备授权，并不等于每个新用户配对后都自动获得自己设备的免确认 IDE。多人使用需分别核对并验收；不要把本机管理页当作用户门户，也不要把完整 IDE 当作目录级操作系统沙箱。详见 [Web IDE](./docs/web-ide.md) 和 [最新链接访问合同](./docs/architecture/modules/ide-access.md)。
+
+## 连接已有 Gateway（只安装 Connector）
+
+使用别人提供的机器人时，不需要重新部署 Gateway 或申请机器人应用凭据。先向管理员领取独立设备 ID、设备令牌文件、匹配版本的 Connector 配置，以及需要时的 CA 证书，并开通本人的 IM 准入。不要共用设备令牌或通过群聊传递秘密凭据。
+
+1. 设备上先准备好能正常工作的 Codex、Node.js 和 Git。纯 CLI 服务器不需要桌面 GUI。
+2. 获取管理员指定版本的源码，在仓库目录执行下方安装、构建命令。
+3. 将管理员给出的配置与凭据放在仓库外的私有目录。配置使用同一个明确的原生服务；推荐的 `daemon` 方式不在断连时自动换执行器。
+4. 在交互式终端启动 Connector，复制终端显示的完整 `/connect 配对码` 到机器人私聊；群里需先真正 @机器人。
+5. 在设备终端核对申请人、聊天和范围，确认后输入 `yes`。配对码有效期 5 分钟，一次使用后失效。
+6. 配对后直接选择返回的会话，再用 `/status` 核对设备和目录。换聊天需要在新聊天完成自己的设备配对。
+
+安装依赖：
+
+```bash
+npm ci
+```
+
+只构建 Gateway / Connector 程序：
+
+```bash
+npm run build:bridge
+```
+
+启动命令模板，需把配置路径替换为实际文件：
+
+```bash
+npm run peer -- --config /absolute/path/peer-client.json
+```
+
+设备令牌用于连接认证；配对码在 Connector 连上后产生，不是通过 HTTP/curl 自助领取设备凭据。`/connect` 只列当前用户在当前机器人、当前聊天有权使用的设备。完整配置、后台运行边界和故障排查见 [连接指南](./docs/gateway-peers.md)；首次接入探探可直接使用 [逐步教程](./docs/tantan-connector-guide.md)。
+
+## 部署自己的 Gateway
 
 ### 环境要求
 
@@ -88,6 +126,9 @@
 
 ```bash
 npm install -g @openai/codex
+```
+
+```bash
 codex --version
 ```
 
@@ -97,9 +138,21 @@ codex --version
 
 ```bash
 git clone https://github.com/yanjijinxiao/codex-im-gateway.git
+```
+
+```bash
 cd codex-im-gateway
+```
+
+```bash
 npm ci
+```
+
+```bash
 npm run build
+```
+
+```bash
 node dist/server/index.js
 ```
 
@@ -109,6 +162,9 @@ node dist/server/index.js
 
 ```bash
 npm run install:local
+```
+
+```bash
 node dist/server/index.js
 ```
 
@@ -119,40 +175,54 @@ node dist/server/index.js
 1. 打开管理页，点击“添加渠道”。
 2. 选择个人微信、企业微信、飞书或钉钉，并按页面说明完成扫码或填写应用凭据。
 3. 从对应聊天端给机器人发送一条消息；如渠道需要授权，在管理页允许该联系人或会话。
-4. 发送 `/sessions` 分页查看全部可绑定的未归档会话，再发送 `/session R1`（或点击卡片）直接绑定，无需先选项目。
-5. 发送普通消息继续对话。新建会话可用 `/new`（当前项目）、`/new P2` 或 `/new C1`（指定项目），也可用 `/new --standalone`（本机独立会话）。下一条消息才会启动 Codex；旧 `/project add` 保留为兼容别名。
+4. 发送 `/sessions` 分页查看当前来源中有权访问的未归档会话，再发送 `/session R1`（或点击卡片）直接绑定，无需先选项目。Connector 用户先完成设备配对，多设备时从 `/connect` 选择来源。
+5. 发送普通消息继续对话。新建会话可用 `/new`（当前项目）、`/new P2` 或 `/new C1`（指定项目），也可用 `/new --standalone`（当前设备的独立会话；先核对设备来源）。下一条消息才会启动 Codex；旧 `/project add` 保留为兼容别名。
+
+### 多人群聊与权限
+
+**一个群共用一份当前绑定，不按群成员分别保存，也没有首次绑定者独占锁。** 已获准成员在普通 participant 权限下即可解绑或切换；切换到自己的 Connector 会话仍需自己的设备授权。切换改变全群后续消息的去向，不会停止原会话的任务，也不会将原设备权限转交给另一个人。资源共享访客还有用于进入/退出其已授权资源的绑定路径，不能把角色当作所有者锁。
+
+个人准入用户默认是 controller，显式个人角色优先。`/role` 查询当前聊天角色；`/access` 查询本人及当前聊天准入。准入管理员在机器人私聊显式使用 `/access all` 才查看本渠道全部申请，不能在群里使用该全局视图。各自处理私人任务宜分别私聊或使用专用群；群内已经发出的消息对群成员可见。
+
+### 消息合并
+
+`/prompt start` 开启文字与附件合并，`/prompt done` 一次性提交，`/prompt cancel` 取消尚未提交的内容。取消合并不停止已经运行的任务；`/prompt` 不是查看系统提示词的命令。
 
 长期无人使用的 IM 绑定默认在 **15 天无人工消息**后核验自动解绑。网页“设置”可调整全局天数（0 为关闭），会话列表的计时器按钮可单独关闭/覆盖，并展示最后人工消息和预计到期时间。任务运行、排队、等待答题/审批或状态无法确认时保留绑定；心跳与机器人回复不续期。只解绑当前 IM 对话，不删除 session 或停止任务。旧绑定升级后享有完整宽限期，重启不重置计时。
 
 常用命令：
 
-```text
-/help                       查看全部命令
-/status                     查看当前项目、Session、后端、模型和任务状态
-/sessions                   置顶→项目及其会话→其他会话；保留空项目，默认每页 10 项
-/sessions size 50           每页项数设为 50（支持 5-50，按聊天和用户保存）
-/sessions detail R1         查看标题、主机、目录和 ID，不切换会话
-/sessions more              下一页（prev 上一页，page 3 跳页）
-/sessions search 关键词      按标题、内容、目录或 ID 搜索
-/sessions unbound           只看无项目 Session
-/sessions project           只看当前项目 Session
-/session R1                 绑定并继续指定 Session
-/session 会话ID              不经过列表直接绑定（远程附加 --host 主机ID）
-/project                    可选：查看项目，选择时自动绑定并切换
-/project C1                 选择未绑定项目（也兼容 /project add C1）
-/project P1                 切换已绑定项目
-/new                        在当前项目新建 Session
-/new P2                     在指定项目新建并切换；也支持 C编号或完整项目名
-/new --standalone           新建本机无项目 Session，使用独立持久目录
-/session new ...            /new ... 的别名
-/model                      查看或切换模型
-/effort                     查看或切换推理强度
-/stream                     设置过程进度
-/follow                     查看跟随开关、同步健康、最后同步时间及失败原因
-/follow on                  开启并立即同步；已经开启时也会重新同步
-/follow sync                只同步当前绑定，不新建、介入或停止任务
-/stop                       中断当前任务
-```
+| 命令 | 用途 |
+| --- | --- |
+| `/help` | 查看全部命令 |
+| `/status` | 查看当前项目、Session、后端、模型和任务状态 |
+| `/sessions` | 置顶→项目及其会话→其他会话；保留空项目，默认每页 10 项 |
+| `/sessions size 50` | 每页项数设为 50（支持 5-50，按聊天和用户保存） |
+| `/sessions detail R1` | 查看标题、主机、目录和 ID，不切换会话 |
+| `/sessions more` | 下一页（prev 上一页，page 3 跳页） |
+| `/sessions search 关键词` | 按标题、内容、目录或 ID 搜索 |
+| `/sessions unbound` | 只看无项目 Session |
+| `/sessions project` | 只看当前项目 Session |
+| `/session R1` | 绑定并继续指定 Session |
+| `/session 会话ID` | 不经过列表直接绑定（远程附加 --host 主机ID） |
+| `/project` | 可选：查看项目，选择时自动绑定并切换 |
+| `/project C1` | 选择未绑定项目（也兼容 /project add C1） |
+| `/project P1` | 切换已绑定项目 |
+| `/new` | 在当前项目新建 Session |
+| `/new P2` | 在指定项目新建并切换；也支持 C编号或完整项目名 |
+| `/new --standalone` | 在当前设备新建独立会话；先核对设备来源 |
+| `/session new ...` | /new ... 的别名 |
+| `/model` | 查看或切换模型 |
+| `/effort` | 查看或切换推理强度 |
+| `/stream` | 设置过程进度 |
+| `/follow` | 查看跟随开关、同步健康、最后同步时间及失败原因 |
+| `/follow on` | 开启并立即同步；已经开启时也会重新同步 |
+| `/follow sync` | 只同步当前绑定，不新建、介入或停止任务 |
+| `/stop` | 中断当前任务 |
+| `/connect` | 查看自己在当前聊天已授权的设备 |
+| `/access` | 查看本人及当前聊天准入 |
+| `/ide` | 获取已启用的当前项目 IDE 入口 |
+| `/unbind` | 解绑当前聊天，不停止原任务 |
 
 普通消息在任务运行中默认安全 `steer`，也可显式 `/queue` 或用 `/policy queue` 排到下一轮。所有操作都使用选定主机的原生 App Server，读取失败或回执不明不会切换执行器或重发。`/leave` 会持续退出绑定，直到显式选择会话或 `/new`。`/stream off` 关闭过程进度但保留最终结果。全部命令及兼容别名见[渠道命令审计](./docs/channel-command-audit.md)。
 
@@ -202,15 +272,16 @@ npm run taskboard:codex
 
 新安装默认使用：
 
-```text
-~/.codex-im-gateway/
-  accounts/                 渠道账号凭据
-  runtime/<account-id>/     授权、项目、Session 与个人知识
-  inbound/<account-id>/     入站附件
-  config.json               Codex、后端和工作区配置
-  logs/                     本机运行日志
-  taskboard/                内置 Taskboard 数据
-```
+`~/.codex-im-gateway/` 下的数据：
+
+| 路径 | 内容 |
+| --- | --- |
+| `accounts/` | 渠道账号凭据 |
+| `runtime/<account-id>/` | 授权、项目、Session 与个人知识 |
+| `inbound/<account-id>/` | 入站附件 |
+| `config.json` | Codex、后端和工作区配置 |
+| `logs/` | 本机运行日志 |
+| `taskboard/` | 内置 Taskboard 数据 |
 
 如果新目录尚不存在，网关会依次复用已有的 `~/.codex-channel-bridge/` 或 `~/.codex-weixin/`，无需重新配置渠道。旧的 `CODEX_CHANNEL_BRIDGE_*`、`CODEX_WEIXIN_*`、请求头和 action block 也继续作为兼容接口读取。
 
@@ -218,15 +289,16 @@ npm run taskboard:codex
 
 可使用以下环境变量覆盖启动设置：
 
-```text
-CODEX_IM_GATEWAY_PORT=8787
-CODEX_IM_GATEWAY_STATE_DIR=/absolute/private/path
-CODEX_IM_GATEWAY_OPEN=0
-```
+| 环境变量 | 示例值 |
+| --- | --- |
+| `CODEX_IM_GATEWAY_PORT` | 8787 |
+| `CODEX_IM_GATEWAY_STATE_DIR` | /absolute/private/path |
+| `CODEX_IM_GATEWAY_OPEN` | 0 |
 
 ## 安全边界
 
-- Web 服务只监听本机回环地址，并校验 Host、Origin 和运行时请求令牌。
+- Gateway 管理服务只监听本机回环地址，并校验 Host、Origin 和运行时请求令牌；单独启用的 Connector / IDE 入口不能转发整个管理面。
+- Connector 设备认证、IM 准入、聊天角色和浏览器 IDE 授权分别校验。设备配对不授予 Gateway 管理权限，群绑定不代表机器权限共享。
 - 渠道凭据不会返回管理页面；未知联系人或会话默认拒绝。
 - 项目来自 Codex 后端发现结果，不接受聊天端任意路径注入。
 - 审批编号按渠道账号、会话和原生请求隔离。已接管的本地审批通知在超时或投递失败时按既有策略选择拒绝，是否生效仍等待原生回执；缺失本地交互路由时不代答其他客户端的请求。
@@ -239,7 +311,10 @@ CODEX_IM_GATEWAY_OPEN=0
 ## 文档
 
 - [Gateway 双向连接、远程 Codex 与钉钉配对](./docs/gateway-peers.md)
-
+- [探探 Connector 与使用教程（可转发给新用户）](./docs/tantan-connector-guide.md)
+- [Web IDE 配置、链接访问与多用户限制](./docs/web-ide.md)
+- [架构与模块文档](./docs/architecture/README.md)
+- [功能要求与 case 映射](./docs/architecture/gateway-case-coverage.md)
 - [消息渠道与任务通知配置](./docs/channel-setup.md)
 - [Codex 后端架构](./docs/codex-backends.md)
 - [统一 IM 渠道接口与能力矩阵](./docs/im-channel-architecture.md)
@@ -251,9 +326,18 @@ CODEX_IM_GATEWAY_OPEN=0
 ## 开发与验证
 
 ```bash
-npm install
+npm ci
+```
+
+```bash
 npm run typecheck
+```
+
+```bash
 npm test
+```
+
+```bash
 npm run build
 ```
 
@@ -261,11 +345,7 @@ npm run build
 
 项目沿革：
 
-```text
-XavierJiezou/codex-weixin
-  → lsiten/codex-channel-bridge
-  → yanjijinxiao/codex-im-gateway
-```
+XavierJiezou/codex-weixin → lsiten/codex-channel-bridge → yanjijinxiao/codex-im-gateway
 
 原作者版权声明与 [MIT License](./LICENSE) 均完整保留，更多说明见 [NOTICE](./NOTICE)。微信 iLink 接入形态参考 MIT 许可的 `Tencent/openclaw-weixin`；项目未复制 AGPL 项目源码。
 
