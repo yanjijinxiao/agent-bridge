@@ -345,6 +345,15 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
       if (input.config.port === context.port || input.config.localAccess?.port === context.port) throw new Error("IDE 端口不能与 Gateway 管理端口相同");
       const hosts = new Set(context.accountManager.listIDEHosts?.() ?? ["local", ...context.accountManager.listProjects().map(p => p.hostId ?? "local")]);
       if (input.config.hosts.some(h => !hosts.has(h.hostId))) { sendJson(response, 400, { error: "只能启用已登记项目或已配对且支持完整 IDE 的主机" }); return; }
+      for (const policy of input.config.linkAccess ?? []) {
+        // Expired rows may be preserved while editing unrelated host settings.
+        if (policy.expiresAt > Date.now() + IDE_SESSION_DAYS * 86400_000) throw new Error("链接访问有效期不能超过 90 天");
+        const previous = ide.config().linkAccess?.find(row => row.accountId === policy.accountId);
+        if (JSON.stringify(previous) !== JSON.stringify(policy)) {
+          if (!context.accountManager.ideApprovals) throw new Error("个人准入服务不可用，未启用链接访问");
+          context.accountManager.ideApprovals.personalSubject(policy.accountId, policy.actorId);
+        }
+      }
       if (context.ideAccess) await context.ideAccess.configure(input.config);
       else ide.configStore.save(input.config);
       sendJson(response, 200, { ok: true, config: ide.config(), running: context.ideAccess?.running() }); return;

@@ -90,6 +90,15 @@ export class IDEApprovalService {
           : !this.error && this.owners.some(p => key(p) === key(principal)));
     } catch { return false; }
   }
+  /** A link policy delegates an existing person's resource authority, without
+   * claiming that the browser holder is that person or granting their identity. */
+  personalSubject(accountId: string, actorId: string): IDEAccessSubject {
+    const account = this.accounts().find(a => a.accountId === accountId);
+    if (!account) throw new Error("链接所属渠道账号不存在");
+    const subject = this.subject(idePrincipalSchema.parse({ ...account, actorId }));
+    if (subject.basis !== "im-personal") throw new Error("链接访问需要已有个人准入，不能使用群授权或兼容审批身份");
+    return subject;
+  }
   /** Write the revocation fence BEFORE the IM allowlist is changed. Even an
    * offline endpoint or a later re-allow cannot resurrect prior credentials. */
   revokePersonalAccess(accountId: string, actorId: string): void {

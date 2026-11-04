@@ -9,4 +9,5 @@ export type IDEPrincipal = z.infer<typeof idePrincipalSchema>;
 export const ideAccessSubjectSchema = z.object({ principal: idePrincipalSchema,
   basis: z.enum(["im-personal", "legacy-approver"]), epoch: z.number().int().nonnegative().safe() }).strict();
 export type IDEAccessSubject = z.infer<typeof ideAccessSubjectSchema>;
-export type IDEAccessAuthority = { isSubjectAllowed(subject: IDEAccessSubject): boolean };
+export type IDEAccessAuthority = { isSubjectAllowed(subject: IDEAccessSubject): boolean;
+  personalSubject?(accountId: string, actorId: string): IDEAccessSubject };

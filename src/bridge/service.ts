@@ -657,7 +657,7 @@ export class BridgeService {
           await this.reply(message.senderId, `[打开共享 Web 编辑器](${url})\n浏览器需通过 /share browser 六位码确认。权限由会话所有者授予；共享编辑器不提供终端。`); return;
         }
         const url = session && await this.options.ideEntry?.(session);
-        await this.reply(message.senderId, url ? `${ideEntryLink(url)}\n登录后打开，不会启动新的 Codex 任务。`
+        await this.reply(message.senderId, url ? `${ideEntryLink(url)}\n打开项目编辑器，不会启动新的 Codex 任务。`
           : "当前没有可用的 Web IDE 入口。请先绑定有项目的 session，并在 Gateway 网页端启用对应主机的 Web IDE。");
         return;
       }

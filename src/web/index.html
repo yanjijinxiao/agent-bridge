@@ -264,6 +264,7 @@
         <a id="ideTLSDownload" href="/api/ide/tls/ca.crt" download hidden>下载本地 CA 证书（供访问设备信任）</a>
         <fieldset><legend>允许运行的主机</legend><p>通过已登记的 SSH 配置连接。可授权在用户专用目录自动安装 code-server（支持 Linux x64、macOS Intel / Apple Silicon）；主机需已有 Node，不使用 sudo，也不修改系统服务。</p><p>新机器的项目登记后，刷新本页并勾选对应主机，保存即可热接入，无需重启 Gateway。选择共享入口时，新项目主机的远程入口字段可留空：复用已有转发器，不新增 Web 端口。发现 session 不等于自动授予安装或浏览器访问权限。</p><div id="ideHosts"></div></fieldset>
         <fieldset><legend>默认编辑器 Profile</legend><p>新实例使用此基线；已有实例只补缺失的默认项，不覆盖用户设置或项目 .vscode。缺省外观为 Dark 2026、Seti 文件图标、Default 界面图标、Menlo / Monaco / Courier New 等宽字体、12px 字号、18px 行高、普通字重、关闭连字、标签页换行；字体由浏览器设备提供。Chat 所在的右侧面板默认收起，可手动打开；已保存的布局仍由 IDE 记忆。修改 Profile 后使用独立的新实例目录。</p><label for="ideProfile">覆盖缺省值的编辑器设置（JSON）</label><textarea id="ideProfile" rows="10" spellcheck="false"></textarea><div id="ideExtensions" class="ide-extensions"></div><small>保存即声明所选扩展：打开对应实例时核验并从 Open VSX 安装缺失项，已安装的不重复下载；也可先在会话页「准备扩展」。失败不阻止编辑器打开，下方显示实际安装结果。语言工具链需在项目所在主机配置；安装成功不等于语言功能已验收。</small></fieldset>
+        <fieldset><legend>持链接直接进入</legend><p>启用后，新浏览器点击项目链接即自动进入并信任目录，具有文件、Git 和终端权限。持有链接的人都能访问，不再核验访问者本人身份。授权来源须已有个人准入及对应设备访问权；最长 90 天，到期不自动续期。取消勾选并保存可关闭链接访问。</p><div id="ideLinkAccess"></div></fieldset>
         <div class="heading-actions"><button id="ideSave" type="submit" class="button button-primary">保存并应用</button><button id="ideRevoke" type="button" class="button button-secondary">撤销全部 IDE 登录</button></div>
       </form>
       <h2>主机访问入口</h2><div id="ideEndpoints" aria-live="polite"></div>

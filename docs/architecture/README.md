@@ -29,7 +29,7 @@
 | 审批及提问 | [原请求、多消费者、明确答案和秘密字段](modules/native-interactions.md) |
 | 系统及容量恢复 | [只读核对、恢复交接和持久补偿](modules/recovery-coordinators.md) |
 | 进展、结果及渠道 | [按轮/页回执、未知不补发、复制和网络边界](modules/delivery-channels.md) |
-| Web IDE | [完整 scope、原浏览器证明、90 天及独立进程](modules/ide-access.md) |
+| Web IDE | [完整 scope、个人确认或显式持链接访问、90 天及独立进程](modules/ide-access.md) |
 | 管理 UI | [原目标、迟到请求、原生表单和可选模块](modules/management-ui.md) |
 | Taskboard | [原生执行和交互](modules/taskboard-native-execution.md)、[表单与附件交接](modules/taskboard-data-handoffs.md)、[工作流编辑](modules/taskboard-workflows.md) |
 | 知识与 QA | [只读工具、实际文件边界和独立 MCP 所有权](modules/knowledge-qa.md) |

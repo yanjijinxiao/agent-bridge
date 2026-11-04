@@ -65,6 +65,11 @@ const localIDEAccessSchema = z.object({
 });
 export const ideConfigSchema = z.object({
   enabled: z.boolean(),
+  // Explicitly authorized possession-of-link access. This is an account policy,
+  // never inferred from an anonymous visit or from a group-wide IM allowlist.
+  linkAccess: z.array(z.object({ accountId: z.string().min(1).max(200), actorId: z.string().min(1).max(300),
+    expiresAt: z.number().int().positive().safe() }).strict()).max(50)
+    .refine(rows => new Set(rows.map(row => row.accountId)).size === rows.length, "链接访问账号重复").optional(),
   routing: z.literal("per-host").optional(),
   // Browser publication is independent of where a project's code-server runs.
   // Reuse one explicitly configured remote ingress; never infer a VPN address.

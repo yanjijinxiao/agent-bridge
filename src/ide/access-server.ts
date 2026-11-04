@@ -14,6 +14,7 @@ import type { IDEAccessAuthority, IDEAccessSubject } from "./access-subject.js";
 import { IDE_APPROVAL_CHOICES, ideConfirmationCommand } from "./approval-presentation.js";
 import { workspaceAuthorizationScope, legacyWorkspaceScope } from "./workspace-scope.js";
 import { IDE_OPEN_PROGRESS_SCRIPT } from "./open-progress.js";
+import { IDE_LINK_ENTRY_SCRIPT } from "./link-entry.js";
 
 type BrowserSession = IDEBrowserSession;
 export type IDEAccessContext = Pick<WorkspaceIDEManager, "configStore" | "config" | "resolve" | "refresh" | "authorizationFile" | "canonicalForTrust" | "open" | "endpoint" | "resume" | "close" | "onStop" | "accessAvailable"> & Partial<Pick<WorkspaceIDEManager, "canAccess" | "preparationStatus" | "accountForEntry">>;
@@ -42,7 +43,8 @@ export class IDEAccessServer {
     this.tls = new IDETLSManager(path.join(path.dirname(manager.configStore.filePath), "tls"));
     try { this.authorization = new IDEAuthorization(Date.now, manager.authorizationFile(), new URL(manager.config().publicOrigin).origin,
       subject => this.accessAuthority?.isSubjectAllowed(subject) === true,
-      id => { const target = manager.resolve(id); return { current: workspaceAuthorizationScope(target), legacy: legacyWorkspaceScope(target) }; }); }
+      id => { const target = manager.resolve(id); return { current: workspaceAuthorizationScope(target), legacy: legacyWorkspaceScope(target) }; }, undefined,
+      session => this.validProjectLinkSession(session)); }
     catch { this.authorization = new IDEAuthorization(); this.authorizationError = "IDE 授权记录无法读取；访问已拒绝，原文件未改动。"; }
     manager.accessAvailable = false;
     manager.onStop = id => { for (const [socket, entry] of this.connections) if (entry.instanceId === id) socket.destroy(); };
@@ -108,6 +110,23 @@ export class IDEAccessServer {
   setManagementOrigin(origin: string): void { this.managementOrigin = origin; }
   setApprovalCopies(port: IDEApprovalCopyPort | undefined): void { this.approvalCopies = port; }
   setAccessAuthority(authority: IDEAccessAuthority): void { this.accessAuthority = authority; }
+  private linkPolicy(entryId: string) {
+    try {
+      const accountId = this.manager.accountForEntry?.(entryId);
+      const policy = this.manager.config().linkAccess?.find(row => row.accountId === accountId);
+      if (!policy || policy.expiresAt <= Date.now() || policy.expiresAt > Date.now() + IDE_SESSION_TTL_MS) return;
+      const subject = this.accessAuthority?.personalSubject?.(policy.accountId, policy.actorId);
+      if (!subject || subject.basis !== "im-personal" || !this.accessAuthority?.isSubjectAllowed(subject)
+        || this.manager.canAccess?.(entryId, subject) === false) return;
+      const fingerprint = crypto.createHash("sha256").update(JSON.stringify([policy.accountId, policy.actorId, policy.expiresAt, subject])).digest("hex");
+      return { subject, fingerprint, expiresAt: policy.expiresAt };
+    } catch { return; }
+  }
+  private validProjectLinkSession(session: BrowserSession): boolean {
+    const policy = this.linkPolicy(session.entryId);
+    return !!policy && policy.fingerprint === session.projectLink && session.expiresAt <= policy.expiresAt
+      && JSON.stringify(policy.subject) === JSON.stringify(session.subject);
+  }
   reconcileAccess(): void {
     try { this.authorization.reconcileAccess(); }
     finally { for (const [socket, { session }] of this.connections) if (!this.authorization.active(session)) socket.destroy(); }
@@ -160,6 +179,11 @@ export class IDEAccessServer {
     for (const decision of this.decisions) if (matches(decision.entryId)) decision.invalidated = true;
     try { this.authorization.revokeEntries(matches); }
     finally { for (const [socket, { session }] of this.connections) if (matches(session.entryId)) socket.destroy(); }
+  }
+  revokeProjectLinks(matches: (entryId: string) => boolean): void {
+    for (const decision of this.decisions) if (matches(decision.entryId)) decision.invalidated = true;
+    try { this.authorization.revokeProjectLinks(matches); }
+    finally { for (const [socket, { session }] of this.connections) if (session.projectLink && matches(session.entryId)) socket.destroy(); }
   }
   revoke(): void {
     for (const decision of this.decisions) decision.invalidated = true;
@@ -267,6 +291,27 @@ export class IDEAccessServer {
     }
     if (method !== "GET" && method !== "HEAD" && !this.validOrigin(req)) { res.writeHead(403).end(); return; }
     const workspace = /^\/workspace\/([a-f0-9]{32})$/.exec(url.pathname);
+    if (method === "POST" && workspace && url.searchParams.get("enter") === "link") {
+      this.assertEntry(entryId);
+      const form = new URLSearchParams(await readBody(req)), pair = this.cookie(req, `cig_request_${entryId}`)?.split(".");
+      const scope = this.scope(entryId), policy = this.linkPolicy(entryId);
+      if (!policy || pair?.length !== 2 || form.get("request") !== pair[0]
+        || !this.authorization.pendingRequest(pair[0], pair[1], entryId, scope)) { this.json(res, 403, { error: "链接访问已失效，请重新打开项目入口。" }); return; }
+      const decision = { entryId, invalidated: false }; this.decisions.add(decision);
+      try {
+        const directory = await this.manager.canonicalForTrust(entryId, policy.subject);
+        if (decision.invalidated || scope !== this.scope(entryId) || policy.fingerprint !== this.linkPolicy(entryId)?.fingerprint) {
+          this.json(res, 403, { error: "项目或链接权限已改变，请重新打开。" }); return;
+        }
+        const access = this.authorization.exchangeProjectLink(pair[0], pair[1], entryId, scope, policy, directory.workspace, directory.rootPaths);
+        if (!access) { this.json(res, 403, { error: "链接请求已失效，请重新打开。" }); return; }
+        this.setCookie(res, COOKIE + entryId, access.token, Math.max(0, Math.floor((access.session.expiresAt - Date.now()) / 1000)));
+        this.setCookie(res, `cig_request_${entryId}`, "", 0);
+        if (req.headers.accept === "application/json") this.json(res, 200, { location: `/workspace/${entryId}` });
+        else this.redirect(res, `/workspace/${entryId}`);
+      } finally { this.decisions.delete(decision); }
+      return;
+    }
     if (method === "POST" && url.pathname === `/logout/${entryId}` && session) {
       const form = new URLSearchParams(await readBody(req)); if (form.get("csrf") !== session.csrf) { res.writeHead(403).end(); return; }
       this.authorization.logout(session);
@@ -278,6 +323,18 @@ export class IDEAccessServer {
       const id = workspace?.[1] ?? "";
       if (!id) { this.page(res, 200, "项目 Web IDE", "请从 Gateway 管理页或 IM 中的项目链接进入，无需另设密码。"); return; }
       this.assertEntry(id);
+      // Link mode is explicitly enabled for the account by local management.
+      // The holder receives this project only, never a reusable person cookie.
+      if ((!session || !session.trustWorkspace) && this.linkPolicy(id)) {
+        const pair = this.cookie(req, `cig_request_${id}`)?.split(".");
+        const pending = this.authorization.request(id, pair?.length === 2 ? { id: pair[0], proof: pair[1] } : undefined, this.scope(id));
+        this.setCookie(res, `cig_request_${id}`, `${pending.request.id}.${pending.proof}`, 300);
+        this.page(res, 200, "正在打开 Web IDE", "正在准备项目，完成后自动进入。",
+          `<p data-ide-link-status role="status">正在连接…</p><form data-ide-link-enter method="post" action="/workspace/${id}?enter=link"><input type="hidden" name="request" value="${pending.request.id}"><button type="submit">重试打开</button></form>`, IDE_LINK_ENTRY_SCRIPT); return;
+      }
+      if (!session && this.manager.config().linkAccess?.some(row => row.accountId === this.manager.accountForEntry?.(id))) {
+        this.page(res, 403, "项目链接暂不可用", "链接已到期，或项目访问权限已撤销。请联系项目管理员检查链接访问设置。"); return;
+      }
       if (!session) {
         // Strict cookies may be omitted on an external link's first request.
         // Commit a same-origin document, then recheck immediately before showing
@@ -311,7 +368,7 @@ export class IDEAccessServer {
         this.page(res, 200, "等待 Gateway 授权", "首次使用此浏览器，只需确认一次本人身份。复用已有个人准入，无需另设密码或重复登记。",
           `<section data-ide-wait>${choiceControls}<p>浏览器识别码（仅核对用，无需单独发送）：<strong>${escape(pending.request.code)}</strong></p></section><p>只配对你本人发起的申请。复制不会发送命令或批准访问；剪贴板受限时，可长按短命令复制或直接输入。</p><p>本次浏览器申请有效期为 5 分钟；批准后，浏览器访问授权有效期为 ${IDE_SESSION_DAYS} 天，Gateway 重启保留，不自动延期。撤销个人准入会使由该资格签发的浏览器授权失效，重新允许也不会恢复旧登录。</p><p>批准后本页会自动继续；复制操作期间暂缓刷新。</p><a href="/workspace/${id}">批准后继续</a><details data-ide-registration-help><summary>首次使用：如何核对个人准入</summary><p>本页尚未验证你的 IM 身份。请在对应机器人私聊或群聊发送下方命令，查看本人资格；已获个人准入者无需重复设置。</p>${copyField("查询本人准入状态的命令", "/ide identity", { purpose: "reply" })}<p>未获准时，请管理员在运行 Gateway 的电脑管理页聊天授权中「允许此用户」，不要仅允许整个群。群白名单和 session 角色不授予个人 IDE 资格；旧版独立登记的身份仍兼容。</p>${this.managementOrigin && local ? `<p><a href="${escape(this.managementOrigin)}">打开本机 Gateway 管理页（仅运行 Gateway 的电脑）</a></p>` : ""}</details>`); return;
       }
-      if (session.subject?.basis === "im-personal" && (!identity || identity.subject.principal.accountId !== session.subject.principal.accountId
+      if (!session.projectLink && session.subject?.basis === "im-personal" && (!identity || identity.subject.principal.accountId !== session.subject.principal.accountId
         || identity.subject.principal.actorId !== session.subject.principal.actorId)) {
         const remembered = this.authorization.rememberBrowser(session);
         if (remembered) this.setCookie(res, "cig_browser_person", remembered.token, Math.max(0, Math.floor((remembered.identity.expiresAt - Date.now()) / 1000)));

@@ -16875,6 +16875,102 @@
           "verifiedBoundary": "Gateway与Connector真实测试连接；未冒充第二位人类或真实群。"
         }
       ]
+    },
+    {
+      "id": "IDE-14",
+      "module": "ide",
+      "title": "明确启用的持链接直接进入",
+      "sourceNote": "2026-11-04 用户明确接受持项目链接即可访问文件、Git、终端，不要求新浏览器确认本人，不接钉钉免登。",
+      "contract": "账号显式配置已有个人准入来源与最长 90 天固定期限；同源请求自动建立精确项目授权并信任目录，不签发个人浏览器身份。来源准入、设备、项目、目录、HTTP/WS、到期及撤销持续校验；保留既有个人授权。",
+      "implementationReview": "按架构、模块、函数及静态配置四层进行本次增量复核，范围和边界见 docs/audits/2026-11-04-ide-link-access/README.md。",
+      "cases": [
+        {
+          "id": "IDE-14.1",
+          "scenario": "新浏览器自动同源交换与直接进入",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-project-link.test.ts",
+              "name": "fresh browser enters a trusted project link without an IM confirmation, preserving CSRF and project boundaries"
+            },
+            {
+              "file": "test/ide-project-link.test.ts",
+              "name": "real fresh Chrome opens a project link directly with no channel login or manual confirmation"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/link-entry.ts",
+              "sha256": "24d07b7d9b5dea28a64aca5463a31828e5c96ddf589e91a062f1ea6b073a6942"
+            },
+            {
+              "file": "src/ide/access-server.ts",
+              "sha256": "208f854915ee237acaacc4bca12cd5b240d91116a735d45c7bbf4ad7a3f1473c"
+            }
+          ],
+          "verifiedBoundary": "隔离 HTTP、Unix 上游及全新 Chrome；未声称手机实机验证或全库重新逐行审计。"
+        },
+        {
+          "id": "IDE-14.2",
+          "scenario": "项目专属来源、期限与持久化",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-project-link.test.ts",
+              "name": "project-link sessions are project-only, fixed-deadline, restart-safe and never reusable person identities"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/authorization.ts",
+              "sha256": "dd0baf1e660bc38a8d9ff643d9eb936f5105ff37bdd338dc44ed6af12a686ca9"
+            },
+            {
+              "file": "src/ide/approval-service.ts",
+              "sha256": "61b26516c692e56cd43c94b02832981e6042b728b624e3d0086b307ea2c864ae"
+            }
+          ],
+          "verifiedBoundary": "隔离 HTTP、Unix 上游及全新 Chrome；未声称手机实机验证或全库重新逐行审计。"
+        },
+        {
+          "id": "IDE-14.3",
+          "scenario": "撤销竞态、开关及已有个人授权兼容",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-project-link.test.ts",
+              "name": "revocation or policy changes during canonical checks cannot approve a late project-link browser"
+            },
+            {
+              "file": "test/ide-project-link.test.ts",
+              "name": "turning link mode off and on revokes old cookies, while an expired link stops without an approval loop"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/endpoint-manager.ts",
+              "sha256": "f60e74693ac6d8774a6553a7947147a2c89eaf9eac8b95471077e184701437d2"
+            },
+            {
+              "file": "src/ide/config.ts",
+              "sha256": "bbee4cc3c5cb370e3185ed13e096fdb9a3e81bd4313814f70ac07e28733a2f6b"
+            },
+            {
+              "file": "src/server/http-server.ts",
+              "sha256": "18da752088ecf867d647b89fd45ea226ac27b30861754ba2834573fb9716b265"
+            },
+            {
+              "file": "src/web/ide.js",
+              "sha256": "aaacb022540b1ad0cfa270510865f231c9b1daba72152aee401ce615ca2f0cff"
+            },
+            {
+              "file": "src/web/index.html",
+              "sha256": "16923385d6a4bf0c29344a7376af8cc272c79647f7ec097392f38e6927391d20"
+            }
+          ],
+          "verifiedBoundary": "隔离 HTTP、Unix 上游及全新 Chrome；未声称手机实机验证或全库重新逐行审计。"
+        }
+      ]
     }
   ],
   "reviewPass": "2026-11-03 full-four-layer: source, comments, documentation, tests, static/configuration reviewed; isolated regressions passed; deployment separately recorded",

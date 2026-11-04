@@ -141,6 +141,13 @@ export class IDEEndpointManager {
     // request, including async canonical-directory lookups already in flight.
     for (const [key, record] of this.endpoints) {
       const spec = desired.get(key);
+      record.server.revokeProjectLinks(id => {
+        try {
+          const account = this.manager.accountForEntry(id);
+          return JSON.stringify(record.config.linkAccess?.find(row => row.accountId === account))
+            !== JSON.stringify(spec?.config.linkAccess?.find(row => row.accountId === account));
+        } catch { return true; }
+      });
       record.server.revokeEntries(id => {
         if (revoke || !spec || spec.fingerprint !== record.fingerprint) return true;
         try {

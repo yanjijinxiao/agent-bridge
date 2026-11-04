@@ -140,6 +140,11 @@ window.gatewayIDE = (() => {
       const data = await api("/api/ide");
       if (busy || generation !== refreshGeneration) return;
       current = data; const config = current.config;
+      const localDate = value => { const date = new Date(value); return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+      $("#ideLinkAccess").innerHTML = (data.approvers?.accounts || []).map(account => {
+        const policy = config.linkAccess?.find(row => row.accountId === account.accountId);
+        return `<div class="ide-host"><label><input type="checkbox" data-ide-link-account="${escapeAttr(account.accountId)}" ${policy ? "checked" : ""}>${escapeHtml(account.accountId)} · 持链接进入</label><label>授权来源个人 ID<input data-ide-link-actor="${escapeAttr(account.accountId)}" value="${escapeAttr(policy?.actorId || "")}" placeholder="已获个人准入的用户"></label><label>截止时间<input type="datetime-local" data-ide-link-deadline="${escapeAttr(account.accountId)}" value="${localDate(policy?.expiresAt || Date.now() + 90 * 86400000)}"></label></div>`;
+      }).join("");
       $("#ideEnabled").checked = config.enabled; $("#ideOrigin").value = config.publicOrigin; $("#idePort").value = config.port;
       $("#idePerHostRouting").checked = config.routing === "per-host";
       const ingressHosts = config.hosts.filter(host => host.hostId !== "local" && !host.hostId.startsWith("peer:"));
@@ -192,6 +197,16 @@ window.gatewayIDE = (() => {
         autoInstall: [...document.querySelectorAll("[data-ide-auto]")].find(el => el.dataset.ideAuto === input.dataset.ideHost)?.checked ?? false,
         binary: [...document.querySelectorAll("[data-ide-binary]")].find(el => el.dataset.ideBinary === input.dataset.ideHost)?.value.trim() || "code-server" }));
       const config = { enabled: $("#ideEnabled").checked, port: Number($("#idePort").value), publicOrigin: perHost ? `http://127.0.0.1:${Number($("#idePort").value)}` : $("#ideOrigin").value.trim(), hosts,
+        linkAccess: [...document.querySelectorAll("[data-ide-link-account]:checked")].map(input => {
+          const accountId = input.dataset.ideLinkAccount;
+          const actorId = [...document.querySelectorAll("[data-ide-link-actor]")].find(el => el.dataset.ideLinkActor === accountId)?.value.trim();
+          const value = [...document.querySelectorAll("[data-ide-link-deadline]")].find(el => el.dataset.ideLinkDeadline === accountId)?.value;
+          const expiresAt = new Date(value).getTime(); if (!actorId || !Number.isFinite(expiresAt)) throw new Error("请填写链接授权来源个人 ID 和有效截止时间");
+          const previous = current.config.linkAccess?.find(row => row.accountId === accountId);
+          // datetime-local omits seconds; unrelated saves must preserve the exact
+          // fixed deadline, otherwise they would revoke an unchanged policy.
+          return { accountId, actorId, expiresAt: previous && Math.abs(previous.expiresAt - expiresAt) < 60000 ? previous.expiresAt : expiresAt };
+        }),
         ...(perHost ? { routing: "per-host", ...($("#ideSharedIngressHost").value ? { sharedIngressHostId: $("#ideSharedIngressHost").value } : {}) } : {}),
         ...(!perHost && $("#ideTLSEnabled").checked ? { tls: { bindAddress: $("#ideTLSAddress").value, certFile: $("#ideTLSCert").value.trim(), keyFile: $("#ideTLSKey").value.trim() } } : {}),
         profile: { settings: JSON.parse($("#ideProfile").value), extensions: [...document.querySelectorAll("#ideExtensions input:checked")].map(el => el.value) } };
