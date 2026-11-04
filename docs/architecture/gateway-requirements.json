@@ -16154,6 +16154,46 @@
             "scope": "本轮完整源码阅读及最终同版本命名测试核对；原场景边界不扩大。",
             "report": "docs/audits/2026-11-03-full-four-layer/README.md"
           }
+        },
+        {
+          "id": "PEER-01.3",
+          "scenario": "探探固定入口省略 CA 时使用发布包内置公开 CA；其他入口、显式覆盖及 TLS 身份校验保持隔离。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-trust.test.ts",
+              "name": "Tantan without caFile selects the reviewed persistent CA, not a short-lived leaf"
+            },
+            {
+              "file": "test/peer-trust.test.ts",
+              "name": "bundled Gateway trust is limited to the exact WSS endpoint"
+            },
+            {
+              "file": "test/peer-trust.test.ts",
+              "name": "explicit CA overrides bundled trust even when the override is empty or invalid"
+            },
+            {
+              "file": "test/peer-trust.test.ts",
+              "name": "peer TLS rejects untrusted and wrong-address servers before sending device credentials"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/gateway-trust.ts",
+              "sha256": "2d56b5fcbe60f127bce3e87e8ae53f3d9674ef812f86ac797dac30d709d12a48"
+            },
+            {
+              "file": "src/peer/transport.ts",
+              "sha256": "df97bc31c2907713286f91fd654376a84ca253ba85056ed81bb37716d29554bd"
+            }
+          ],
+          "verifiedBoundary": "入口精确匹配、持久 CA 指纹、显式覆盖优先；本机真实 TLS 对照拒绝错误 CA 与 IP。实际部署与双端验证单独记录。",
+          "verificationLimit": "不代表其他私有 Gateway 自动配置，不改变浏览器证书信任或会话授权。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "证书选择、传输、配置文档和部署迁移的四层局部复核",
+            "report": "docs/audits/2026-11-04-connector-ca/README.md"
+          }
         }
       ]
     },

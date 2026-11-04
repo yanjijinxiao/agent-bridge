@@ -6,7 +6,7 @@
 
 | 模块 | 职责 | 不持有的权威 |
 | --- | --- | --- |
-| `transport.ts` / `rpc.ts` | 主动连接、WSS、设备凭据、心跳、请求关联和帧限制 | 聊天准入、原生任务是否完成 |
+| `transport.ts` / `rpc.ts` / `gateway-trust.ts` | 主动连接、WSS、设备凭据、心跳、请求关联和帧限制 | 聊天准入、原生任务是否完成 |
 | `registry.ts` / `context.ts` | 设备注册、短期配对码、精确 account/conversation/actor 授权、回调租期 | 原生会话历史、工具授权 |
 | `backend.ts` / `contract.ts` | 完整 facade 端口分类、选 host、DTO 与错误类型适配、后台来源恢复 | 本地或 SSH 业务的替代实现 |
 | `execution-service.ts` | 核对设备侧 grant/thread/cwd，调用原生 facade，转发回调 | 自己解释模型、排队或调度恢复 |
@@ -73,3 +73,11 @@
 可选 `fullIDE: 1` 声明设备明确启用的完整 IDE。`ide-service.ts` 持有设备侧原生项目和租约，`ide-transport.ts` 适配既有 IDEHostTransport，`ide-stream.ts` 在已有 WSS 上有界传输 HTTP/WS。它们不新增 Codex 执行端、不复用原生任务为 SSH 命令通道。设备授权与浏览器个人身份双重核验，委托文本权限不能获得终端。
 
 关闭、撤权、取消和迟到 launch receipt 必须只清理自有 lease；连接关闭退休字节流。非法块、并发未确认块、重复/乱序、EOF 后数据销毁该流，不关闭其他原生会话。管理 UI 不向 Connector 展示无效的 SSH/binary/自动安装输入，设备配置拥有这些选择。
+
+## 固定入口的证书信任
+
+PEER-01.3：Connector 在没有显式 CA 时，仅为 wss://11.158.199.29:49186/gateway/v1/peer 使用随发布包内置的探探公开 CA。`gateway-trust.ts` 负责准确 URL 匹配和信任材料选择，`transport.ts` 继续由 Node TLS 验证证书链、有效期和 IP/主机名，并关闭重定向；业务、配对和设备凭据仍走原路径。无匹配的其他 Gateway 保持默认系统/Node 信任，显式 CA（包括错误/空内容）优先且失败不回退。不会联网下载并自动信任证书，不修改系统信任库，不发送凭据给不受信服务器。
+
+内置的是持久 CA，不是短期服务证书。服务器沿用 `IDETLSManager` 准备该 CA 下的服务证书；同 CA 续签无需更改用户配置，CA 更换必须先发布新信任并协调客户端迁移。公开 CA 可以随代码发布；私钥仅保存在部署主机的受限目录。浏览器 IDE 的信任和授权是独立层，Connector 内置信任不会修改浏览器信任库。
+
+`test/peer-trust.test.ts` 覆盖固定入口、省略 CA、覆盖优先级、其他地址/端口/协议/路径/查询不继承信任，以及真实本机 TLS 中不可信证书/错误 IP 被拒绝；线上双端省略 CA 的验证单独记录，不把本机 TLS 夹具等同于真实 IM 多用户验收。

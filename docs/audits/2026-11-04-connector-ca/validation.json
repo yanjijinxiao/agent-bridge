@@ -1,0 +1,37 @@
+{
+  "case": "PEER-01.3",
+  "tests": {
+    "total": 168,
+    "passed": 166,
+    "skipped": 2,
+    "failed": 0,
+    "logSha256": "97fbb9021411fbe6b468b6995126cd5a8f2bc4c25ce18315a5e471e54daabd49"
+  },
+  "live": {
+    "mac": {
+      "caFilePresent": false,
+      "registered": true,
+      "nativeProcessesBefore": 7,
+      "nativeProcessesSurviving": 7
+    },
+    "linux": {
+      "caFilePresent": false,
+      "registered": true,
+      "nativeProcessesBefore": 2,
+      "nativeProcessesSurviving": 2
+    },
+    "gatewayRestarted": false,
+    "nativeInputsSubmitted": 0,
+    "strictTLSAuthorized": true
+  },
+  "buildFiles": [
+    {
+      "file": "dist/peer/transport.js",
+      "sha256": "cf922951cbb51d5aaf5ebe55813725df7c539a6963a0096fa255ab99448986b5"
+    },
+    {
+      "file": "dist/peer/gateway-trust.js",
+      "sha256": "37b1193ed673494fd0ec837e532496cfab5a56ea683fb440c08071eae07c41e6"
+    }
+  ]
+}

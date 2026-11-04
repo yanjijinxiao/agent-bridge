@@ -3,6 +3,7 @@ import https from "node:https";
 import crypto from "node:crypto";
 import WebSocket, { WebSocketServer } from "ws";
 import { PeerConnection } from "./rpc.js";
+import { peerCertificateAuthority } from "./gateway-trust.js";
 
 export type PeerServerOptions = {
   host: string; port: number; credentials: Readonly<Record<string, string>>;
@@ -81,7 +82,8 @@ export class GatewayPeerClient {
     if (this.stopped) return;
     this.options.status?.("connecting");
     const socket = new WebSocket(this.options.url, { headers: { authorization: `Bearer ${this.options.token}`, "x-gateway-peer-id": this.options.nodeId },
-      ca: this.options.ca, maxPayload: 1024 * 1024, handshakeTimeout: 10_000, perMessageDeflate: false });
+      ca: peerCertificateAuthority(this.options.url, this.options.ca), rejectUnauthorized: true,
+      followRedirects: false, maxPayload: 1024 * 1024, handshakeTimeout: 10_000, perMessageDeflate: false });
     this.socket = socket;
     socket.on("error", () => {});
     socket.once("open", () => {

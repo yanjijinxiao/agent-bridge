@@ -2,6 +2,8 @@
 
 由 gateway-requirements.json 汇总。verified 只证明其记录的具体边界；最新权限展示增量见[检查记录](../audits/2026-11-04-permission-visibility/README.md)。其他未完成范围沿用原清单。
 
+Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audits/2026-11-04-connector-ca/README.md)。
+
 | 要求 | 模块 | 场景数 | 已记录窄边界通过 | 部分覆盖 | 未映射 |
 | --- | --- | ---: | ---: | ---: | ---: |
 | NATIVE-01 · 一套完整原生接口 | native | 5 | 4 | 1 | 0 |
@@ -85,7 +87,7 @@
 | TB-10 · 工作流编辑与执行能力分开核验 | taskboard | 4 | 3 | 1 | 0 |
 | TB-11 · 云迁移提交与补偿的独立事实 | taskboard | 4 | 4 | 0 | 0 |
 | TB-12 · 议题键盘操作的合法性与单次交接 | taskboard | 2 | 2 | 0 | 0 |
-| PEER-01 · 同一后端接口的 Connector 传输 | peer | 2 | 2 | 0 | 0 |
+| PEER-01 · 同一后端接口的 Connector 传输 | peer | 3 | 3 | 0 | 0 |
 | PEER-02 · 配对、绑定与所有者准入 | peer | 2 | 2 | 0 | 0 |
 | PEER-03 · 原生队列与恢复 | peer | 3 | 3 | 0 | 0 |
 | PEER-04 · 设备文件与工作区边界 | peer | 3 | 3 | 0 | 0 |

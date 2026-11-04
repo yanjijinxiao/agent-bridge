@@ -54,7 +54,7 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 
 | 入口/责任 | 实现 | 对应契约 |
 | --- | --- | --- |
-| 可选listener、设备主动dial、固定profile与凭据、配对 | peer/runtime、transport、registry、index；server/index与arguments | PEER-01、PEER-02 |
+| 可选listener、设备主动dial、固定profile与凭据、配对 | peer/runtime、transport、gateway-trust、registry、index；server/index与arguments | PEER-01、PEER-02 |
 | 完整后端装饰器、DTO、回调、错误与版本 | peer/backend、execution-service、contract、interaction-client/service | PEER-01、PEER-02.2 |
 | 末次来源核验、原生队列来源与补偿 | codex/write-guard、peer/write-guard、receipts、recovery-journal；原NativeQueue与AccountManager | PEER-03 |
 | 原session管理、附件、所有者与共享浏览器入口 | peer/management、files、sharing-*、workspace-* | PEER-02、PEER-04 |
