@@ -16603,7 +16603,7 @@
             },
             {
               "file": "src/peer/registry.ts",
-              "sha256": "bd319b18d9b8a0220dffb418d26c6247af2b2e09d830605c4a601c3db3efad9b"
+              "sha256": "a9ba9de1990c3cebd4bf4989560cccbeaaf8b97b3c03cd0d7b51965bd18e2b4c"
             },
             {
               "file": "src/ide/access-server.ts",
@@ -16723,6 +16723,32 @@
             }
           ],
           "verifiedBoundary": "2026-11-04 Linux x64官方code-server4.141.1与真实CLI，独立Chrome；两个Git根、终端pwd、Emacs编辑保存、重连及撤权通过。手机和其他平台未实际验证。"
+        },
+        {
+          "id": "IDE-11.6",
+          "scenario": "尚未绑定项目的已配对设备可以启用完整IDE",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-ide.test.ts",
+              "name": "management can enable a paired full IDE device before a project is bound, without admitting unpaired devices"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "a9ba9de1990c3cebd4bf4989560cccbeaaf8b97b3c03cd0d7b51965bd18e2b4c"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "1db361842258f79cd90efcc1e603ba5027428c379f443e9017bf88a8b0a701ce"
+            },
+            {
+              "file": "src/server/http-server.ts",
+              "sha256": "c061e5be3a38729892f70d58704181e8350a80f6dc0733d3d5d9948a5bbe7e1f"
+            }
+          ],
+          "verifiedBoundary": "真实隔离管理HTTP及Peer连接，拒绝未配对设备、离线配置保留；不授予浏览器权限或创建任务。"
         }
       ]
     },

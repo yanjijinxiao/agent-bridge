@@ -13,6 +13,9 @@ import { WorkspaceIDEManager } from "../src/ide/manager.js";
 import { IDEAccessServer } from "../src/ide/access-server.js";
 import { IDEConfigStore } from "../src/ide/config.js";
 import { eventually } from "./helpers/gap-browser.js";
+import { AccountManager } from "../src/server/account-manager.js";
+import { startLocalHttpServer } from "../src/server/http-server.js";
+import { resolveStatePaths } from "../src/state/paths.js";
 
 const subject = { principal: { accountId: principal.accountId, channel: "dingtalk" as const, providerId: "test-bot", actorId: principal.actorId }, basis: "im-personal" as const, epoch: 0 };
 async function fixture(t: test.TestContext) {
@@ -35,6 +38,23 @@ function request(socketPath: string, url = "/healthz", body?: Buffer) {
   });
 }
 async function ready(socketPath: string) { await eventually(async () => { try { return await request(socketPath); } catch { return false; } }, "IDE socket did not become ready"); }
+
+test("management can enable a paired full IDE device before a project is bound, without admitting unpaired devices", async t => {
+  const f = await peerFixture(t, { device: true, webIDE: { enabled: true, binary: path.resolve("test/fixtures/peer-ide-code-server.mjs"), autoInstall: false } });
+  const ide = new WorkspaceIDEManager({ root: f.root, resolve: () => undefined });
+  const manager = { ide, listProjects: () => [], options: { peerRegistry: f.registry }, listIDEHosts() { return AccountManager.prototype.listIDEHosts.call(this as never); } };
+  const api = await startLocalHttpServer({ paths: resolveStatePaths(f.root), port: 0, accountManager: manager as never }); t.after(() => api.close());
+  const origin = api.url;
+  const get = async (p: string) => (await fetch(origin + p)).json() as any;
+  const before = await get("/api/ide"); assert.deepEqual(before.hosts, ["local"]);
+  await f.bind(); assert.equal(f.projects.length, 0); assert.ok((await get("/api/ide")).hosts.includes(f.ticket.hostId));
+  const config = { ...ide.config(), hosts: [{ hostId: f.ticket.hostId, enabled: true, binary: "code-server" }] };
+  const save = (value: unknown) => fetch(origin + "/api/ide/config", { method: "PUT", headers: { Origin: origin, "Content-Type": "application/json", "X-Codex-IM-Gateway-Token": api.requestToken }, body: JSON.stringify({ config: value }) });
+  assert.equal((await save(config)).status, 200);
+  assert.equal((await save({ ...config, hosts: [{ ...config.hosts[0], hostId: "peer:stranger:default" }] })).status, 400);
+  f.registry.close(); assert.ok(manager.listIDEHosts().includes(f.ticket.hostId), "configured offline host is not silently erased from the form");
+  assert.equal(f.runs.length, 0);
+});
 
 test("Connector full IDE preserves HTTP bytes, WebSocket traffic and both project roots without SSH", async t => {
   const f = await fixture(t);

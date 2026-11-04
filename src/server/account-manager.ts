@@ -1151,6 +1151,11 @@ export class AccountManager {
     }).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
 
+  listIDEHosts(): string[] {
+    return [...new Set(["local", ...this.listProjects().map(p => p.hostId ?? "local"), ...this.ide.config().hosts.map(h => h.hostId),
+      ...(this.options.peerRegistry?.fullIDEHosts() ?? [])])];
+  }
+
   async listCodexProjects(runner = this.runnerFor(this.configProvider())): Promise<readonly CodexProjectCandidate[]> {
     return projectCandidatesFromBackendCatalog(await runner.listProjects());
   }

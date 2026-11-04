@@ -338,13 +338,13 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
           ? { error: context.accountManager.ideApprovals.personalAccessError } : {}) },
         running: context.ideAccess?.running() ?? false, error: ide.configStore.error ?? context.ideAccess?.error,
         instances: ide.list(), installations: ide.installer.list(), extensionChoices: IDE_EXTENSIONS,
-        hosts: [...new Set(["local", ...context.accountManager.listProjects().map(p => p.hostId ?? "local")])] }); return;
+        hosts: context.accountManager.listIDEHosts?.() ?? [...new Set(["local", ...context.accountManager.listProjects().map(p => p.hostId ?? "local")])] }); return;
     }
     if (method === "PUT" && url.pathname === "/api/ide/config") {
       const input = z.object({ config: ideConfigSchema }).strict().parse(await readJsonBody(request));
       if (input.config.port === context.port || input.config.localAccess?.port === context.port) throw new Error("IDE 端口不能与 Gateway 管理端口相同");
-      const hosts = new Set(["local", ...context.accountManager.listProjects().map(p => p.hostId ?? "local")]);
-      if (input.config.hosts.some(h => !hosts.has(h.hostId))) { sendJson(response, 400, { error: "只能启用已登记项目的主机" }); return; }
+      const hosts = new Set(context.accountManager.listIDEHosts?.() ?? ["local", ...context.accountManager.listProjects().map(p => p.hostId ?? "local")]);
+      if (input.config.hosts.some(h => !hosts.has(h.hostId))) { sendJson(response, 400, { error: "只能启用已登记项目或已配对且支持完整 IDE 的主机" }); return; }
       if (context.ideAccess) await context.ideAccess.configure(input.config);
       else ide.configStore.save(input.config);
       sendJson(response, 200, { ok: true, config: ide.config(), running: context.ideAccess?.running() }); return;

@@ -20,6 +20,11 @@
       "name": "connector-ide-deployment-tests.log",
       "sha256": "53681ce1b24b40a2549e5e62d9119640b33690a50ec71d981a3f2942dac8a4e9",
       "summary": "tate for done responses (0.374209ms)\n✔ review presentation protects literal code, escaped quotes and braces; inert findings reach card and plain text (10.669959ms)\n✔ preflight timeout names the failed read without suggesting successful queueing or adding a large optional command block (0.352791ms)\n✔ fixed TLS entrance routes IDE HTTP and both WebSockets without exposing management (298.124375ms)\nℹ tests 13\nℹ suites 0\nℹ pass 13\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 544.066583\n"
+    },
+    {
+      "name": "connector-ide-root-discovery-20261104.log",
+      "sha256": "7085a91b345287f99f7bfb8f1273d256ec3350efedaaf7d0070e17911fa1b128",
+      "summary": "its exact AI conversation (0.495792ms) # SKIP\n﹣ workflow custom code actually executes on the native core and checks its command receipt (0.469208ms) # SKIP\n﹣ workflow reconnects the same native node after owner restart and advances the writeback exactly once (0.033459ms) # SKIP\n✔ workspace allowlists compare real directory scope while preserving explicitly configured aliases (2.118833ms)\nℹ tests 3199\nℹ suites 0\nℹ pass 3115\nℹ fail 0\nℹ cancelled 0\nℹ skipped 84\nℹ todo 0\nℹ duration_ms 85297.494584\n"
     }
   ]
 }

@@ -115,6 +115,12 @@ export class PeerRegistry implements PeerBridgePort {
     return { hostId: grant.hostId, threadId: grant.threadId, label: this.label(grant.hostId) };
   }
   hosts(principal: PeerPrincipal): string[] { return [...new Set(this.grantsFor(principal).map(g => g.hostId))]; }
+  /** Local management discovery only. A configured host is not a browser
+   * grant: every IDE request still resolves its own personal device grant. */
+  fullIDEHosts(): string[] {
+    return [...this.entries].filter(([id, host]) => host.connection?.open && host.description.fullIDE === 1
+      && this.grants.some(g => g.hostId === id && !g.delegation)).map(([id]) => id);
+  }
   fullIDEAvailable(principal: PeerPrincipal, target: { hostId: string; threadId: string }): boolean {
     return this.entries.get(target.hostId)?.description.fullIDE === 1 && this.grantsFor(principal)
       .some(g => !g.delegation && g.hostId === target.hostId && (g.scope === "device" || g.threadId === target.threadId));
