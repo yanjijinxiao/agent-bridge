@@ -521,9 +521,9 @@
           "previousTestGap": "这是连接/适配器重建，不是真实Gateway进程在接收与fsync任意间隙被杀；未断言Desktop写锁、私有stdio或所有远程断线时序。",
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
-            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "implementation": [
             {
@@ -532,7 +532,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ]
         },
@@ -743,7 +743,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/native-queue.ts",
@@ -765,9 +765,9 @@
           "verifiedBoundary": "0.166.0 原生核心＋临时 Home＋本机假模型：四渠道空线程首条 queue 的实际模型正文、单输入、单 queue/add、零 turn/start/inject/config 写入、权限前后相同、Gateway 预览干净；真实 Connector socket 断线重连保留入队规则/文件目录约束且只消费一次。探探真实模型和文件回执另记实机证据。",
           "remainingBoundary": "修复只作用于新入队项；已接收的旧项不重写或重发。原生 queue 无独立 context 字段，Codex 原始历史可见前缀。未覆盖全部渠道的真实平台与全部供应商；手机视觉、Peer IDE 等不包含在此窄场景 verified。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "previousTestGap": "原测试直接在 runQueuedSubmission 观察阶段给 developerInstructions；queue/add 已自动执行，注入过晚。新测试经实际 Bridge /queue 入口并检查模型请求；旧实现同用例失败，修复后通过。"
         }
@@ -958,14 +958,14 @@
           "previousTestGap": "该映射未包含effort/全部元数据命令、A→B→A和真实远程连接等待组合；其他case有相关对照，尚未逐一归并。",
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
-            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -998,11 +998,11 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/codex/backend.ts",
@@ -1018,9 +1018,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -1056,7 +1056,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -1068,9 +1068,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -1238,7 +1238,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -1255,9 +1255,9 @@
           ],
           "verifiedBoundary": "实际manager构造和同对象借用；显式stdio属于宿主，不冒充daemon跨宿主退出。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -1600,7 +1600,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -1608,9 +1608,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -1721,14 +1721,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "实际Bridge四渠道替身：自然语言完整进入原线程，零AI控制分类；非真实IM网络。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -1748,7 +1748,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/channels/dingtalk.ts",
@@ -1757,9 +1757,9 @@
           ],
           "verifiedBoundary": "引用审批和当前命令分离已有实际适配/Bridge断言；引用/stop全部消息类型尚无同组精确场景。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -1787,14 +1787,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "四渠道普通消息及显式help覆盖；所有任务/QA扩展组合未完整核验。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -1826,13 +1826,13 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -1998,7 +1998,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/server/thread-event-hub.ts",
@@ -2015,9 +2015,9 @@
             "statusPromotion": false
           },
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
-            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "previousTestGap": "不涵盖任意CPU指令间隙、主机断电、真实SSH/供应商回执/手机显示、原生队列及workflow交接全部交错。缺原thread ID、client ID缺失、重复或分页超预算的旧记录保持未知，不自动重放。",
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
@@ -2115,13 +2115,13 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -2209,7 +2209,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/inbound-receipts.ts",
@@ -2218,9 +2218,9 @@
           ],
           "verifiedBoundary": "实际 Bridge/RuntimeStateStore/InboundReceiptJournal，9种等待路径各有换绑反例与正常对照，重开真实文件核验phase和claim；另核本地设置持久化及回复丢失。原生接口为替身；不证明真实 App Server 全部断连组合，未提交不代表自动转向新绑定。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -2452,14 +2452,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "真实Bridge/RuntimeStateStore：卡住第一条最终结果发送，第二条同session输入仍执行并完成投递；旧发送仍持实际交接保护，释放后全部完成、输入各一次、无残留门禁。原生与渠道传输为替身。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "previousTestGap": "证明已接收执行等待不占交接；专门卡住最终投递而非执行的组合未在此测试。",
           "remainingBoundary": "不外推供应商ACK丢失、手机显示或所有并发时序。"
@@ -2539,18 +2539,18 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/channel-commands.ts",
-              "sha256": "3eca3c19d89280288317e79d3badf9e77943bcfea39ce2df26b0814209dc2815"
+              "sha256": "eda56998ad1b7d74f20271c08eece89b26b0a164cc647af897778464dbc8d384"
             }
           ],
           "verifiedBoundary": "实际Bridge compact中文命令及可信mention归一化，native queue写替身恰好一次。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -2705,7 +2705,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/weixin/media.ts",
@@ -2714,9 +2714,9 @@
           ],
           "verifiedBoundary": "无长度读流限额及Bridge明确下载失败不启动空轮；各渠道存储失败/总时限组合未全覆盖。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -2771,7 +2771,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/channels/client.ts",
@@ -2780,9 +2780,9 @@
           ],
           "verifiedBoundary": "实际Bridge准备远端转存路径，远端存储与runner为替身；未在真实SSH主机读取。 追加两台真实Linux SSH主机：image/file/video/audio完整字节与SHA、0600、重复内容地址、超限/缺失拒绝及自有目录清理；Node容器包装器与下一条SSH命令共享可读持久路径。真实供应商投递与传输中撤权组合仍未由此证明。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -2806,14 +2806,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "附件准备结束后线程/角色/准入复核；远端实际SSH转存中撤权的独立场景仍需补。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -2857,7 +2857,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/codex/output-files.ts",
@@ -2878,9 +2878,9 @@
           ],
           "verifiedBoundary": "实际只读发送脚本与下载器保留文件名/完整二进制、大小与SHA256校验、超时/坏摘要拒绝及0600临时文件清理；真实Bridge在异步下载后复核线程绑定。SSH进程为隔离本机替身，渠道发送为替身；没有真实远程主机、供应商IM或手机实机验收，故仍partial。 追加两台真实Linux SSH主机：image/file/video/audio完整字节与SHA、0600、重复内容地址、超限/缺失拒绝及自有目录清理；Node容器包装器与下一条SSH命令共享可读持久路径。真实供应商投递与传输中撤权组合仍未由此证明。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3021,7 +3021,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -3030,9 +3030,9 @@
           ],
           "verifiedBoundary": "真实AccountManager长轮期间改名/解绑，完成后唯一live store与重新读盘均保留新管理状态。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3166,14 +3166,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "实际账号启动/刷新及独立停止，但monitor/runner替身，不证明所有并发清理异常。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3193,7 +3193,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/ide/approval-service.ts",
@@ -3202,9 +3202,9 @@
           ],
           "verifiedBoundary": "已覆盖退休入站claim和机器人IDE身份；其他旧连接异步回执仍需逐条核对。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3249,14 +3249,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "逐一注入8种独立资源stop/close失败，均尝试其余资源并终止自有入口，最后汇总错误。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3384,14 +3384,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "账号API和webhook投影不输出原token/key；全仓错误日志泄密边界尚未穷尽。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -3432,7 +3432,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -3441,9 +3441,9 @@
           ],
           "verifiedBoundary": "四渠道实际Bridge无绑定给指引，不建线程/会话。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3471,14 +3471,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "detach持久、模式槽位与显式新建不复活旧关系；Gateway真实进程重启另需端到端。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3498,7 +3498,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -3507,9 +3507,9 @@
           ],
           "verifiedBoundary": "真实关系事务和订阅集合，不调用runner；原生任务/queue持续执行用替身零调用证明，非真实执行中重启。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -3559,14 +3559,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "旧项目漂移保独立绑定，四渠道项目命令不覆盖；普通真实native续聊权限另证。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3586,14 +3586,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "真实scope generation，模式session切换ABA不复活；其他任意项目变更由来源测试另核。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3613,7 +3613,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/turn-submission.ts",
@@ -3622,9 +3622,9 @@
           ],
           "verifiedBoundary": "实际Bridge/RuntimeState/磁盘重开与同cwd无关项目；IDE仍由其原生fresh scope校验，不外推设备端验收。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3685,14 +3685,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "真实Bridge及Connector RPC临时连接，原生后端替身；正常、换绑、ABA及降权零执行对照。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -3772,14 +3772,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "实际显式queue/steer准备后来源守卫，全部降权/停账号组合仍待。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -3864,13 +3864,13 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -3927,7 +3927,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/bridge/interaction-routing.ts",
@@ -3936,9 +3936,9 @@
           ],
           "verifiedBoundary": "真实管理层来源选择+持久去重；IM传输替身，确认零题目正文泄露。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -4040,7 +4040,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -4049,9 +4049,9 @@
           ],
           "verifiedBoundary": "Web精确原绑定比较，旧页面不能解绑替代记录。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -4144,7 +4144,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/codex/desktop-session-catalog.ts",
@@ -4153,9 +4153,9 @@
           ],
           "verifiedBoundary": "目录失败保已知来源/警告，不混成本机成功。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -4409,14 +4409,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "完整快照稳定R身份，翻页/resize不重排，原生pin与metadata时间分开。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -4460,7 +4460,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -4469,9 +4469,9 @@
           ],
           "verifiedBoundary": "15分钟过期覆盖R编号绑定、详情及分页别名，检查先于inspect或换绑；旧项目按钮没有新列表时仍过期，重新查询恢复正常。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
-            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
         },
@@ -4500,14 +4500,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "同host、同name、同roots但不同原生projectID经实际IM选择与状态重载仍各自独立，裸同名不改变当前项目；既有测试验证跨host分组。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
-            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
         },
@@ -4557,7 +4557,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/session-catalog-view.ts",
@@ -4578,9 +4578,9 @@
           ],
           "verifiedBoundary": "实际 Bridge 命令/原生目录夹具和 DingTalk Markdown 转换断言；原版 e32322f 的真实 Bridge 同例失败。仅本机展示/分页/精确身份边界，未做手机钉钉实机验收。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -4612,7 +4612,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/new-session.ts",
@@ -4621,9 +4621,9 @@
           ],
           "verifiedBoundary": "实际fresh账号无项目普通消息/new不暗选第一项；task/qa/mode精确新反例另见CAT-03.5。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -4687,7 +4687,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -4696,9 +4696,9 @@
           ],
           "verifiedBoundary": "真实Bridge新建经隔离原生核心，在模型结果释放前读到持久thread ID，原生标题保持干净。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -4760,13 +4760,13 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -4888,14 +4888,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "展示引用/字面附件不发送，全部历史分页API及native格式组合仍待映射。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -5023,14 +5023,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "真实JSONL预期turn比较和Bridge默认steer，ACK中的全部thread/turn反例未在这组穷尽。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -5097,14 +5097,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "普通消息写前来源复核，原生steer连接等待后原角色/个人准入仍需另一末次lease场景。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -5392,7 +5392,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/inbound-receipts.ts",
@@ -5404,9 +5404,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
-            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "previousTestGap": "真实进程骤停已有六种，但任意CPU指令间隙、主机断电、无原身份旧记录和供应商全丢ACK窗口未穷尽。远程探探另验证执行期间杀Gateway/Connector，不声称精确命中远程fsync边界。",
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
@@ -5530,7 +5530,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -5538,7 +5538,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/server/thread-event-hub.ts",
@@ -5555,9 +5555,9 @@
             "statusPromotion": false
           },
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -5734,14 +5734,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "pause/clear纯文本各一次，通过真实IM命令路径核对原host/thread的goal set payload。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -5769,7 +5769,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -5778,9 +5778,9 @@
           ],
           "verifiedBoundary": "原生控件携带值身份不靠目录位置，值为1/default也与斜杠语法分开。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -5888,14 +5888,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "真实Bridge、绑定/角色状态和来源journal，原生接口/渠道替身，4种操作×6种来源共24项；先完成原生动作再挂起返回，旧结果零发送、原host/thread恰好一次、重开journal handled不重放。viewer只读降权仍允许。真实远端及发送已进入供应商后的撤权窗口另验。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -5955,14 +5955,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "实际Bridge+RuntimeStateStore，2种设置×6种来源结果；原10反例失败及2正常对照。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -6001,7 +6001,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -6010,9 +6010,9 @@
           ],
           "verifiedBoundary": "本地故意挂起依赖，状态/queue列表在规定预算返回；不证明供应商真实网络时延。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6032,18 +6032,18 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/channel-commands.ts",
-              "sha256": "3eca3c19d89280288317e79d3badf9e77943bcfea39ce2df26b0814209dc2815"
+              "sha256": "eda56998ad1b7d74f20271c08eece89b26b0a164cc647af897778464dbc8d384"
             }
           ],
           "verifiedBoundary": "help主表及unbind已断言，但answer/ide全部帮助分支须逐条映射，不把标题every当完整证据。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6071,14 +6071,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "首屏和status不挡的各自故障已覆盖；Taskboard挂起时IMstatus的联合场景未专测。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6098,7 +6098,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/peer/execution-service.ts",
@@ -6107,9 +6107,9 @@
           ],
           "verifiedBoundary": "真实Bridge指令经Connector严格DTO，设备后端替身；连接预算传递另由peer-complete-contract.test验证。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6133,14 +6133,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "实际AccountManager与可控后端，分别验证本机默认、远端成功及远端不可用。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -6175,7 +6175,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/access.ts",
@@ -6184,9 +6184,9 @@
           ],
           "verifiedBoundary": "ACL在下载前；IDE group不等个人授权，所有IM平台个人/群身份仍需分渠道核对。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6206,7 +6206,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/access.ts",
@@ -6215,9 +6215,9 @@
           ],
           "verifiedBoundary": "viewer/participant控制限制与审批原群controller；授角色全部组合仍需独立场景。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6238,7 +6238,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/state/runtime-state.ts",
@@ -6247,9 +6247,9 @@
           ],
           "verifiedBoundary": "ACL原子rename失败的停止/运行账号两种状态；磁盘、manager、Bridge均不放行陌生个人。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -6264,7 +6264,7 @@
         2762,
         2765
       ],
-      "contract": "独立管理员按机器人/个人身份核验；/access列多条申请和版本化完整决定，准入成功不重放旧请求。",
+      "contract": "独立管理员按机器人/个人身份核验；/access默认本人及当前聊天，管理员跨聊天管理仅限私聊显式/access all，详情/决定/旧卡片复用范围校验；准入成功不重放旧请求。",
       "implementationReview": "pending",
       "cases": [
         {
@@ -6288,18 +6288,18 @@
           "implementation": [
             {
               "file": "src/bridge/admission.ts",
-              "sha256": "0691cbc353fefafa1cbe421d497bf5c3cf6a6253784310a1ffa246638b1d5b41"
+              "sha256": "93abdbebdb615447957fd3bbad8f21c1fdd812e034dc1d2e199c0bacc3456a10"
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "真实准入服务和Bridge，actor/group范围、原任务不重放，管理者必须显式登记。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6319,15 +6319,15 @@
           "implementation": [
             {
               "file": "src/bridge/admission.ts",
-              "sha256": "0691cbc353fefafa1cbe421d497bf5c3cf6a6253784310a1ffa246638b1d5b41"
+              "sha256": "93abdbebdb615447957fd3bbad8f21c1fdd812e034dc1d2e199c0bacc3456a10"
             }
           ],
           "verifiedBoundary": "同一真实AdmissionService上两名明确登记管理员竞争不同授权scope；持久applying后ACL回调重入也拒绝；只授申请人一次，不授整个群，重建不重放。原生工具审批另属INT-04.2。",
           "remainingBoundary": "仅以上有明确断言的边界；不外推所有原生版本、设备或任意时序。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6347,10 +6347,95 @@
           "implementation": [
             {
               "file": "src/bridge/admission.ts",
-              "sha256": "0691cbc353fefafa1cbe421d497bf5c3cf6a6253784310a1ffa246638b1d5b41"
+              "sha256": "93abdbebdb615447957fd3bbad8f21c1fdd812e034dc1d2e199c0bacc3456a10"
             }
           ],
-          "verifiedBoundary": "持久来源/过期/机器人替换/撤管理员，unknown不重试。"
+          "verifiedBoundary": "持久来源/过期/机器人替换/撤管理员，unknown不重试。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+          }
+        },
+        {
+          "id": "AUTH-02.4",
+          "scenario": "本人当前聊天权限及申请；管理员跨聊天管理仅限显式私聊",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/admission-visibility.test.ts",
+              "name": "access defaults to the current person's current-chat status without exposing or creating other requests"
+            },
+            {
+              "file": "test/admission-visibility.test.ts",
+              "name": "access shows existing personal/group sources without granting IDE or rewriting admission"
+            },
+            {
+              "file": "test/admission-visibility.test.ts",
+              "name": "admins see this chat by default; cross-chat admission listing is explicit and private"
+            },
+            {
+              "file": "test/admission-visibility.test.ts",
+              "name": "admission details and copied decision cards enforce the same current-chat or explicit private scope"
+            },
+            {
+              "file": "test/admission-visibility.test.ts",
+              "name": "old admission cards survive in their own chat only and lose authority on revocation or expiry"
+            },
+            {
+              "file": "test/admission-visibility.test.ts",
+              "name": "Bridge takes admission visibility from the actual actor and conversation for command and card callbacks"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/admission.ts",
+              "sha256": "93abdbebdb615447957fd3bbad8f21c1fdd812e034dc1d2e199c0bacc3456a10"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+            }
+          ],
+          "verifiedBoundary": "真实AdmissionService/Bridge与合成渠道回调：普通用户仅本人申请，管理员默认当前聊天，全局须私聊显式--all；列表/详情/复制卡片/决定统一范围，撤权/过期/其他机器人均不扩大授权。管理器沿现有IDE权威展示个人与群准入差别。",
+          "remainingBoundary": "真实钉钉手机渲染与多人实机未代验。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+          }
+        },
+        {
+          "id": "AUTH-02.5",
+          "scenario": "Connector首次空列表及机器人/用户/聊天三元设备授权过滤",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/admission-visibility.test.ts",
+              "name": "connect lists only this actor's grants in this bot and chat, including first-use empty state"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "f17bc49e48194a01c71e5aec275d928c62106ef104600e82405d356bf7503cce"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+            }
+          ],
+          "verifiedBoundary": "真实PeerRegistry读取隔离授权文件并经Bridge发送合成回复：三类外部授权不可见，首次用户只有配对指引。保留原有WebSocket配对回归；未声称真实钉钉跨群截图验收。",
+          "remainingBoundary": "真实钉钉手机渲染与多人实机未代验。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+          }
         }
       ]
     },
@@ -6475,7 +6560,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -6483,9 +6568,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6548,7 +6633,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -6560,9 +6645,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6595,7 +6680,7 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
+              "sha256": "c2671fde3732e602165b09c5cf4539145c6077bdb46e54952b28ad3d93d7c44f"
             },
             {
               "file": "src/bridge/approval.ts",
@@ -6607,9 +6692,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -6624,7 +6709,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "tests": [
@@ -6647,9 +6732,9 @@
           ],
           "verifiedBoundary": "真实Bridge→原生JSONL夹具→渠道driver，核实际mentions参数、原接收群，名单去重/@all排除；不是手机实机可见验收。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -6830,14 +6915,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "真实Bridge任务和审批控制器，内存渠道及原生替身；不代替钉钉手机客户端视觉验收。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -7180,7 +7265,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -7188,9 +7273,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -7391,16 +7476,16 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "审批初始通知失败保留原请求；确认后只更新原有ACK卡，原生决定与通知投递分别持久化。覆盖通知失败重试、对象重建、发送前后晚ACK、已投卡但@失败、文字ACK未知不重发、永久错误/三次上限、换绑/关闭、晚旧写与磁盘失败不忙循环。已有问题通知用例保留。",
           "previousBoundary": "已覆盖问题答案的原卡可重试/文字unknown不重发；完整审批决定通知的相同闭环待映射。",
           "remainingBoundary": "以上有限边界；真实供应商投递/手机视觉和整机断电不从隔离测试推定。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -7423,7 +7508,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/channels/turn-presentation.ts",
@@ -7486,9 +7571,9 @@
           ],
           "verifiedBoundary": "同一native任务run计数1、执行卡2；重复回调仅一边界；记录重开保同ID，沿用stream按ID去重；v1严格audit row不变，展示投影同文件原子保存。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -8016,14 +8101,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "结果投递失败保原终态payload，不发替代答案；native executor终态在更下层fixture。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -8052,7 +8137,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/web/app.js",
@@ -8061,9 +8146,9 @@
           ],
           "verifiedBoundary": "真实hub+管理HTTP+隔离Chrome及IM文案联合：原生完成/idle但投递失败保留pending；渠道回执后显示已接收，不声称手机已显示。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -8166,7 +8251,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/channels/client.ts",
@@ -8197,9 +8282,9 @@
           ],
           "verifiedBoundary": "实际Bridge入口/原生卡片driver替身，四旧版反例；不把异常当未提交。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -8430,14 +8515,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "永久错单次非答案提示，终态仍只更新原handle，重启不替代答案。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -8699,7 +8784,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/turn-audience.ts",
@@ -8707,9 +8792,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -8915,14 +9000,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "包含真实多次compaction phase进入同卡，不仅去重单一文本；真实客户端圆环/排版未验。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -9538,7 +9623,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/channels/feishu.ts",
@@ -9551,9 +9636,9 @@
           ],
           "verifiedBoundary": "真实readiness/cleanup边界，所有provider重连状态全排列仍须实际平台验收。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -9749,7 +9834,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/format.ts",
@@ -9758,9 +9843,9 @@
           ],
           "verifiedBoundary": "四渠道格式路径保源码行号引用且零上传；exec枚举是测试输入，不是生产支持第二执行器的证明。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -9911,7 +9996,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/turn-result-actions.ts",
@@ -9919,9 +10004,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -9937,14 +10022,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "真实临时文件stat和历史读取；Windows保留内容/归属但不假测POSIX mode。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -10420,14 +10505,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "真实AccountManager/ThreadEventHub及monitor回调，渠道发送夹具；不等于钉钉手机呈现或生产网络故障实测。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -10506,7 +10591,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/ide/project-identity.ts",
@@ -10518,9 +10603,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -10536,7 +10621,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/ide/manager.ts",
@@ -10544,9 +10629,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -10799,14 +10884,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "可选IDE构造/ingress失败隔离，不借输入；所有运行异常/绑定不变仍需组合。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -10903,14 +10988,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "个人准入唯一权威；群准入不自动授权，停账号/重启保持，不新建额外名单或密码。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -10938,14 +11023,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "持久epoch fencing覆盖重新允许旧grant失效；本地HTTP/WS试验，不是手机端。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -11580,14 +11665,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "原版反例失败，实际Bridge/EndpointManager/ChannelTurnPresentation隔离夹具通过；远程网络恢复及手机实际显示不在本机窄边界验收内。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -11813,7 +11898,7 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
+              "sha256": "c2671fde3732e602165b09c5cf4539145c6077bdb46e54952b28ad3d93d7c44f"
             },
             {
               "file": "src/web/app.js",
@@ -11822,9 +11907,9 @@
           ],
           "verifiedBoundary": "生产HTML/JS+真实HTTP服务重启+隔离Chrome旧DOM：失效token明确未提交才握手重做一次；服务已提交后模拟响应丢失，不重做。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -12185,7 +12270,7 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
+              "sha256": "c2671fde3732e602165b09c5cf4539145c6077bdb46e54952b28ad3d93d7c44f"
             },
             {
               "file": "src/taskboard/lifecycle.ts",
@@ -12198,9 +12283,9 @@
           ],
           "verifiedBoundary": "生产管理页原生启用按钮→HTTP→同一TaskboardLifecycle→真实嵌入服务；禁用无iframe src，启用一次且Gateway PID不变。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -12450,7 +12535,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/taskboard-channel-controller.ts",
@@ -12471,9 +12556,9 @@
           ],
           "verifiedBoundary": "真实Bridge/TaskboardClient/state+fetch替身与临时文件；21个给定组合，不证明真实服务事务接收未知时的幂等、部分附件补偿或workflow运行全程权限。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -12757,14 +12842,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "远程项目不能作为本地目录QA默认值；已绑定QA所有动态tool读取同host仍需执行路径证明。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -12916,7 +13001,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/server/restart.ts",
@@ -12924,14 +13009,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "真实Web/Bridge业务计数分界，native通过fixture接收；accept落盘失败的整个release组合还需联动。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -12990,9 +13075,9 @@
           "previousTestGap": "没有在此用例执行launchd实际重启或接收/fsync窗口骤停，私有stdio不具有这一独立保证；线上重启保留core的记录是部署验收，不替代所有崩溃组合。",
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
-            "scope": "逐项核对实际断言；新增真实崩溃/浏览器证据与已有准确映射合并，不把其他平台称为已验。"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "implementation": [
             {
@@ -13001,7 +13086,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ]
         },
@@ -13073,13 +13158,13 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -13147,13 +13232,13 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -13173,13 +13258,13 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -13298,11 +13383,11 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/bridge/channel-write-leases.ts",
@@ -13311,9 +13396,9 @@
           ],
           "verifiedBoundary": "实际Bridge两原版反例；11个channel写方法、3个非消息方法及异常释放。平台为替身，不替代实际上线重启。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -13523,7 +13608,7 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
+              "sha256": "c2671fde3732e602165b09c5cf4539145c6077bdb46e54952b28ad3d93d7c44f"
             },
             {
               "file": "src/server/index.ts",
@@ -13532,9 +13617,9 @@
           ],
           "verifiedBoundary": "独立子进程内真实AccountManager及HTTP，注入重启回调结果；index实际helper启动失败仅代码审读，不是生产重启验证。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -13687,7 +13772,7 @@
             },
             {
               "file": "src/server/http-server.ts",
-              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
+              "sha256": "c2671fde3732e602165b09c5cf4539145c6077bdb46e54952b28ad3d93d7c44f"
             },
             {
               "file": "src/server/index.ts",
@@ -13701,9 +13786,9 @@
           "verifiedBoundary": "真实测试子进程成功/启动失败回退，目录rename丢阶段确认/EBUSY、候选变更/外链拒绝、原状态保持、准备期间消息准入开放、交接忙拒绝激活。",
           "remainingBoundary": "npm CLI隔离制品为测试fixture，未声称真实registry发布/Windows实机/断电或helper死亡后服务管理器自动恢复；源码部署继续原release-local。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -13833,15 +13918,15 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "历史manifest明确92可读/5丢失且不是当前客户端验收；实际Bridge把引用/围栏中的stop/allow/queue与附件示例当本轮分析数据，无控制写入。",
           "testGap": "引用命令惰性及manifest边界有自动化；原先92张逐张观看属手工记录，5张缺失仍不能重读，自动化不冒充视觉阅读。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -14238,13 +14323,13 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
+              "sha256": "c2671fde3732e602165b09c5cf4539145c6077bdb46e54952b28ad3d93d7c44f"
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -14261,13 +14346,13 @@
           "implementation": [
             {
               "file": "src/server/http-server.ts",
-              "sha256": "725b829d3b9bbcc050719a71a7b560911af525b5a1d85c4a31c22d5bebf9d594"
+              "sha256": "c2671fde3732e602165b09c5cf4539145c6077bdb46e54952b28ad3d93d7c44f"
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "e9ea62f增量：企微入站/SSH暂存/隔离npm发布与静态提示/IDE制品。对应修改点逐行及职责审查，未改函数以AST或文件SHA继承前轮证据，不声称本轮重新精读全库。",
-            "report": "docs/audits/2026-11-03-completion/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         }
       ]
@@ -14595,7 +14680,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -14604,9 +14689,9 @@
           ],
           "verifiedBoundary": "真实安装0.166.0/临时Home/假模型/SQLite，原生审批和双消费者；独立stdio限制明确，真实IM/手机另验。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -15205,7 +15290,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/bridge/taskboard-channel-dedup.ts",
@@ -15251,9 +15336,9 @@
           "confirmedFailure": "2026-11-02实际Bridge→TaskboardChannelController→TaskboardClient，隔离HTTP替身先保存Task再丢响应；相同表单request_id重试，观测2次POST、2条Task，未传服务端幂等键。未连接真实Taskboard或发送IM消息。",
           "verifiedBoundary": "原失败反例保留在confirmedFailure作为历史。现以真实Bridge/Controller/Client→隔离HTTP/SQLite，在服务端提交后丢响应；同表单重试及Gateway/Taskboard双重启后均仅1次创建POST、1条Task。SQLite/D1直接覆盖并发创建/评论/状态事务去重、异载荷与异actor拒绝、失败CAS无回执、实体删除后保留接受证据；注入回执INSERT失败验证业务回滚，导出/导入D1保留原回执。未连接真实IM/真实云或模拟真实电源掉电。 只有明确HTTP409/VERSION_CONFLICT反馈旧卡片未执行；丢失已接受状态响应后不误报冲突，重试只读恢复且证据评论一次。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -16102,7 +16187,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/peer/registry.ts",
@@ -16115,9 +16200,9 @@
           ],
           "verifiedBoundary": "真实WS与Bridge/渠道夹具，所有者、委托范围、主分支role复用；不替代当前版本手机UI验收。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },
@@ -16257,15 +16342,15 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "f8b882005bbca29b260a8de38e1142497e481492d98452c4eb9c0ba8befe93ab"
+              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
             }
           ],
           "verifiedBoundary": "持久补偿对象重建、exact来源守卫、容量随机client ID还原；不声称已验证所有远端进程骤停窗口。",
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           }
         },
         {
@@ -16344,14 +16429,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             }
           ],
           "verifiedBoundary": "实际临时文件与WS；不等于真实平台附件展示或code-server终端/Git验收。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },
@@ -16372,11 +16457,11 @@
           "implementation": [
             {
               "file": "src/bridge/channel-commands.ts",
-              "sha256": "3eca3c19d89280288317e79d3badf9e77943bcfea39ce2df26b0814209dc2815"
+              "sha256": "eda56998ad1b7d74f20271c08eece89b26b0a164cc647af897778464dbc8d384"
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "f69b84385f7260a1393e059c477d3333382518d7c6268b4ee7c7bee88dcfe1b2"
+              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -16393,9 +16478,9 @@
           ],
           "verifiedBoundary": "当前候选不新增/session rename、archive、restore、/sessions archived；拆分分支单独评审。 Connector私有投影的明确别名与创建/归属一致；未包装底层目录及错误home保持原生ID。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "审批通知独立投递/恢复及原生交互竞争回执归属；仅核对变更职责和对应函数，完整隔离回归保留独立证据。",
-            "report": "docs/audits/2026-11-03-checklist-followthrough/README.md"
+            "date": "2026-11-04",
+            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
+            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },

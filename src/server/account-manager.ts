@@ -379,6 +379,15 @@ export class AccountManager {
       allowedPersonal: principal => this.storeFor(principal.accountId).listPairedSenderIds().includes(principal.actorId),
       accounts: principalAccounts });
     this.admission = new AdmissionService({ root: options.paths.root, accounts: principalAccounts,
+      accessStatus: (principal, conversationId) => {
+        const paired = this.storeFor(principal.accountId).listPairedSenderIds();
+        const allowed = new Set([...paired, ...this.configProvider().allowedSenderIds]);
+        // Report the existing IM ACL and personal IDE eligibility separately;
+        // neither a configured ID nor a group grant enrolls a browser identity.
+        const ide = this.ideApprovals.registrationStatus(principal);
+        return { personal: allowed.has(principal.actorId), conversation: allowed.has(conversationId),
+          ide: ide === "unavailable" ? null : ide === "allowed" || ide === "registered" };
+      },
       allowed: (accountId, actorId, conversationId) => {
         const paired = this.storeFor(accountId).listPairedSenderIds();
         const configured = this.configProvider().allowedSenderIds;

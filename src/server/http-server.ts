@@ -498,7 +498,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
   if (method === "POST" && url.pathname === "/api/admission/admins") {
     const body = z.object({ id: admissionId, version: admissionVersion }).strict().parse(await readJsonBody(request));
     context.accountManager.admission.setAdmin(body.id, body.version);
-    sendJson(response, 200, { message: "已登记该个人为所属渠道的准入审批管理员，可在机器人私聊或群聊发送 /access 处理。没有授予本机管理页访问权限。" }); return;
+    sendJson(response, 200, { message: "已登记该个人为所属渠道的准入审批管理员。/access 处理当前聊天申请；在机器人私聊发送 /access all 查看本渠道全部申请。没有授予本机管理页访问权限。" }); return;
   }
   if (method === "POST" && url.pathname === "/api/admission/admins/remove") {
     const body = z.object({ principal: channelPrincipalSchema }).strict().parse(await readJsonBody(request));

@@ -1,6 +1,6 @@
 # 需求与 case 核对表
 
-由 gateway-requirements.json 汇总。verified 只证明其记录的具体边界；设备、供应商及任意时序不由此推定。详见 [继续检查记录](../audits/2026-11-03-checklist-followthrough/README.md)。
+由 gateway-requirements.json 汇总。verified 只证明其记录的具体边界；最新权限展示增量见[检查记录](../audits/2026-11-04-permission-visibility/README.md)。其他未完成范围沿用原清单。
 
 | 要求 | 模块 | 场景数 | 已记录窄边界通过 | 部分覆盖 | 未映射 |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -34,7 +34,7 @@
 | CTRL-04 · 停止及目标身份 | controls | 5 | 5 | 0 | 0 |
 | CTRL-05 · 状态与帮助 | controls | 5 | 3 | 2 | 0 |
 | AUTH-01 · IM个人和群准入 | access | 3 | 1 | 2 | 0 |
-| AUTH-02 · 远程准入审批 | access | 3 | 3 | 0 | 0 |
+| AUTH-02 · 远程准入审批 | access | 5 | 5 | 0 | 0 |
 | INT-01 · 原生审批全范围 | interactions | 8 | 8 | 0 | 0 |
 | INT-02 · 真实审批与内部审核 | interactions | 5 | 4 | 1 | 0 |
 | INT-03 · 提问、表单与安全URL | interactions | 5 | 4 | 1 | 0 |
@@ -91,4 +91,4 @@
 | PEER-04 · 设备文件与工作区边界 | peer | 3 | 3 | 0 | 0 |
 | TB-13 · 列表读取与页面加载状态 | taskboard | 1 | 1 | 0 | 0 |
 
-共 383 项：299 项已记录窄边界验证，84 项部分覆盖。全部有测试映射，不能据此称为全部验收。
+当前共 385 个场景，301 项有列明边界的验证记录，84 项保留部分覆盖限制。

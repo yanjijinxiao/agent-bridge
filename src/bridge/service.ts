@@ -481,7 +481,7 @@ export class BridgeService {
       if (principal && this.options.admission) {
         try {
           const request = this.options.admission.observe(principal, replyTargetId, message.conversationKind as "direct" | "group");
-          await this.reply(replyTargetId, `尚未获准使用 Gateway。准入申请已登记（${request.id}），请联系准入审批管理员在机器人会话发送 /access 处理，或在本机管理页「待审批」处理。原消息未提交；获准后请重新发送。`);
+          await this.reply(replyTargetId, `尚未获准使用 Gateway。准入申请已登记（${request.id}），请联系准入审批管理员在当前聊天发送 /access，或在机器人私聊发送 /access all 处理；也可在本机管理页「待审批」处理。原消息未提交；获准后请重新发送。`);
         } catch (error) { await this.reply(replyTargetId, `准入申请未能登记：${error instanceof Error ? error.message : String(error)}。原消息未提交，请管理员检查。`); }
         return;
       }
@@ -628,7 +628,7 @@ export class BridgeService {
         const principal = peerPrincipal.getStore()!;
         if (!command.arg.trim()) {
           const hosts = this.options.peer.hosts(principal);
-          await this.reply(message.senderId, copyableChoices(hosts.length ? "选择已配对设备，查看可绑定的会话。" : "请先启动本机客户端，再发送 /connect 加上本机显示的配对码。",
+          await this.reply(message.senderId, copyableChoices(hosts.length ? "你在当前聊天已获授权的设备，选择后查看可绑定的会话。" : "你在当前聊天尚未配对设备。请先启动 Connector，再发送终端显示的完整 /connect 配对命令。",
             hosts.map(host => ({ label: this.options.peer!.label(host), value: `/sessions --host ${host}` }))));
           return;
         }

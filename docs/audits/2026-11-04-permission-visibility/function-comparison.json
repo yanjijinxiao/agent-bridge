@@ -1,0 +1,116 @@
+[
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleCommand",
+    "sameBody": false,
+    "sha256": "136c1df88af1c6e0e2ab417fa5571755d3007922050d250c85d4192bceabc36a"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleSteerCommand",
+    "sameBody": true,
+    "sha256": "27d329775b16987daeade9d018c9a380a304234b5f772ac0fc4cae948d714e43"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "enqueueNativeMessage",
+    "sameBody": true,
+    "sha256": "b088611f7d615675d98518666fe5cc767cd15461a97b3714757ccc5f10c14006"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleGoalCommand",
+    "sameBody": true,
+    "sha256": "d0fbbeacc96ae8952ca6f1bd8edaec18088f53d6079540c23502a499774e97a8"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "taskboardNativeBackend",
+    "sameBody": true,
+    "sha256": "e5d79fb4333d7a042abf9ef255e36923023082d863ce3dc61bfe97f575c49a44"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleSessionCatalog",
+    "sameBody": true,
+    "sha256": "bc5b8d0407ca1e636296bd022f38971518fc0afa17b25d069b3ee18199aa9cf4"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "closeRunner",
+    "sameBody": true,
+    "sha256": "5b7ba20abbffdffbfeb2450826fa9ab5141678377fe5b3c55037c8189f1d97ff"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "sessionSummary",
+    "sameBody": true,
+    "sha256": "e76780b30eab5026363d68e3e6f90a43d6641208f8c6fe090ade1e081cc1d31c"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "sendLocalMedia",
+    "sameBody": true,
+    "sha256": "315a5df6e8fad2b306d1910fdcfe02c074722e7ccf3183ff23b173caabc6c4bd"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "applyRecoveredAction",
+    "sameBody": true,
+    "sha256": "d659cc456dce32204ade449d27388bf39e4f9c15e16cf1364d00218a5b7cd576"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "recoverNativeInputs",
+    "sameBody": true,
+    "sha256": "8e266ef0e223e1e30062761e1075d5ed5760612fcc01188edca023f709a09255"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "recoveredInputsFor",
+    "sameBody": true,
+    "sha256": "1200333158bcc0b80ede5aa71a75374ac0cb276c3bfa298b9a6c972174b73486"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "peerRecoverySource",
+    "sameBody": true,
+    "sha256": "5ea4cca68029b1ee4a39b3d37c027f4ea59b3307df5b933b116daf393e0ebd9c"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "threadSubscriptions",
+    "sameBody": true,
+    "sha256": "0af728a3519ad7f89486f1f49cf75fa07dffa97c88b634009ad908a2731dad1c"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "recoverNativeQueue",
+    "sameBody": true,
+    "sha256": "c3e5df76370b933232be5d9a236a48456092bf63eff6f95144ec1d021e361cad"
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "applyNativeResult",
+    "sameBody": true,
+    "sha256": "7f9d928beb72210232cbe8264a2d2de5e9b7e5030a3c1664a415e707f9fdb70c"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "runCodexTurn",
+    "sameBody": true,
+    "sha256": "bbb76aba1e7c4d2dc97147531c0e072abc937ce2abe331667f04ba36f2df9555"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "requestApproval",
+    "sameBody": true,
+    "sha256": "c7a4bc59a7402581e2131a76b31b4b99c4128a651fe57d4e379ec2aed534bc88"
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "suspendUserInputs",
+    "sameBody": true,
+    "sha256": "132092dc0688a11d209649332008fc1b78767718793fc1dc30e1a84708d1543d"
+  }
+]

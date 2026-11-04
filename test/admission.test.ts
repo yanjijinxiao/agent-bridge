@@ -126,7 +126,7 @@ test("real Bridge routes unbound IM requests/decisions before session gating, pr
   const send = (text: string, actor = "owner", kind: "group" | "direct" | undefined = "group", conversation = "room") => bridge.handleMessage({ id: String(++next), senderId: actor, replyTargetId: conversation, conversationKind: kind, text, attachments: [], raw: {} });
   await send("ordinary original task", "new-person"); assert.match(texts.at(-1)!, /申请已登记/);
   const r = f.service.snapshot().requests[0];
-  await send(`/access show ${r.id}`); assert.match(texts.at(-1)!, /没有.*管理员/); assert.equal(cards.length, 0);
+  await send(`/access show ${r.id}`); assert.match(texts.at(-1)!, /不在当前可查看范围/); assert.equal(cards.length, 0);
   await send("/access identity"); const candidate = f.service.snapshot().candidates.find(r => r.principal.actorId === "owner")!;
   f.service.setAdmin(candidate.id, candidate.version);
   await send(`/access show ${r.id}`); assert.equal(cards.length, 1);
@@ -167,6 +167,16 @@ test("an account manager admission decision updates the one existing ACL across 
   const store = new RuntimeStateStore((await import("../src/state/paths.js")).accountStatePaths(paths, "account"));
   assert.deepEqual(store.listPairedSenderIds(), ["new-person"]);
   assert.equal(manager.ideApprovals.registrationStatus(applicant), "allowed", "IM admission is the existing IDE personal authority");
+  assert.match(String(manager.admission.command(applicant, "new-person", "direct", "")), /个人授权/);
+  assert.match(String(manager.admission.command(applicant, "new-person", "direct", "")), /Web IDE 配对资格：已获准/);
+  manager.allowSender("account", "group-room");
+  const groupMember = { ...applicant, actorId: "group-only-person" };
+  assert.match(String(manager.admission.command(groupMember, "group-room", "group", "")), /本群授权/);
+  assert.match(String(manager.admission.command(groupMember, "group-room", "group", "")), /Web IDE 配对资格：未获准/);
+  assert.equal(manager.ideApprovals.registrationStatus(groupMember), "unregistered", "group admission cannot become personal browser eligibility");
+  manager.ideApprovals.setOwner(groupMember);
+  assert.match(String(manager.admission.command(groupMember, "group-room", "group", "")), /Web IDE 配对资格：已获准/,
+    "the existing explicitly enrolled IDE approver remains eligible without personal IM admission");
   const restarted = new AccountManager({ paths }); t.after(() => restarted.stopAll());
   assert.equal(restarted.admission.isAdmin(owner), true); assert.equal(restarted.ideApprovals.registrationStatus(applicant), "allowed");
   await manager.removeAccount("account");

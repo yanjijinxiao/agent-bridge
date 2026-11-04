@@ -118,7 +118,7 @@ const BUILT_IN_HELP_LINES = [
   "/task new|todo|start|detail|comment|attach|block|review|accept|return - 操作 Taskboard 工作流",
   "",
   "模型、消息与审批",
-  "/access - 准入审批管理员查看申请；/access identity 登记候选个人身份，首次需在本机待审批页明确指定管理员",
+  "/access - 查看本人在当前聊天的权限；管理员可处理本聊天申请，私聊 /access all 查看全部；/access identity 登记管理员候选身份",
   "/model（/m）[编号|模型ID|default] - 查看或切换当前任务模型",
   "/effort（/e）[编号|级别|default] - 查看或切换推理强度",
   "/stream（/str）[on|off|default] - 开关本会话过程进度（包括跟随）；最终结果仍发送",

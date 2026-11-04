@@ -13,6 +13,10 @@ const observationSchema = z.object({ id, version: z.string().regex(/^[a-f0-9]{64
   conversationId: z.string().min(1).max(500), kind: z.enum(["direct", "group"]),
   createdAt: z.number().safe(), expiresAt: z.number().safe(), phase: z.enum(["pending", "applying", "dismissed"]) }).strict();
 export type AdmissionRequest = z.infer<typeof observationSchema>;
+/** Presentation of existing ACL facts, never a separate source of authority.
+ * IDE eligibility is read separately because group/config-only IM admission
+ * does not enroll a personal browser identity. */
+export type AdmissionAccessStatus = { personal: boolean; conversation: boolean; ide: boolean | null };
 const schema = z.object({ version: z.literal(1), admins: z.array(channelPrincipalSchema).max(50),
   observations: z.array(observationSchema).max(500) }).strict();
 const key = (p: ChannelPrincipal) => JSON.stringify([p.accountId, p.channel, p.providerId, p.actorId]);
@@ -30,6 +34,7 @@ export class AdmissionService {
   error?: string;
   constructor(private readonly options: { root: string; accounts: () => { accountId: string; channel: string; providerId: string }[];
     allowed: (accountId: string, actorId: string, conversationId: string) => boolean;
+    accessStatus?: (principal: ChannelPrincipal, conversationId: string) => AdmissionAccessStatus;
     allow: (accountId: string, target: string) => void; now?: () => number }) {
     this.file = path.join(options.root, "admission.json");
     try {
@@ -116,33 +121,68 @@ export class AdmissionService {
       ? `已仅允许用户 ${r.principal.actorId}，可使用 IM 并为本人浏览器配对 IDE；没有授予准入审批管理员权限。请申请人重新发送原消息。`
       : `已允许整个群聊 ${r.conversationId} 的成员使用 IM；不授予个人 IDE 配对资格。请申请人重新发送原消息。`;
   }
-  notice(r: AdmissionRequest): ChannelActionCard {
+  notice(r: AdmissionRequest, all = false): ChannelActionCard {
+    const suffix = all ? " --all" : "";
     const body = `渠道账号：${r.principal.accountId}\n用户：${r.principal.actorId}\n来源${r.kind === "group" ? "群聊" : "私聊"}：${r.conversationId}\n用户准入包含 IM 使用和本人 IDE 浏览器配对资格；不含管理员权限。整个群聊准入只允许 IM，覆盖其他群成员。`;
     const choices = [{ label: "仅允许此用户", choice: "actor", confirm: "允许该用户使用 Codex 和本人 Web IDE 配对？" },
       ...(r.kind === "group" ? [{ label: "允许整个群聊", choice: "conversation", confirm: "群内所有成员都将获得 IM 使用权限，继续？" }] : []),
       { label: "拒绝", choice: "deny", confirm: "拒绝此准入申请？" }];
     return createChoiceCard({ title: `Gateway 准入申请 ${r.id}`, body, note: "只处理这条申请，不执行或重发申请人的消息。24 小时内有效。",
-      fallbackText: [body, ...choices.map(c => `${c.label}\n\n${copyBlock(`/access ${c.choice} ${r.id} ${r.version}`)}`)].join("\n\n"),
-      choices: choices.map(c => ({ label: c.label, command: "access", arg: `${c.choice} ${r.id} ${r.version}`, confirm: c.confirm,
+      fallbackText: [body, ...choices.map(c => `${c.label}\n\n${copyBlock(`/access ${c.choice} ${r.id} ${r.version}${suffix}`)}`)].join("\n\n"),
+      choices: choices.map(c => ({ label: c.label, command: "access", arg: `${c.choice} ${r.id} ${r.version}${suffix}`, confirm: c.confirm,
         style: c.choice === "deny" ? "danger" : "default" })) });
   }
+  private personalStatus(p: ChannelPrincipal, conversationId: string, kind: "direct" | "group"): string {
+    const admitted = this.options.allowed(p.accountId, p.actorId, conversationId);
+    const status = this.options.accessStatus?.(p, conversationId);
+    const sources = status ? [status.personal ? "个人授权" : "", kind === "group" && status.conversation ? "本群授权" : ""].filter(Boolean) : [];
+    return ["本人在当前聊天的权限", `IM 准入：${admitted ? "已获准" : "未获准"}`,
+      `授权来源：${sources.length ? sources.join("、") : admitted ? "已有准入记录" : "无"}`,
+      `本人 Web IDE 配对资格：${status?.ide == null ? "暂未核验" : status.ide ? "已获准（仍需确认当前浏览器）" : "未获准"}`,
+      `准入审批管理员：${this.isAdmin(p) ? "是" : "否"}`].join("\n");
+  }
+  /** List, details and decisions share this boundary, including old/copied
+   * cards. A global admin's authority alone never publishes other chats into
+   * this group; cross-chat management requires explicit private invocation. */
+  private inCommandScope(r: AdmissionRequest, p: ChannelPrincipal, conversationId: string, kind: "direct" | "group", admin: boolean, all: boolean): boolean {
+    return r.principal.accountId === p.accountId && r.principal.channel === p.channel && r.principal.providerId === p.providerId
+      && (all || r.conversationId === conversationId && r.kind === kind)
+      && (admin || key(r.principal) === key(p));
+  }
   command(p: ChannelPrincipal, conversationId: string, kind: "direct" | "group", arg: string): string | ChannelActionCard {
+    this.assertReady();
     if (!this.valid(p)) throw Error("渠道账号已改变，请重新核验身份");
     const parts = arg.trim().split(/\s+/).filter(Boolean);
     if (parts[0] === "identity" && parts.length === 1) {
       this.observe(p, conversationId, kind);
-      return `准入审批身份：${p.actorId}\n渠道账号：${p.accountId}\n${this.isAdmin(p) ? "已登记为本渠道准入审批管理员，可发送 /access 查看申请。" : "尚未登记为准入审批管理员。请在本机 Gateway「待审批 → 远程准入管理员」选中此身份登记一次；以后可在钉钉处理，无需访问本机页面。"}`;
+      return `准入审批身份：${p.actorId}\n渠道账号：${p.accountId}\n${this.isAdmin(p) ? "已登记为本渠道准入审批管理员。/access 查看当前聊天；在机器人私聊发送 /access all 查看本渠道申请。" : "尚未登记为准入审批管理员。请在本机 Gateway「待审批 → 远程准入管理员」选中此身份登记一次；以后可在钉钉处理，无需访问本机页面。"}`;
     }
-    if (!this.isAdmin(p)) return "你没有准入审批管理员权限。首次设置请发送 /access identity，再由本机管理页明确登记；个人准入、群授权和会话 controller 不能代替管理员资格。";
-    if (!parts.length || parts.length === 1 && parts[0] === "list") {
-      const rows = this.snapshot().requests.filter(r => r.principal.accountId === p.accountId && r.principal.providerId === p.providerId && r.principal.channel === p.channel);
-      return rows.length ? ["待处理准入申请（不会执行申请人的原消息）", ...rows.slice(0, 10).map(r => `${r.principal.actorId} · ${r.kind === "group" ? "群聊" : "私聊"} ${r.conversationId}\n${r.phase === "applying" ? "上次授权结果未确认，请在本机核对。" : copyBlock(`/access show ${r.id}`)}`), ...(rows.length > 10 ? ["仅展示前 10 条；处理后再查看。"] : [])].join("\n\n") : "当前渠道没有待处理准入申请。";
+    const admin = this.isAdmin(p), all = parts[0] === "all" || parts.includes("--all");
+    if (all) {
+      if (!admin) throw Error("仅准入审批管理员可以查看全部申请。");
+      if (kind !== "direct") throw Error("跨聊天准入管理仅限机器人私聊，请在私聊发送 /access all。");
     }
-    const r = this.state.observations.find(r => r.id === parts[1] && r.principal.accountId === p.accountId && r.principal.channel === p.channel && r.principal.providerId === p.providerId);
-    if (!r) throw new AdmissionConflictError("申请不属于当前渠道账号，或已经失效。");
-    if (parts[0] === "show" && parts.length === 2) return this.notice(this.request(r.id, r.version));
-    if (["actor", "conversation", "deny"].includes(parts[0]) && parts.length === 3) return this.decideRemote(p, r.id, parts[2], parts[0] as "actor" | "conversation" | "deny");
-    return "用法：/access 查看申请；从申请详情发送完整决定命令。";
+    const inScope = (r: AdmissionRequest) => this.inCommandScope(r, p, conversationId, kind, admin, all);
+    if (!parts.length || parts.length === 1 && ["list", "all"].includes(parts[0])) {
+      const rows = this.snapshot().requests.filter(inScope), suffix = all ? " --all" : "";
+      return [this.personalStatus(p, conversationId, kind),
+        all ? "本渠道全部待处理申请（管理员私聊）" : admin ? "当前聊天待处理申请" : "本人在当前聊天的申请",
+        ...(rows.length ? rows.slice(0, 10).map(r => `${r.principal.actorId} · ${r.kind === "group" ? "群聊" : "私聊"} ${r.conversationId}\n${r.phase === "applying" ? `申请 ${r.id}：上次授权结果未确认，请在本机核对。` : copyBlock(`/access show ${r.id}${suffix}`)}`) : ["暂无待处理申请。"]),
+        ...(rows.length > 10 ? ["仅展示前 10 条；处理后再查看。"] : []),
+        ...(admin && !all ? ["跨聊天管理请在机器人私聊发送 /access all。"] : [])].join("\n\n");
+    }
+    const detail = parts[0] === "show", decision = ["actor", "conversation", "deny"].includes(parts[0]);
+    const count = detail ? 2 : 3;
+    if ((!detail && !decision) || !(parts.length === count || parts.length === count + 1 && parts[count] === "--all"))
+      throw Error("用法：/access 查看当前聊天权限与申请；管理员在私聊使用 /access all；从申请详情操作。");
+    if (decision && !admin) return "你没有准入审批管理员权限。个人准入、群授权和会话 controller 不能代替管理员资格。";
+    const r = this.state.observations.find(r => r.id === parts[1] && inScope(r));
+    if (!r) throw new AdmissionConflictError("申请不在当前可查看范围，或已经失效。");
+    if (detail) {
+      const current = this.request(r.id, r.version);
+      return admin ? this.notice(current, all) : `本人当前聊天的准入申请 ${current.id}\n状态：等待管理员处理。`;
+    }
+    return this.decideRemote(p, r.id, parts[2], parts[0] as "actor" | "conversation" | "deny");
   }
 }
 

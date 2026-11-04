@@ -1,0 +1,64 @@
+{
+  "baseline": "dd43021d1ef973f495f67b6da2d01f5df5917bcd",
+  "scope": "IM permission visibility only",
+  "rootRegression": {
+    "tests": 3178,
+    "passed": 3096,
+    "failed": 0,
+    "skipped": 82
+  },
+  "typecheck": "passed",
+  "newCases": [
+    "AUTH-02.4",
+    "AUTH-02.5"
+  ],
+  "totals": {
+    "cases": 385,
+    "verified": 301,
+    "partial": 84,
+    "unmapped": 0
+  },
+  "limits": [
+    "82 environment-dependent tests skipped in this run; historical evidence retained only as prior bounded evidence",
+    "No real DingTalk multi-user/mobile rendering test",
+    "Local management UI remains a local administrator surface"
+  ],
+  "files": [
+    {
+      "file": "src/bridge/admission.ts",
+      "sha256": "93abdbebdb615447957fd3bbad8f21c1fdd812e034dc1d2e199c0bacc3456a10"
+    },
+    {
+      "file": "src/bridge/channel-commands.ts",
+      "sha256": "eda56998ad1b7d74f20271c08eece89b26b0a164cc647af897778464dbc8d384"
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+    },
+    {
+      "file": "src/server/account-manager.ts",
+      "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+    },
+    {
+      "file": "src/server/http-server.ts",
+      "sha256": "c2671fde3732e602165b09c5cf4539145c6077bdb46e54952b28ad3d93d7c44f"
+    },
+    {
+      "file": "test/admission-visibility.test.ts",
+      "sha256": "6f889903122b2136bbeb6d78f5ac30ecf10cd624e9d717eee34a62dc4144a9f4"
+    },
+    {
+      "file": "test/admission.test.ts",
+      "sha256": "e5279e97313946b069dadf5d75271669228cfe0e71e433404e0b843be2169e55"
+    },
+    {
+      "file": "docs/architecture/modules/bindings-access.md",
+      "sha256": "ad14d575beee05e9fe100e11404ebe4f8b4efa592ebb8e8ada9f7927dedbbba8"
+    },
+    {
+      "file": "docs/gateway-peers.md",
+      "sha256": "8b3b34a906d60f859f961fdc20af6e67350fbb785cf098f99d698cda189e0461"
+    }
+  ]
+}
