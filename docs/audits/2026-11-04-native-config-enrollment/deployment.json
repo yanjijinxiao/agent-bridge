@@ -1,0 +1,80 @@
+{
+  "runtimeCommit": "2969b2155495c2da3ef135321c8ace0167354d82",
+  "sourceHash": "e0eff6b9877ea2e11fcccf4dbc0a0b95f0d42bad8d0c58b91878e3eccadd9e6b",
+  "toutou": {
+    "pid": 4049,
+    "account": "hermes-dingtalk",
+    "status": "running",
+    "ideRunning": true,
+    "endpoints": [
+      {
+        "hostId": "local",
+        "state": "ready"
+      },
+      {
+        "hostId": "remote-ssh-discovered:11.158.199.43",
+        "state": "ready"
+      },
+      {
+        "hostId": "local",
+        "state": "ready"
+      }
+    ],
+    "nativeConfigImport": true,
+    "releaseAdmissionReopened": true
+  },
+  "tantan": {
+    "pid": 101778,
+    "account": "tantan-test",
+    "status": "running",
+    "ideRunning": true,
+    "nativeConfigImport": true,
+    "releaseAdmissionReopened": true,
+    "enrollmentEnabled": true,
+    "preservedStaticDevices": 3,
+    "hosts": [
+      "local",
+      "peer:xking-mac:local-codex",
+      "peer:linux12:headless",
+      "peer:xking-mac-regression:desktop"
+    ]
+  },
+  "connectors": {
+    "mac": {
+      "pid": 7028,
+      "connected": true,
+      "restoredExistingGrants": true,
+      "retainedNativePids": [
+        1272,
+        11238,
+        24463,
+        43982,
+        50236,
+        60008
+      ]
+    },
+    "linux": {
+      "connected": true,
+      "restoredExistingGrants": true,
+      "retainedNativePids": [
+        9955,
+        10115
+      ]
+    }
+  },
+  "publicEndpointProbe": {
+    "gateway": "tantan",
+    "withoutTokenFile": true,
+    "withoutCaFile": true,
+    "pairingCodeReceived": true,
+    "restrictedPendingRegistration": true,
+    "credentialPrivate": true,
+    "deviceApprovalPerformed": false
+  },
+  "gitlensInstall": {
+    "status": "incomplete",
+    "reason": "isolated code-server install remained waiting on registry network; test process terminated",
+    "notClaimed": "GitLens activation/hover rendering"
+  },
+  "restartNote": "Toutou graceful SIGTERM closed the listener but did not exit in the observation window; launchctl kickstart -k restarted only the prepared Gateway service, and release admission was reopened. No Codex App or native executor was restarted."
+}

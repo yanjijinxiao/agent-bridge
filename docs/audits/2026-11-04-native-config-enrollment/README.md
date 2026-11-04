@@ -38,3 +38,14 @@
 全量回归：3,230 项，3,145 通过、85 条件跳过、0 失败。命名输出见 test-results.jsonl；IDE-08.4 对应 7 项、PEER-01.4 对应 10 项均在该次输出中，校验测试文件摘要相同。typecheck、bridge build、JS 语法、diff whitespace 检查通过。真实 Connector 子进程验证不带 nodeId/tokenFile 启动并在重启后复用本机身份；协议层验证待登记不可见、恶意身份回退、拒绝、撤权、并发、持久化故障和重连。
 
 本轮按架构、模块故障场景、修改函数、静态与配置四层检查两项增量，不声称重新逐行审查整个仓库。85 个跳过的条件测试以及真实第二用户钉钉、手机浏览器、任意第三方扩展实际运行，均不能据此声称完成。线上切换与真实注册表安装结果另记部署回执。
+
+
+## 线上切换
+
+代码提交 2969b21 已推送。头头、探探以及 Mac/Linux Connector 均运行该提交制品，sourceHash 见 deployment.json。两端机器人 running，头头三个 IDE 入口 ready；探探保留原来三个静态设备，开启 enrollment，新旧 Connector 均可连接。Mac/Linux Connector 日志确认已有授权自动恢复。核验原生 Codex 进程仍在，未重启 Codex App 或原生 daemon。
+
+真实新设备探测使用隔离临时状态和探探固定 WSS 入口，不提供 nodeId/tokenFile/caFile，成功取得配对码并保持待登记状态后退出；没有冒充用户完成线上 /connect，也没有访问生产 session。完整批准/重连由隔离真实 WebSocket 与真实 Connector 进程回归覆盖，不能替代真实第二人 IM 验收。
+
+头头旧 Gateway 在 SIGTERM 后关闭监听但未在观察窗口退出；已用 launchctl kickstart -k 仅重启准备好的 Gateway，并显式解除持久发布占用。旧进程关闭挂起的根因本轮未归因，不能称为已修复；当前服务与转发已恢复。
+
+GitLens 的原生配置解析与安装清单通路通过；另启动隔离真实 code-server 安装，但注册表请求长期无结果，已停止该测试进程。未宣称 GitLens 已在生产实例安装或浮窗通过实机验收。用户现在可直接在 IDE 扩展面板安装，或在原生配置中选择该扩展，无需修改 Gateway 候选枚举。
