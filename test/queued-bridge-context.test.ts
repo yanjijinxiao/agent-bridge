@@ -24,7 +24,6 @@ test(`queued first input receives ${source} rules in the actual native model req
   const state = new RuntimeStateStore(resolveStatePaths(path.join(core.root, "bridge")));
   const session = state.createSession("room", core.root, "Queued context regression", undefined, "session", undefined, { standalone: true });
   state.setSessionThread(session.id, thread.threadId);
-  assert.ok(state.rememberKnowledge({ kind: "preference", scope: "account", title: "Queued context preference", content: "QUEUE_KNOWLEDGE_AT_ADMISSION" }));
   const journalPath = path.join(core.root, "queue-receipts.json"), queue = new NativeQueueCoordinator(journalPath);
   const replies: string[] = [], channel = createChannelClient(channelId, TEXT_CAPABILITIES, {
     async sendText(input) { replies.push(input.text); return { messageId: `reply-${replies.length}` }; }
@@ -37,7 +36,6 @@ test(`queued first input receives ${source} rules in the actual native model req
   const prompt = "QUEUE-CONTEXT-FIRST-INPUT: reply done";
   await bridge.handleMessage({ id: "queue-context-source", senderId: "room", text: `/queue ${prompt}`, attachments: [], raw: {} });
   assert.equal(queue.list("standalone").length, 1, JSON.stringify(replies));
-  state.clearKnowledge(); // Later recovery must retain the admitted snapshot.
   await until(() => core.calls.length === 1, 15000);
   // AccountManager normally drives these recovery ticks; keep the real Bridge
   // and coordinator here without starting an unrelated account monitor.
@@ -52,7 +50,7 @@ test(`queued first input receives ${source} rules in the actual native model req
   assert.ok(actual.includes("codex-im-gateway-actions"));
   assert.ok(actual.includes("Gateway owns the automatic project Web IDE footer"));
   assert.ok(actual.includes(prompt));
-  assert.ok(actual.includes("QUEUE_KNOWLEDGE_AT_ADMISSION"));
+  assert.doesNotMatch(actual, /private-knowledge|Known reusable knowledge|under remember/);
   const receipt = queue.list("standalone")[0];
   const history = await backend.getHistory(thread.threadId);
   const user = history.filter(item => item.clientUserMessageId === receipt.clientUserMessageId);

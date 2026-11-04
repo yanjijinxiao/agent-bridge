@@ -5,10 +5,6 @@ import path from "node:path";
 import test from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { LlmWikiMcpClientPool } from "../src/knowledge/llm-wiki-mcp-client.js";
-import { RuntimeStateStore } from "../src/state/runtime-state.js";
-import { resolveStatePaths } from "../src/state/paths.js";
-import { defaultConfig } from "../src/state/config.js";
-import { BridgeService } from "../src/bridge/service.js";
 
 function fixture(t: test.TestContext, source: string) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-review-wiki-")), wiki = path.join(root, "wiki"), bin = path.join(wiki, ".venv/bin");
@@ -64,21 +60,6 @@ test("concurrent knowledge calls wait for the same completed MCP initialization"
   assert.ok(results.every(result => result.status === "fulfilled"), JSON.stringify(results));
 });
 
-test("an old knowledge delete button retains its entry after the list order changes", async t => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-knowledge-identity-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const store = new RuntimeStateStore(resolveStatePaths(root)), cards: any[] = [];
-  const service = new BridgeService({ stateStore: store, config: defaultConfig(root),
-    weixin: { async sendText() { return { messageId: "text" }; }, async sendActionCard(input) { cards.push(input.card); return { messageId: "card" }; } } }) as any;
-  store.rememberKnowledge({ kind: "knowledge", scope: "account", title: "Original", content: "original" });
-  const original = store.listKnowledge()[0];
-  await service.handleMemoryCommand("chat", "");
-  const button = cards[0].actionGroups.flat().find((action: any) => action.label.startsWith("删除"));
-  store.rememberKnowledge({ kind: "knowledge", scope: "account", title: "New", content: "new" });
-  await service.handleMemoryCommand("chat", button.value.arg);
-  assert.equal(store.listKnowledge().some(entry => entry.id === original.id), false);
-  assert.equal(store.listKnowledge().some(entry => entry.title === "New"), true);
-});
 test("failed MCP initialization closes the unready child and the next call initializes a replacement", { timeout: 5000 }, async t => {
   const f = fixture(t, `const fs=require('node:fs'),path=require('node:path'),rl=require('node:readline').createInterface({input:process.stdin});
     const marker=path.join(path.dirname(process.argv[3]),'attempts'), n=Number(fs.existsSync(marker)?fs.readFileSync(marker,'utf8'):0)+1;fs.writeFileSync(marker,String(n));

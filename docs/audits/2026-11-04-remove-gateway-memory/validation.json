@@ -1,0 +1,30 @@
+{
+  "full": {
+    "passed": 3163,
+    "skipped": 86
+  },
+  "fullTotal": 3249,
+  "native": {
+    "passed": 16
+  },
+  "nativeTotal": 16,
+  "cases": [
+    {
+      "id": "KB-02.1",
+      "mappedPassingTests": 9
+    },
+    {
+      "id": "KB-02.2",
+      "mappedPassingTests": 7
+    },
+    {
+      "id": "KB-02.3",
+      "mappedPassingTests": 12
+    },
+    {
+      "id": "KB-02.4",
+      "mappedPassingTests": 12
+    }
+  ],
+  "boundary": "Native tests use real isolated Codex and Gateway processes with loopback model and byte-checking IM adapters; no live external messages or mobile-device verification."
+}

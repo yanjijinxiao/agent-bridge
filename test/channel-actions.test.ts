@@ -178,7 +178,6 @@ test("Bridge uses channel-native cards for help and fixed selections", async (t)
   await send("models", "/model");
   await send("efforts", "/effort");
   await send("stream", "/stream");
-  await send("memory", "/memory");
   await send("prompt", "/prompt");
 
   assert.deepEqual(cards.map((card) => card.title), [
@@ -188,7 +187,6 @@ test("Bridge uses channel-native cards for help and fixed selections", async (t)
     "选择模型",
     "选择推理强度",
     "过程进度",
-    "个人知识库",
     "消息合并"
   ]);
   assert.deepEqual(

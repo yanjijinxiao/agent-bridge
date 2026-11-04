@@ -49,7 +49,14 @@ const manager = new AccountManager({ paths, ideProjectsProvider: () => [], chann
   // native adapter, manager, inbox, receipts, Bridge and Hub are real.
   codexSessionMonitorFactory: () => ({ start() {}, stop() {} }),
   codexDesktopRequestMonitorFactory: () => ({ start() {}, stop() {}, setFollowedThreads() {} }),
-  adapterFactory: () => ({ client: createChannelClient("dingtalk", TEXT_CAPABILITIES, {
+  adapterFactory: () => ({ client: createChannelClient("dingtalk", { ...TEXT_CAPABILITIES, outbound: { ...TEXT_CAPABILITIES.outbound, file: "available" } }, {
+    async sendMedia(input) {
+      const bytes = fs.readFileSync(input.path), messageId = crypto.randomUUID();
+      if (bytes.toString() !== "synthetic recovered attachment") throw Error("Unexpected recovered file bytes");
+      fs.appendFileSync(config.deliveries, JSON.stringify({ messageId, text: "", kind: "file", path: input.path,
+        sha256: crypto.createHash("sha256").update(bytes).digest("hex") }) + "\n", { mode: 0o600 });
+      return { messageId };
+    },
     async sendText(input) {
       const messageId = crypto.randomUUID();
       fs.appendFileSync(config.deliveries, JSON.stringify({ messageId, text: input.text }) + "\n", { mode: 0o600 });

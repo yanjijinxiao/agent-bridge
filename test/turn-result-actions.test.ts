@@ -23,26 +23,53 @@ const output = "answer\n```codex-im-gateway-actions\n" + JSON.stringify({
   send: [{ type: "file", path: "/synthetic/result.txt" }]
 }) + "\n```";
 
+for (const count of [0, 1, 2, 3]) for (const phase of ["done", "started"] as const)
+test(`legacy attachment receipt survives removal of ${count} memory actions (${phase})`, async t => {
+  const file = path.join(directory(t), "actions.json"), scope = ["legacy", "turn"];
+  const action = { kind: "send", value: { type: "file", path: "/synthetic/result.txt" } };
+  const key = crypto.createHash("sha256").update(JSON.stringify([scope, count, action])).digest("hex");
+  fs.writeFileSync(file, JSON.stringify({ version: 1, records: { [key]: phase } }));
+  for (const text of [output, output.replace(/"remember":\[[\s\S]*?\],/, "")]) {
+    let effects = 0;
+    const confirmed = await new TurnResultActions(file).apply(scope, text, () => {}, async () => { effects++; });
+    assert.equal(effects, 0, "legacy confirmed/unknown sends must not be repeated");
+    assert.equal(confirmed, phase === "done");
+  }
+});
+
+test("retired memory-only results create no effect or journal", async t => {
+  const file = path.join(directory(t), "actions.json");
+  const text = 'done\n```codex-im-gateway-actions\n{"remember":[{"content":"old"}]}\n```';
+  assert.equal(await new TurnResultActions(file).apply(["turn"], text, () => { assert.fail(); }, async () => { assert.fail(); }), true);
+  assert.equal(fs.existsSync(file), false);
+});
+
 test("restart and concurrent output recovery apply each exact result action once", async t => {
   const file = path.join(directory(t), "actions.json"), scope = ["account", "session", "host", "thread", "turn"];
   const journal = new TurnResultActions(file), effects: string[] = [];
   const effect = async (action: { kind: string }) => { effects.push(action.kind); await new Promise(r => setImmediate(r)); };
   assert.deepEqual(await Promise.all([journal.apply(scope, output, () => {}, effect), journal.apply(scope, output, () => {}, effect)]), [true, true]);
   assert.equal(await new TurnResultActions(file).apply(scope, output, () => {}, effect), true);
-  assert.deepEqual(effects, ["remember", "send"]);
+  assert.deepEqual(effects, ["send"]);
   const saved = fs.readFileSync(file, "utf8");
   assert.doesNotMatch(saved, /result\.txt|Synthetic durable content/, "only hashed action identities are persisted");
+  const records = JSON.parse(saved).records;
+  const action = { kind: "send", value: { type: "file", path: "/synthetic/result.txt" } };
+  for (const oldIndex of [0, 1, 2, 3]) {
+    const legacyKey = crypto.createHash("sha256").update(JSON.stringify([scope, oldIndex, action])).digest("hex");
+    assert.equal(records[legacyKey], "done", "code rollback must retain acknowledged file identities");
+  }
   await journal.apply([...scope.slice(0, -1), "different-turn"], output, () => {}, effect);
-  assert.equal(effects.length, 4);
+  assert.equal(effects.length, 2);
 });
 
 test("an ambiguous external send is disclosed and never automatically resent after restart", async t => {
   const file = path.join(directory(t), "actions.json"), scope = ["scope"];
   let effects = 0;
-  const effect = async () => { if (++effects === 2) throw Error("acknowledgement lost after delivery"); };
+  const effect = async () => { if (++effects === 1) throw Error("acknowledgement lost after delivery"); };
   assert.equal(await new TurnResultActions(file).apply(scope, output, () => {}, effect), false);
   assert.equal(await new TurnResultActions(file).apply(scope, output, () => {}, effect), false);
-  assert.equal(effects, 2);
+  assert.equal(effects, 1);
 });
 
 for (const outcome of ["confirmed", "observer-failed", "lost-receipt", "unsupported", "remote"] as const) {
@@ -67,7 +94,8 @@ for (const outcome of ["confirmed", "observer-failed", "lost-receipt", "unsuppor
       service.applyRecoveredAction(session.id, { hostId, threadId: "thread" }, action);
     assert.equal(await new TurnResultActions(journalFile).apply(scope, result, () => {}, effect), confirmed);
     const phases = Object.values(JSON.parse(fs.readFileSync(journalFile, "utf8")).records);
-    assert.deepEqual(phases, [confirmed ? "done" : "started"]);
+    assert.ok(phases.length > 0);
+    assert.ok(phases.every(phase => phase === (confirmed ? "done" : "started")));
     assert.equal(await new TurnResultActions(journalFile).apply(scope, result, () => {}, effect), confirmed);
     assert.equal(sends, confirmed || outcome === "lost-receipt" ? 1 : 0);
     assert.equal(reports, confirmed ? 0 : 1, "failure notices must not repeat with journal recovery");
@@ -77,9 +105,10 @@ for (const outcome of ["confirmed", "observer-failed", "lost-receipt", "unsuppor
 test("a changed binding is checked before every new effect and is never claimed or applied", async t => {
   const journal = new TurnResultActions(path.join(directory(t), "actions.json")); let effects = 0, current = true;
   const check = () => { if (!current) throw Error("binding changed"); };
-  await assert.rejects(journal.apply(["scope"], output, check, async () => { effects++; current = false; }), /binding changed/);
+  const twoFiles = output.replace('"send":[', '"send":[{"type":"file","path":"/synthetic/first.txt"},');
+  await assert.rejects(journal.apply(["scope"], twoFiles, check, async () => { effects++; current = false; }), /binding changed/);
   assert.equal(effects, 1); current = true;
-  assert.equal(await journal.apply(["scope"], output, check, async () => { effects++; }), true);
+  assert.equal(await journal.apply(["scope"], twoFiles, check, async () => { effects++; }), true);
   assert.equal(effects, 2);
 });
 
@@ -102,15 +131,15 @@ for (const web of [false, true]) test(`${web ? "Web" : "IM"} results require an 
   store.setSessionThread(session.id, "thread"); let sends = 0;
   inner.entries.set("one", { status: "running", service: { async applyRecoveredAction() { sends++; } } });
   const sub = { key: JSON.stringify(["one", session.id]), hostId: "local", threadId: "thread", recipientId: "chat", managed: false, client: {} };
-  await inner.applyNativeResult(sub, "turn", output); assert.equal(store.listKnowledge().length, 0); assert.equal(sends, 0);
+  await inner.applyNativeResult(sub, "turn", output); assert.equal("knowledge" in store.snapshot, false); assert.equal(sends, 0);
   const receipts = inner.receiptsFor("one");
   await receipts.handle({ id: "source", senderId: web ? "web-admin" : "actor", replyTargetId: "chat" }, async () => {
     receipts.submitting({ sessionId: session.id, hostId: "local", threadId: "thread" }); receipts.accepted("thread", "turn");
   });
   for (const bad of [{ ...sub, hostId: "foreign" }, { ...sub, recipientId: "elsewhere" }]) await inner.applyNativeResult(bad, "turn", output);
-  assert.equal(store.listKnowledge().length, 0);
+  assert.equal("knowledge" in store.snapshot, false);
   await inner.applyNativeResult(sub, "turn", output); await inner.applyNativeResult(sub, "turn", output);
-  assert.equal(store.listKnowledge().length, 1); assert.equal(sends, web ? 0 : 1);
+  assert.equal("knowledge" in store.snapshot, false); assert.equal(sends, web ? 0 : 1);
   inner.runner = { hasRestartBlockingWork: () => false, isIndependentObservation: () => true, close() {} };
   const id = crypto.randomUUID(); manager.prepareRelease(id);
   await assert.rejects(inner.applyNativeResult(sub, "turn", output.replace("result.txt", "new-result.txt")), /发布/);

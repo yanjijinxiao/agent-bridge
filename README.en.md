@@ -257,11 +257,13 @@ Paths under `~/.codex-im-gateway/`:
 | Path | Contents |
 | --- | --- |
 | `accounts/` | Channel credentials |
-| `runtime/<account-id>/` | Authorization, projects, sessions, personal knowledge |
+| `runtime/<account-id>/` | Authorization, projects, sessions, handoff state |
 | `inbound/<account-id>/` | Inbound attachments |
 | `config.json` | Codex, backend, and workspace configuration |
 | `logs/` | Local service logs |
 | `taskboard/` | Embedded Taskboard data |
+
+Long-term memory is managed by Codex. Gateway does not store or inject personal memories; `/memory` and its aliases have been removed. Attachment delivery and explicitly configured llm-wiki knowledge bases remain available.
 
 If the canonical directory does not exist, the gateway reuses an existing `~/.codex-channel-bridge/` or `~/.codex-weixin/` installation automatically. Legacy `CODEX_CHANNEL_BRIDGE_*`, `CODEX_WEIXIN_*`, request headers, and action blocks remain accepted compatibility interfaces.
 

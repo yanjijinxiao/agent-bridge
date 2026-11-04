@@ -714,10 +714,6 @@ export class BridgeService {
       case "balance":
         await this.handleBalanceCommand(message.senderId);
         return;
-      case "memory":
-      case "knowledge":
-        await this.handleMemoryCommand(message.senderId, command.arg);
-        return;
       case "project":
       case "projects":
         return await this.handleProjectCommand(message.senderId, command.arg) ? undefined : false;
@@ -775,7 +771,7 @@ export class BridgeService {
           if (items && session) {
             const staged = await this.stagePromptItems(items, session, message);
             assertCurrent();
-            await this.handleSteerCommand(message, buildPromptParts(command.arg, staged, channelPromptSource(this.channel.channel), []).prompt);
+            await this.handleSteerCommand(message, buildPromptParts(command.arg, staged, channelPromptSource(this.channel.channel)).prompt);
           }
           else if (!session) await this.handleSteerCommand(message, command.arg);
         }
@@ -2031,7 +2027,7 @@ export class BridgeService {
       await this.enqueueNativeMessage(message, "", items);
       return true;
     }
-    const prompt = buildPromptParts("", await this.stagePromptItems(items, session, message), channelPromptSource(this.channel.channel), []).prompt;
+    const prompt = buildPromptParts("", await this.stagePromptItems(items, session, message), channelPromptSource(this.channel.channel)).prompt;
     assertCurrent();
     if (policy === "steer") {
       if (this.runner.submitThreadMessage) {
@@ -2183,11 +2179,10 @@ export class BridgeService {
       await this.reply(message.senderId, "会话存在未确认轮次，消息未入队；请先重新加载 Codex App 并核对状态。"); return;
     }
     const preview = buildPromptPreview(text, items) ?? text;
-    const knowledge = this.options.stateStore.relevantKnowledge(preview, session.projectId);
     const prepared = await prepareTurnSubmission({ runner: this.runner, session,
       project: session.projectId ? this.options.stateStore.getProject(session.projectId) : undefined,
       config: this.options.config, accountId: this.options.accountId, conversationId: message.senderId,
-      text, items, source: channelPromptSource(this.channel.channel), knowledge });
+      text, items, source: channelPromptSource(this.channel.channel) });
     // Native queue/add can consume immediately and has no additionalContext
     // field. Persist the same application rules with this one native item,
     // using the existing prompt format that parsePrompt removes from history.
@@ -2548,121 +2543,6 @@ export class BridgeService {
     await this.reply(senderId, `本会话过程进度已${enabled ? "开启" : "关闭"}。`);
   }
 
-  private async handleMemoryCommand(senderId: string, arg: string): Promise<void> {
-    const input = arg.trim();
-    const normalized = input.toLowerCase();
-    if (["on", "1", "off", "0"].includes(normalized)) {
-      const enabled = normalized === "on" || normalized === "1";
-      this.options.stateStore.setKnowledgeEnabled(enabled);
-      await this.reply(senderId, `个人知识库自动沉淀已${enabled ? "开启" : "关闭"}。`);
-      return;
-    }
-    if (normalized === "clear confirm" || normalized === "c confirm") {
-      this.options.stateStore.clearKnowledge();
-      await this.reply(senderId, "已清空当前渠道账号的个人知识库。");
-      return;
-    }
-    if (normalized === "clear" || normalized === "c") {
-      const fallbackText = "这会清空当前渠道账号的全部个人知识。确认请发送 /memory clear confirm";
-      await this.replyActionCard(senderId, createChoiceCard({
-        title: "确认清空个人知识库",
-        template: "red",
-        body: "此操作会删除当前账号沉淀的全部偏好、技巧、知识点和流程。",
-        fallbackText,
-        choices: [
-          {
-            label: "确认清空",
-            command: "memory",
-            arg: "clear confirm",
-            style: "danger",
-            confirm: "确认清空全部个人知识？"
-          },
-          { label: "返回知识库", command: "memory", arg: "" }
-        ]
-      }));
-      return;
-    }
-    const entries = this.options.stateStore.listKnowledge();
-    const forgetMatch = /^(?:forget|f)\s+(\S+)$/i.exec(input);
-    if (forgetMatch) {
-      const entry = entries.find(candidate => candidate.id === forgetMatch[1]);
-      if (!entry) {
-        await this.replyActionCard(senderId, createChoiceCard({
-          title: "知识条目不存在",
-          body: "该条目可能已经被删除，或使用了会随排序变化的旧编号，请刷新知识库后选择删除。",
-          fallbackText: "未删除任何内容。请发送 /memory 刷新后使用该条目的删除操作。",
-          choices: [{ label: "刷新知识库", command: "memory", arg: "", style: "primary" }]
-        }));
-        return;
-      }
-      this.options.stateStore.deleteKnowledge(entry.id);
-      await this.reply(senderId, `已删除：${entry.title}`);
-      return;
-    }
-    if (input) {
-      await this.replyActionCard(senderId, createChoiceCard({
-        title: "个人知识库",
-        body: "请选择要进行的知识库操作。",
-        fallbackText: "用法：/memory、/memory on、/memory off、/memory forget 条目ID、/memory clear",
-        choices: [{ label: "查看知识库", command: "memory", arg: "", style: "primary" }]
-      }));
-      return;
-    }
-    const knowledgeEnabled = this.options.stateStore.isKnowledgeEnabled();
-    const status = knowledgeEnabled ? "开启" : "关闭";
-    if (!entries.length) {
-      const fallbackText = `个人知识库（自动沉淀：${status}）\n暂无内容。后续对话会自动提炼可复用的偏好、技巧、知识点和流程。`;
-      await this.replyActionCard(senderId, createChoiceCard({
-        title: "个人知识库",
-        body: `自动沉淀：**${status}**\n\n暂无内容。后续对话会自动提炼可复用信息。`,
-        fallbackText,
-        choices: [{
-          label: knowledgeEnabled ? "关闭自动沉淀" : "开启自动沉淀",
-          command: "memory",
-          arg: knowledgeEnabled ? "off" : "on",
-          style: "primary"
-        }]
-      }));
-      return;
-    }
-    const projectNames = new Map(this.options.stateStore.listProjects().map((project) => [project.id, project.name]));
-    const visibleEntries = entries.slice(0, 20);
-    const fallbackText = [
-      `个人知识库（自动沉淀：${status}，共 ${entries.length} 条）`,
-      ...visibleEntries.map((entry, index) =>
-        `[K${index + 1}] ${formatKnowledgeKind(entry.kind)} · ${entry.scope === "project" ? `项目：${projectNames.get(entry.projectId ?? "") ?? "已移除项目"}` : "账号"}\n标题：${entry.title}\n内容：${entry.content}`
-      ),
-      "删除单条：使用下方对应的删除操作，操作固定指向该条目。"
-    ].join("\n\n");
-    const choices: ChannelChoice[] = [{
-      label: knowledgeEnabled ? "关闭自动沉淀" : "开启自动沉淀",
-      command: "memory",
-      arg: knowledgeEnabled ? "off" : "on",
-      style: "primary"
-    }];
-    choices.push(...visibleEntries.map((entry, index): ChannelChoice => ({
-      label: conciseButtonLabel(`删除 K${index + 1} · ${entry.title}`),
-      command: "memory",
-      arg: `forget ${entry.id}`,
-      style: "danger",
-      confirm: `确认删除“${entry.title}”？`
-    })));
-    choices.push({
-      label: "清空全部",
-      command: "memory",
-      arg: "clear",
-      style: "danger"
-    });
-    await this.replyActionCard(senderId, createChoiceCard({
-      title: "个人知识库",
-      body: `自动沉淀：**${status}** · 共 ${entries.length} 条\n\n${visibleEntries.map((entry, index) =>
-        `**K${index + 1} · ${entry.title}**\n\n${entry.content}`
-      ).join("\n\n")}`,
-      fallbackText,
-      choices
-    }));
-  }
-
   private async promptItemsFromMessage(message: ChannelMessage): Promise<PromptBufferItem[]> {
     const items: PromptBufferItem[] = [];
     if (message.text.trim()) {
@@ -2836,10 +2716,9 @@ export class BridgeService {
       await this.withTyping(message.senderId, async () => {
         console.log(`[codex-im-gateway] starting Codex turn for ${message.senderId} in ${workspace}`);
         if (!queued && replyStream?.supported) await replyStream.progress("🤔 正在理解任务并规划下一步…");
-        const knowledge = this.options.stateStore.relevantKnowledge(promptPreview ?? text, session.projectId);
         const prepared = await prepareTurnSubmission({ runner: this.runner, session, project, config: this.options.config,
           accountId: this.options.accountId, conversationId: message.senderId, text, items: attachments,
-          source: channelPromptSource(this.channel.channel), knowledge });
+          source: channelPromptSource(this.channel.channel) });
         const acceptedWork = this.restartWork.capture();
         const runInput: CodexRunnerInput = {
           ...prepared,
@@ -2924,9 +2803,6 @@ export class BridgeService {
         const parsed = parseActionBlocks(result.text, { strict: false });
         const bound = stillBound();
         const journaled = bound && result.turnId && this.options.deliverTurnResult;
-        for (const memory of !bound || journaled ? [] : parsed.actions.remember) {
-          this.options.stateStore.rememberKnowledge(memory, session.projectId, session.id);
-        }
         let finalText = parsed.visibleText.trim() || "处理完成。";
         // The journal owns decoration when present; standalone delivery uses
         // the same presentation policy, never a second enrichment pass.
@@ -3055,10 +2931,6 @@ export class BridgeService {
     const binding = sessionExecutionScope(this.options.stateStore, session);
     if (!binding.current()) return;
     const parsed = parseActionBlocks(text, { strict: false });
-    for (const memory of parsed.actions.remember) {
-      if (!binding.current()) break;
-      this.options.stateStore.rememberKnowledge(memory, session.projectId, session.id);
-    }
     for (const action of parsed.actions.send) {
       if (!binding.current()) break;
       await this.sendLocalMedia(session.senderId, action, native.hostId, binding.current, native.threadId);
@@ -3072,8 +2944,7 @@ export class BridgeService {
       throw new CodexInterventionError("Result application binding changed");
     const binding = sessionExecutionScope(this.options.stateStore, session);
     if (!binding.current()) throw new CodexInterventionError("Result application binding changed");
-    if (action.kind === "remember") this.options.stateStore.rememberKnowledge(action.value, session.projectId, session.id);
-    else if (!await this.sendLocalMedia(session.senderId, action.value, native.hostId, binding.current, native.threadId))
+    if (!await this.sendLocalMedia(session.senderId, action.value, native.hostId, binding.current, native.threadId))
       throw new Error("Result media delivery was not confirmed");
   }
 
@@ -3618,15 +3489,6 @@ function channelPromptSource(channel: ChannelClient["channel"]): "WeChat" | "Din
 
 function taskboardSkillPrompt(instruction: string): string {
   return `使用 manage-taskboard Skill 完成以下操作。遵守其线程归属、状态迁移、评论证据和验收门禁；Taskboard 是任务状态唯一事实源。\n\n${instruction}`;
-}
-
-function formatKnowledgeKind(kind: "preference" | "skill" | "knowledge" | "workflow"): string {
-  return {
-    preference: "偏好",
-    skill: "工作技巧",
-    knowledge: "知识点",
-    workflow: "流程"
-  }[kind];
 }
 
 function normalizeMode(input: string): ProjectInteractionMode | undefined {

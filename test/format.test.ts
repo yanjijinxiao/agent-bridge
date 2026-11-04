@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { CHANNEL_COMMAND_REGISTRY, channelHelpText } from "../src/bridge/channel-commands.js";
+import { createMainMenuCard } from "../src/bridge/interaction-cards.js";
 
 import {
   buildPrompt,
@@ -62,20 +64,17 @@ test("Connector file policy stays out of native user messages while ordinary tex
   assert.equal(stripBridgeInstructions(ordinary), ordinary);
 });
 
-test("injects private knowledge without exposing it in displayed history", () => {
-  const prompt = buildPrompt("继续处理", [], "WeChat", [{
-    id: "knowledge-one",
-    kind: "preference",
-    scope: "account",
-    title: "回复风格",
-    content: "结论优先，保持简洁",
-    createdAt: "2026-08-01T00:00:00.000Z",
-    updatedAt: "2026-08-01T00:00:00.000Z"
-  }]);
+test("new prompts have no Gateway memory while old history still hides retired context", () => {
+  const prompt = buildPrompt("继续处理");
+  assert.doesNotMatch(prompt, /private-knowledge|Known reusable knowledge|under remember/);
+  const old = "[codex-weixin-private-knowledge]\n旧偏好\n[/codex-weixin-private-knowledge]\n\n继续处理";
+  assert.equal(stripBridgeInstructions(old), "继续处理");
+});
 
-  assert.match(prompt, /结论优先，保持简洁/);
-  assert.match(prompt, /remember/);
-  assert.equal(stripBridgeInstructions(prompt), "继续处理");
+test("retired memory commands and aliases have no registry, help or menu entry", () => {
+  const names = CHANNEL_COMMAND_REGISTRY.flatMap(item => [item.name, ...item.aliases]);
+  for (const name of ["memory", "mem", "knowledge"]) assert.ok(!names.includes(name as never));
+  assert.doesNotMatch(JSON.stringify(createMainMenuCard(channelHelpText([]))), /个人记忆|个人知识|\/memory|\/mem\b|"memory"/);
 });
 
 test("parses Web attachment metadata out of displayed history", () => {

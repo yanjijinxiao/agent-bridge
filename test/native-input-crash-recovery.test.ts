@@ -62,12 +62,14 @@ for (const scenario of [
       if (child.child.exitCode === null && child.child.signalCode === null) child.child.kill("SIGKILL");
       await child.exited;
     } });
-    const memory = { kind: "knowledge", scope: "account", title: "crash-recovered-output", content: "Recovered exact input" };
-    const final = 'CRASH_RESULT\n```codex-im-gateway-actions\n' + JSON.stringify({ remember: [memory] }) + '\n```';
+    let final = "";
     const f = await sharedNativeCore(t, async (body: any, n: number) => {
       if (JSON.stringify(body.input).includes("CRASH_INPUT")) { await release.promise; return message(final, n); }
       return message("INITIALIZED", n);
     });
+    const outputFile = path.join(f.root, "result.txt");
+    fs.writeFileSync(outputFile, "synthetic recovered attachment");
+    final = 'CRASH_RESULT\n```codex-im-gateway-actions\n' + JSON.stringify({ send: [{ type: "file", path: outputFile }] }) + '\n```';
     const peer = await f.rpc("crash_owner");
     const beforeCore = (await peer.request("server/diagnostics")).process.id;
     let threadId: string | undefined;
@@ -122,13 +124,13 @@ for (const scenario of [
     assert.equal(f.calls.filter((call: any) => JSON.stringify(call.input).includes("CRASH_INPUT")).length, 1);
     release.resolve();
     await until(() => fs.existsSync(deliveries) && fs.readFileSync(deliveries, "utf8").includes("CRASH_RESULT"), 12000);
-    const knowledge = () => new RuntimeStateStore(accountStatePaths(paths, "fixture")).listKnowledge().filter(item => item.title === memory.title);
-    await until(() => knowledge().length === 1);
+    const media = () => fs.readFileSync(deliveries, "utf8").trim().split("\n").map(line => JSON.parse(line)).filter(item => item.kind === "file" && item.path === outputFile);
+    await until(() => media().length === 1);
     await until(() => receipt(receiptFile).phase === "handled");
     await second.command("sync"); await second.command("stop"); assert.equal((await second.exited).code, 0, second.log());
     const third = gateway(config, "recover"); children.push(third); await third.ready; await third.command("sync");
     const answers = fs.readFileSync(deliveries, "utf8").trim().split("\n").map(line => JSON.parse(line)).filter(item => item.text.includes("CRASH_RESULT"));
-    assert.equal(answers.length, 1); assert.equal(knowledge().length, 1);
+    assert.equal(answers.length, 1); assert.equal(media().length, 1);
     const history = await f.runner().getHistory(accepted.threadId);
     assert.equal(history.filter(item => item.role === "user" && item.clientUserMessageId === accepted.clientUserMessageId).length, 1);
     assert.equal((await peer.request("server/diagnostics")).process.id, beforeCore);

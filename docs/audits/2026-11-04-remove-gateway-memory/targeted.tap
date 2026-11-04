@@ -1,0 +1,472 @@
+TAP version 13
+# [codex-im-gateway] sending action card "Codex 渠道工作台" to oc_test
+# [codex-im-gateway] sent action card "Codex 渠道工作台" to oc_test
+# [codex-im-gateway] sending action card "Codex 项目 · 2 个 · 1/1 页" to oc_test
+# [codex-im-gateway] sent action card "Codex 项目 · 2 个 · 1/1 页" to oc_test
+# [codex-im-gateway] sending action card "可绑定会话 · 全部 · 0 个 · 第 1/1 页" to oc_test
+# [codex-im-gateway] sent action card "可绑定会话 · 全部 · 0 个 · 第 1/1 页" to oc_test
+# [codex-im-gateway] sending action card "选择模型" to oc_test
+# [codex-im-gateway] sent action card "选择模型" to oc_test
+# [codex-im-gateway] sending action card "选择推理强度" to oc_test
+# [codex-im-gateway] sent action card "选择推理强度" to oc_test
+# [codex-im-gateway] sending action card "过程进度" to oc_test
+# [codex-im-gateway] sent action card "过程进度" to oc_test
+# [codex-im-gateway] sending action card "消息合并" to oc_test
+# [codex-im-gateway] sent action card "消息合并" to oc_test
+# [codex-im-gateway] sending action card "Codex 渠道工作台" to oc_test
+# [codex-im-gateway] sent action card "Codex 渠道工作台" to oc_test
+# [codex-im-gateway] sending action card "Codex 渠道工作台" to oc_test
+# [codex-im-gateway] sent action card "Codex 渠道工作台" to oc_test
+# [codex-im-gateway] updating action card "Codex 项目 · 1 个 · 1/1 页" in om_help_card
+# [codex-im-gateway] updated action card "Codex 项目 · 1 个 · 1/1 页"
+# [codex-im-gateway] sending action card "已切换到 Second" to oc_test
+# [codex-im-gateway] sent action card "已切换到 Second" to oc_test
+# [codex-im-gateway] sending action card "已进入会话模式" to oc_test
+# [codex-im-gateway] sent action card "已进入会话模式" to oc_test
+# [codex-im-gateway] sending action card "已开启计划模式" to oc_test
+# [codex-im-gateway] sent action card "已开启计划模式" to oc_test
+# [codex-im-gateway] sending action card "已回到普通对话" to oc_test
+# [codex-im-gateway] sent action card "已回到普通对话" to oc_test
+# [codex-im-gateway] sending action card "目标 · 进行中" to oc_test
+# [codex-im-gateway] sent action card "目标 · 进行中" to oc_test
+# [codex-im-gateway] sending action card "已开启计划模式" to oc_test
+# [codex-im-gateway] sent action card "已开启计划模式" to oc_test
+# [codex-im-gateway] sending action card "已回到普通对话" to oc_test
+# [codex-im-gateway] sent action card "已回到普通对话" to oc_test
+# [codex-im-gateway] starting Codex turn for oc_test in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/codex-channel-conversational-controls-7cokdF
+# [codex-im-gateway] Codex turn completed for oc_test; text=6 chars
+# [codex-im-gateway] sending action card "已回到普通对话" to oc_test
+# [codex-im-gateway] sent action card "已回到普通对话" to oc_test
+# [codex-im-gateway] starting Codex turn for oc_test in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/codex-channel-conversational-controls-7cokdF
+# [codex-im-gateway] Codex turn completed for oc_test; text=6 chars
+# [codex-im-gateway] starting Codex turn for oc_test in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/codex-channel-conversational-controls-7cokdF
+# [codex-im-gateway] Codex turn completed for oc_test; text=6 chars
+# [codex-im-gateway] starting Codex turn for oc_test in /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/codex-channel-approval-card-P2UqW2
+# Subtest: groups channel choices into clickable actions with a bounded command payload
+ok 1 - groups channel choices into clickable actions with a bounded command payload
+  ---
+  duration_ms: 1.140541
+  type: 'test'
+  ...
+# Subtest: Feishu renders a generic action card as buttons
+ok 2 - Feishu renders a generic action card as buttons
+  ---
+  duration_ms: 1.063458
+  type: 'test'
+  ...
+# Subtest: Feishu patches a generic action card without creating another message
+ok 3 - Feishu patches a generic action card without creating another message
+  ---
+  duration_ms: 0.569375
+  type: 'test'
+  ...
+# Subtest: Bridge uses channel-native cards for help and fixed selections
+ok 4 - Bridge uses channel-native cards for help and fixed selections
+  ---
+  duration_ms: 19.1985
+  type: 'test'
+  ...
+# Subtest: Bridge refreshes the originating native action card after a card callback
+ok 5 - Bridge refreshes the originating native action card after a card callback
+  ---
+  duration_ms: 2.36675
+  type: 'test'
+  ...
+# Subtest: keeps project mode, plan mode, and goals on the selected project's thread
+ok 6 - keeps project mode, plan mode, and goals on the selected project's thread
+  ---
+  duration_ms: 68.219084
+  type: 'test'
+  ...
+# Subtest: ordinary plan and goal requests are transparent while explicit slash controls stay local
+ok 7 - ordinary plan and goal requests are transparent while explicit slash controls stay local
+  ---
+  duration_ms: 41.094167
+  type: 'test'
+  ...
+# [codex-im-gateway] sending reply to oc_test; text=39 chars
+# [codex-im-gateway] Codex turn completed for oc_test; text=2 chars
+# [codex-im-gateway] sent reply to oc_test
+# Subtest: Bridge renders approval decisions as buttons on interactive channels
+ok 8 - Bridge renders approval decisions as buttons on interactive channels
+  ---
+  duration_ms: 9.495
+  type: 'test'
+  ...
+# Subtest: preserves the exact project-free command policy
+ok 9 - preserves the exact project-free command policy
+  ---
+  duration_ms: 0.502334
+  type: 'test'
+  ...
+# Subtest: preserves the exact command mode policy
+ok 10 - preserves the exact command mode policy
+  ---
+  duration_ms: 0.069542
+  type: 'test'
+  ...
+# Subtest: continues only conversational plan starts and goal creation
+ok 11 - continues only conversational plan starts and goal creation
+  ---
+  duration_ms: 0.104542
+  type: 'test'
+  ...
+# Subtest: Feishu file uses the native upload type and message receipt for group and direct recipients
+ok 12 - Feishu file uses the native upload type and message receipt for group and direct recipients
+  ---
+  duration_ms: 5.138583
+  type: 'test'
+  ...
+# Subtest: Feishu video uses the native upload type and message receipt for group and direct recipients
+ok 13 - Feishu video uses the native upload type and message receipt for group and direct recipients
+  ---
+  duration_ms: 1.40075
+  type: 'test'
+  ...
+# Subtest: Feishu image rejects a malformed or negative upload receipt before creating a message
+ok 14 - Feishu image rejects a malformed or negative upload receipt before creating a message
+  ---
+  duration_ms: 1.243334
+  type: 'test'
+  ...
+# Subtest: Feishu file rejects a malformed or negative upload receipt before creating a message
+ok 15 - Feishu file rejects a malformed or negative upload receipt before creating a message
+  ---
+  duration_ms: 1.033625
+  type: 'test'
+  ...
+# Subtest: Feishu video rejects a malformed or negative upload receipt before creating a message
+ok 16 - Feishu video rejects a malformed or negative upload receipt before creating a message
+  ---
+  duration_ms: 1.080333
+  type: 'test'
+  ...
+# Subtest: Feishu file upload success cannot conceal missing, rejected or lost message acknowledgement
+ok 17 - Feishu file upload success cannot conceal missing, rejected or lost message acknowledgement
+  ---
+  duration_ms: 0.747542
+  type: 'test'
+  ...
+# Subtest: Feishu video upload success cannot conceal missing, rejected or lost message acknowledgement
+ok 18 - Feishu video upload success cannot conceal missing, rejected or lost message acknowledgement
+  ---
+  duration_ms: 0.76475
+  type: 'test'
+  ...
+# Subtest: Feishu media validates exact byte limits, empty/non-file input and MP4 video before upload
+ok 19 - Feishu media validates exact byte limits, empty/non-file input and MP4 video before upload
+  ---
+  duration_ms: 11.273917
+  type: 'test'
+  ...
+# Subtest: Feishu missing file API remains an explicit capability instead of a fake text or image send
+ok 20 - Feishu missing file API remains an explicit capability instead of a fake text or image send
+  ---
+  duration_ms: 0.126625
+  type: 'test'
+  ...
+# Subtest: Feishu actual Bridge file/video effects preserve restart receipts (lost=false)
+ok 21 - Feishu actual Bridge file/video effects preserve restart receipts (lost=false)
+  ---
+  duration_ms: 38.61625
+  type: 'test'
+  ...
+# [codex-im-gateway] sending reply to oc_group; text=68 chars
+# [codex-im-gateway] sending reply to oc_group; text=69 chars
+# [info]: [ 'client ready' ]
+# Subtest: Feishu actual Bridge file/video effects preserve restart receipts (lost=true)
+ok 22 - Feishu actual Bridge file/video effects preserve restart receipts (lost=true)
+  ---
+  duration_ms: 16.965042
+  type: 'test'
+  ...
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, confirmed)
+ok 23 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, confirmed)
+  ---
+  duration_ms: 15.539541
+  type: 'test'
+  ...
+# [error]: [
+#   [
+#     ChannelDeliveryError: feishu uploadImage failed (code 999)
+#         at assertFeishuSuccess (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-result.ts:7:25)
+#         at Object.request (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-sdk.ts:17:9)
+#         at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+#       channel: 'feishu',
+#       operation: 'uploadImage',
+#       code: '999'
+#     }
+#   ]
+# ]
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, upload-rejected)
+ok 24 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, upload-rejected)
+  ---
+  duration_ms: 4.17775
+  type: 'test'
+  ...
+# [error]: [
+#   [
+#     ChannelDeliveryError: feishu uploadImage failed (missing acknowledgement)
+#         at assertFeishuSuccess (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-result.ts:7:25)
+#         at Object.request (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-sdk.ts:17:9)
+#         at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+#       channel: 'feishu',
+#       operation: 'uploadImage',
+#       code: undefined
+#     }
+#   ]
+# ]
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, missing-upload-code)
+ok 25 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, missing-upload-code)
+  ---
+  duration_ms: 2.290375
+  type: 'test'
+  ...
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, send-rejected)
+ok 26 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (image, send-rejected)
+  ---
+  duration_ms: 2.342166
+  type: 'test'
+  ...
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, confirmed)
+ok 27 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, confirmed)
+  ---
+  duration_ms: 2.399417
+  type: 'test'
+  ...
+# [error]: [
+#   [
+#     ChannelDeliveryError: feishu uploadFile failed (code 999)
+#         at assertFeishuSuccess (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-result.ts:7:25)
+#         at Object.request (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-sdk.ts:17:9)
+#         at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+#       channel: 'feishu',
+#       operation: 'uploadFile',
+#       code: '999'
+#     }
+#   ]
+# ]
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, upload-rejected)
+ok 28 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, upload-rejected)
+  ---
+  duration_ms: 2.118417
+  type: 'test'
+  ...
+# [error]: [
+#   [
+#     ChannelDeliveryError: feishu uploadFile failed (missing acknowledgement)
+#         at assertFeishuSuccess (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-result.ts:7:25)
+#         at Object.request (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-sdk.ts:17:9)
+#         at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+#       channel: 'feishu',
+#       operation: 'uploadFile',
+#       code: undefined
+#     }
+#   ]
+# ]
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, missing-upload-code)
+ok 29 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, missing-upload-code)
+  ---
+  duration_ms: 2.094583
+  type: 'test'
+  ...
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, send-rejected)
+ok 30 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (file, send-rejected)
+  ---
+  duration_ms: 2.11
+  type: 'test'
+  ...
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, confirmed)
+ok 31 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, confirmed)
+  ---
+  duration_ms: 3.271208
+  type: 'test'
+  ...
+# [error]: [
+#   [
+#     ChannelDeliveryError: feishu uploadFile failed (code 999)
+#         at assertFeishuSuccess (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-result.ts:7:25)
+#         at Object.request (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-sdk.ts:17:9)
+#         at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+#       channel: 'feishu',
+#       operation: 'uploadFile',
+#       code: '999'
+#     }
+#   ]
+# ]
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, upload-rejected)
+ok 32 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, upload-rejected)
+  ---
+  duration_ms: 2.145166
+  type: 'test'
+  ...
+# [error]: [
+#   [
+#     ChannelDeliveryError: feishu uploadFile failed (missing acknowledgement)
+#         at assertFeishuSuccess (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-result.ts:7:25)
+#         at Object.request (/Users/xking/workspace/codex-channel-bridge/src/channels/feishu-sdk.ts:17:9)
+#         at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+#       channel: 'feishu',
+#       operation: 'uploadFile',
+#       code: undefined
+#     }
+#   ]
+# ]
+# [info]: [ 'client ready' ]
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, missing-upload-code)
+ok 33 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, missing-upload-code)
+  ---
+  duration_ms: 1.552959
+  type: 'test'
+  ...
+# Subtest: Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, send-rejected)
+ok 34 - Feishu installed SDK validates raw upload and send envelopes with original multipart bytes (video, send-rejected)
+  ---
+  duration_ms: 1.591209
+  type: 'test'
+  ...
+# Subtest: WeCom image uploads original bytes and requires the native send acknowledgement
+ok 35 - WeCom image uploads original bytes and requires the native send acknowledgement
+  ---
+  duration_ms: 5.892625
+  type: 'test'
+  ...
+# Subtest: WeCom file uploads original bytes and requires the native send acknowledgement
+ok 36 - WeCom file uploads original bytes and requires the native send acknowledgement
+  ---
+  duration_ms: 2.719125
+  type: 'test'
+  ...
+# Subtest: WeCom video uploads original bytes and requires the native send acknowledgement
+ok 37 - WeCom video uploads original bytes and requires the native send acknowledgement
+  ---
+  duration_ms: 0.768708
+  type: 'test'
+  ...
+# Subtest: WeCom image rejects missing, negative or wrong-type upload results before send
+ok 38 - WeCom image rejects missing, negative or wrong-type upload results before send
+  ---
+  duration_ms: 1.627958
+  type: 'test'
+  ...
+# Subtest: WeCom file rejects missing, negative or wrong-type upload results before send
+ok 39 - WeCom file rejects missing, negative or wrong-type upload results before send
+  ---
+  duration_ms: 3.696125
+  type: 'test'
+  ...
+# Subtest: WeCom video rejects missing, negative or wrong-type upload results before send
+ok 40 - WeCom video rejects missing, negative or wrong-type upload results before send
+  ---
+  duration_ms: 1.076625
+  type: 'test'
+  ...
+# Subtest: WeCom image upload cannot conceal a missing, negative or lost send acknowledgement
+ok 41 - WeCom image upload cannot conceal a missing, negative or lost send acknowledgement
+  ---
+  duration_ms: 2.100125
+  type: 'test'
+  ...
+# Subtest: WeCom file upload cannot conceal a missing, negative or lost send acknowledgement
+ok 42 - WeCom file upload cannot conceal a missing, negative or lost send acknowledgement
+  ---
+  duration_ms: 0.888458
+  type: 'test'
+  ...
+# Subtest: WeCom video upload cannot conceal a missing, negative or lost send acknowledgement
+ok 43 - WeCom video upload cannot conceal a missing, negative or lost send acknowledgement
+  ---
+  duration_ms: 0.928042
+  type: 'test'
+  ...
+# Subtest: WeCom media enforces the SDK chunk limit and rejects empty and non-file input before upload
+ok 44 - WeCom media enforces the SDK chunk limit and rejects empty and non-file input before upload
+  ---
+  duration_ms: 7.070666
+  type: 'test'
+  ...
+# Subtest: WeCom incomplete media SDK does not advertise a supported send route
+ok 45 - WeCom incomplete media SDK does not advertise a supported send route
+  ---
+  duration_ms: 0.226042
+  type: 'test'
+  ...
+# Subtest: WeCom Bridge media receipts survive restart without re-upload or re-send (lost=false)
+ok 46 - WeCom Bridge media receipts survive restart without re-upload or re-send (lost=false)
+  ---
+  duration_ms: 55.356708
+  type: 'test'
+  ...
+# [codex-im-gateway] sending reply to group; text=76 chars
+# [codex-im-gateway] sent reply to group
+# [codex-im-gateway] sending reply to group; text=75 chars
+# [codex-im-gateway] sent reply to group
+# [codex-im-gateway] sending reply to group; text=76 chars
+# [codex-im-gateway] sent reply to group
+# Subtest: WeCom Bridge media receipts survive restart without re-upload or re-send (lost=true)
+ok 47 - WeCom Bridge media receipts survive restart without re-upload or re-send (lost=true)
+  ---
+  duration_ms: 24.067292
+  type: 'test'
+  ...
+# Subtest: WeCom conversation kind and participant identity come from provider fields (single)
+ok 48 - WeCom conversation kind and participant identity come from provider fields (single)
+  ---
+  duration_ms: 0.511334
+  type: 'test'
+  ...
+# Subtest: WeCom conversation kind and participant identity come from provider fields (group)
+ok 49 - WeCom conversation kind and participant identity come from provider fields (group)
+  ---
+  duration_ms: 0.253459
+  type: 'test'
+  ...
+# Subtest: WeCom conversation kind and participant identity come from provider fields (unknown)
+ok 50 - WeCom conversation kind and participant identity come from provider fields (unknown)
+  ---
+  duration_ms: 0.253916
+  type: 'test'
+  ...
+# Subtest: WeCom conversation kind and participant identity come from provider fields (undefined)
+ok 51 - WeCom conversation kind and participant identity come from provider fields (undefined)
+  ---
+  duration_ms: 0.160583
+  type: 'test'
+  ...
+# Subtest: WeCom installed SDK uploads correlated chunks and sends one media message through an isolated websocket
+ok 52 - WeCom installed SDK uploads correlated chunks and sends one media message through an isolated websocket
+  ---
+  duration_ms: 14.430167
+  type: 'test'
+  ...
+# Subtest: WeCom malformed participant fields do not escape durable admission or become mention authority
+ok 53 - WeCom malformed participant fields do not escape durable admission or become mention authority
+  ---
+  duration_ms: 0.319042
+  type: 'test'
+  ...
+# Subtest: WeCom known group messages without a group target are rejected before durable admission
+ok 54 - WeCom known group messages without a group target are rejected before durable admission
+  ---
+  duration_ms: 0.36975
+  type: 'test'
+  ...
+1..54
+# tests 54
+# suites 0
+# pass 54
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 712.081083

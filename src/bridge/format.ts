@@ -1,5 +1,4 @@
 import type { PromptBufferItem } from "./prompt-buffer.js";
-import type { KnowledgeEntry } from "../state/knowledge.js";
 import { Lexer, type Token } from "marked";
 import { markdownSource, projectAssistantProse } from "../channels/assistant-presentation.js";
 
@@ -37,15 +36,14 @@ export type AttachmentSource = "WeChat" | "Web" | "DingTalk" | "Feishu" | "WeCom
 export function buildPrompt(
   text: string,
   attachments: PromptBufferItem[] = [],
-  attachmentSource: AttachmentSource = "WeChat",
-  knowledge: readonly KnowledgeEntry[] = []
+  attachmentSource: AttachmentSource = "WeChat"
 ): string {
-  const parts = buildPromptParts(text, attachments, attachmentSource, knowledge);
+  const parts = buildPromptParts(text, attachments, attachmentSource);
   return [parts.developerInstructions, parts.prompt].filter(Boolean).join("\n\n").trim();
 }
 
 /**
- * Keeps Bridge-only policy and private knowledge out of the user message sent
+ * Keeps Bridge-only policy out of the user message sent
  * to app-server. Besides producing cleaner Codex history, this prevents the
  * automatic thread preview/title from becoming the Bridge policy block.
  * Native queue/add has no separate context field: its admission path composes
@@ -54,8 +52,7 @@ export function buildPrompt(
 export function buildPromptParts(
   text: string,
   attachments: PromptBufferItem[] = [],
-  attachmentSource: AttachmentSource = "WeChat",
-  knowledge: readonly KnowledgeEntry[] = []
+  attachmentSource: AttachmentSource = "WeChat"
 ): { prompt: string; developerInstructions: string } {
   const lines: string[] = [];
   if (text.trim()) {
@@ -71,25 +68,8 @@ export function buildPromptParts(
   return {
     prompt: lines.join("\n\n").trim(),
     developerInstructions: [BRIDGE_ACTION_INSTRUCTIONS.replaceAll("WeChat", attachmentSource), BRIDGE_COPY_INSTRUCTIONS,
-      BRIDGE_IDE_INSTRUCTIONS,
-      buildKnowledgeContext(knowledge, attachmentSource)].join("\n\n")
+      BRIDGE_IDE_INSTRUCTIONS].join("\n\n")
   };
-}
-
-function buildKnowledgeContext(knowledge: readonly KnowledgeEntry[], source: AttachmentSource): string {
-  const entries = knowledge.map((entry) =>
-    `- [${entry.kind}/${entry.scope}] ${entry.title}: ${entry.content}`
-  );
-  return [
-    KNOWLEDGE_CONTEXT_START,
-    `Private knowledge belongs only to this ${source} account. Use relevant entries to personalize the answer.`,
-    ...(entries.length ? ["Known reusable knowledge:", ...entries] : ["Known reusable knowledge: none yet."]),
-    "After answering, add at most 3 stable reusable facts to the codex-im-gateway-actions JSON under remember.",
-    "Each item must be {\"kind\":\"preference|skill|knowledge|workflow\",\"scope\":\"account|project\",\"title\":\"...\",\"content\":\"...\"}.",
-    "Remember explicit preferences, repeatable work methods, durable domain knowledge, or reusable workflows only.",
-    "Never remember secrets, credentials, private keys, access tokens, transient task status, or guesses. Omit remember when nothing qualifies.",
-    KNOWLEDGE_CONTEXT_END
-  ].join("\n");
 }
 
 export type PromptAttachment = {

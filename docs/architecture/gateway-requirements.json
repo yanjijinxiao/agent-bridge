@@ -499,7 +499,7 @@
               "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
             }
           ],
-          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。",
+          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/附件次数（记忆功能移除后改用文件字节和发送日志验证）保持，重新连接不重放。",
           "boundaryReview": {
             "date": "2026-11-02",
             "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
@@ -522,8 +522,8 @@
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "implementation": [
             {
@@ -532,7 +532,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ]
         },
@@ -743,7 +743,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/native-queue.ts",
@@ -755,19 +755,19 @@
             },
             {
               "file": "src/bridge/turn-submission.ts",
-              "sha256": "2c9722df7b6c1265c811395f4ce6914ebbda37d301761b4ca280a58c68539ad8"
+              "sha256": "49d996fba26b59c47ba01b9e86a775f38fbe167797b69f178fa959843054a0e5"
             },
             {
               "file": "src/bridge/format.ts",
-              "sha256": "d56aade711f2a73f4c6c9ddf1df65550645f2c9793b98200ededebbb7c6e6468"
+              "sha256": "828cf99229730adf57f6130f9e650272cbf791c64c4b06e3dafb6b58c67ac7fe"
             }
           ],
           "verifiedBoundary": "0.166.0 原生核心＋临时 Home＋本机假模型：四渠道空线程首条 queue 的实际模型正文、单输入、单 queue/add、零 turn/start/inject/config 写入、权限前后相同、Gateway 预览干净；真实 Connector socket 断线重连保留入队规则/文件目录约束且只消费一次。探探真实模型和文件回执另记实机证据。",
           "remainingBoundary": "修复只作用于新入队项；已接收的旧项不重写或重发。原生 queue 无独立 context 字段，Codex 原始历史可见前缀。未覆盖全部渠道的真实平台与全部供应商；手机视觉、Peer IDE 等不包含在此窄场景 verified。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "previousTestGap": "原测试直接在 runQueuedSubmission 观察阶段给 developerInstructions；queue/add 已自动执行，注入过晚。新测试经实际 Bridge /queue 入口并检查模型请求；旧实现同用例失败，修复后通过。"
         }
@@ -959,17 +959,17 @@
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             }
           ]
         },
@@ -998,11 +998,11 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/codex/backend.ts",
@@ -1019,8 +1019,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -1056,7 +1056,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -1064,13 +1064,13 @@
             },
             {
               "file": "src/bridge/access.ts",
-              "sha256": "9ca049fcf13ab65454d94bc59fe4dc706237bfad333fd8add49c8d1a2ead5075"
+              "sha256": "e64eca45da1e65900e41b4e16e6aa886c9f263e9891aa41c1ff1dbae982933ad"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -1238,7 +1238,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -1256,8 +1256,8 @@
           "verifiedBoundary": "实际manager构造和同对象借用；显式stdio属于宿主，不冒充daemon跨宿主退出。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -1600,17 +1600,17 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/turn-submission.ts",
-              "sha256": "2c9722df7b6c1265c811395f4ce6914ebbda37d301761b4ca280a58c68539ad8"
+              "sha256": "49d996fba26b59c47ba01b9e86a775f38fbe167797b69f178fa959843054a0e5"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -1673,7 +1673,7 @@
               "sha256": "f38b68a54f878cafb5e54d86aef864c3574d5cfc74f64e12a9cb97dfa8d7d23d"
             }
           ],
-          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。",
+          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/附件次数（记忆功能移除后改用文件字节和发送日志验证）保持，重新连接不重放。",
           "implementationRecheck": {
             "date": "2026-11-03",
             "report": "docs/audits/2026-11-03-checklist-followthrough/README.md",
@@ -1721,14 +1721,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "实际Bridge四渠道替身：自然语言完整进入原线程，零AI控制分类；非真实IM网络。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -1748,7 +1748,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/channels/dingtalk.ts",
@@ -1758,8 +1758,8 @@
           "verifiedBoundary": "引用审批和当前命令分离已有实际适配/Bridge断言；引用/stop全部消息类型尚无同组精确场景。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -1787,14 +1787,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "四渠道普通消息及显式help覆盖；所有任务/QA扩展组合未完整核验。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -1826,13 +1826,13 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -1990,7 +1990,7 @@
             },
             {
               "file": "src/bridge/turn-submission.ts",
-              "sha256": "2c9722df7b6c1265c811395f4ce6914ebbda37d301761b4ca280a58c68539ad8"
+              "sha256": "49d996fba26b59c47ba01b9e86a775f38fbe167797b69f178fa959843054a0e5"
             },
             {
               "file": "src/bridge/forwarding-inbox.ts",
@@ -1998,14 +1998,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/server/thread-event-hub.ts",
               "sha256": "125b976715c88056cd4131b812eff505748b76e57f8b95e1972a33b14fc38724"
             }
           ],
-          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。",
+          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/附件次数（记忆功能移除后改用文件字节和发送日志验证）保持，重新连接不重放。",
           "crashRecoveryReview": {
             "date": "2026-11-02",
             "report": "docs/audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md",
@@ -2016,8 +2016,8 @@
           },
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "previousTestGap": "不涵盖任意CPU指令间隙、主机断电、真实SSH/供应商回执/手机显示、原生队列及workflow交接全部交错。缺原thread ID、client ID缺失、重复或分页超预算的旧记录保持未知，不自动重放。",
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
@@ -2115,13 +2115,13 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -2209,7 +2209,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/inbound-receipts.ts",
@@ -2219,8 +2219,8 @@
           "verifiedBoundary": "实际 Bridge/RuntimeStateStore/InboundReceiptJournal，9种等待路径各有换绑反例与正常对照，重开真实文件核验phase和claim；另核本地设置持久化及回复丢失。原生接口为替身；不证明真实 App Server 全部断连组合，未提交不代表自动转向新绑定。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -2452,14 +2452,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "真实Bridge/RuntimeStateStore：卡住第一条最终结果发送，第二条同session输入仍执行并完成投递；旧发送仍持实际交接保护，释放后全部完成、输入各一次、无残留门禁。原生与渠道传输为替身。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "previousTestGap": "证明已接收执行等待不占交接；专门卡住最终投递而非执行的组合未在此测试。",
           "remainingBoundary": "不外推供应商ACK丢失、手机显示或所有并发时序。"
@@ -2539,18 +2539,18 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/channel-commands.ts",
-              "sha256": "eda56998ad1b7d74f20271c08eece89b26b0a164cc647af897778464dbc8d384"
+              "sha256": "30dfdb1a70746d408c410cf53722c36ec0a139fd93d947123201180d30ac98c4"
             }
           ],
           "verifiedBoundary": "实际Bridge compact中文命令及可信mention归一化，native queue写替身恰好一次。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -2705,7 +2705,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/weixin/media.ts",
@@ -2715,8 +2715,8 @@
           "verifiedBoundary": "无长度读流限额及Bridge明确下载失败不启动空轮；各渠道存储失败/总时限组合未全覆盖。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -2771,7 +2771,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/channels/client.ts",
@@ -2781,8 +2781,8 @@
           "verifiedBoundary": "实际Bridge准备远端转存路径，远端存储与runner为替身；未在真实SSH主机读取。 追加两台真实Linux SSH主机：image/file/video/audio完整字节与SHA、0600、重复内容地址、超限/缺失拒绝及自有目录清理；Node容器包装器与下一条SSH命令共享可读持久路径。真实供应商投递与传输中撤权组合仍未由此证明。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -2806,14 +2806,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "附件准备结束后线程/角色/准入复核；远端实际SSH转存中撤权的独立场景仍需补。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -2857,7 +2857,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/codex/output-files.ts",
@@ -2873,14 +2873,14 @@
             },
             {
               "file": "src/bridge/turn-result-actions.ts",
-              "sha256": "5f0dd2adc5b6e3ec6be72a10e43326e24214acc74d9146c288db17e123a2d4de"
+              "sha256": "8c3a1e53e46a004680155164d7f3f879d8c4aff026e15e2c7bef92f3724f5ce6"
             }
           ],
           "verifiedBoundary": "实际只读发送脚本与下载器保留文件名/完整二进制、大小与SHA256校验、超时/坏摘要拒绝及0600临时文件清理；真实Bridge在异步下载后复核线程绑定。SSH进程为隔离本机替身，渠道发送为替身；没有真实远程主机、供应商IM或手机实机验收，故仍partial。 追加两台真实Linux SSH主机：image/file/video/audio完整字节与SHA、0600、重复内容地址、超限/缺失拒绝及自有目录清理；Node容器包装器与下一条SSH命令共享可读持久路径。真实供应商投递与传输中撤权组合仍未由此证明。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3021,18 +3021,18 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             }
           ],
           "verifiedBoundary": "真实AccountManager长轮期间改名/解绑，完成后唯一live store与重新读盘均保留新管理状态。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3048,14 +3048,19 @@
           "implementation": [
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             },
             {
               "file": "src/state/json-store.ts",
               "sha256": "19fcfef4384b56c325cff3b3639002eb29f76e936278d4bafea096f1565428eb"
             }
           ],
-          "verifiedBoundary": "实际rename失败ENOSPC三mutator/磁盘与内存对照；不外推断电或所有系统错误组合。"
+          "verifiedBoundary": "实际rename失败ENOSPC三mutator/磁盘与内存对照；不外推断电或所有系统错误组合。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
+          }
         },
         {
           "id": "STATE-01.3",
@@ -3124,7 +3129,7 @@
           "implementation": [
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             }
           ],
           "tests": [
@@ -3133,7 +3138,12 @@
               "name": "provider identity keys stay ordinary data across save, reload and normal context selection"
             }
           ],
-          "verifiedBoundary": "真实store/磁盘，另有普通键对照；原版__proto__反例失败。"
+          "verifiedBoundary": "真实store/磁盘，另有普通键对照；原版__proto__反例失败。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
+          }
         }
       ]
     },
@@ -3166,14 +3176,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "实际账号启动/刷新及独立停止，但monitor/runner替身，不证明所有并发清理异常。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3193,7 +3203,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/ide/approval-service.ts",
@@ -3203,8 +3213,8 @@
           "verifiedBoundary": "已覆盖退休入站claim和机器人IDE身份；其他旧连接异步回执仍需逐条核对。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3249,14 +3259,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "逐一注入8种独立资源stop/close失败，均尝试其余资源并终止自有入口，最后汇总错误。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3384,14 +3394,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "账号API和webhook投影不输出原token/key；全仓错误日志泄密边界尚未穷尽。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -3432,18 +3442,18 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             }
           ],
           "verifiedBoundary": "四渠道实际Bridge无绑定给指引，不建线程/会话。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3467,18 +3477,18 @@
           "implementation": [
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "detach持久、模式槽位与显式新建不复活旧关系；Gateway真实进程重启另需端到端。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3498,18 +3508,18 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             }
           ],
           "verifiedBoundary": "真实关系事务和订阅集合，不调用runner；原生任务/queue持续执行用替身零调用证明，非真实执行中重启。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -3555,18 +3565,18 @@
           "implementation": [
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "旧项目漂移保独立绑定，四渠道项目命令不覆盖；普通真实native续聊权限另证。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3586,14 +3596,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "真实scope generation，模式session切换ABA不复活；其他任意项目变更由来源测试另核。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3609,22 +3619,22 @@
           "implementation": [
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/turn-submission.ts",
-              "sha256": "2c9722df7b6c1265c811395f4ce6914ebbda37d301761b4ca280a58c68539ad8"
+              "sha256": "49d996fba26b59c47ba01b9e86a775f38fbe167797b69f178fa959843054a0e5"
             }
           ],
           "verifiedBoundary": "实际Bridge/RuntimeState/磁盘重开与同cwd无关项目；IDE仍由其原生fresh scope校验，不外推设备端验收。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3656,9 +3666,14 @@
           "implementation": [
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             }
-          ]
+          ],
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
+          }
         },
         {
           "id": "BIND-02.5",
@@ -3685,14 +3700,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "真实Bridge及Connector RPC临时连接，原生后端替身；正常、换绑、ABA及降权零执行对照。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -3772,14 +3787,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "实际显式queue/steer准备后来源守卫，全部降权/停账号组合仍待。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -3864,13 +3879,13 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -3927,7 +3942,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/bridge/interaction-routing.ts",
@@ -3937,8 +3952,8 @@
           "verifiedBoundary": "真实管理层来源选择+持久去重；IM传输替身，确认零题目正文泄露。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -4040,18 +4055,18 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             }
           ],
           "verifiedBoundary": "Web精确原绑定比较，旧页面不能解绑替代记录。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -4144,7 +4159,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/codex/desktop-session-catalog.ts",
@@ -4154,8 +4169,8 @@
           "verifiedBoundary": "目录失败保已知来源/警告，不混成本机成功。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -4409,14 +4424,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "完整快照稳定R身份，翻页/resize不重排，原生pin与metadata时间分开。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -4460,7 +4475,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -4470,8 +4485,8 @@
           "verifiedBoundary": "15分钟过期覆盖R编号绑定、详情及分页别名，检查先于inspect或换绑；旧项目按钮没有新列表时仍过期，重新查询恢复正常。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
         },
@@ -4500,14 +4515,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "同host、同name、同roots但不同原生projectID经实际IM选择与状态重载仍各自独立，裸同名不改变当前项目；既有测试验证跨host分组。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
         },
@@ -4557,7 +4572,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/session-catalog-view.ts",
@@ -4579,8 +4594,8 @@
           "verifiedBoundary": "实际 Bridge 命令/原生目录夹具和 DingTalk Markdown 转换断言；原版 e32322f 的真实 Bridge 同例失败。仅本机展示/分页/精确身份边界，未做手机钉钉实机验收。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -4612,7 +4627,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/new-session.ts",
@@ -4622,8 +4637,8 @@
           "verifiedBoundary": "实际fresh账号无项目普通消息/new不暗选第一项；task/qa/mode精确新反例另见CAT-03.5。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -4663,14 +4678,14 @@
             },
             {
               "file": "src/bridge/turn-submission.ts",
-              "sha256": "2c9722df7b6c1265c811395f4ce6914ebbda37d301761b4ca280a58c68539ad8"
+              "sha256": "49d996fba26b59c47ba01b9e86a775f38fbe167797b69f178fa959843054a0e5"
             }
           ],
           "verifiedBoundary": "真实临时Desktop registry及原生线协议fixture；完整远端主机路由已有独立HOST例，未改原生产IDE身份。",
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
-            "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
+            "date": "2026-11-04",
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -4687,7 +4702,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -4697,8 +4712,8 @@
           "verifiedBoundary": "真实Bridge新建经隔离原生核心，在模型结果释放前读到持久thread ID，原生标题保持干净。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -4760,13 +4775,13 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -4884,18 +4899,18 @@
           "implementation": [
             {
               "file": "src/bridge/format.ts",
-              "sha256": "d56aade711f2a73f4c6c9ddf1df65550645f2c9793b98200ededebbb7c6e6468"
+              "sha256": "828cf99229730adf57f6130f9e650272cbf791c64c4b06e3dafb6b58c67ac7fe"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "展示引用/字面附件不发送，全部历史分页API及native格式组合仍待映射。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -4925,7 +4940,7 @@
             },
             {
               "file": "test/format.test.ts",
-              "name": "injects private knowledge without exposing it in displayed history"
+              "name": "new prompts have no Gateway memory while old history still hides retired context"
             },
             {
               "file": "test/format.test.ts",
@@ -4963,7 +4978,7 @@
           "implementation": [
             {
               "file": "src/bridge/format.ts",
-              "sha256": "d56aade711f2a73f4c6c9ddf1df65550645f2c9793b98200ededebbb7c6e6468"
+              "sha256": "828cf99229730adf57f6130f9e650272cbf791c64c4b06e3dafb6b58c67ac7fe"
             },
             {
               "file": "src/channels/assistant-presentation.ts",
@@ -4971,9 +4986,9 @@
             }
           ],
           "implementationRecheck": {
-            "date": "2026-11-03",
-            "scope": "a069427 后仅 enqueueNativeMessage 方法体改变；AST 比对其他 service 方法未变，format 仅注释。队列入口及共享输入准备、原生交接和历史展示逐段复核，完整根回归重跑。",
-            "report": "docs/audits/2026-11-03-queue-context-fix/README.md"
+            "date": "2026-11-04",
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -5023,14 +5038,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "真实JSONL预期turn比较和Bridge默认steer，ACK中的全部thread/turn反例未在这组穷尽。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -5097,14 +5112,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "普通消息写前来源复核，原生steer连接等待后原角色/个人准入仍需另一末次lease场景。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -5392,7 +5407,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/inbound-receipts.ts",
@@ -5405,8 +5420,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "previousTestGap": "真实进程骤停已有六种，但任意CPU指令间隙、主机断电、无原身份旧记录和供应商全丢ACK窗口未穷尽。远程探探另验证执行期间杀Gateway/Connector，不声称精确命中远程fsync边界。",
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。"
@@ -5530,7 +5545,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -5538,7 +5553,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/server/thread-event-hub.ts",
@@ -5556,8 +5571,8 @@
           },
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -5734,14 +5749,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "pause/clear纯文本各一次，通过真实IM命令路径核对原host/thread的goal set payload。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -5769,7 +5784,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -5779,8 +5794,8 @@
           "verifiedBoundary": "原生控件携带值身份不靠目录位置，值为1/default也与斜杠语法分开。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -5888,14 +5903,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "真实Bridge、绑定/角色状态和来源journal，原生接口/渠道替身，4种操作×6种来源共24项；先完成原生动作再挂起返回，旧结果零发送、原host/thread恰好一次、重开journal handled不重放。viewer只读降权仍允许。真实远端及发送已进入供应商后的撤权窗口另验。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -5955,14 +5970,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "实际Bridge+RuntimeStateStore，2种设置×6种来源结果；原10反例失败及2正常对照。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -6001,7 +6016,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -6011,8 +6026,8 @@
           "verifiedBoundary": "本地故意挂起依赖，状态/queue列表在规定预算返回；不证明供应商真实网络时延。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -6032,18 +6047,18 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/channel-commands.ts",
-              "sha256": "eda56998ad1b7d74f20271c08eece89b26b0a164cc647af897778464dbc8d384"
+              "sha256": "30dfdb1a70746d408c410cf53722c36ec0a139fd93d947123201180d30ac98c4"
             }
           ],
           "verifiedBoundary": "help主表及unbind已断言，但answer/ide全部帮助分支须逐条映射，不把标题every当完整证据。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -6071,14 +6086,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "首屏和status不挡的各自故障已覆盖；Taskboard挂起时IMstatus的联合场景未专测。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -6098,7 +6113,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/peer/execution-service.ts",
@@ -6108,8 +6123,8 @@
           "verifiedBoundary": "真实Bridge指令经Connector严格DTO，设备后端替身；连接预算传递另由peer-complete-contract.test验证。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -6133,14 +6148,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "实际AccountManager与可控后端，分别验证本机默认、远端成功及远端不可用。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -6175,18 +6190,18 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/access.ts",
-              "sha256": "9ca049fcf13ab65454d94bc59fe4dc706237bfad333fd8add49c8d1a2ead5075"
+              "sha256": "e64eca45da1e65900e41b4e16e6aa886c9f263e9891aa41c1ff1dbae982933ad"
             }
           ],
           "verifiedBoundary": "ACL在下载前；IDE group不等个人授权，所有IM平台个人/群身份仍需分渠道核对。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -6206,18 +6221,18 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/access.ts",
-              "sha256": "9ca049fcf13ab65454d94bc59fe4dc706237bfad333fd8add49c8d1a2ead5075"
+              "sha256": "e64eca45da1e65900e41b4e16e6aa886c9f263e9891aa41c1ff1dbae982933ad"
             }
           ],
           "verifiedBoundary": "viewer/participant控制限制与审批原群controller；授角色全部组合仍需独立场景。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -6238,18 +6253,18 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/state/runtime-state.ts",
-              "sha256": "92ef4a7ce1ff3155bb699c9bf806698f32ccdfc64ce2ab504be3291e7b59d519"
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
             }
           ],
           "verifiedBoundary": "ACL原子rename失败的停止/运行账号两种状态；磁盘、manager、Bridge均不放行陌生个人。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -6292,14 +6307,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "真实准入服务和Bridge，actor/group范围、原任务不重放，管理者必须显式登记。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -6394,19 +6409,19 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "真实AdmissionService/Bridge与合成渠道回调：普通用户仅本人申请，管理员默认当前聊天，全局须私聊显式--all；列表/详情/复制卡片/决定统一范围，撤权/过期/其他机器人均不扩大授权。管理器沿现有IDE权威展示个人与群准入差别。",
           "remainingBoundary": "真实钉钉手机渲染与多人实机未代验。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -6426,15 +6441,15 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "真实PeerRegistry读取隔离授权文件并经Bridge发送合成回复：三类外部授权不可见，首次用户只有配对指引。保留原有WebSocket配对回归；未声称真实钉钉跨群截图验收。",
           "remainingBoundary": "真实钉钉手机渲染与多人实机未代验。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -6560,7 +6575,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -6569,8 +6584,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -6633,7 +6648,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/session-execution.ts",
@@ -6646,8 +6661,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -6709,7 +6724,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "tests": [
@@ -6733,8 +6748,8 @@
           "verifiedBoundary": "真实Bridge→原生JSONL夹具→渠道driver，核实际mentions参数、原接收群，名单去重/@all排除；不是手机实机可见验收。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -6915,14 +6930,14 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "真实Bridge任务和审批控制器，内存渠道及原生替身；不代替钉钉手机客户端视觉验收。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -7265,7 +7280,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/channels/action-card.ts",
@@ -7274,8 +7289,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -7476,7 +7491,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "审批初始通知失败保留原请求；确认后只更新原有ACK卡，原生决定与通知投递分别持久化。覆盖通知失败重试、对象重建、发送前后晚ACK、已投卡但@失败、文字ACK未知不重发、永久错误/三次上限、换绑/关闭、晚旧写与磁盘失败不忙循环。已有问题通知用例保留。",
@@ -7484,8 +7499,8 @@
           "remainingBoundary": "以上有限边界；真实供应商投递/手机视觉和整机断电不从隔离测试推定。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -7508,7 +7523,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/channels/turn-presentation.ts",
@@ -7572,8 +7587,8 @@
           "verifiedBoundary": "同一native任务run计数1、执行卡2；重复回调仅一边界；记录重开保同ID，沿用stream按ID去重；v1严格audit row不变，展示投影同文件原子保存。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -8101,14 +8116,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "结果投递失败保原终态payload，不发替代答案；native executor终态在更下层fixture。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -8137,7 +8152,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/web/app.js",
@@ -8147,8 +8162,8 @@
           "verifiedBoundary": "真实hub+管理HTTP+隔离Chrome及IM文案联合：原生完成/idle但投递失败保留pending；渠道回执后显示已接收，不声称手机已显示。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -8251,7 +8266,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/channels/client.ts",
@@ -8283,8 +8298,8 @@
           "verifiedBoundary": "实际Bridge入口/原生卡片driver替身，四旧版反例；不把异常当未提交。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -8515,14 +8530,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "永久错单次非答案提示，终态仍只更新原handle，重启不替代答案。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -8784,7 +8799,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/turn-audience.ts",
@@ -8793,8 +8808,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -9000,14 +9015,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "包含真实多次compaction phase进入同卡，不仅去重单一文本；真实客户端圆环/排版未验。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -9623,7 +9638,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/channels/feishu.ts",
@@ -9637,8 +9652,8 @@
           "verifiedBoundary": "真实readiness/cleanup边界，所有provider重连状态全排列仍须实际平台验收。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -9834,18 +9849,18 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/format.ts",
-              "sha256": "d56aade711f2a73f4c6c9ddf1df65550645f2c9793b98200ededebbb7c6e6468"
+              "sha256": "828cf99229730adf57f6130f9e650272cbf791c64c4b06e3dafb6b58c67ac7fe"
             }
           ],
           "verifiedBoundary": "四渠道格式路径保源码行号引用且零上传；exec枚举是测试输入，不是生产支持第二执行器的证明。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -9996,17 +10011,17 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/turn-result-actions.ts",
-              "sha256": "5f0dd2adc5b6e3ec6be72a10e43326e24214acc74d9146c288db17e123a2d4de"
+              "sha256": "8c3a1e53e46a004680155164d7f3f879d8c4aff026e15e2c7bef92f3724f5ce6"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -10022,14 +10037,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "真实临时文件stat和历史读取；Windows保留内容/归属但不假测POSIX mode。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -10505,14 +10520,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "真实AccountManager/ThreadEventHub及monitor回调，渠道发送夹具；不等于钉钉手机呈现或生产网络故障实测。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -10591,7 +10606,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/ide/project-identity.ts",
@@ -10604,8 +10619,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -10621,7 +10636,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/ide/manager.ts",
@@ -10630,8 +10645,8 @@
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -10884,14 +10899,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "可选IDE构造/ingress失败隔离，不借输入；所有运行异常/绑定不变仍需组合。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -10988,14 +11003,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "个人准入唯一权威；群准入不自动授权，停账号/重启保持，不新建额外名单或密码。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -11023,14 +11038,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "持久epoch fencing覆盖重新允许旧grant失效；本地HTTP/WS试验，不是手机端。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -11752,14 +11767,14 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "原版反例失败，实际Bridge/EndpointManager/ChannelTurnPresentation隔离夹具通过；远程网络恢复及手机实际显示不在本机窄边界验收内。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -12622,7 +12637,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/taskboard-channel-controller.ts",
@@ -12644,8 +12659,8 @@
           "verifiedBoundary": "真实Bridge/TaskboardClient/state+fetch替身与临时文件；21个给定组合，不证明真实服务事务接收未知时的幂等、部分附件补偿或workflow运行全程权限。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -12929,14 +12944,14 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "远程项目不能作为本地目录QA默认值；已绑定QA所有动态tool读取同host仍需执行路径证明。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -13088,7 +13103,7 @@
           "implementation": [
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/server/restart.ts",
@@ -13096,14 +13111,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "真实Web/Bridge业务计数分界，native通过fixture接收；accept落盘失败的整个release组合还需联动。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -13140,7 +13155,7 @@
               "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
             }
           ],
-          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/记忆次数保持，重新连接不重放。",
+          "verifiedBoundary": "实际独立原生核心+Gateway子进程：已有/新线程×运行中/离线完成，恢复落盘前后再次SIGKILL，共6场景；原core PID、thread/turn/client身份及输入/结果/附件次数（记忆功能移除后改用文件字节和发送日志验证）保持，重新连接不重放。",
           "boundaryReview": {
             "date": "2026-11-02",
             "sourceCommit": "afbd2d2db07c510f44f49075ad43e03b8e8775fc",
@@ -13163,8 +13178,8 @@
           "remainingBoundary": "已验证以下确定场景；未覆盖任意指令间隙、所有供应商/协议版本、整机断电或手机。保留原缺口描述供扩展验收，不将其当作本次已测。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "implementation": [
             {
@@ -13173,7 +13188,7 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ]
         },
@@ -13245,13 +13260,13 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -13319,13 +13334,13 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -13345,13 +13360,13 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -13470,11 +13485,11 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/bridge/channel-write-leases.ts",
@@ -13484,8 +13499,8 @@
           "verifiedBoundary": "实际Bridge两原版反例；11个channel写方法、3个非消息方法及异常释放。平台为替身，不替代实际上线重启。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -14044,19 +14059,19 @@
           "implementation": [
             {
               "file": "src/bridge/format.ts",
-              "sha256": "d56aade711f2a73f4c6c9ddf1df65550645f2c9793b98200ededebbb7c6e6468"
+              "sha256": "828cf99229730adf57f6130f9e650272cbf791c64c4b06e3dafb6b58c67ac7fe"
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "历史manifest明确92可读/5丢失且不是当前客户端验收；实际Bridge把引用/围栏中的stop/allow/queue与附件示例当本轮分析数据，无控制写入。",
           "testGap": "引用命令惰性及manifest边界有自动化；原先92张逐张观看属手工记录，5张缺失仍不能重读，自动化不冒充视觉阅读。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         }
       ]
@@ -14810,7 +14825,7 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/codex/app-server-gateway.ts",
@@ -14820,8 +14835,8 @@
           "verifiedBoundary": "真实安装0.166.0/临时Home/假模型/SQLite，原生审批和双消费者；独立stdio限制明确，真实IM/手机另验。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -15420,7 +15435,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/taskboard-channel-dedup.ts",
@@ -15467,8 +15482,8 @@
           "verifiedBoundary": "原失败反例保留在confirmedFailure作为历史。现以真实Bridge/Controller/Client→隔离HTTP/SQLite，在服务端提交后丢响应；同表单重试及Gateway/Taskboard双重启后均仅1次创建POST、1条Task。SQLite/D1直接覆盖并发创建/评论/状态事务去重、异载荷与异actor拒绝、失败CAS无回执、实体删除后保留接受证据；注入回执INSERT失败验证业务回滚，导出/导入D1保留原回执。未连接真实IM/真实云或模拟真实电源掉电。 只有明确HTTP409/VERSION_CONFLICT反馈旧卡片未执行；丢失已接受状态响应后不误报冲突，重试只读恢复且证据评论一次。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -16433,7 +16448,7 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/peer/registry.ts",
@@ -16447,8 +16462,8 @@
           "verifiedBoundary": "真实WS与Bridge/渠道夹具，所有者、委托范围、主分支role复用；不替代当前版本手机UI验收。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },
@@ -16588,15 +16603,15 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "c9a907ebaaeacede62f620782dc39b362e51ee0eb71ca146f2e68e835b33b246"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             }
           ],
           "verifiedBoundary": "持久补偿对象重建、exact来源守卫、容量随机client ID还原；不声称已验证所有远端进程骤停窗口。",
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
         },
         {
@@ -16675,14 +16690,14 @@
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
           "verifiedBoundary": "实际临时文件与WS；不等于真实平台附件展示或code-server终端/Git验收。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },
@@ -16703,11 +16718,11 @@
           "implementation": [
             {
               "file": "src/bridge/channel-commands.ts",
-              "sha256": "eda56998ad1b7d74f20271c08eece89b26b0a164cc647af897778464dbc8d384"
+              "sha256": "30dfdb1a70746d408c410cf53722c36ec0a139fd93d947123201180d30ac98c4"
             },
             {
               "file": "src/bridge/service.ts",
-              "sha256": "2d77824a4b9554f9d89b733fcc0f51051f6d63d31fb964238a4ed27f2a13f3fc"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -16725,8 +16740,8 @@
           "verifiedBoundary": "当前候选不新增/session rename、archive、restore、/sessions archived；拆分分支单独评审。 Connector私有投影的明确别名与创建/归属一致；未包装底层目录及错误home保持原生ID。",
           "implementationRecheck": {
             "date": "2026-11-04",
-            "scope": "仅审查IM权限展示改动及调用边界；其他函数按AST内容相同保留原边界，全根回归的环境跳过另记，不声称重新精读全库。",
-            "report": "docs/audits/2026-11-04-permission-visibility/README.md"
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "verificationLimit": "仅verifiedBoundary所列窄场景。真实SSH、原生二进制/本地模型、渠道夹具及未接线产品边界分开报告。"
         },
@@ -16987,14 +17002,19 @@
             },
             {
               "file": "src/server/account-manager.ts",
-              "sha256": "1db361842258f79cd90efcc1e603ba5027428c379f443e9017bf88a8b0a701ce"
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
             },
             {
               "file": "src/server/http-server.ts",
               "sha256": "c061e5be3a38729892f70d58704181e8350a80f6dc0733d3d5d9948a5bbe7e1f"
             }
           ],
-          "verifiedBoundary": "真实隔离管理HTTP及Peer连接，拒绝未配对设备、离线配置保留；不授予浏览器权限或创建任务。"
+          "verifiedBoundary": "真实隔离管理HTTP及Peer连接，拒绝未配对设备、离线配置保留；不授予浏览器权限或创建任务。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
+          }
         }
       ]
     },
@@ -17111,14 +17131,19 @@
           "implementation": [
             {
               "file": "src/bridge/service.ts",
-              "sha256": "3e6c2307a41278bb5abc25e96ebe2be5028477e7b9dae68f6ef7681ddfa533fd"
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             },
             {
               "file": "src/bridge/admission.ts",
               "sha256": "e2b4f0abadb8fc6a5ab8309d7425315340826541f361d0914f71fe9145264d3f"
             }
           ],
-          "verifiedBoundary": "Gateway与Connector真实测试连接；未冒充第二位人类或真实群。"
+          "verifiedBoundary": "Gateway与Connector真实测试连接；未冒充第二位人类或真实群。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
+            "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
+          }
         }
       ]
     },
@@ -17215,6 +17240,273 @@
             }
           ],
           "verifiedBoundary": "隔离 HTTP、Unix 上游及全新 Chrome；未声称手机实机验证或全库重新逐行审计。"
+        }
+      ]
+    },
+    {
+      "id": "KB-02",
+      "module": "knowledge",
+      "title": "移除 Gateway 自建长期记忆",
+      "sourceRecords": [],
+      "sourceInstruction": "本 session：附件功能已存在；Gateway 记忆功能直接删除。",
+      "contract": "长期记忆由 Codex 管理，Gateway 不生成/保存/注入个人偏好。保留附件、授权、回执与显式 llm-wiki 功能；兼容旧发送日志。",
+      "cases": [
+        {
+          "id": "KB-02.1",
+          "scenario": "新 IM/Web/原生队列不保存或注入 Gateway 记忆；旧状态移除记忆字段，保留 llm-wiki 和会话绑定；命令帮助和菜单无记忆入口。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/account-manager.test.ts",
+              "name": "Web turns ignore retired memory actions without reinjecting them"
+            },
+            {
+              "file": "test/bridge-service.test.ts",
+              "name": "IM turns ignore retired memory actions"
+            },
+            {
+              "file": "test/format.test.ts",
+              "name": "new prompts have no Gateway memory while old history still hides retired context"
+            },
+            {
+              "file": "test/format.test.ts",
+              "name": "retired memory commands and aliases have no registry, help or menu entry"
+            },
+            {
+              "file": "test/runtime-state.test.ts",
+              "name": "retired Gateway memory fields migrate away without changing bindings or llm-wiki"
+            },
+            {
+              "file": "test/queued-bridge-context.test.ts",
+              "name": "queued first input receives DingTalk rules in the actual native model request"
+            },
+            {
+              "file": "test/queued-bridge-context.test.ts",
+              "name": "queued first input receives WeChat rules in the actual native model request"
+            },
+            {
+              "file": "test/queued-bridge-context.test.ts",
+              "name": "queued first input receives Feishu rules in the actual native model request"
+            },
+            {
+              "file": "test/queued-bridge-context.test.ts",
+              "name": "queued first input receives WeCom rules in the actual native model request"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/format.ts",
+              "sha256": "828cf99229730adf57f6130f9e650272cbf791c64c4b06e3dafb6b58c67ac7fe"
+            },
+            {
+              "file": "src/bridge/turn-submission.ts",
+              "sha256": "49d996fba26b59c47ba01b9e86a775f38fbe167797b69f178fa959843054a0e5"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "65e67ffa974039085a95696ff15bef9b902b5d5c6e4da50e706d02a184d7b62a"
+            },
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "30dfdb1a70746d408c410cf53722c36ec0a139fd93d947123201180d30ac98c4"
+            },
+            {
+              "file": "src/bridge/interaction-cards.ts",
+              "sha256": "c129bf6ebe73751eb7846b1b761246f62efc957afa20c056115284c2f41a7c3c"
+            }
+          ]
+        },
+        {
+          "id": "KB-02.2",
+          "scenario": "旧 remember 字段被忽略且不暴露正文；同块合法附件继续处理，纯记忆结果不阻塞原卡完成。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/actions.test.ts",
+              "name": "retired memory cannot prevent valid attachments ([])"
+            },
+            {
+              "file": "test/actions.test.ts",
+              "name": "retired memory cannot prevent valid attachments ([{\"content\":\"legacy preference\"}])"
+            },
+            {
+              "file": "test/actions.test.ts",
+              "name": "retired memory cannot prevent valid attachments (\"retired malformed value\")"
+            },
+            {
+              "file": "test/actions.test.ts",
+              "name": "retired memory cannot prevent valid attachments (null)"
+            },
+            {
+              "file": "test/full-review-actions.test.ts",
+              "name": "retired memory actions stay inert across multiple aliases and CRLF"
+            },
+            {
+              "file": "test/queue-result-recovery.test.ts",
+              "name": "CTRL-03.3: result action observation precedes queue recovery (retired-memory-result)"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "retired memory-only results create no effect or journal"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/actions.ts",
+              "sha256": "f54c12c33928e4895a1d8acdafa0cbbe11598760115aee6c10886cf826887d16"
+            },
+            {
+              "file": "src/bridge/turn-result-actions.ts",
+              "sha256": "8c3a1e53e46a004680155164d7f3f879d8c4aff026e15e2c7bef92f3724f5ce6"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
+            }
+          ]
+        },
+        {
+          "id": "KB-02.3",
+          "scenario": "兼容旧附件日志中 0..3 条记忆动作偏移；done 和 started 都不重复发送；新身份写前落盘并保留代码回滚可读别名。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "legacy attachment receipt survives removal of 0 memory actions (done)"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "legacy attachment receipt survives removal of 0 memory actions (started)"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "legacy attachment receipt survives removal of 1 memory actions (done)"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "legacy attachment receipt survives removal of 1 memory actions (started)"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "legacy attachment receipt survives removal of 2 memory actions (done)"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "legacy attachment receipt survives removal of 2 memory actions (started)"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "legacy attachment receipt survives removal of 3 memory actions (done)"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "legacy attachment receipt survives removal of 3 memory actions (started)"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "restart and concurrent output recovery apply each exact result action once"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "an ambiguous external send is disclosed and never automatically resent after restart"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "a changed binding is checked before every new effect and is never claimed or applied"
+            },
+            {
+              "file": "test/turn-result-actions.test.ts",
+              "name": "a journal write failure prevents external effects and malformed journals are preserved"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/turn-result-actions.ts",
+              "sha256": "8c3a1e53e46a004680155164d7f3f879d8c4aff026e15e2c7bef92f3724f5ce6"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
+            }
+          ]
+        },
+        {
+          "id": "KB-02.4",
+          "scenario": "真实原生核心与 Gateway 子进程崩溃恢复仍只执行一次输入、投递一次结果和附件，删除记忆不削弱来源归属校验。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":false,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":true,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":false}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":true}"
+            },
+            {
+              "file": "test/native-input-crash-recovery.test.ts",
+              "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
+            },
+            {
+              "file": "test/native-queue-crash-recovery.test.ts",
+              "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"pending\"}"
+            },
+            {
+              "file": "test/native-queue-crash-recovery.test.ts",
+              "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"running\"}"
+            },
+            {
+              "file": "test/native-queue-crash-recovery.test.ts",
+              "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"completed-offline\"}"
+            },
+            {
+              "file": "test/native-queue-crash-recovery.test.ts",
+              "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"after\",\"state\":\"pending\"}"
+            },
+            {
+              "file": "test/native-queue-crash-recovery.test.ts",
+              "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"after\",\"state\":\"completed-offline\"}"
+            },
+            {
+              "file": "test/native-queue-crash-recovery.test.ts",
+              "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"running\",\"crashRecovery\":true}"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "67c857d8493f75ee904d817ad1e8f0ed54c04fd8536609d13b074d100ec1d09b"
+            },
+            {
+              "file": "src/bridge/turn-result-actions.ts",
+              "sha256": "8c3a1e53e46a004680155164d7f3f879d8c4aff026e15e2c7bef92f3724f5ce6"
+            }
+          ],
+          "verifiedBoundary": "12 个真实进程隔离场景；IM 传输为验证文件字节的受控适配器，本机模拟模型，不冒充手机实机或真实钉钉文件下载验收。"
         }
       ]
     }
@@ -17368,5 +17660,16 @@
     "date": "2026-11-04",
     "report": "docs/audits/2026-11-04-connector-ide/README.md",
     "scope": "Connector完整IDE与原IDE准备循环的增量检查；不宣称重新完成全库审查。"
+  },
+  "gatewayMemoryRemoval": {
+    "date": "2026-11-04",
+    "report": "docs/audits/2026-11-04-remove-gateway-memory.md",
+    "cases": [
+      "KB-02.1",
+      "KB-02.2",
+      "KB-02.3",
+      "KB-02.4"
+    ],
+    "boundary": "四层增量审查记忆移除及其跨模块调用，不声称重审全部仓库。"
   }
 }

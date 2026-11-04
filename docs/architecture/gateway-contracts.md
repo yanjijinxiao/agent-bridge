@@ -1142,3 +1142,16 @@ peer: host 显式路由；51个公共端口分类穷尽，非 peer host 复用�
 接收连接健康、会话执行状态、输入回执恢复和结果投递各自独立。渠道接收 error 不删除仍有效的订阅；旧输入核对失败不丢弃已确认的当前活动进展，相关最终副作用仍等核对成功。新线程身份回调必须成功后才能提交输入。编辑器保存回执只确认请求中的文件版本，不能清除后续输入或新视图。对应 IN-02.7、CHAN-04.4、DEL-08.7、WEB-01.7；四层修复及验证范围见 docs/audits/2026-11-03-main-review/fixes.md。
 
 2026-11-04 增量：REL-02.11 的 HTTP 收尾及 GitLens 实际验证见 [验证收尾记录](../audits/2026-11-04-verification-boundaries/README.md)。历史总数不作为本次测试总数。
+
+## Gateway 自建记忆移除（KB-02）
+
+长期记忆由 Codex 管理，Gateway 只保留消息交接和明确业务状态。删除记忆注入、保存、命令与菜单；显式 llm-wiki 不属于此次移除。
+
+| Case | 功能及异常合同 | 精确测试 |
+| --- | --- | --- |
+| KB-02.1 | 状态迁移、IM/Web/原生队列不注入、无菜单入口 | runtime-state、format、bridge-service、account-manager、queued-bridge-context |
+| KB-02.2 | 旧混合动作继续发附件，纯记忆输出正常收尾 | actions、full-review-actions、queue-result-recovery |
+| KB-02.3 | 旧序号 0–3 偏移、未知不重发、回滚兼容 | turn-result-actions |
+| KB-02.4 | 12 个真实崩溃恢复场景核对附件字节和一次发送 | native-input-crash-recovery、native-queue-crash-recovery |
+
+测试全名与内容散列以 gateway-requirements.json 为准；过程及验证边界见[移除记录](../audits/2026-11-04-remove-gateway-memory.md)。

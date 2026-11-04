@@ -54,13 +54,15 @@ for (const scenario of scenarios) test(`CTRL-03.1: real Gateway queue journal SI
     if (c.child.exitCode === null && c.child.signalCode === null) c.child.kill("SIGKILL");
     await c.exited;
   } });
-  const memory = { kind: "knowledge", scope: "account", title: "queue-crash-memory", content: "Recovered native queued result" };
-  const final = 'QUEUE_CRASH_RESULT\n```codex-im-gateway-actions\n' + JSON.stringify({ remember: [memory] }) + '\n```';
+  let final = "";
   const pending = scenario.state === "pending";
   const core = await sharedNativeCore(t, async (_body: unknown, n: number) => {
     if (pending && n === 1) { await seed.promise; return message("SEED_DONE", n); }
     await queued.promise; return message(final, n);
   });
+  const outputFile = path.join(core.root, "result.txt");
+  fs.writeFileSync(outputFile, "synthetic recovered attachment");
+  final = 'QUEUE_CRASH_RESULT\n```codex-im-gateway-actions\n' + JSON.stringify({ send: [{ type: "file", path: outputFile }] }) + '\n```';
   const owner = core.runner(), peer = await core.rpc("queue_crash_inspector");
   const corePid = (await peer.request("server/diagnostics")).process.id;
   const thread = await owner.createThread({ cwd: core.root, projectBinding: "none", title: "Queue crash fixture" });
@@ -117,8 +119,8 @@ for (const scenario of scenarios) test(`CTRL-03.1: real Gateway queue journal SI
   assert.deepEqual(Object.keys(JSON.parse(fs.readFileSync(inboxFile, "utf8")).rows), [], "a recovered native queue receipt must also retire its original forwarding input");
   assert.equal(receipt().status, "completed"); assert.equal(receipt().clientUserMessageId, accepted.clientUserMessageId);
   const finalTurn = receipt().turnId; assert.ok(finalTurn);
-  const state = () => new RuntimeStateStore(accountStatePaths(paths, "fixture"));
-  assert.equal(state().listKnowledge().filter(x => x.title === memory.title).length, 1, JSON.stringify({
+  const media = () => fs.readFileSync(deliveries, "utf8").trim().split("\n").map(line => JSON.parse(line)).filter(item => item.kind === "file" && item.path === outputFile);
+  assert.equal(media().length, 1, JSON.stringify({
     receipt: receipt(), deliveries: fs.readFileSync(deliveries, "utf8"),
     subscriptions: JSON.parse(fs.readFileSync(path.join(paths.runtimeDir, "thread-subscriptions.json"), "utf8")),
     actions: fs.existsSync(path.join(paths.runtimeDir, "turn-result-actions.json")) ? fs.readFileSync(path.join(paths.runtimeDir, "turn-result-actions.json"), "utf8") : null,
@@ -129,7 +131,7 @@ for (const scenario of scenarios) test(`CTRL-03.1: real Gateway queue journal SI
   assert.equal((await c.exited).code, 0, c.log());
   const answers = fs.readFileSync(deliveries, "utf8").trim().split("\n").map(x => JSON.parse(x)).filter(x => x.text.includes("QUEUE_CRASH_RESULT"));
   assert.equal(answers.length, 1, "the same final is delivered exactly once across both restarts");
-  assert.equal(state().listKnowledge().filter(x => x.title === memory.title).length, 1);
+  assert.equal(media().length, 1);
   const history = await owner.getHistory(thread.threadId);
   const inputs = history.filter(x => x.role === "user" && x.clientUserMessageId === accepted.clientUserMessageId);
   assert.equal(inputs.length, 1); assert.equal(inputs[0].turnId, finalTurn);

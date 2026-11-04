@@ -145,7 +145,7 @@ test("an attachment prompt contains the device path and an action returns actual
   store.setSessionThread(session.id, f.thread.threadId);
   const selected = store.getSession(session.id)!;
   const prepared = await f.as(() => prepareTurnSubmission({ runner: f.facade, session: selected, config: defaultConfig(paths.root),
-    accountId: principal.accountId, conversationId: principal.conversationId, text: "检查附件", items: [source], source: "DingTalk", knowledge: [] }));
+    accountId: principal.accountId, conversationId: principal.conversationId, text: "检查附件", items: [source], source: "DingTalk" }));
   assert.ok(prepared.prompt.includes(path.join(f.root, "client", "files", "inbound"))); assert.ok(!prepared.prompt.includes(source.path));
   assert.equal(parsePrompt([prepared.developerInstructions, prepared.prompt].join("\n\n")).text, "检查附件");
   const output = path.join(f.thread.cwd!, "generated.txt"); fs.writeFileSync(output, "device output body");

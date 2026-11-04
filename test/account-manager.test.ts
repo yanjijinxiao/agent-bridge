@@ -543,21 +543,6 @@ test("rejects Taskboard admin mutations without a Codex thread or valid transiti
   await assert.rejects(() => manager.moveTaskboardIssue("BRIDGE-1", "done", 1), /transition/i);
 });
 
-test("isolates personal knowledge by WeChat account", (t) => {
-  const { paths } = setup(t);
-  const first = new RuntimeStateStore(accountStatePaths(paths, "account-one"));
-  const second = new RuntimeStateStore(accountStatePaths(paths, "account-two"));
-
-  first.rememberKnowledge({
-    kind: "skill",
-    scope: "account",
-    title: "内容复盘",
-    content: "每周复盘标题点击率"
-  });
-
-  assert.equal(first.listKnowledge().length, 1);
-  assert.equal(second.listKnowledge().length, 0);
-});
 
 test("starts and stops multiple accounts independently", async (t) => {
   const { manager, starts } = setup(t);
@@ -1758,7 +1743,7 @@ test("reads managed thread history and continues the same session from Web", asy
   ]);
 });
 
-test("Web turns learn and reuse the owning WeChat account knowledge", async (t) => {
+test("Web turns ignore retired memory actions without reinjecting them", async (t) => {
   const { manager, paths, root, runs, setRunHandler } = setup(t);
   const session = manager.createSession("account-one", "alice@im.wechat", root, "Knowledge chat");
   setRunHandler(async () => ({
@@ -1782,11 +1767,11 @@ test("Web turns learn and reuse the owning WeChat account knowledge", async (t) 
   await manager.startAccount("account-one");
   const first = await manager.continueSession("account-one", session.id, "记住交付检查流程");
   assert.equal(first.message.text, "已记录。");
-  assert.equal(new RuntimeStateStore(accountStatePaths(paths, "account-one")).listKnowledge().length, 1);
+  assert.equal("knowledge" in new RuntimeStateStore(accountStatePaths(paths, "account-one")).snapshot, false);
 
   setRunHandler(async (input) => ({ raw: "", text: "开始检查。", threadId: String(input.threadId) }));
   await manager.continueSession("account-one", session.id, "准备交付");
-  assert.match(String(runs[1].developerInstructions), /交付前运行测试、类型检查和构建/);
+  assert.doesNotMatch(String(runs[1].developerInstructions), /交付前运行测试、类型检查和构建|private-knowledge|under remember/);
 });
 
 test("uses WeChat session model overrides when continuing the same session from Web", async (t) => {

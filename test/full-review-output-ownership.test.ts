@@ -27,7 +27,7 @@ test("recovery output rejects a native thread or host different from its current
   const f = fixture(t);
   for (const scope of [{ hostId: "local", threadId: "other" }, { hostId: "remote", threadId: "thread" }])
     await f.service.applyRecoveredOutput(f.session.id, actions([path.join(f.root, "file")]), scope);
-  assert.equal(f.media.length, 0); assert.equal(f.store.listKnowledge().length, 0);
+  assert.equal(f.media.length, 0); assert.equal("knowledge" in f.store.snapshot, false);
 });
 test("recovered media rechecks native binding generation between asynchronous sends", async t => {
   const f = fixture(t), entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();

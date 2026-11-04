@@ -1,0 +1,130 @@
+TAP version 13
+# Subtest: IN-02.2: real SIGKILL acceptance recovery without replay {"existing":true,"completedOffline":false,"recoveryCrash":false}
+ok 1 - IN-02.2: real SIGKILL acceptance recovery without replay {"existing":true,"completedOffline":false,"recoveryCrash":false}
+  ---
+  duration_ms: 9747.474583
+  type: 'test'
+  ...
+# Subtest: IN-02.2: real SIGKILL acceptance recovery without replay {"existing":false,"completedOffline":false,"recoveryCrash":false}
+ok 2 - IN-02.2: real SIGKILL acceptance recovery without replay {"existing":false,"completedOffline":false,"recoveryCrash":false}
+  ---
+  duration_ms: 9299.744958
+  type: 'test'
+  ...
+# Subtest: IN-02.2: real SIGKILL acceptance recovery without replay {"existing":true,"completedOffline":true,"recoveryCrash":false}
+ok 3 - IN-02.2: real SIGKILL acceptance recovery without replay {"existing":true,"completedOffline":true,"recoveryCrash":false}
+  ---
+  duration_ms: 5229.713833
+  type: 'test'
+  ...
+# Subtest: IN-02.2: real SIGKILL acceptance recovery without replay {"existing":false,"completedOffline":true,"recoveryCrash":false}
+ok 4 - IN-02.2: real SIGKILL acceptance recovery without replay {"existing":false,"completedOffline":true,"recoveryCrash":false}
+  ---
+  duration_ms: 4220.70775
+  type: 'test'
+  ...
+# Subtest: IN-02.2: real SIGKILL acceptance recovery without replay {"existing":true,"completedOffline":false,"recoveryCrash":true}
+ok 5 - IN-02.2: real SIGKILL acceptance recovery without replay {"existing":true,"completedOffline":false,"recoveryCrash":true}
+  ---
+  duration_ms: 10218.825375
+  type: 'test'
+  ...
+# Subtest: IN-02.2: real SIGKILL acceptance recovery without replay {"existing":false,"completedOffline":true,"recoveryCrash":"after"}
+ok 6 - IN-02.2: real SIGKILL acceptance recovery without replay {"existing":false,"completedOffline":true,"recoveryCrash":"after"}
+  ---
+  duration_ms: 6312.717041
+  type: 'test'
+  ...
+# Subtest: CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"before","state":"pending"}
+ok 7 - CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"before","state":"pending"}
+  ---
+  duration_ms: 9603.443167
+  type: 'test'
+  ...
+# Subtest: CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"before","state":"running"}
+ok 8 - CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"before","state":"running"}
+  ---
+  duration_ms: 9376.051208
+  type: 'test'
+  ...
+# Subtest: CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"before","state":"completed-offline"}
+ok 9 - CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"before","state":"completed-offline"}
+  ---
+  duration_ms: 9584.427709
+  type: 'test'
+  ...
+# Subtest: CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"after","state":"pending"}
+ok 10 - CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"after","state":"pending"}
+  ---
+  duration_ms: 9260.93875
+  type: 'test'
+  ...
+# Subtest: CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"after","state":"completed-offline"}
+ok 11 - CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"after","state":"completed-offline"}
+  ---
+  duration_ms: 8558.561042
+  type: 'test'
+  ...
+# Subtest: CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"before","state":"running","crashRecovery":true}
+ok 12 - CTRL-03.1: real Gateway queue journal SIGKILL {"cut":"before","state":"running","crashRecovery":true}
+  ---
+  duration_ms: 13972.970458
+  type: 'test'
+  ...
+# [codex-im-gateway] sending reply to room; text=100 chars
+# [codex-im-gateway] sent reply to room
+# [codex-im-gateway] starting Codex turn for room in /private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-shared-native-gmXkjF
+# [codex-im-gateway] Codex turn completed for room; text=6 chars
+# [codex-im-gateway] sending reply to room; text=6 chars
+# [codex-im-gateway] sent reply to room
+# Subtest: queued first input receives DingTalk rules in the actual native model request
+ok 13 - queued first input receives DingTalk rules in the actual native model request
+  ---
+  duration_ms: 1107.3885
+  type: 'test'
+  ...
+# [codex-im-gateway] sending reply to room; text=100 chars
+# [codex-im-gateway] sent reply to room
+# [codex-im-gateway] starting Codex turn for room in /private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-shared-native-YmWxRf
+# [codex-im-gateway] Codex turn completed for room; text=6 chars
+# [codex-im-gateway] sending reply to room; text=6 chars
+# [codex-im-gateway] sent reply to room
+# Subtest: queued first input receives WeChat rules in the actual native model request
+ok 14 - queued first input receives WeChat rules in the actual native model request
+  ---
+  duration_ms: 1062.83625
+  type: 'test'
+  ...
+# [codex-im-gateway] sending reply to room; text=100 chars
+# [codex-im-gateway] sent reply to room
+# [codex-im-gateway] starting Codex turn for room in /private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-shared-native-LcK6wa
+# [codex-im-gateway] Codex turn completed for room; text=6 chars
+# [codex-im-gateway] sending reply to room; text=6 chars
+# [codex-im-gateway] sent reply to room
+# Subtest: queued first input receives Feishu rules in the actual native model request
+ok 15 - queued first input receives Feishu rules in the actual native model request
+  ---
+  duration_ms: 1097.740125
+  type: 'test'
+  ...
+# [codex-im-gateway] sending reply to room; text=100 chars
+# [codex-im-gateway] sent reply to room
+# [codex-im-gateway] starting Codex turn for room in /private/var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-shared-native-Pu9TcE
+# [codex-im-gateway] Codex turn completed for room; text=6 chars
+# [codex-im-gateway] sending reply to room; text=6 chars
+# [codex-im-gateway] sent reply to room
+# Subtest: queued first input receives WeCom rules in the actual native model request
+ok 16 - queued first input receives WeCom rules in the actual native model request
+  ---
+  duration_ms: 1381.754458
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 116612.410333

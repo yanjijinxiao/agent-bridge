@@ -13,7 +13,7 @@ for (const source of ["Web", "DingTalk", "WeChat", "Feishu", "WeCom"] as const) 
     const calls: unknown[] = [];
     const runner = { async stageAttachments(files: any[], options: unknown) { calls.push(options); return files.map(f => ({ ...f, path: "/remote/file" })); } } as unknown as CodexBridgeBackend;
     const prepared = await prepareTurnSubmission({ runner, session, config: defaultConfig("/local"), accountId: "account", conversationId: "chat",
-      text: "inspect", items: [{ kind: "image", path: "/local/upload", label: "image.png" }], source, knowledge: [],
+      text: "inspect", items: [{ kind: "image", path: "/local/upload", label: "image.png" }], source,
       project: { id: "old", name: "stale project", sourceProjectId: "native-old", workspace: "/old", createdAt: "", updatedAt: "" } });
     assert.equal(calls.length, 1); assert.match(prepared.prompt, /saved to \/remote\/file/); assert.doesNotMatch(prepared.prompt, /\/local\/upload/);
     assert.equal(prepared.projectBinding, "none"); assert.equal(prepared.projectId, undefined); assert.equal(prepared.projectName, undefined);
@@ -24,12 +24,12 @@ for (const source of ["Web", "DingTalk", "WeChat", "Feishu", "WeCom"] as const) 
 for (const result of [undefined, [], [{ path: "relative" }]]) test(`remote staging failure rejects before execution (${JSON.stringify(result)})`, async () => {
   const runner = (result === undefined ? {} : { stageAttachments: async () => result }) as unknown as CodexBridgeBackend;
   await assert.rejects(prepareTurnSubmission({ runner, session, config: defaultConfig(), conversationId: "chat", text: "file",
-    items: [{ kind: "file", path: "/local/file", label: "file" }], source: "Web", knowledge: [] }));
+    items: [{ kind: "file", path: "/local/file", label: "file" }], source: "Web" }));
 });
 
 test("local input preserves attachments without a remote staging dependency", async () => {
   const p = await prepareTurnSubmission({ runner: {} as CodexBridgeBackend, session: { ...session, hostId: "local" }, config: defaultConfig(),
-    conversationId: "chat", text: "read", items: [{ kind: "file", path: "/local/file", label: "file" }], source: "Web", knowledge: [] });
+    conversationId: "chat", text: "read", items: [{ kind: "file", path: "/local/file", label: "file" }], source: "Web" });
   assert.match(p.prompt, /\/local\/file/);
 });
 

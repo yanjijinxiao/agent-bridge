@@ -297,14 +297,14 @@ test("lists every built-in command and reports the current Codex account balance
   await send("help", "/help");
   const help = replies.join("\n\n");
   for (const command of [
-    "/help", "/status", "/balance", "/memory", "/project", "/task", "/new", "/sessions", "/session",
+    "/help", "/status", "/balance", "/project", "/task", "/new", "/sessions", "/session",
     "/history", "/history more", "/help session", "/follow", "/leave", "/policy", "/role", "/intervene",
     "/steer", "/queue", "/model", "/effort", "/stream", "/prompt start", "/prompt done",
     "/approve", "/reject", "/stop"
   ]) {
     assert.match(help, new RegExp(command.replace("/", "\\/")));
   }
-  for (const alias of ["/h", "/st", "/bal", "/mem", "/p", "/tb", "/ss", "/s", "/hist", "/iv", "/n", "/m", "/e", "/str", "/pp", "/ok", "/no", "/x"]) {
+  for (const alias of ["/h", "/st", "/bal", "/p", "/tb", "/ss", "/s", "/hist", "/iv", "/n", "/m", "/e", "/str", "/pp", "/ok", "/no", "/x"]) {
     assert.match(help, new RegExp(alias.replace("/", "\\/")));
   }
   assert.doesNotMatch(help, /\/bind|\/resume|\/b\b|\/r\b/);
@@ -361,7 +361,6 @@ test("maps every documented short command to its canonical command", () => {
     h: "help",
     st: "status",
     bal: "balance",
-    mem: "memory",
     p: "project",
     ss: "sessions",
     s: "session",
@@ -808,7 +807,7 @@ for (const channel of ["dingtalk", "weixin", "feishu", "wecom"] as const) {
   });
 }
 
-test("automatically learns and reuses account knowledge with user controls", async (t) => {
+test("IM turns ignore retired memory actions", async (t) => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-weixin-knowledge-"));
   t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
   const stateStore = new RuntimeStateStore(resolveStatePaths(path.join(tmpDir, "state")));
@@ -867,20 +866,13 @@ test("automatically learns and reuses account knowledge with user controls", asy
   });
 
   await send("learn", "以后请用中文并先给结论");
-  assert.equal(stateStore.listKnowledge()[0]?.title, "回复风格");
+  assert.equal("knowledge" in stateStore.snapshot, false);
   assert.equal(replies.at(-1), "记住了。");
 
   await send("reuse", "继续规划下一篇内容");
-  assert.match(developerInstructions[1] ?? "", /默认使用简体中文，并先给结论/);
+  assert.doesNotMatch(developerInstructions[1] ?? "", /默认使用简体中文，并先给结论|private-knowledge|under remember/);
 
-  await send("list", "/memory");
-  assert.match(replies.at(-1) ?? "", /\[K1\].*偏好/);
-  assert.match(replies.at(-1) ?? "", /回复风格/);
-  assert.match(replies.at(-1) ?? "", /\[K1\][^\n]+\n标题：回复风格\n内容：[^\n]+\n\n删除单条：/);
 
-  await send("disable", "/memory off");
-  await send("disabled-turn", "再处理一篇");
-  assert.doesNotMatch(developerInstructions.at(-1) ?? "", /默认使用简体中文，并先给结论/);
 });
 
 for (const channel of ["dingtalk", "weixin", "feishu", "wecom"] as const) {

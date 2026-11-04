@@ -48,7 +48,6 @@ export function createMainMenuCard(fallbackText: string): ChannelActionCard {
       { label: "推理强度", command: "effort", arg: "" },
       { label: "过程进度", command: "stream", arg: "" },
       { label: "用量", command: "balance", arg: "" },
-      { label: "个人记忆", command: "memory", arg: "" }
     ]
   });
 }

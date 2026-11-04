@@ -128,7 +128,7 @@ test("renders local URI, angle-bracket, fragment and Windows references without 
 test("leaves web and relative links unchanged", () => {
   const text = "[docs](https://example.com/docs#L12) ![image](https://example.com/image.png) [relative](./source.ts)";
   assert.deepEqual(parseActionBlocks(text), {
-    visibleText: text, actions: { send: [], control: [], remember: [] }
+    visibleText: text, actions: { send: [], control: [] }
   });
 });
 
@@ -164,7 +164,7 @@ test("accepts legacy codex-weixin-server action blocks from existing threads", (
   assert.deepEqual(parsed.actions.send, [{ type: "file", path: "/tmp/legacy.txt" }]);
 });
 
-test("parses bounded personal knowledge actions", () => {
+test("ignores retired personal knowledge actions in existing threads", () => {
   const parsed = parseActionBlocks([
     "已按你的习惯处理。",
     "```codex-weixin-actions",
@@ -178,10 +178,7 @@ test("parses bounded personal knowledge actions", () => {
   ].join("\n"));
 
   assert.equal(parsed.visibleText, "已按你的习惯处理。");
-  assert.deepEqual(parsed.actions.remember, [
-    { kind: "preference", scope: "account", title: "回复语言", content: "默认使用简体中文" },
-    { kind: "workflow", scope: "project", title: "发布检查", content: "发布前先运行测试和构建" }
-  ]);
+  assert.deepEqual(parsed.actions, { send: [], control: [] });
 });
 
 test("ignores malformed optional knowledge without hiding the reply", () => {
@@ -193,5 +190,13 @@ test("ignores malformed optional knowledge without hiding the reply", () => {
   ].join("\n"));
 
   assert.equal(parsed.visibleText, "正常回复。");
-  assert.deepEqual(parsed.actions.remember, []);
+  assert.deepEqual(parsed.actions, { send: [], control: [] });
+});
+
+for (const remember of [[], [{ content: "legacy preference" }], "retired malformed value", null])
+test(`retired memory cannot prevent valid attachments (${JSON.stringify(remember)})`, () => {
+  const text = "Attached\n```codex-im-gateway-actions\n" + JSON.stringify({ remember,
+    send: [{ type: "file", path: "/tmp/report.txt" }] }) + "\n```";
+  assert.deepEqual(parseActionBlocks(text), { visibleText: "Attached",
+    actions: { send: [{ type: "file", path: "/tmp/report.txt" }], control: [] } });
 });

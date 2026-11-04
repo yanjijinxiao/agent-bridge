@@ -1616,8 +1616,7 @@ export class AccountManager {
         assertCodexThreadRunnable(state);
       }
       const prepared = await prepareTurnSubmission({ runner: this.runnerFor(config), session, project, config,
-        accountId, conversationId: session.senderId, text: prompt, items: attachments, source: "Web",
-        knowledge: store.relevantKnowledge(promptPreview ?? prompt, session.projectId) });
+        accountId, conversationId: session.senderId, text: prompt, items: attachments, source: "Web" });
       const acceptedWork = this.webRestartWork.capture();
       const result = await submission.run(this.runnerFor(config), {
         ...prepared,
@@ -1662,12 +1661,6 @@ export class AccountManager {
         key: JSON.stringify([accountId, sessionId]), hostId: prepared.hostId ?? "local", threadId,
         recipientId: session.senderId, client: entry.client!, managed: true
       }, result.turnId, result.text) : undefined;
-      if (stillCurrent() && !result.turnId) {
-        // Legacy exec adapters have no native turn identity and remain release
-        // blocking for this whole handler; preserve their inline application.
-        this.assertRuntimeWritable();
-        for (const memory of parsed.actions.remember) store.rememberKnowledge(memory, session.projectId, session.id);
-      }
       const response: SessionChatResult = {
         threadId,
         message: {
@@ -1910,13 +1903,13 @@ export class AccountManager {
     // queue receipt must not hold its native completion behind a history read.
     // Outputs with actions still require the exact input/turn authority below.
     const { actions } = parseAssistantMessage(text);
-    if (!actions.send.length && !actions.remember.length) return;
+    if (!actions.send.length) return;
     const [accountId, sessionId] = JSON.parse(sub.key) as [string, string];
     const store = this.storeFor(accountId), session = store.getSession(sessionId), entry = this.entries.get(accountId);
     // The Hub can observe completion before the queue monitor reconstructs its
     // turn ID after a crash. Resolve only this original thread's queue evidence
     // before deciding that a result has no Gateway action authority. Otherwise
-    // final delivery would permanently hide an unprocessed file/memory action.
+    // final delivery would permanently hide an unprocessed file action.
     if (this.nativeQueue.list(accountId).some(r => r.sessionId === sessionId && r.hostId === sub.hostId
       && r.threadId === sub.threadId && r.conversationId === sub.recipientId && !r.turnId
       && ["submitting", "queued", "starting", "uncertain"].includes(r.status))) {
@@ -1945,12 +1938,11 @@ export class AccountManager {
       const imOrigin = queued || receipts.some(r => r.actorId !== "web-admin");
       const confirmed = await this.resultActions.apply([accountId, sessionId, sub.hostId, sub.threadId, turnId], text,
         assertCurrent, async action => {
-          if (action.kind === "remember") store.rememberKnowledge(action.value, session.projectId, session.id);
-          else if (imOrigin) await entry.service!.applyRecoveredAction(sessionId, sub, action);
+          if (imOrigin) await entry.service!.applyRecoveredAction(sessionId, sub, action);
           // Web-only attachments remain available in native/Web history; they
           // must not unexpectedly send a second message to the bound IM group.
         });
-      return confirmed ? undefined : "部分附件或记忆操作未确认，未自动重复执行；请核对接收结果。";
+      return confirmed ? undefined : "部分附件发送回执未确认，未自动重复执行；请核对接收结果。";
     });
   }
 
@@ -2850,7 +2842,7 @@ function parseAssistantMessage(text: string): ReturnType<typeof parseActionBlock
   try {
     return parseActionBlocks(text, { strict: false });
   } catch {
-    return { visibleText: text.trim(), actions: { send: [], control: [], remember: [] } };
+    return { visibleText: text.trim(), actions: { send: [], control: [] } };
   }
 }
 

@@ -143,7 +143,7 @@ test("review presentation protects literal code, escaped quotes and braces; iner
   const malformed = presentAssistantText('::code-comment{title="unterminated\nKeep this following paragraph.');
   assert.ok(malformed.includes("格式不完整")); assert.ok(malformed.includes("Keep this following paragraph."));
   const code = '```ts\nconst x = "[source](/work/source.ts)";\n```'; assert.equal(parseActionBlocks(code).visibleText, code);
-  assert.deepEqual(parseActionBlocks(directive).actions, { send: [], control: [], remember: [] });
+  assert.deepEqual(parseActionBlocks(directive).actions, { send: [], control: [] });
 });
 
 test("preflight timeout names the failed read without suggesting successful queueing or adding a large optional command block", () => {

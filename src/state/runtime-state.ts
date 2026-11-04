@@ -6,13 +6,6 @@ import path from "node:path";
 import type { ProjectInteractionMode } from "../channels/channel-mode-settings.js";
 
 import { readJsonObjectFile, isJsonObject, writeJsonFile } from "./json-store.js";
-import {
-  cleanKnowledgeInput,
-  knowledgeIdentity,
-  selectRelevantKnowledge,
-  type KnowledgeEntry,
-  type KnowledgeInput
-} from "./knowledge.js";
 import type { StatePaths } from "./paths.js";
 import { DEFAULT_SESSION_PAGE_SIZE, isSessionPageSize } from "./session-list-settings.js";
 import { bindingExpiry, normalizeBindingActivity, idleDays, validIdleDays, type BindingActivity, type BindingExpiry } from "./binding-expiry.js";
@@ -118,8 +111,6 @@ export type RuntimeState = {
     text: string;
     createdAt: string;
   }>;
-  knowledge: KnowledgeEntry[];
-  knowledgeEnabled: boolean;
 };
 
 export function emptyRuntimeState(): RuntimeState {
@@ -140,9 +131,7 @@ export function emptyRuntimeState(): RuntimeState {
     detachedSessionSenders: [],
     bindingActivity: {},
     interactionModes: {},
-    pendingDeliveries: [],
-    knowledge: [],
-    knowledgeEnabled: true
+    pendingDeliveries: []
   };
 }
 
@@ -615,68 +604,6 @@ export class RuntimeStateStore {
     }
     this.state.knowledgeBases = this.state.knowledgeBases.filter((item) => item.id !== knowledgeBaseId);
     this.state.sessions = this.state.sessions.filter((session) => session.knowledgeBaseId !== knowledgeBaseId);
-    this.save();
-  }
-
-  listKnowledge(): KnowledgeEntry[] {
-    return structuredClone(this.state.knowledge)
-      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-  }
-
-  relevantKnowledge(query: string, projectId?: string, limit = 20): KnowledgeEntry[] {
-    if (!this.state.knowledgeEnabled) return [];
-    return selectRelevantKnowledge(this.state.knowledge, query, projectId, limit);
-  }
-
-  rememberKnowledge(input: KnowledgeInput, projectId?: string, sourceSessionId?: string): KnowledgeEntry | undefined {
-    if (!this.state.knowledgeEnabled) return undefined;
-    const clean = cleanKnowledgeInput(input);
-    if (!clean) return undefined;
-    const scopedProjectId = clean.scope === "project" ? projectId : undefined;
-    if (clean.scope === "project" && !scopedProjectId) return undefined;
-    const identity = knowledgeIdentity(clean, scopedProjectId);
-    const existing = this.state.knowledge.find((entry) => knowledgeIdentity(entry, entry.projectId) === identity);
-    const now = new Date().toISOString();
-    if (existing) {
-      existing.content = clean.content;
-      existing.updatedAt = now;
-      if (sourceSessionId) existing.sourceSessionId = sourceSessionId;
-      this.save();
-      return structuredClone(existing);
-    }
-    const entry: KnowledgeEntry = {
-      id: crypto.randomUUID(),
-      ...clean,
-      ...(scopedProjectId ? { projectId: scopedProjectId } : {}),
-      ...(sourceSessionId ? { sourceSessionId } : {}),
-      createdAt: now,
-      updatedAt: now
-    };
-    this.state.knowledge.unshift(entry);
-    this.state.knowledge = this.state.knowledge.slice(0, 200);
-    this.save();
-    return structuredClone(entry);
-  }
-
-  deleteKnowledge(knowledgeId: string): void {
-    if (!this.state.knowledge.some((entry) => entry.id === knowledgeId)) {
-      throw new Error(`Knowledge entry not found: ${knowledgeId}`);
-    }
-    this.state.knowledge = this.state.knowledge.filter((entry) => entry.id !== knowledgeId);
-    this.save();
-  }
-
-  clearKnowledge(): void {
-    this.state.knowledge = [];
-    this.save();
-  }
-
-  isKnowledgeEnabled(): boolean {
-    return this.state.knowledgeEnabled;
-  }
-
-  setKnowledgeEnabled(enabled: boolean): void {
-    this.state.knowledgeEnabled = enabled;
     this.save();
   }
 
@@ -1203,10 +1130,12 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
     activeQaSessionIds: value.activeQaSessionIds && typeof value.activeQaSessionIds === "object" ? value.activeQaSessionIds : {},
     activeProjectIds: value.activeProjectIds && typeof value.activeProjectIds === "object" ? value.activeProjectIds : {},
     interactionModes: normalizeInteractionModes(value.interactionModes),
-    pendingDeliveries: Array.isArray(value.pendingDeliveries) ? value.pendingDeliveries : [],
-    knowledge: Array.isArray(value.knowledge) ? value.knowledge : [],
-    knowledgeEnabled: value.knowledgeEnabled !== false
+    pendingDeliveries: Array.isArray(value.pendingDeliveries) ? value.pendingDeliveries : []
   };
+  // Drop retired Gateway memory fields even though unknown state fields are
+  // otherwise preserved. Never migrate them into Codex or the llm-wiki store.
+  delete (normalized as RuntimeState & { knowledge?: unknown }).knowledge;
+  delete (normalized as RuntimeState & { knowledgeEnabled?: unknown }).knowledgeEnabled;
   // Provider ids are opaque data, including names inherited by Object.prototype.
   // Keep the live maps prototype-free; snapshots/JSON remain plain data so this
   // does not create a migration write on every read or change the disk format.

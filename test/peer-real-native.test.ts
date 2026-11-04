@@ -43,7 +43,7 @@ test("real native Connector preserves queued source receipts across disconnect w
     session: { id: "source-session", senderId: principal.conversationId, title: "Queue source", workspace: core.root,
       threadId: created.threadId, hostId: ticket.hostId, createdAt: "", updatedAt: "" },
     accountId: principal.accountId, conversationId: principal.conversationId,
-    text: "second", items: [], source: "DingTalk", knowledge: [] });
+    text: "second", items: [], source: "DingTalk" });
   const queuedPrompt = [prepared.developerInstructions, prepared.prompt].filter(Boolean).join("\n\n").trim();
   const queued = await as(() => facade.addQueuedSubmission!({ threadId: created.threadId, prompt: queuedPrompt, clientUserMessageId: "queue-original", assertCurrent() {} }, ticket.hostId));
   assert.equal(queued.clientUserMessageId, "queue-original");

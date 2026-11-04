@@ -13,14 +13,14 @@ import { APP_SERVER_BACKEND_CAPABILITIES } from "../src/codex/backend.js";
 import { ThreadEventHub, type ThreadSubscription } from "../src/server/thread-event-hub.js";
 import { TEXT_CAPABILITIES } from "../src/channels/client.js";
 
-for (const failure of ["none", "read-failure", "retired", "other-turn", "plain-result"] as const)
+for (const failure of ["none", "read-failure", "retired", "other-turn", "plain-result", "retired-memory-result"] as const)
   test(`CTRL-03.3: result action observation precedes queue recovery (${failure})`, async t => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "queue-result-race-")), paths = resolveStatePaths(root);
     saveAccount(paths, { accountId: "fixture", token: "test-only", baseUrl: "https://example.test", enabled: false });
     const store = new RuntimeStateStore(accountStatePaths(paths, "fixture"));
     const session = store.createSession("room", root, "Queue race", undefined, "session", undefined, { standalone: true });
     store.setSessionThread(session.id, "original");
-    let clientId = "", manager: any, failRead = failure === "read-failure" || failure === "plain-result";
+    let clientId = "", manager: any, failRead = failure === "read-failure" || failure === "plain-result" || failure === "retired-memory-result";
     const reads: string[] = [], actions: string[] = [];
     const backend: any = { backendInfo: () => ({ id: "app-server", capabilities: APP_SERVER_BACKEND_CAPABILITIES }),
       async warmUp() {}, close() {},
@@ -50,7 +50,7 @@ for (const failure of ["none", "read-failure", "retired", "other-turn", "plain-r
     manager.entries.set("fixture", { status: "running", service: { async applyRecoveredAction() { actions.push("file"); } } });
     t.after(async () => { manager.entries.clear(); await manager.stopAll(); fs.rmSync(root, { recursive: true, force: true }); });
     const sub = { key: JSON.stringify(["fixture", session.id]), hostId: "local", threadId: "original", recipientId: "room" };
-    if (failure === "plain-result") {
+    if (failure === "plain-result" || failure === "retired-memory-result") {
       const frames: Array<{ text: string; finalize?: boolean; messageId?: string }> = [];
       let starts = 0;
       const subscription: ThreadSubscription = { ...sub, managed: false, client: {
@@ -69,7 +69,8 @@ for (const failure of ["none", "read-failure", "retired", "other-turn", "plain-r
         await hub.started("local", "original", "turn", new Date().toISOString());
         await hub.activity("local", "original", "turn", "进行中的工作");
         assert.match(frames.at(-1)?.text ?? "", /\/stop/);
-        await hub.completion("local", "original", "turn", "已经完成的纯文字结果");
+        await hub.completion("local", "original", "turn", "已经完成的纯文字结果" + (failure === "retired-memory-result"
+          ? '\n```codex-im-gateway-actions\n{"remember":[{"content":"retired"}]}\n```' : ""));
         assert.equal(frames.at(-1)?.messageId, "original-card");
         assert.equal(frames.at(-1)?.finalize, true);
         assert.match(frames.at(-1)?.text ?? "", /已经完成的纯文字结果/);
@@ -99,7 +100,7 @@ for (const failure of ["none", "read-failure", "retired", "other-turn", "plain-r
       await apply(); await apply();
       const count = failure === "other-turn" ? 0 : 1;
       assert.equal(actions.length, count);
-      assert.equal(new RuntimeStateStore(accountStatePaths(paths, "fixture")).listKnowledge().filter(x => x.title === "result-race").length, count);
+      assert.equal("knowledge" in new RuntimeStateStore(accountStatePaths(paths, "fixture")).snapshot, false);
     }
     assert.ok(reads.length > 0); assert.ok(reads.every(thread => thread === "original"));
   });

@@ -2,9 +2,7 @@ import crypto from "node:crypto";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import { SessionControlQueue } from "./session-control.js";
 import { parseActionBlocks, type SendAction } from "./actions.js";
-import type { KnowledgeInput } from "../state/knowledge.js";
-
-export type TurnResultAction = { kind: "remember"; value: KnowledgeInput } | { kind: "send"; value: SendAction };
+export type TurnResultAction = { kind: "send"; value: SendAction };
 
 /** Output application, never a prompt queue. Claim each external effect before
  * I/O. An ambiguous claim is surfaced, not resent after process restart. */
@@ -20,17 +18,29 @@ export class TurnResultActions {
   }
   apply(scope: readonly string[], text: string, assertCurrent: () => void, effect: (action: TurnResultAction) => Promise<void>): Promise<boolean> {
     const { actions } = parseActionBlocks(text, { strict: false });
-    const steps: TurnResultAction[] = [...actions.remember.map(value => ({ kind: "remember" as const, value })),
-      ...actions.send.map(value => ({ kind: "send" as const, value }))];
+    const steps: TurnResultAction[] = actions.send.map(value => ({ kind: "send", value }));
     return this.queue.run(JSON.stringify(scope), async () => {
       let confirmed = true;
       for (const [index, action] of steps.entries()) {
-        const key = crypto.createHash("sha256").update(JSON.stringify([scope, index, action])).digest("hex");
-        if (this.records[key] === "done") continue;
-        if (this.records[key] === "started") { confirmed = false; continue; }
+        // New identities do not depend on removed action kinds or their order.
+        // v1 placed 0..3 memory actions before sends. Check every former offset
+        // so removing memory cannot replay an acknowledged or ambiguous file.
+        // Only hashes survive here; no legacy memory content is read or applied.
+        const hash = (value: unknown) => crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+        const key = hash([scope, action]);
+        const keys = [key, ...[0, 1, 2, 3].map(offset => hash([scope, index + offset, action]))];
+        if (keys.some(candidate => this.records[candidate] === "done")) continue;
+        if (keys.some(candidate => this.records[candidate] === "started")) { confirmed = false; continue; }
         assertCurrent();
-        this.records[key] = "started"; this.save();
-        try { await effect(action); this.records[key] = "done"; this.save(); }
+        // Retain the v1 aliases on new writes too, so a code rollback still
+        // recognizes a file sent by this version. This never restores memory.
+        for (const candidate of keys) this.records[candidate] = "started";
+        this.save();
+        try {
+          await effect(action);
+          for (const candidate of keys) this.records[candidate] = "done";
+          this.save();
+        }
         catch { confirmed = false; } // Unknown external delivery must never be replayed.
       }
       return confirmed;

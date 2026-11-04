@@ -344,45 +344,24 @@ test("updates model, effort, and streaming by managed session id for Web control
   assert.equal(store.getSession(first.id)?.streamReplies, undefined);
 });
 
-test("persists, deduplicates, scopes, and filters personal knowledge", (t) => {
-  const store = createStore(t);
-  const firstProject = store.createProject("内容运营", "/work/content");
-  const secondProject = store.createProject("产品研发", "/work/product");
-  const session = store.createSession("alice@im.wechat", firstProject.workspace, "首篇内容", firstProject.id);
-
-  store.rememberKnowledge({
-    kind: "preference",
-    scope: "account",
-    title: " 回复风格 ",
-    content: " 结论优先，使用中文 "
-  }, firstProject.id, session.id);
-  store.rememberKnowledge({
-    kind: "preference",
-    scope: "account",
-    title: "回复风格",
-    content: "结论优先，必要时补充步骤"
-  }, firstProject.id, session.id);
-  store.rememberKnowledge({
-    kind: "workflow",
-    scope: "project",
-    title: "发布流程",
-    content: "发布前运行测试和构建"
-  }, firstProject.id, session.id);
-  const rejected = store.rememberKnowledge({
-    kind: "knowledge",
-    scope: "account",
-    title: "部署密钥",
-    content: "API_KEY: should-not-be-stored"
-  });
-
-  assert.equal(rejected, undefined);
-  assert.equal(store.listKnowledge().length, 2);
-  assert.equal(store.listKnowledge().find((entry) => entry.title === "回复风格")?.content, "结论优先，必要时补充步骤");
-  assert.equal(store.relevantKnowledge("准备发布", firstProject.id).length, 2);
-  assert.deepEqual(
-    store.relevantKnowledge("准备发布", secondProject.id).map((entry) => entry.title),
-    ["回复风格"]
-  );
+test("retired Gateway memory fields migrate away without changing bindings or llm-wiki", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-memory-removal-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const paths = resolveStatePaths(root), store = new RuntimeStateStore(paths);
+  const project = store.createProject("Project", root);
+  const session = store.createSession("actor", root, "Session", project.id);
+  store.setSessionThread(session.id, "thread");
+  store.createKnowledgeBase("Wiki", root);
+  const expected = store.snapshot;
+  fs.writeFileSync(paths.statePath, JSON.stringify({ ...expected,
+    knowledge: [{ content: "retired other-user preference" }], knowledgeEnabled: true }));
+  const migrated = new RuntimeStateStore(paths);
+  assert.deepEqual(migrated.snapshot, expected);
+  const saved = fs.readFileSync(paths.statePath, "utf8");
+  assert.doesNotMatch(saved, /retired other-user preference|knowledgeEnabled|"knowledge":/);
+  assert.equal(new RuntimeStateStore(paths).getBoundSession("actor")?.threadId, "thread");
+  assert.equal(migrated.listKnowledgeBases().length, 1);
+  assert.equal(fs.readFileSync(paths.statePath, "utf8"), saved, "migration is idempotent");
 });
 
 test("persistently claims inbound message ids once and bounds the history", (t) => {

@@ -1,6 +1,6 @@
-# 知识库、个人知识与 QA
+# 知识库与 QA
 
-RuntimeState 保存知识库绑定和稳定条目；prepareTurnSubmission 只选择当前账号/项目相关内容，Gateway action 的 remember 是可复用偏好/流程/领域事实，不保存秘密或临时进度。知识内容是资料，不被当成用户当前授权或渠道命令。
+RuntimeState 只管理显式配置的 llm-wiki 知识库及其项目绑定。Gateway 自建长期记忆已移除：不保存或注入个人偏好，不解析执行 remember，不管理 Codex 原生记忆。知识库检索内容是资料，不被当成用户当前授权或渠道命令。升级迁移与旧动作回执兼容见[记忆移除记录](../../audits/2026-11-04-remove-gateway-memory.md)。
 
 ## 两种只读知识工具
 

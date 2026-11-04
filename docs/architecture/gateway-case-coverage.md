@@ -104,3 +104,16 @@ Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audi
 CTRL-03.3 / DEL-09.3 增补“同会话旧队列未映射且历史不可用，纯文字原生结果仍完成原卡；重复回执及重建不重新展示停止入口”。对应 `queue-result-recovery.test.ts` 的 plain-result、`compact-progress-design.test.ts` 的 unconfirmed historical 和 `dingtalk-progress-layout.test.ts` 的 HTTPS/SDK 状态转换。证据见[定向四层记录](../audits/2026-11-04-stale-terminal-card.md)；此增量不刷新既有全库覆盖数字或未经复查的文件哈希。
 
 2026-11-04 增量：REL-02.11 的 HTTP 收尾及 GitLens 实际验证见 [验证收尾记录](../audits/2026-11-04-verification-boundaries/README.md)。历史总数不作为本次测试总数。
+
+## Gateway 自建记忆移除（KB-02）
+
+长期记忆由 Codex 管理，Gateway 只保留消息交接和明确业务状态。删除记忆注入、保存、命令与菜单；显式 llm-wiki 不属于此次移除。
+
+| Case | 功能及异常合同 | 精确测试 |
+| --- | --- | --- |
+| KB-02.1 | 状态迁移、IM/Web/原生队列不注入、无菜单入口 | runtime-state、format、bridge-service、account-manager、queued-bridge-context |
+| KB-02.2 | 旧混合动作继续发附件，纯记忆输出正常收尾 | actions、full-review-actions、queue-result-recovery |
+| KB-02.3 | 旧序号 0–3 偏移、未知不重发、回滚兼容 | turn-result-actions |
+| KB-02.4 | 12 个真实崩溃恢复场景核对附件字节和一次发送 | native-input-crash-recovery、native-queue-crash-recovery |
+
+测试全名与内容散列以 gateway-requirements.json 为准；过程及验证边界见[移除记录](../audits/2026-11-04-remove-gateway-memory.md)。

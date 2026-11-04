@@ -5,8 +5,6 @@ const PROJECT_OPTIONAL_COMMANDS = new Set<string>([
   "help", "ide", "inbox", "connect", "share", "join",
   "h",
   "balance",
-  "memory",
-  "knowledge",
   "project",
   "projects",
   "new", "n",

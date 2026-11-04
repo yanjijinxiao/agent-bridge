@@ -2,7 +2,6 @@ import type { CodexBridgeBackend, CodexRunnerInput, CodexRunResult } from "../co
 import { CodexTurnExecutionError } from "../codex/backend.js";
 import { communicationError, isCodexCommunicationFailure } from "../codex/communication-error.js";
 import type { CodexImGatewayConfig } from "../state/config.js";
-import type { KnowledgeEntry } from "../state/knowledge.js";
 import type { ManagedProject, ManagedSession } from "../state/runtime-state.js";
 import { buildPromptParts, buildPromptPreview, PEER_FILE_DELIVERY_INSTRUCTIONS, type AttachmentSource } from "./format.js";
 import type { PromptBufferItem } from "./prompt-buffer.js";
@@ -28,12 +27,12 @@ export async function stageTurnAttachments(runner: CodexBridgeBackend, items: Pr
 export async function prepareTurnSubmission(input: {
   runner: CodexBridgeBackend; session: ManagedSession; project?: ManagedProject; config: CodexImGatewayConfig;
   accountId?: string; conversationId: string; text: string; items: PromptBufferItem[];
-  source: AttachmentSource; knowledge: readonly KnowledgeEntry[];
+  source: AttachmentSource;
 }): Promise<CodexRunnerInput> {
   const { session, project, config } = input, hostId = session.hostId ?? project?.hostId;
   const items = await stageTurnAttachments(input.runner, input.items, { accountId: input.accountId,
     conversationId: input.conversationId, sessionId: session.id, threadId: session.threadId, hostId, maxBytes: config.maxInboundBytes });
-  const parts = buildPromptParts(input.text, items, input.source, input.knowledge);
+  const parts = buildPromptParts(input.text, items, input.source);
   const generic = /^(?:会话\s*\d+|新会话|Codex 会话(?:\s+[\da-f-]+)?)$/i.test(session.title.trim());
   return { ...parts, cwd: session.workspace, hostId,
     ...(hostId?.startsWith("peer:") ? { developerInstructions: parts.developerInstructions

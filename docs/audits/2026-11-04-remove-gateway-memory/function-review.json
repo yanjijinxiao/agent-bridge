@@ -1,0 +1,200 @@
+[
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleCommand",
+    "sameBodyAsPreviousCommit": false,
+    "lines": [
+      585,
+      824
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleSteerCommand",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      1822,
+      1890
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "enqueueNativeMessage",
+    "sameBodyAsPreviousCommit": false,
+    "lines": [
+      2166,
+      2222
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleGoalCommand",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      1346,
+      1408
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "taskboardNativeBackend",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      2048,
+      2073
+    ]
+  },
+  {
+    "file": "src/state/runtime-state.ts",
+    "symbol": "save",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      349,
+      361
+    ]
+  },
+  {
+    "file": "src/state/runtime-state.ts",
+    "symbol": "normalizeRuntimeState",
+    "sameBodyAsPreviousCommit": false,
+    "lines": [
+      1040,
+      1146
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "handleSessionCatalog",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      1527,
+      1706
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "closeRunner",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      2075,
+      2085
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "sessionSummary",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      1955,
+      1974
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "sendLocalMedia",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      3060,
+      3110
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "applyRecoveredAction",
+    "sameBodyAsPreviousCommit": false,
+    "lines": [
+      2940,
+      2949
+    ]
+  },
+  {
+    "file": "src/bridge/turn-submission.ts",
+    "symbol": "run",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      59,
+      84
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "recoverNativeInputs",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      1807,
+      1848
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "recoveredInputsFor",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      1850,
+      1857
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "peerRecoverySource",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      1980,
+      2001
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "threadSubscriptions",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      2161,
+      2199
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "recoverNativeQueue",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      2225,
+      2270
+    ]
+  },
+  {
+    "file": "src/server/account-manager.ts",
+    "symbol": "applyNativeResult",
+    "sameBodyAsPreviousCommit": false,
+    "lines": [
+      1901,
+      1947
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "runCodexTurn",
+    "sameBodyAsPreviousCommit": false,
+    "lines": [
+      2607,
+      2922
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "requestApproval",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      3377,
+      3393
+    ]
+  },
+  {
+    "file": "src/bridge/service.ts",
+    "symbol": "suspendUserInputs",
+    "sameBodyAsPreviousCommit": true,
+    "lines": [
+      3469,
+      3469
+    ]
+  }
+]

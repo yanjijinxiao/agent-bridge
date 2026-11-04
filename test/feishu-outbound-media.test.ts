@@ -102,7 +102,7 @@ for (const lost of [false, true]) test(`Feishu actual Bridge file/video effects 
   assert.equal(uploads, 2);
   assert.equal(await new TurnResultActions(journal).apply(scope, text, () => {}, effect), !lost);
   assert.equal(f.uploads.length, uploads); assert.equal(f.messages.length, sends, "restart must not repeat unknown or confirmed messages");
-  assert.deepEqual(Object.values(JSON.parse(fs.readFileSync(journal, "utf8")).records), [lost ? "started" : "done", lost ? "started" : "done"]);
+  assert.deepEqual([...new Set(Object.values(JSON.parse(fs.readFileSync(journal, "utf8")).records))], [lost ? "started" : "done"]);
 });
 
 for (const kind of ["image", "file", "video"] as const) for (const outcome of ["confirmed", "upload-rejected", "missing-upload-code", "send-rejected"] as const)

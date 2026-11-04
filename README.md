@@ -285,11 +285,13 @@ npm run taskboard:codex
 | 路径 | 内容 |
 | --- | --- |
 | `accounts/` | 渠道账号凭据 |
-| `runtime/<account-id>/` | 授权、项目、Session 与个人知识 |
+| `runtime/<account-id>/` | 授权、项目、Session 与交接状态 |
 | `inbound/<account-id>/` | 入站附件 |
 | `config.json` | Codex、后端和工作区配置 |
 | `logs/` | 本机运行日志 |
 | `taskboard/` | 内置 Taskboard 数据 |
+
+长期记忆由 Codex 自身管理。Gateway 不另存或注入个人记忆；`/memory` 及其别名已移除。附件收发与显式配置的 llm-wiki 知识库仍保留。
 
 如果新目录尚不存在，网关会依次复用已有的 `~/.codex-channel-bridge/` 或 `~/.codex-weixin/`，无需重新配置渠道。旧的 `CODEX_CHANNEL_BRIDGE_*`、`CODEX_WEIXIN_*`、请求头和 action block 也继续作为兼容接口读取。
 

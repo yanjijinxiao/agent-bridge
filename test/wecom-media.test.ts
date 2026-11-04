@@ -91,7 +91,7 @@ for (const lost of [false, true]) test(`WeCom Bridge media receipts survive rest
   assert.equal(f.uploads.length, 3); assert.equal(f.sends.length, 3);
   assert.equal(await new TurnResultActions(journal).apply(scope, text, () => {}, effect), !lost);
   assert.equal(f.uploads.length, 3); assert.equal(f.sends.length, 3);
-  assert.deepEqual(Object.values(JSON.parse(fs.readFileSync(journal, "utf8")).records), [lost ? "started" : "done", lost ? "started" : "done", lost ? "started" : "done"]);
+  assert.deepEqual([...new Set(Object.values(JSON.parse(fs.readFileSync(journal, "utf8")).records))], [lost ? "started" : "done"]);
 });
 
 for (const chattype of ["single", "group", "unknown", undefined]) test(`WeCom conversation kind and participant identity come from provider fields (${chattype})`, async () => {

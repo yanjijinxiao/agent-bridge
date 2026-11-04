@@ -20,9 +20,9 @@ full-review-controls、runtime-default-response-source、prompt-buffer、native-
 
 CTRL-03.3的queue-delivery-integration沿真实NativeQueueCoordinator、Bridge、原生facade、AccountManager、Hub与磁盘日志联合核对。已送达的旧结果但队列回执尚未结算时，三种终态×有无新轮次都不能标active、建新卡或替换新卡；两次管理器重建后仍只读结算原输入。原生仍运行的矛盾快照不结算，正常pending项仍有进展及一次最终结果。原生API和渠道传输为替身，不证明真实accept/fsync间骤停；具体[记录](../../audits/2026-11-01-four-layer-recheck/2026-11-02-queue-delivery-integration.md)保留partial。
 
-2026-11-03 追加验证：native-queue-crash-recovery 在独立真实原生核心旁启动实际 Gateway 子进程，六种 pending/running/离线完成、队列回执 rename 前后及恢复再崩溃场景联合断言原生输入、结果、记忆各一次与 inbox 清理。使用真实五秒恢复调度，IM 传输和模型仍为隔离端口。native-queue-concurrency 的两客户端各追加两项，正常/写入端断连/执行端也断连三种组合，按原生队列的实际顺序检查完整消费，不以客户端时间推断顺序。
+2026-11-03 追加验证：native-queue-crash-recovery 在独立真实原生核心旁启动实际 Gateway 子进程，六种 pending/running/离线完成、队列回执 rename 前后及恢复再崩溃场景联合断言原生输入、结果、当时的记忆动作各一次（记忆移除后该断言改为附件字节与发送次数）与 inbox 清理。使用真实五秒恢复调度，IM 传输和模型仍为隔离端口。native-queue-concurrency 的两客户端各追加两项，正常/写入端断连/执行端也断连三种组合，按原生队列的实际顺序检查完整消费，不以客户端时间推断顺序。
 
-该测试还发现 Hub 先于队列恢复看到完成时可能漏掉附件/记忆。AccountManager.applyNativeResult 现在先核对同账号、对话、host/thread 的缺 turn 队列来源，再决定结果动作权限；读取失败则本次投递暂缓，不提前把结果标成已完成。核对仅更新来源事实，不重发输入。结果动作仍经原动作日志去重，等待后核对账号实例与绑定；其他线程不加入这次观察。queue-result-recovery 为正常、读取失败后恢复、账号退休、不同 turn 四种时序提供确定性对照。供应商丢 ack 的所有窗口及手机卡片呈现仍未验收。
+该测试还发现 Hub 先于队列恢复看到完成时可能漏掉附件。AccountManager.applyNativeResult 现在先核对同账号、对话、host/thread 的缺 turn 队列来源，再决定结果动作权限；读取失败则本次投递暂缓，不提前把结果标成已完成。核对仅更新来源事实，不重发输入。结果动作仍经原动作日志去重，等待后核对账号实例与绑定；其他线程不加入这次观察。queue-result-recovery 为正常、读取失败后恢复、账号退休、不同 turn 四种时序提供确定性对照。供应商丢 ack 的所有窗口及手机卡片呈现仍未验收。
 
 全回归进一步捕获 queue auto-consume 的跨读取矛盾：runtime 已 active，但分页历史暂时只有终态。Hub 原来先 reconcile，再报告缺可信活动轮次，可能已经发送“任务已停止”并把真实结果去重掉。observe 现在在任何结果/卡片修复之前检查 active 与对应 inProgress 轮次是否一致；矛盾只更新跟随健康状态，保留原卡与绑定，后续一致快照再继续。CTRL-03.5 增加六种终态×有无 active ID 的反例与恢复对照，不以改文案代替状态顺序修复。
 

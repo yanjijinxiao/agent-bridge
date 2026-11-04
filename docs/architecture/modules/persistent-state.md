@@ -21,3 +21,7 @@ runtime-state、binding-expiry、account-manager 和 audit-persistence 覆盖 CR
 ## 长轮并发变更与独立清理
 
 STATE-01.1经真实AccountManager等待原生长轮期间rename/unbind，完成后核对唯一live owner和磁盘新状态。STATE-02.3逐一注入8个资源stop/close错误；closeRunner不能因为bindingExpiry.stop抛错跳过runner.close，故分别尝试并汇总AggregateError。此处关闭的是Gateway连接，不中断独立原生任务。AUTH-01.3在已运行及停止账号均注入ACL持久化失败，manager和实际Bridge不得提前放行。
+
+## 移除旧记忆字段
+
+账号状态加载迁移会去掉退役的 knowledge 与 knowledgeEnabled，不再提供记忆读写 API。其余绑定、准入、回执及独立 knowledgeBases 配置保持原值；不读取或写入 Codex 原生记忆文件。动作日志仍保留历史散列用于附件去重，不把旧日志中的记忆动作恢复成业务功能。

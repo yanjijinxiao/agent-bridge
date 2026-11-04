@@ -10,7 +10,7 @@ import {
 
 test("preserves the exact project-free command policy", () => {
   const projectFree = [
-    "help", "h", "balance", "memory", "knowledge", "project", "projects", "new", "n", "approve", "reject", "answer", "status", "sessions", "session", "history", "follow", "stop", "intervene"
+    "help", "h", "balance", "project", "projects", "new", "n", "approve", "reject", "answer", "status", "sessions", "session", "history", "follow", "stop", "intervene"
   ];
   for (const name of projectFree) {
     assert.equal(commandProjectRequirement({ name, arg: "" }), "optional");

@@ -2,7 +2,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Lexer } from "marked";
 
-import { KNOWLEDGE_KINDS, type KnowledgeInput } from "../state/knowledge.js";
 import { presentAssistantText, compactSourceLocation, projectAssistantProse, markdownSource } from "../channels/assistant-presentation.js";
 
 export type SendAction = {
@@ -18,7 +17,6 @@ export type ControlAction =
 export type BridgeActions = {
   send: SendAction[];
   control: ControlAction[];
-  remember: KnowledgeInput[];
 };
 
 export type ParsedActionBlocks = {
@@ -120,38 +118,8 @@ function normalizeControlAction(raw: unknown): ControlAction {
   throw new Error(`unsupported control action type: ${String(candidate.type)}`);
 }
 
-function normalizeKnowledgeAction(raw: unknown): KnowledgeInput {
-  if (!raw || typeof raw !== "object") {
-    throw new Error("remember action must be an object");
-  }
-  const candidate = raw as { kind?: unknown; scope?: unknown; title?: unknown; content?: unknown };
-  if (!KNOWLEDGE_KINDS.includes(candidate.kind as KnowledgeInput["kind"])) {
-    throw new Error("remember action kind must be preference, skill, knowledge, or workflow");
-  }
-  if (candidate.scope !== "account" && candidate.scope !== "project") {
-    throw new Error("remember action scope must be account or project");
-  }
-  if (typeof candidate.title !== "string" || typeof candidate.content !== "string") {
-    throw new Error("remember action title and content are required");
-  }
-  return {
-    kind: candidate.kind as KnowledgeInput["kind"],
-    scope: candidate.scope,
-    title: candidate.title,
-    content: candidate.content
-  };
-}
-
-function tryNormalizeKnowledgeAction(raw: unknown): KnowledgeInput | undefined {
-  try {
-    return normalizeKnowledgeAction(raw);
-  } catch {
-    return undefined;
-  }
-}
-
 export function parseActionBlocks(text: string, options: { strict?: boolean } = {}): ParsedActionBlocks {
-  const actions: BridgeActions = { send: [], control: [], remember: [] };
+  const actions: BridgeActions = { send: [], control: [] };
   const source = markdownSource(text);
   let visible = "", cursor = 0, scanCursor = 0, invalid = false;
   // Only explicit, closed, top-level Markdown fences are executable. Quoted
@@ -172,10 +140,9 @@ export function parseActionBlocks(text: string, options: { strict?: boolean } = 
     const parsed = JSON.parse(token.text.trim()) as {
       send?: unknown;
       control?: unknown;
-      remember?: unknown;
     };
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw Error("Action payload must be an object");
-    for (const field of ["send", "control", "remember"] as const)
+    for (const field of ["send", "control"] as const)
       if (parsed[field] !== undefined && !Array.isArray(parsed[field])) throw Error(`Action ${field} must be an array`);
 
     const sends = Array.isArray(parsed.send) ? parsed.send.map(normalizeSendAction) : [];
@@ -183,12 +150,7 @@ export function parseActionBlocks(text: string, options: { strict?: boolean } = 
     const seen = new Set(actions.send.map((action) => action.path));
     for (const action of sends) appendSendAction(actions, seen, action);
     actions.control.push(...controls);
-    if (Array.isArray(parsed.remember)) {
-      for (const raw of parsed.remember.slice(0, Math.max(0, 3 - actions.remember.length))) {
-        const action = tryNormalizeKnowledgeAction(raw);
-        if (action) actions.remember.push(action);
-      }
-    }
+    // Retired remember fields are ignored, including in old mixed replies.
     } catch (error) {
       if (options.strict !== false) throw error;
       invalid = true;
@@ -196,8 +158,8 @@ export function parseActionBlocks(text: string, options: { strict?: boolean } = 
   }
   visible += source.original(cursor);
   if (invalid) {
-    actions.send = []; actions.control = []; actions.remember = [];
-    visible += "\n\n回复中的附加动作格式无效，未执行附件发送、会话变更或记忆保存。";
+    actions.send = []; actions.control = [];
+    visible += "\n\n回复中的附加动作格式无效，未执行附件发送或会话变更。";
   }
   const visibleTextWithoutBlocks = visible.trim();
   return { visibleText: renderLocalMarkdownReferences(presentAssistantText(visibleTextWithoutBlocks)), actions };
