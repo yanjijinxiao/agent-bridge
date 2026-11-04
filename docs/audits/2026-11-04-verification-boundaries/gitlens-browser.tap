@@ -1,0 +1,10 @@
+✔ IDE-08.5: real GitLens displays line authorship and full commit hover (8925.115291ms)
+ℹ Official extension installed and listed; actual browser rendered author, subject, full body and matching commit hash.
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9117.90925

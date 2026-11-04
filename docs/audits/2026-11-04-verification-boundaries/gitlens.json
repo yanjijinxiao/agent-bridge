@@ -1,0 +1,20 @@
+{
+  "codeServerVersion": "4.141.1",
+  "extension": "eamodio.gitlens",
+  "extensionVersion": "19.5.0",
+  "source": "https://github.com/gitkraken/vscode-gitlens/releases/tag/v19.5.0",
+  "asset": "https://github.com/gitkraken/vscode-gitlens/releases/download/v19.5.0/gitlens-19.5.0.vsix",
+  "bytes": 4903661,
+  "sha256": "ac512e366b9e3a372edf9a6493d61bb0c916b5f9f7c4170f99bb03ed25a58a8a",
+  "integrity": "HTTPS official publisher release; ZIP CRC and publisher/name/version validated; SHA256 recorded locally, not claimed independently pinned.",
+  "environment": "isolated code-server on Mac ARM64, isolated Chrome and temporary committed Git workspace",
+  "browserEvidence": "gitlens-hover.png",
+  "verified": [
+    "extension installation success",
+    "extension activated",
+    "inline author and timestamp",
+    "hover author, subject, full body, matching short commit hash and change"
+  ],
+  "networkBoundary": "Open VSX metadata worked but download CDN timed out; official GitHub VSIX was used. This does not certify Open VSX one-click network availability on every host.",
+  "productionExtensionsChanged": false
+}

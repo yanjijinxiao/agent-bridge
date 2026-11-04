@@ -1,0 +1,28 @@
+✖ SIGTERM exits the real Gateway with an unfinished HTTP request without stopping an independent executor (7621.508791ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7903.6875
+
+✖ failing tests:
+
+test at test/server-shutdown.test.ts:1:322
+✖ SIGTERM exits the real Gateway with an unfinished HTTP request without stopping an independent executor (7621.508791ms)
+  AssertionError [ERR_ASSERTION]: Gateway did not finish shutdown:
+  codex-im-gateway is running at http://127.0.0.1:63937
+  State directory: /var/folders/ld/33bq7vyj0_j6r1td0y7xmr5r0000gn/T/gateway-shutdown-fB5VsH/state
+  
+      at TestContext.<anonymous> (/Users/xking/workspace/codex-channel-bridge/test/server-shutdown.test.ts:45:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

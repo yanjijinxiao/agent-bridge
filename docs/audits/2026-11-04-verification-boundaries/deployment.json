@@ -1,0 +1,66 @@
+{
+  "runtimeCommit": "2eca29063cf4664056c2dff1e96d57955f255fca",
+  "toutou": {
+    "pid": 40342,
+    "commit": "2eca29063cf4664056c2dff1e96d57955f255fca",
+    "accounts": [
+      {
+        "id": "hermes-dingtalk",
+        "status": "running"
+      }
+    ],
+    "endpoints": [
+      {
+        "host": "local",
+        "state": "ready"
+      },
+      {
+        "host": "remote-ssh-discovered:11.158.199.43",
+        "state": "ready"
+      },
+      {
+        "host": "local",
+        "state": "ready"
+      }
+    ]
+  },
+  "toutouGracefulSignal": {
+    "beforePid": 33285,
+    "oldExited": true,
+    "elapsedMs": 6714,
+    "nativePidsBefore": [
+      1272,
+      11238,
+      24463,
+      43982,
+      50236,
+      60008
+    ],
+    "nativePidsAfter": [
+      1272,
+      11238,
+      24463,
+      43982,
+      50236,
+      60008
+    ]
+  },
+  "tantan": {
+    "pid": 102522,
+    "commit": "2eca29063cf4664056c2dff1e96d57955f255fca",
+    "accounts": [
+      {
+        "id": "tantan-test",
+        "status": "running"
+      }
+    ],
+    "hosts": [
+      "local",
+      "peer:xking-mac:local-codex",
+      "peer:linux12:headless",
+      "peer:xking-mac-regression:desktop"
+    ],
+    "ideRunning": true
+  },
+  "tantanLifecycle": "Gateway is the container main process: SIGTERM stopped the container; explicitly starting the same container loaded the new artifact and restored its accounts and Connector hosts. Connectors were not restarted. No automatic container restart was assumed for the final result."
+}

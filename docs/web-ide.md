@@ -130,6 +130,8 @@ VPN IP **不等于固定 IP**。固定模式中地址变化仍需手动配置；
 
 在 IDE 设置页修改主题、字体和扩展选项；使用扩展面板安装、停用或卸载扩展。Gateway 不提供固定扩展勾选列表。GitLens 可通过扩展 ID eamodio.gitlens 查找；行作者和提交浮窗需要 Git 仓库及已提交文件，安装成功与功能激活应分别核验。
 
+注册表查询成功不代表文件 CDN 可达。若扩展面板下载超时，可从扩展发布者的官方网站取得 VSIX，在 IDE 扩展面板菜单选择「从 VSIX 安装」。例如 GitLens 的 [官方发布页](https://github.com/gitkraken/vscode-gitlens/releases)。安装后仍应核对启用状态和所需功能，不通过关闭 TLS 校验解决下载问题。
+
 ### 管理员设置初始基线
 
 1. 在 Gateway Web IDE 页选择文件类型并导入原生配置，或编辑 settings.json / extensions.json 表单。

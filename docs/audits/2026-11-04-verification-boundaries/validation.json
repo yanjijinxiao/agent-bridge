@@ -8,5 +8,13 @@
   },
   "typecheck": "passed",
   "beforeFix": "real SIGTERM regression failed: incomplete HTTP header kept process alive",
-  "afterFix": "5 new shutdown cases passed, including real Gateway child and independent executor survival"
+  "afterFix": "5 new shutdown cases passed, including real Gateway child and independent executor survival",
+  "realGitLensBrowser": {
+    "tests": 1,
+    "passed": 1,
+    "skipped": 0,
+    "failed": 0,
+    "file": "test/ide-gitlens-browser.test.ts",
+    "environment": "Chrome + code-server on macOS ARM64, official GitHub VSIX, temporary Git repository"
+  }
 }

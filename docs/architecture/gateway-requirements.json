@@ -11600,6 +11600,25 @@
             "scope": "两项用户变更涉及的四层增量审查",
             "report": "docs/audits/2026-11-04-native-config-enrollment/README.md"
           }
+        },
+        {
+          "id": "IDE-08.5",
+          "scenario": "官方 GitLens 在真实 code-server 中安装、激活并显示行作者与完整提交浮窗",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-gitlens-browser.test.ts",
+              "name": "IDE-08.5: real GitLens displays line authorship and full commit hover"
+            }
+          ],
+          "implementation": [],
+          "verifiedBoundary": "Mac ARM64 真实 code-server 4.141.1、官方 GitHub GitLens 19.5.0 VSIX、隔离 Chrome 与已提交临时 Git 仓库；作者、标题、正文、对应短哈希与变更实际显示，自动化用例通过。",
+          "verificationLimit": "不代表手机、其他操作系统、生产扩展配置或各主机 Open VSX CDN 可达；不验证第三方服务账号集成及付费功能。",
+          "implementationRecheck": {
+            "date": "2026-11-04",
+            "scope": "原生配置增量后的真实扩展验收",
+            "report": "docs/audits/2026-11-04-verification-boundaries/README.md"
+          }
         }
       ]
     },
