@@ -22,6 +22,12 @@ reach local and registered remote native hosts through the existing backend.
 - Files, workspace validation and IDE run on the execution host, using existing
   host transports. A remote directory is never checked against the Connector's
   local filesystem. Missing/offline hosts produce partial-catalog warnings.
+- Input preparation always supplies account, conversation and native thread to
+  the backend's attachment port. Logical names (`local`, managed remote aliases,
+  personal peers) do not decide whether file transfer is needed: the backend
+  owns that decision. Pure text never calls the attachment port. A preparation
+  failure is explicitly reported as input not submitted, not a native task
+  failure; it does not authorize a retry or change the binding.
 - Desktop registration is discovery metadata. Native project/thread lists are
   queried on each corresponding host; registration is not fabricated as a native
   project or used to infer project identity from its display name.

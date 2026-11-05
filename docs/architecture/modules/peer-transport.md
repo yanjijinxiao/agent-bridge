@@ -100,3 +100,5 @@ PEER-01.3：Connector 在没有显式 CA 时，仅为 wss://11.158.199.29:49186/
 托管迁移的文件回传保留旧主机导出能力（包括临时目录），授权只来自双端预配置的 managedRoute；个人 grant 保留工作目录及收到附件的边界。PeerFiles 在最终授权后检查文件、尺寸及稳定性，分块传输仍受连接与授权租约约束。此差异对应 NAT-07.8，不能仅凭 host 名或注册声明放宽范围。
 
 主机通道与身份约束见 [Connector 多主机路由](../connector-host-routing.md)。host-scoped-backend 对所有 facade 方法穷尽声明 host 位置；rpc.channel 只复用连接，业务仍由同一个原生后端处理。
+
+输入附件也遵守这一边界：Bridge 的 stageTurnAttachments 必须对所有主机名传递账号、聊天、线程，不能以 `peer:` 前缀决定是否传递授权范围，也不能把逻辑 `local` 当成 Gateway 文件系统。后端端口自行决定直读还是转存；纯文字不调用文件端口。TurnAttachmentError 只表示提交前附件准备失败，保留原始 cause，用户文案明确尚未提交；不会更改原生任务结果或触发重发。NAT-07.11 从真实 BridgeService 经 Connector WebSocket 验证，而非在测试中手工补齐文件 RPC 参数。

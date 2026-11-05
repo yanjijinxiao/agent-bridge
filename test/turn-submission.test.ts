@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { prepareTurnSubmission, TurnSubmission, TurnDeliveryError } from "../src/bridge/turn-submission.js";
+import { prepareTurnSubmission, TurnSubmission, TurnDeliveryError, TurnAttachmentError } from "../src/bridge/turn-submission.js";
+import { userFacingMessageHandlingError } from "../src/bridge/errors.js";
 import { CodexCommunicationError } from "../src/codex/communication-error.js";
 import { defaultConfig } from "../src/state/config.js";
 import type { CodexBridgeBackend, CodexRunnerInput } from "../src/codex/backend.js";
@@ -32,6 +33,21 @@ test("local input preserves attachments without a remote staging dependency", as
     conversationId: "chat", text: "read", items: [{ kind: "file", path: "/local/file", label: "file" }], source: "Web" });
   assert.match(p.prompt, /\/local\/file/);
 });
+
+for (const cause of [Error("Attachment staging requires a selected chat and thread"), Error("socket disconnected; private provider detail")]) {
+  test(`attachment preparation failure stays not-submitted and hides backend details (${cause.message.split(";")[0]})`, async () => {
+    const runner = { stageAttachments: async () => { throw cause; } } as unknown as CodexBridgeBackend;
+    await assert.rejects(prepareTurnSubmission({ runner, session, config: defaultConfig(), conversationId: "chat", text: "read",
+      items: [{ kind: "image", path: "/gateway/input.png", label: "input.png" }], source: "DingTalk" }), error => {
+      assert.ok(error instanceof TurnAttachmentError); assert.equal(error.cause, cause);
+      assert.equal(new TurnSubmission().error(error), error);
+      assert.equal(error.submission, "not-submitted");
+      assert.match(userFacingMessageHandlingError(error), /尚未提交给 Codex/);
+      assert.doesNotMatch(userFacingMessageHandlingError(error), /private provider|selected chat|任务已.*失败/);
+      return true;
+    });
+  });
+}
 
 for (const phase of ["preflight", "submission", "observation"] as const) test(`shared submission retains ${phase} semantics`, async () => {
   const submission = new TurnSubmission();

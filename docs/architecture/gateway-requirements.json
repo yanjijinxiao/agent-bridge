@@ -18098,6 +18098,41 @@
           ],
           "verifiedBoundary": "真实单 WebSocket 隔离回归；单 Mac Connector 实连本机和远端，历史、目录、附件字节往返、共享目录及两端 IDE HTTP 200。",
           "remainingBoundary": "手机视觉未实测；Desktop 注册与原生 project/list 的历史身份差异未按名称或 cwd 猜测合并。"
+        },
+        {
+          "id": "NAT-07.11",
+          "scenario": "IM 附件准备对托管与个人主机统一传递来源范围，逻辑 local 不跳过 Connector 转存，纯文字不调用文件端口",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-attachment-entry.test.ts",
+              "name": "IM text reaches selected Connector (managed/remote)"
+            },
+            {
+              "file": "test/connector-attachment-entry.test.ts",
+              "name": "IM image reaches selected Connector (managed/remote)"
+            },
+            {
+              "file": "test/connector-attachment-entry.test.ts",
+              "name": "IM file reaches selected Connector (managed/local)"
+            },
+            {
+              "file": "test/connector-attachment-entry.test.ts",
+              "name": "IM image reaches selected Connector (personal/remote)"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/turn-submission.ts",
+              "sha256": "072f652b57a3839901f57edbc4a2f861b2d4e5d033cfa7017ea6002da695ec2d"
+            },
+            {
+              "file": "src/bridge/errors.ts",
+              "sha256": "3b904c30214690b72212429449fbf539e040893dd5f71e281c15bdc02d6a00c7"
+            }
+          ],
+          "verifiedBoundary": "真实 BridgeService + Connector socket 的 12 种组合；原版 4 个失败反例、修复后通过；真实单 Mac Connector 连接两主机，纯文字/图片/文件准备及附件回传成功，未提交模型输入。",
+          "remainingBoundary": "手机实际渲染未测；历史 held 输入未自动重发。"
         }
       ]
     }

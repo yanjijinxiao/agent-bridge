@@ -7,20 +7,32 @@ import { buildPromptParts, buildPromptPreview, PEER_FILE_DELIVERY_INSTRUCTIONS, 
 import type { PromptBufferItem } from "./prompt-buffer.js";
 import type { InboundReceiptJournal } from "./inbound-receipts.js";
 
+/** File preparation precedes native submission; its failure cannot describe a running task. */
+export class TurnAttachmentError extends Error {
+  readonly submission = "not-submitted";
+  constructor(cause: unknown) {
+    super("附件未能转存到执行主机，这条消息尚未提交给 Codex；原任务与绑定已保留。", { cause });
+  }
+}
+
 export async function stageTurnAttachments(runner: CodexBridgeBackend, items: PromptBufferItem[], options: {
   accountId?: string; conversationId: string; sessionId: string; threadId?: string; hostId?: string; maxBytes: number;
 }): Promise<PromptBufferItem[]> {
   const files = items.filter((item): item is Exclude<PromptBufferItem, { kind: "text" }> => item.kind !== "text");
-  if (!files.length || !options.hostId || options.hostId === "local") return items;
-  if (!runner.stageAttachments) throw Error("当前远端后端未实现附件转存，消息未提交；请在远端提供可读取的文件。");
-  const staged = await runner.stageAttachments(files, { hostId: options.hostId,
-    scope: JSON.stringify([options.accountId, options.conversationId, options.sessionId]), maxBytes: options.maxBytes,
-    ...(options.hostId?.startsWith("peer:") ? {
-      accountId: options.accountId, conversationId: options.conversationId, threadId: options.threadId
-    } : {}) });
-  if (staged.length !== files.length || staged.some(file => !file.path.startsWith("/"))) throw Error("Remote backend did not stage every attachment");
-  let index = 0;
-  return items.map(item => item.kind === "text" ? item : { ...item, path: staged[index++].path });
+  if (!files.length) return items;
+  // A managed Connector may retain `local` or an old remote alias. Only the
+  // backend knows whether these paths already belong to the execution host.
+  // Preserve direct-local backends that do not need a staging port.
+  if (!runner.stageAttachments && (!options.hostId || options.hostId === "local")) return items;
+  try {
+    if (!runner.stageAttachments) throw Error("Backend does not implement attachment staging");
+    const staged = await runner.stageAttachments(files, { hostId: options.hostId ?? "local",
+      scope: JSON.stringify([options.accountId, options.conversationId, options.sessionId]), maxBytes: options.maxBytes,
+      accountId: options.accountId ?? "standalone", conversationId: options.conversationId, threadId: options.threadId });
+    if (staged.length !== files.length || staged.some(file => !file.path.startsWith("/"))) throw Error("Remote backend did not stage every attachment");
+    let index = 0;
+    return items.map(item => item.kind === "text" ? item : { ...item, path: staged[index++].path });
+  } catch (cause) { throw new TurnAttachmentError(cause); }
 }
 
 /** One application-level input contract for Web, IM and channel Taskboard workflows. */
