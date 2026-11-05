@@ -65,6 +65,26 @@ test("more than four commentary phases remain visible with no duplicate commenta
   assert.equal(f.starts.length, 1);
 });
 
+test("phase history and live window preserve bullets and tool/thought icons in DingTalk rendering after restart", async t => {
+  const f = fixture(t);
+  await f.stream.progress("阶段成果\n核对完成，继续修复");
+  await f.stream.progress("❌ 验证测试失败，退出码 1");
+  await f.stream.progress("下一阶段：修复完成");
+  await f.stream.progress("🤔 正在核对");
+  await f.stream.progress("✏️ 正在修改文件：bridge/service.ts");
+  await f.stream.progress("❌ 验证测试失败，退出码 2");
+  await f.stream.flush();
+  const check = () => {
+    const body = f.frames.at(-1).progressLayout.body;
+    assert.match(body, /- 阶段成果\n  核对完成/);
+    const rendered = dingTalkProgressContent(body);
+    for (const expected of ["• 阶段成果", "• 🛠️ 工具异常 1 次", "• 下一阶段", "• 💭 正在核对", "• ✏️ 正在修改文件", "• ❌ 验证测试失败"])
+      assert.ok(rendered.includes(expected), `missing ${expected}: ${rendered}`);
+    assert.match(f.frames.at(-1).progressLayout.footer, /\/stop[\s\S]*打开项目 Web IDE/);
+  };
+  check(); await f.restart(); await f.stream.synchronize(); check();
+});
+
 test("long Chinese commentary rotates durably, preserves all phases and IDE, and removes old stop controls", async t => {
   const f = fixture(t);
   const phases = Array.from({length: 9}, (_, i) => `阶段${i}：${"成果验证🙂".repeat(95)}`);

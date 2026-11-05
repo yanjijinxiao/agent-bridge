@@ -13,14 +13,14 @@ import { APP_SERVER_BACKEND_CAPABILITIES } from "../src/codex/backend.js";
 import { ThreadEventHub, type ThreadSubscription } from "../src/server/thread-event-hub.js";
 import { TEXT_CAPABILITIES } from "../src/channels/client.js";
 
-for (const failure of ["none", "read-failure", "retired", "other-turn", "plain-result", "retired-memory-result"] as const)
+for (const failure of ["none", "read-failure", "retired", "other-turn", "plain-result", "retired-memory-result", "exact-receipt", "foreign-receipt"] as const)
   test(`CTRL-03.3: result action observation precedes queue recovery (${failure})`, async t => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "queue-result-race-")), paths = resolveStatePaths(root);
     saveAccount(paths, { accountId: "fixture", token: "test-only", baseUrl: "https://example.test", enabled: false });
     const store = new RuntimeStateStore(accountStatePaths(paths, "fixture"));
     const session = store.createSession("room", root, "Queue race", undefined, "session", undefined, { standalone: true });
     store.setSessionThread(session.id, "original");
-    let clientId = "", manager: any, failRead = failure === "read-failure" || failure === "plain-result" || failure === "retired-memory-result";
+    let clientId = "", manager: any, failRead = ["read-failure", "plain-result", "retired-memory-result", "exact-receipt", "foreign-receipt"].includes(failure);
     const reads: string[] = [], actions: string[] = [];
     const backend: any = { backendInfo: () => ({ id: "app-server", capabilities: APP_SERVER_BACKEND_CAPABILITIES }),
       async warmUp() {}, close() {},
@@ -94,6 +94,45 @@ for (const failure of ["none", "read-failure", "retired", "other-turn", "plain-r
     const text = 'result\n```codex-im-gateway-actions\n' + JSON.stringify({ send: [{ type: "file", path: path.join(root, "output.txt") }],
       remember: [{ kind: "knowledge", scope: "account", title: "result-race", content: "recovered" }] }) + '\n```';
     const apply = () => manager.applyNativeResult(sub, "turn", text);
+    if (failure === "exact-receipt" || failure === "foreign-receipt") {
+      const receipts = manager.receiptsFor("fixture");
+      await receipts.handle({ id: "ordinary-input", senderId: "actor", replyTargetId: "room" }, async () => {
+        receipts.submitting({ sessionId: session.id, hostId: failure === "foreign-receipt" ? "other-host" : "local", threadId: "original" });
+        receipts.accepted("original", "turn");
+      });
+      if (failure === "foreign-receipt") {
+        await assert.rejects(apply()); assert.equal(actions.length, 0); return;
+      }
+      const frames: any[] = [];
+      let terminal = false, starts = 0;
+      const subscription: ThreadSubscription = { ...sub, managed: false, client: {
+        capabilities: { ...TEXT_CAPABILITIES, progress: "available" }, resumableTextStream: true,
+        async sendText() { assert.fail("no replacement message"); },
+        async startTextStream(input) { starts++; frames.push(input); return { messageId: "original-card" }; },
+        async updateTextStream(input) { frames.push(input); }
+      } };
+      const options = { filePath: path.join(root, "follow.json"), subscriptions: () => [subscription],
+        onInputObservation: async () => { throw Error("unrelated historical input timed out"); },
+        resultReady: (s: ThreadSubscription, turn: string) => manager.nativeResultAuthority(s, turn).authorized,
+        applyResult: (s: ThreadSubscription, turn: string, value: string) => manager.applyNativeResult(s, turn, value),
+        backend: (): any => ({ async readThreadSnapshot() { return {
+          state: { threadId: "original", persistence: "active", runtimeStatus: terminal ? "idle" : "active", activeFlags: [], ...(!terminal ? { activeTurnId: "turn" } : {}) },
+          turns: [{ id: "turn", status: terminal ? "completed" : "inProgress", messages: [{ id: "answer", role: "assistant", kind: terminal ? "answer" : "progress", text: terminal ? text : "live progress" }] }]
+        }; } }) };
+      let hub = new ThreadEventHub(options);
+      try {
+        await hub.started("local", "original", "turn", new Date().toISOString());
+        await hub.activity("local", "original", "turn", "still running");
+        terminal = true; await hub.synchronize(sub.key);
+        assert.equal(actions.length, 1); assert.deepEqual(reads, [], "exact receipt must bypass unrelated queue history");
+        assert.equal(frames.at(-1).finalize, true); assert.equal(frames.at(-1).messageId, "original-card");
+        assert.doesNotMatch(frames.at(-1).text, /\/stop|codex-im-gateway-actions|进行中/);
+        await hub.stop(); hub = new ThreadEventHub(options);
+        await hub.synchronize(sub.key); await hub.completion("local", "original", "turn", text);
+        assert.equal(actions.length, 1); assert.equal(starts, 1);
+      } finally { await hub.stop(); }
+      return;
+    }
     if (failure === "read-failure") { await assert.rejects(apply()); assert.equal(actions.length, 0); failRead = false; }
     if (failure === "retired") { await assert.rejects(apply(), /binding changed/); assert.equal(actions.length, 0); }
     else {

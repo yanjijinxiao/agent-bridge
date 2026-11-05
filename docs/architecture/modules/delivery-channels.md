@@ -8,7 +8,7 @@ TurnPresentation/ThreadEventHub 保存按 host/thread/turn、阶段、卡片和�
 
 账号的接收连接 error 只说明渠道收消息异常，不代表会话解绑。AccountManager 在账号实例未被取消且仍有 client/store 时保留 running/starting/error 的订阅；明确停止、取消实例和解除绑定仍退出跟随。重连保留原卡及游标，不能将故障转换成“已停止同步”。CHAN-04.4 通过真实 monitor 回调验证 error→connecting→connected 和 stop 后迟到回调。
 
-ThreadEventHub 将 inputRecoveryFailure 与当前快照 syncFailure 分开。旧输入核对失败后，仅已加载原生持有者的精确 activeTurn 可以更新当前进展；不推进历史游标，不执行最终动作、补投或确认恢复回执。IM `/follow` 状态和 Web 会话列表单独展示输入回执恢复诊断。核对成功后恢复原结果投递，重复同步不重复执行结果动作；绑定在等待期间改变时不得向旧对话写入。对应 DEL-08.7，详见[修复记录](../../audits/2026-11-03-main-review/fixes.md)。
+ThreadEventHub 将 inputRecoveryFailure 与当前快照 syncFailure 分开。旧输入核对失败后，已加载原生持有者的精确 activeTurn 可以更新当前进展；精确已结束轮次更新为“任务已结束，结果待同步”。不推进历史游标；纯文本或已具备精确输入权威的结果可独立收尾，缺证据的附件仍等待核对。IM `/follow` 状态和 Web 会话列表单独展示输入回执恢复诊断。核对成功后恢复原结果投递，重复同步不重复执行结果动作；绑定在等待期间改变时不得向旧对话写入。对应 DEL-08.7，详见[修复记录](../../audits/2026-11-03-main-review/fixes.md)。
 
 ## 一次投递的边界
 
@@ -61,3 +61,9 @@ wecom-inbound使用有总时限与密文字节上限的fetchWithBudget，再调�
 ## 退役记忆与附件日志兼容
 
 结果只执行附件副作用。旧 remember 字段忽略且不阻止同块合法附件；纯旧 remember 结果和纯文本一样直接收尾，不等待无关队列归属查询。TurnResultActions 使用稳定附件身份，并识别旧序号中 0–3 条记忆动作产生的偏移。新发送同时保留旧格式散列别名以兼容代码回滚；started 表示未知，不重发，done 表示已确认。详情及验证边界见[移除记录](../../audits/2026-11-04-remove-gateway-memory.md)。
+
+## 当前轮次附件与旧回执的隔离
+
+AccountManager.nativeResultAuthority 按账号/绑定/session/host/thread/turn/收件对话核验现有接收回执，精确匹配成功后跳过无关的旧队列查询。ThreadEventHub.resultReady 只解决历史核对失败时的精确结果可投递性，实际动作仍经过 applyNativeResult、绑定租约和 TurnResultActions。来源未知不意味着任务仍在运行；展示等待结果状态，保留 sourceText 直至动作校验及处理成功。sourceText 是内部待投递原文，绝不能直接经过渠道 Markdown 输出。迁移字段均可选，旧已准备好的纯正文待投递记录仍按原格式恢复。
+
+24 项定向用例覆盖阶段格式、原卡收尾、附件与旧回执组合、错误 host 拒绝授权、重启、轮次切换和重复完成。源文件逐段检查及静态/配置范围见[此次四层记录](../../audits/2026-11-05-terminal-progress-regression.md)。

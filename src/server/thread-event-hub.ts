@@ -56,9 +56,9 @@ type FollowState = {
   /** Input acceptance recovery is independent of read-only runtime health. */
   inputRecoveryFailure?: FollowSyncFailure;
   presentation?: SessionFollowStatus["presentation"];
-  terminalPending?: { turnId: string; text: string; fallbackSent: boolean; outcome?: TurnOutcome };
+  terminalPending?: { turnId: string; text: string; sourceText?: string; fallbackSent: boolean; outcome?: TurnOutcome };
   /** Failed previous turns own their payload/card; never share a new turn's slot. */
-  pendingTerminals?: Record<string, { text: string; checkpoint?: ChannelStreamCheckpoint; outcome?: TurnOutcome }>;
+  pendingTerminals?: Record<string, { text: string; sourceText?: string; checkpoint?: ChannelStreamCheckpoint; outcome?: TurnOutcome }>;
   /** Legacy observation notices are not model answers or completion receipts. */
   observationNotices?: Record<string, { text: string; checkpoint?: ChannelStreamCheckpoint }>;
   repairTurnId?: string;
@@ -71,6 +71,8 @@ type Options = {
   recoveredInputTurns?: (sub: ThreadSubscription) => readonly string[];
   onRecoveredInputDelivered?: (sub: ThreadSubscription, turnId: string) => void;
   applyResult?: (sub: ThreadSubscription, turnId: string, text: string) => Promise<string | undefined>;
+  /** Exact result authority, independent of unrelated historical receipt recovery. */
+  resultReady?: (sub: ThreadSubscription, turnId: string, text: string) => boolean;
   decorateFinal?: (sub: ThreadSubscription, text: string) => string | Promise<string>;
   decorateProgress?: (sub: ThreadSubscription, text: string) => string;
   onThreadState?: (sub: ThreadSubscription, state: CodexThreadState) => void;
@@ -503,7 +505,7 @@ export class ThreadEventHub {
     state.syncFailure = failure;
     this.save();
     // A failed read is not a failed task. Update only an already-owned card.
-    if (failure.code !== "presentation") void this.streams.get(sub.key)?.setActivity("unconfirmed").catch(report);
+    if (failure.code !== "presentation") void this.streams.get(sub.key)?.setActivity(state.terminalPending ? "waiting-result" : "unconfirmed").catch(report);
     const lastLog = this.errorLogTimes.get(sub.key) ?? 0;
     if (changed || Date.now() - lastLog > (state.runtime?.persistence === "archived" ? 5 * 60_000 : 60_000)) {
       this.errorLogTimes.set(sub.key, Date.now());
@@ -675,9 +677,22 @@ export class ThreadEventHub {
       threadId: sub.threadId, turnId: snapshot.state.activeTurnId })) return;
     state.observedAt = new Date().toISOString();
     if (!resultsReady) {
-      // Do not move history boundaries, acknowledge recovered inputs, run
-      // result actions or retry old final deliveries on incomplete acceptance
-      // evidence. Only the loaded owner's exact active turn may update progress.
+      // Incomplete historical receipts do not erase the loaded owner's exact
+      // terminal fact. Keep effects gated by per-result authority, while ending
+      // the misleading running/stop presentation and retaining raw source for
+      // later authorized delivery. No history cursor or input is advanced here.
+      const terminal = snapshot.state.persistence === "active" && ["active", "idle"].includes(snapshot.state.runtimeStatus)
+        ? snapshot.turns.find(turn => turn.id === state.turnId && turn.status !== "inProgress") : undefined;
+      if (terminal && terminal.status !== "inProgress" && !state.completed.includes(terminal.id)) {
+        const text = terminal.messages.filter(message => message.role === "assistant" && message.kind !== "progress")
+          .map(message => message.text).join("\n\n") || (terminal.status === "completed" ? "任务已完成。" : "任务已停止或执行失败。");
+        this.retainTerminalSource(state, terminal.id, text, terminal.status);
+        if (this.options.resultReady?.(sub, terminal.id, state.terminalPending?.sourceText ?? text)) {
+          try { await this.finish(sub, terminal.id, text, false, { outcome: terminal.status }); }
+          catch (error) { this.failSync(sub, followSyncFailure(error)); }
+        } else await this.stream(sub).setActivity("waiting-result");
+      }
+      this.retryPreviousTerminals(sub, force);
       await this.reconcileActiveProgress(sub, snapshot);
       return;
     }
@@ -711,7 +726,7 @@ export class ThreadEventHub {
       const previous = snapshot.turns.find(turn => turn.id === state.turnId && turn.status !== "inProgress");
       const text = previous?.messages.filter(message => message.role === "assistant" && message.kind !== "progress").map(message => message.text).join("\n\n");
       if (text?.trim() && previous && previous.status !== "inProgress") state.terminalPending = {
-        turnId: state.turnId, text: visibleText(text).trim(), fallbackSent: false, outcome: previous.status };
+        turnId: state.turnId, text: visibleText(text).trim(), sourceText: text, fallbackSent: false, outcome: previous.status };
     }
     if (!sub.managed && currentTurn && state.turnId !== currentTurn.id) await this.selectTurn(sub, currentTurn.id, true);
     if (currentTurn?.id === state.turnId) {
@@ -742,7 +757,7 @@ export class ThreadEventHub {
     this.retryPreviousTerminals(sub, force);
     if (!this.isLive(sub)) return;
     if (state.terminalPending) {
-      await this.finish(sub, state.terminalPending.turnId, state.terminalPending.text, false,
+      await this.finish(sub, state.terminalPending.turnId, state.terminalPending.sourceText ?? state.terminalPending.text, false,
         { recoverBootstrap: force, confirmUncertainDelivery: options.confirmUncertainDelivery, outcome: state.terminalPending.outcome });
     }
     const { turns } = snapshot;
@@ -1116,6 +1131,7 @@ export class ThreadEventHub {
     if (turnId && !state.completed.includes(turnId) && (pending || archiveCheckpoint && state.checkpoint?.terminal)) {
       (state.pendingTerminals ??= {})[turnId] = {
         text: pending?.text ?? state.checkpoint!.terminal!.text,
+        sourceText: pending?.sourceText,
         outcome: pending?.outcome ?? state.checkpoint?.terminal?.outcome,
         checkpoint: state.checkpoint
       };
@@ -1148,6 +1164,8 @@ export class ThreadEventHub {
       const recoveryKey = JSON.stringify([sub.key, sub.hostId, sub.threadId, turnId]);
       if (this.previousRecoveries.has(recoveryKey) || !force && Date.now() < (this.previousRetryAt.get(recoveryKey) ?? 0)) continue;
       if (pending.checkpoint?.messageId && !sub.client.resumableTextStream) continue;
+      if (pending.sourceText !== undefined && state.inputRecoveryFailure
+        && !this.options.resultReady?.(sub, turnId, pending.sourceText)) continue;
       const work = (async () => {
       const stream = new ChannelTurnPresentation(this.presentationClient(sub), sub.recipientId, {
         restore: pending.checkpoint, contextToken: sub.contextToken, onTextDelivered: sub.onTextDelivered, progressEnabled: sub.progressEnabled,
@@ -1157,6 +1175,16 @@ export class ThreadEventHub {
         }
       });
       try {
+        // Deferred finals may have been archived before their file actions
+        // were authorized. Never send raw action blocks or discard them on a
+        // turn switch; re-use the same per-turn action journal before closing.
+        if (pending.sourceText !== undefined) {
+          try {
+            pending.text = await this.prepareTerminalText(sub, turnId, pending.sourceText, pending.outcome);
+            if (!this.isLive(sub) || state.pendingTerminals?.[turnId] !== pending) return;
+            delete pending.sourceText; this.save();
+          } catch (error) { await stream.setActivity("waiting-result"); throw error; }
+        }
         const delivered = await stream.finalize(pending.text, pending.outcome === "failed" || pending.outcome === "interrupted",
           { recoverBootstrap: force, existingOnly: true, outcome: pending.outcome });
         if (delivered && this.isLive(sub) && state.pendingTerminals?.[turnId] === pending) {
@@ -1247,7 +1275,7 @@ export class ThreadEventHub {
       const hadResult = Boolean(state.terminalPending || state.checkpoint?.terminal);
       this.archiveTerminal(state, hadResult);
       if (old) {
-        if (hadResult) { void old.suspend().catch(report); this.streams.delete(sub.key); }
+        if (hadResult) { await old.setActivity("waiting-result"); void old.suspend().catch(report); this.streams.delete(sub.key); }
         else await old.nextTurn(turnId);
       }
       // A synthetic "switched turns" closure is not a model's final result.
@@ -1293,25 +1321,30 @@ export class ThreadEventHub {
     const state = this.state(sub);
     if (state.completed.includes(turnId)) { void this.notifyParticipants(sub, turnId); return; }
     if (!await this.selectTurn(sub, turnId, allowSwitch)) return;
-    const notice = !recovery.outcome || recovery.outcome === "completed" ? await this.options.applyResult?.(sub, turnId, text) : undefined;
-    const visible = [visibleText(text).trim() || "任务已结束。", notice].filter(Boolean).join("\n\n");
-    let clean = visible;
-    try { clean = await this.options.decorateFinal?.(sub, visible) ?? visible; }
-    catch { /* Optional IDE metadata must never prevent result delivery. */ }
+    this.retainTerminalSource(state, turnId, text, recovery.outcome);
+    const pending = state.terminalPending!;
+    let clean = pending.text;
+    if (pending.sourceText !== undefined) {
+      try { clean = await this.prepareTerminalText(sub, turnId, pending.sourceText, pending.outcome); }
+      catch (error) {
+        if (this.isLive(sub) && state.turnId === turnId) await this.stream(sub).setActivity("waiting-result");
+        throw error;
+      }
+    }
     // Optional native context reads can outlive a detach, a replacement turn,
     // or another completion delivery. Never publish into that newer binding.
     if (!this.isLive(sub) || state.turnId !== turnId || state.completed.includes(turnId)) return;
-    state.terminalPending ??= { turnId, text: clean, fallbackSent: false, outcome: recovery.outcome };
+    pending.text = clean; delete pending.sourceText;
     this.save();
     const stream = this.stream(sub);
-    const outcome = state.terminalPending.outcome ?? recovery.outcome;
+    const outcome = pending.outcome ?? recovery.outcome;
     if (!await stream.finalize(clean, outcome === "failed" || outcome === "interrupted", { ...recovery, outcome })) {
-      if (!state.terminalPending.fallbackSent) {
+      if (!pending.fallbackSent) {
         if (stream.supported || stream.checkpoint().terminalPages?.length) {
           try { await stream.reportTerminalFailure(); }
           catch { console.warn("[codex-im-gateway] terminal delivery notice unavailable"); }
         } else if (!stream.checkpoint().terminalPages?.length) await this.sendText(sub, clean);
-        state.terminalPending.fallbackSent = true;
+        pending.fallbackSent = true;
         this.save();
       }
       // A notice is not an answer receipt, including when card creation
@@ -1329,6 +1362,18 @@ export class ThreadEventHub {
     this.options.onRecoveredInputDelivered?.(sub, turnId);
     // An ancillary reminder must not hold the progress/control serial queue.
     void this.notifyParticipants(sub, turnId);
+  }
+
+  private retainTerminalSource(state: FollowState, turnId: string, text: string, outcome?: TurnOutcome): void {
+    state.terminalPending ??= { turnId, text: visibleText(text).trim(), sourceText: text, fallbackSent: false, outcome };
+    this.save();
+  }
+
+  private async prepareTerminalText(sub: ThreadSubscription, turnId: string, text: string, outcome?: TurnOutcome): Promise<string> {
+    const notice = !outcome || outcome === "completed" ? await this.options.applyResult?.(sub, turnId, text) : undefined;
+    const visible = [visibleText(text).trim() || "任务已结束。", notice].filter(Boolean).join("\n\n");
+    try { return await this.options.decorateFinal?.(sub, visible) ?? visible; }
+    catch { return visible; /* Optional IDE metadata never blocks result delivery. */ }
   }
 
   private logDelivery(sub: ThreadSubscription, turnId: string, status: "pending" | "delivered"): void {

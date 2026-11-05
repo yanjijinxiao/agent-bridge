@@ -51,15 +51,24 @@ export function activitySummary(state: PhaseProgress): string {
 export function phaseParagraphs(state: PhaseProgress, close = false): string[] {
   const summary = close ? activitySummary(state) : "";
   return state.phases.flatMap((phase, index) => [
-    phase.text && markdownPreview(phase.text, Number.MAX_SAFE_INTEGER, { emphasis: false }),
-    phase.summary || (index === state.phases.length - 1 ? summary : "")
+    phase.text && progressBullet(markdownPreview(phase.text, Number.MAX_SAFE_INTEGER, { emphasis: false })),
+    (phase.summary || (index === state.phases.length - 1 ? summary : "")) &&
+      progressBullet(`🛠️ ${phase.summary || summary}`)
   ]).filter(Boolean);
 }
 
 export function phaseActivity(state: PhaseProgress): string[] {
-  return state.live.map(text => progressKind(text) === "thought"
+  return state.live.map(text => progressBullet(progressKind(text) === "thought"
     ? `💭 ${markdownPreview(text.replace(/^🤔\s*/, ""), 160, { emphasis: false })}`
-    : markdownPreview(text, 140, { emphasis: false }));
+    : markdownPreview(text, 140, { emphasis: false })));
+}
+
+/** Keep the existing list/icon vocabulary in both phase history and the live
+ * window. Continuation lines belong to the same item, including after restart. */
+function progressBullet(text: string): string {
+  // Blank preview paragraphs must not become indented empty list rows when
+  // DingTalk flattens the list into its single streaming paragraph.
+  return `- ${text.split("\n").filter(line => line.trim()).join("\n  ")}`;
 }
 
 /** Split only when one commentary cannot fit the reserved history area. Use

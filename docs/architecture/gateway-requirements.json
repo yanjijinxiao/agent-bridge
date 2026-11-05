@@ -9390,6 +9390,61 @@
           ],
           "verifiedBoundary": "真实投影/持久化/恢复组件和模拟渠道回执；不是手机实机验收。旧版本同组 42 项有 9 项失败，修改后通过。",
           "report": "docs/audits/2026-11-05-phase-progress.md"
+        },
+        {
+          "id": "DEL-08.11",
+          "scenario": "阶段列表和图标保留；精确当前回执含附件不被旧输入恢复阻塞，终态待投递不再显示执行中",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/phase-progress.test.ts",
+              "name": "phase history and live window preserve bullets and tool/thought icons in DingTalk rendering after restart"
+            },
+            {
+              "file": "test/queue-result-recovery.test.ts",
+              "name": "CTRL-03.3: result action observation precedes queue recovery (exact-receipt)"
+            },
+            {
+              "file": "test/queue-result-recovery.test.ts",
+              "name": "CTRL-03.3: result action observation precedes queue recovery (foreign-receipt)"
+            },
+            {
+              "file": "test/thread-input-recovery-progress.test.ts",
+              "name": "receipt failure withholds final effects until recovery and does not replay input"
+            },
+            {
+              "file": "test/thread-input-recovery-progress.test.ts",
+              "name": "pending result source survives restart and a new active turn without replaying input"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/phase-progress.ts",
+              "sha256": "250dab51650bf0d146600207fc71a119e6b93a437a3169176855a765b8835f47"
+            },
+            {
+              "file": "src/channels/progress.ts",
+              "sha256": "e7d1f68ed22f5b425ca146fa12daeef949531bca3cfbdec5c2bb1abd1138d57e"
+            },
+            {
+              "file": "src/channels/turn-progress-card.ts",
+              "sha256": "8161c8304861871b33bf85f2e9437f9b741e375c8a92389aa9d03c01211f1a57"
+            },
+            {
+              "file": "src/channels/turn-status.ts",
+              "sha256": "8f7244d3d8915a72f8b40ca04c1b09ac90ea768ca5b68e4831f254ec8c81147f"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "d2b78dbf118330b5a32e2647c5f919a2e325bbfe828cd74758627bc7b735558f"
+            },
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "92450044a0e22650f511363782d60867731cc66302347caaddec4d8af4fb1ccf"
+            }
+          ],
+          "verifiedBoundary": "真实编排/持久化/渲染组件，受控渠道与原生端口；不等同手机实机验收。",
+          "report": "docs/audits/2026-11-05-terminal-progress-regression.md"
         }
       ]
     },

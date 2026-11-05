@@ -416,6 +416,8 @@ export class AccountManager {
           this.inputReceipts.get(accountId)?.recoveredResultDelivered(receipt);
       },
       applyResult: (sub, turnId, text) => this.applyNativeResult(sub, turnId, text),
+      resultReady: (sub, turnId, text) => !parseAssistantMessage(text).actions.send.length
+        || this.nativeResultAuthority(sub, turnId).authorized,
       legacyQueueTerminal: (sub, turnId) => {
         const [accountId, sessionId] = JSON.parse(sub.key) as string[];
         return this.nativeQueue.hasLegacyTerminal({ accountId, sessionId, hostId: sub.hostId, threadId: sub.threadId, turnId });
@@ -1917,6 +1919,18 @@ export class AccountManager {
     await this.receiptsFor(accountId).handle(message, () => entry.service!.handleMessage(message));
   }
 
+  /** Scope output authority to the exact binding/host/thread/turn. Historical
+   * unresolved inputs in the same thread cannot revoke an accepted input. */
+  private nativeResultAuthority(sub: ThreadSubscription, turnId: string) {
+    const [accountId, sessionId] = JSON.parse(sub.key) as [string, string];
+    const receipts = Object.values(this.receiptsFor(accountId).snapshot()).filter(r => r.sessionId === sessionId
+      && (r.hostId ?? "local") === sub.hostId && r.threadId === sub.threadId && r.turnId === turnId
+      && r.conversationId === sub.recipientId && ["accepted", "handled"].includes(r.phase));
+    const queued = this.nativeQueue.list(accountId).some(r => r.sessionId === sessionId && r.hostId === sub.hostId
+      && r.threadId === sub.threadId && r.turnId === turnId && r.conversationId === sub.recipientId);
+    return { receipts, queued, authorized: Boolean(receipts.length || queued) };
+  }
+
   /** Only outputs of an exactly acknowledged Gateway input may carry effects.
    * A Desktop history/follow subscription alone grants no such authority. The
    * action journal is shared by the original handler and restart recovery. */
@@ -1932,18 +1946,14 @@ export class AccountManager {
     // turn ID after a crash. Resolve only this original thread's queue evidence
     // before deciding that a result has no Gateway action authority. Otherwise
     // final delivery would permanently hide an unprocessed file action.
-    if (this.nativeQueue.list(accountId).some(r => r.sessionId === sessionId && r.hostId === sub.hostId
+    if (!this.nativeResultAuthority(sub, turnId).authorized && this.nativeQueue.list(accountId).some(r => r.sessionId === sessionId && r.hostId === sub.hostId
       && r.threadId === sub.threadId && r.conversationId === sub.recipientId && !r.turnId
       && ["submitting", "queued", "starting", "uncertain"].includes(r.status))) {
       await this.nativeQueue.reconcile(accountId, this.runnerFor(), {
         conversationId: sub.recipientId, hostId: sub.hostId, threadId: sub.threadId
       });
     }
-    const receipts = Object.values(this.receiptsFor(accountId).snapshot()).filter(r => r.sessionId === sessionId
-      && (r.hostId ?? "local") === sub.hostId && r.threadId === sub.threadId && r.turnId === turnId
-      && r.conversationId === sub.recipientId && ["accepted", "handled"].includes(r.phase));
-    const queued = this.nativeQueue.list(accountId).some(r => r.sessionId === sessionId && r.hostId === sub.hostId
-      && r.threadId === sub.threadId && r.turnId === turnId && r.conversationId === sub.recipientId);
+    const { receipts, queued } = this.nativeResultAuthority(sub, turnId);
     if (!receipts.length && !queued) return;
     if (!session || !entry?.service) throw new CodexInterventionError("Result application owner unavailable");
     const binding = sessionExecutionScope(store, session);

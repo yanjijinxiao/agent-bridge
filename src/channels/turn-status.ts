@@ -1,5 +1,5 @@
 /** Presentation facts, never inferred from model text, silence or stream closure. */
-export type TurnActivity = "running" | "waiting-input" | "waiting-approval" | "recovering" | "unconfirmed";
+export type TurnActivity = "running" | "waiting-input" | "waiting-approval" | "recovering" | "unconfirmed" | "waiting-result";
 export type TurnOutcome = "completed" | "failed" | "interrupted" | "continued" | "detached" | "session-restored" | "session-unconfirmed";
 
 const labels: Record<TurnActivity | TurnOutcome, string> = {
@@ -8,6 +8,7 @@ const labels: Record<TurnActivity | TurnOutcome, string> = {
   "waiting-approval": "等待审批",
   recovering: "正在恢复执行",
   unconfirmed: "执行状态待确认",
+  "waiting-result": "任务已结束，结果待同步",
   completed: "已完成",
   failed: "执行失败",
   interrupted: "已中断",

@@ -173,7 +173,7 @@ export class ChannelTurnTextStream {
       ...(this.recoveryNotice ? { recoveryNotice: this.recoveryNotice } : {}),
       ...(this.presentationCorrection ? { presentationCorrection: { ...this.presentationCorrection } } : {}),
       ...(this.statusHeader ? { statusHeader: true as const } : {}),
-      ...(this.activityMetadata ? { activity: this.activity } : {}),
+      ...(this.activityMetadata || this.activity === "waiting-result" ? { activity: this.activity } : {}),
       toolActivity: { ...this.toolActivity },
       ...(this.terminal ? { terminal: this.terminal } : {}),
       ...(this.resultPageBytes ? { resultPageBytes: this.resultPageBytes, resultPresentation: this.resultPresentation,
@@ -471,13 +471,17 @@ export class ChannelTurnTextStream {
 
   /** Status-only observations may update an existing card, never create a placeholder. */
   async setActivity(activity: TurnActivity): Promise<boolean> {
-    if (!this.activityMetadata || this.finished || this.terminal || this.suspended || this.activity === activity) return false;
+    if (!this.activityMetadata && activity !== "waiting-result" || this.finished || this.terminal || this.suspended || this.activity === activity) return false;
     this.activity = activity;
     if (activity !== "unconfirmed") this.communicationNotice = undefined;
     if (activity !== "recovering") this.recoveryNotice = undefined;
     this.persistence?.save(this.checkpoint());
     if (!this.messageId && !this.creationAttempted) return false;
-    return this.publish(this.render());
+    const published = await this.publish(this.render());
+    // An authoritative terminal observation removes stop controls promptly,
+    // including legacy clients without activity metadata.
+    if (activity === "waiting-result") await this.flush();
+    return published;
   }
 
   /** A lost backend receipt cannot finish a provider stream or assert task failure. */
@@ -620,7 +624,7 @@ export class ChannelTurnTextStream {
 
   private renderBody(): string {
     const current = this.progressEntries.filter(entry => progressKind(entry) === "update").at(-1);
-    if (this.statusHeader) return renderTurnProgressCard(this.progressFacts());
+    if (this.statusHeader || this.activity === "waiting-result") return renderTurnProgressCard(this.progressFacts());
     const sections = [
       this.activityMetadata ? turnStatusHeading(this.visibleActivity())
         : this.communicationNotice ? "⏳ **等待后端确认**" : this.recoveryNotice ? "⏳ **等待 Codex 后续状态**"
