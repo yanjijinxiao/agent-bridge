@@ -28,9 +28,10 @@ async function main(): Promise<void> {
   );
   const paths = resolveStatePaths(stateDir);
   const config = loadConfig(paths);
-  const processLock = acquireServiceProcessLock(paths.root);
   const peerConfig = loadPeerListener(process.env.CODEX_IM_GATEWAY_PEER_CONFIG);
-  const peers = peerConfig ? new PeerRegistry(path.join(paths.runtimeDir, "peer-grants.json")) : undefined;
+  const peers = new PeerRegistry(path.join(paths.runtimeDir, "peer-grants.json"), peerConfig?.managedRoutes);
+  // Validate deployment routes before acquiring the live process lease.
+  const processLock = acquireServiceProcessLock(paths.root);
   let accountManager: AccountManager;
   const taskboard = new TaskboardLifecycle(paths.taskboardDir, undefined, () => accountManager.taskboardNativeBackend());
   accountManager = new AccountManager({ paths, restartParticipant: taskboard, peerRegistry: peers });
@@ -67,7 +68,7 @@ async function main(): Promise<void> {
     exitAfterShutdown();
   };
   try {
-    if (peers) { peerServer = await listenGatewayPeers(peerConfig, peers); sharedWorkspaces = await listenSharedWorkspaces(peerConfig, peers); }
+    if (peerConfig) { peerServer = await listenGatewayPeers(peerConfig, peers); sharedWorkspaces = await listenSharedWorkspaces(peerConfig, peers); }
     await taskboard.apply(config);
     if (accountManager.releaseStatus().prepared) taskboard.pauseForRestart();
     server = await startLocalHttpServer({ paths, accountManager, port, onUpdateInstalled: scheduleRestart,

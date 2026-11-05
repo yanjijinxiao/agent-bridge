@@ -1,4 +1,6 @@
-# Gateway 的监听端、拨号端与远程 Codex
+# Gateway 的监听端、Connector 与 Codex
+
+Gateway 的生产执行入口已统一到 Connector，同机部署也运行独立 Connector。Gateway 不再直接执行本机或 SSH Codex；断连不改路由。个人设备继续使用下述配对流程；保留已有本机/SSH 绑定的管理员迁移见 [Connector 唯一执行入口](architecture/connector-only-execution.md)。
 
 目录选择：`/connect` 展示本人当前聊天的设备，点击切换或 `/connect use C2` 保存当前 Connector，后续 `/sessions` 和 `/project` 默认只查它，重启后仍保留。切换目录不换绑、不停止原任务；选中会话才换绑。`/sessions all` 显式聚合，`/sessions --host ...` 为临时查询。离线/撤权不自动回退；新建不能沿用其他设备目录。接口和状态边界见 [当前 Connector](architecture/modules/connector-selection.md)。
 
@@ -80,7 +82,7 @@ B 按 `examples/peer-client.json` 创建配置：
 
 `label` 是钉钉显示的设备名；新配置的设备身份由程序生成。旧配置的 `nodeId` 与 A 的设备记录一致，必须和 `tokenFile` 一同保留。`profileId` 是连接资源的标识，不等同于 Codex CLI 的 `-p` 配置 profile。可选 `codexHome`、`codexBin` 指定本地安装和资源目录；各路径相对配置文件解析，`codexBin` 按普通可执行命令解析。`stateDir` 可指定本机配对和回执目录，请保持稳定且不要由多个客户端进程同时写入。
 
-Gateway 和 Connector 均沿用主分支统一的原生 App Server 适配器。Connector 的 `backend` 只接受 `app-server`；旧的 `exec` 配置需迁移。`appServerTransport` 默认 `daemon`，连接本机原生 daemon，不隐式回退到另一执行器。显式选择 `stdio` 可运行 CLI 私有 App Server，但任务属于该 Connector 进程，不能获得独立执行的重启豁免。
+Gateway 使用统一 Connector facade；Connector 使用唯一的原生 App Server 适配器。Connector 的 `backend` 只接受 `app-server`；旧的 `exec` 配置需迁移。`appServerTransport` 默认 `daemon`，连接本机原生 daemon，不隐式回退到另一执行器。显式选择 `stdio` 可运行 CLI 私有 App Server，但任务属于该 Connector 进程，不能获得独立执行的重启豁免。
 
 默认开放该本地 Codex profile 的普通会话供获准的聊天用户选择。若只想开放某一个会话，可显式添加 `threadId`；这种受限配置仍按原流程直接绑定指定会话。
 

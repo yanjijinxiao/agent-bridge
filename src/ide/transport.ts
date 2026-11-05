@@ -16,13 +16,17 @@ export type IDELaunchInput = { hostId: string; workspace: string; id: string; bi
   settings: Record<string, unknown>; extensions: readonly string[]; prepare?: boolean; trustWorkspace?: boolean;
   onProfile?: (status: IDEProfileStatus) => void; signal?: AbortSignal };
 export interface IDEHostTransport {
+  /** Connector owns installation on its host; Gateway must not run an installer. */
+  ownsInstallation?(hostId: string): boolean;
   canAccess?(hostId: string, context: IDEHostContext): boolean;
   preparationStatus?(hostId: string, context: IDEHostContext): Promise<Pick<IDEInstallStatus, "phase" | "bytes" | "total"> | undefined>;
   canonicalDirectory(hostId: string, workspace: string, context?: IDEHostContext): Promise<string>;
   launch(input: IDELaunchInput): Promise<IDELaunch>;
 }
 /** Identity accompanies a host operation; it never comes from a browser path. */
-export type IDEHostContext = { accountId: string; threadId?: string; workspace: string; rootPaths?: readonly string[]; subject?: IDEAccessSubject };
+export type IDEHostContext = { accountId: string; threadId?: string; workspace: string; rootPaths?: readonly string[]; subject?: IDEAccessSubject;
+  /** Set only by the authenticated loopback management API, never a browser body. */
+  administrative?: boolean };
 
 /** Fixed helper; variable input is base64 JSON, never shell source. Each host
  * owns its tools/data. A disconnected parent terminates its own child group. */

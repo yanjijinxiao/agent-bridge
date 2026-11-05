@@ -223,11 +223,13 @@ Session lists also hide explicitly classified probe records and report the hidde
 
 ## Codex backends
 
+Every Gateway execution path now uses a Connector, including work on the same machine. Gateway does not start Codex or fall back to local/SSH execution. Configure `CODEX_IM_GATEWAY_PEER_CONFIG`, run the Connector independently on each execution device, and keep both services supervised separately. Existing bindings can retain their logical host IDs through explicit deployment routes; see [migration and invariants](./docs/architecture/connector-only-execution.md).
+
 Gateway implements one standard App Server interface for project, session, execution, history, approval, queue, goal and status operations. Desktop and CLI-only deployments differ only in connection and service deployment. GUI installation is not required on a CLI-only host.
 
 The configured host and transport select one native core. Shared daemon readers and execution connections attach to that same core. A connection failure does not fall back to exec or private Desktop IPC, and accepted or uncertain inputs are never replayed. Old auto/exec configuration values migrate to app-server; native sandbox and reviewer policies are inherited.
 
-A Desktop client still using private stdio must reconnect to the shared service while its work is idle. Restarting Gateway cannot merge existing cores. Explicit private stdio uses the same protocol but remains Gateway-owned, so active task survival cannot be promised across Gateway shutdown. See [Codex backend architecture](./docs/codex-backends.md).
+A Desktop client still using private stdio must reconnect to the shared service while its work is idle. Restarting Gateway cannot merge existing cores. Explicit private stdio uses the same protocol but is Connector-owned: restarting that Connector can stop its private core; restarting Gateway only disconnects observation. See [Codex backend architecture](./docs/codex-backends.md).
 
 The Taskboard AI panel and issue automation also use this native adapter. Embedded services borrow Gateway's instance; standalone services load the root build and use the configured native connection, without a CLI `exec` fallback. Closing observation does not interrupt work accepted by an independent core; explicitly selected private stdio still has a host-owned lifecycle. See [Taskboard native execution](./docs/architecture/modules/taskboard-native-execution.md) and the [remaining verification boundaries](./docs/architecture/remaining-work.md).
 

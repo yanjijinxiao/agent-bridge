@@ -17748,6 +17748,163 @@
           "remainingBoundary": "不把条件跳过的原生模型/实机场景、钉钉手机 UI 或线上用户实际点击算作已验证。"
         }
       ]
+    },
+    {
+      "id": "NAT-07",
+      "module": "native",
+      "title": "Gateway 全部执行统一到 Connector",
+      "sourceRecords": [],
+      "sourceDescription": "2026-11-05 本 session 用户要求全部统一到 Connector，并授权操作。",
+      "contract": "Gateway 不创建原生执行器；同机、远端统一 RPC；固定 host/profile，保留已有绑定、原生回执和 IDE 作用域；Connector 和原生 daemon 与 Gateway 生命周期解耦。",
+      "implementationReview": "增量四层检查覆盖本次变更，不冒充重新逐行审核整个仓库。",
+      "cases": [
+        {
+          "id": "NAT-07.1",
+          "scenario": "Gateway 唯一 Connector 执行入口，缺失设备不回退",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-only.test.ts",
+              "name": "connector-only refuses unconfigured hosts without creating or falling back to a native core"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/backend.ts",
+              "sha256": "6fa91770800a81b27cd527576bf42bf4fe748e882a10622ffa3f4e4ad42fe7ee"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "10fca1d336cb258556ca41f6103db09f8a17e9752d9101a656af441c4fc878c3"
+            }
+          ],
+          "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
+          "remainingBoundary": "未将条件跳过测试、手机实机视觉验收或线上用户点击视为通过。"
+        },
+        {
+          "id": "NAT-07.2",
+          "scenario": "托管身份与个人配对隔离，登记不得抢占",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-only.test.ts",
+              "name": "managed registration rejects another node, another profile and enrollment before replacing a connection"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "6468532ac302a01f509c8c6e8f830dec45e9a203e73fa0c17c48885b44decb0a"
+            },
+            {
+              "file": "src/peer/managed-route.ts",
+              "sha256": "001f59ef70dfe2082980a692236c7523a7aa30c6bac33a95a4b2975439b31a44"
+            },
+            {
+              "file": "src/peer/runtime.ts",
+              "sha256": "e48206a43a04ef11ea937d28a137d209e448ada84ee6d6c8cace75ce8ef4f902"
+            }
+          ],
+          "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
+          "remainingBoundary": "未将条件跳过测试、手机实机视觉验收或线上用户点击视为通过。"
+        },
+        {
+          "id": "NAT-07.3",
+          "scenario": "历史输入和原生队列来源保留，重连不重放",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-only.test.ts",
+              "name": "Gateway reconnection leaves the existing native input alone and recovers old and new source IDs"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/backend.ts",
+              "sha256": "6fa91770800a81b27cd527576bf42bf4fe748e882a10622ffa3f4e4ad42fe7ee"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "1a1ad857baa2105cfd2a0e76aa4b0b750f3778d1568e379b1046e9fc22dafe60"
+            }
+          ],
+          "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
+          "remainingBoundary": "未将条件跳过测试、手机实机视觉验收或线上用户点击视为通过。"
+        },
+        {
+          "id": "NAT-07.4",
+          "scenario": "原生进展观察在设备侧运行且可退休重连",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-only.test.ts",
+              "name": "profile observation is delivered by Connector and can detach/reconnect without stopping Codex"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/session-monitor.ts",
+              "sha256": "dbd599df37a38967f0d3ee5b4d1e65ea4c6ec825c9b425e9f8b401fb69168287"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "1a1ad857baa2105cfd2a0e76aa4b0b750f3778d1568e379b1046e9fc22dafe60"
+            }
+          ],
+          "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
+          "remainingBoundary": "未将条件跳过测试、手机实机视觉验收或线上用户点击视为通过。"
+        },
+        {
+          "id": "NAT-07.5",
+          "scenario": "保留空项目、缺失挂载和多根目录",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-only.test.ts",
+              "name": "managed project catalog retains missing secondary roots and empty projects"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/codex-projects.ts",
+              "sha256": "e424ed790878012f4ffeea958692b44d8995841f79e1bd77588944aba0504a25"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "1a1ad857baa2105cfd2a0e76aa4b0b750f3778d1568e379b1046e9fc22dafe60"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "10fca1d336cb258556ca41f6103db09f8a17e9752d9101a656af441c4fc878c3"
+            }
+          ],
+          "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
+          "remainingBoundary": "未将条件跳过测试、手机实机视觉验收或线上用户点击视为通过。"
+        },
+        {
+          "id": "NAT-07.6",
+          "scenario": "临时推理使用明确 Connector 并保持只读",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-only.test.ts",
+              "name": "ephemeral inference uses the explicit Connector without submitting to local"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/backend.ts",
+              "sha256": "084e72cffdb79cbb9484ee738072c964e437bee39135713a34ec508d55883734"
+            },
+            {
+              "file": "src/peer/backend.ts",
+              "sha256": "6fa91770800a81b27cd527576bf42bf4fe748e882a10622ffa3f4e4ad42fe7ee"
+            }
+          ],
+          "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
+          "remainingBoundary": "未将条件跳过测试、手机实机视觉验收或线上用户点击视为通过。"
+        }
+      ]
     }
   ],
   "reviewPass": "2026-11-03 full-four-layer: source, comments, documentation, tests, static/configuration reviewed; isolated regressions passed; deployment separately recorded",
@@ -17920,6 +18077,18 @@
       "CAT-05.2",
       "CAT-05.3",
       "CAT-05.4"
+    ]
+  },
+  "connectorOnlyUpdate": {
+    "date": "2026-11-05",
+    "document": "docs/architecture/connector-only-execution.md",
+    "cases": [
+      "NAT-07.1",
+      "NAT-07.2",
+      "NAT-07.3",
+      "NAT-07.4",
+      "NAT-07.5",
+      "NAT-07.6"
     ]
   }
 }

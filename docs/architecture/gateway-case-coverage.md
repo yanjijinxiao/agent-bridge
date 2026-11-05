@@ -117,3 +117,7 @@ CTRL-03.3 / DEL-09.3 增补“同会话旧队列未映射且历史不可用，�
 | KB-02.4 | 12 个真实崩溃恢复场景核对附件字节和一次发送 | native-input-crash-recovery、native-queue-crash-recovery |
 
 测试全名与内容散列以 gateway-requirements.json 为准；过程及验证边界见[移除记录](../audits/2026-11-04-remove-gateway-memory.md)。
+
+## 2026-11-05 Connector 唯一执行入口
+
+NAT-07.1–07.6：缺失路由拒绝、托管注册隔离、旧输入/队列回执、设备侧观察、完整项目目录、明确设备的临时推理；测试全名和本次文件散列记录在 gateway-requirements.json。另有同机/远端托管 IDE HTTP、WebSocket、多根目录用例，以及 managed-connector 的完整原生 JSONL 契约。真实迁移预检比较 2 个原生核心、25 个绑定和项目根目录，全部保持一致。完整回归 3291 项：3205 通过、86 条件跳过、0 失败；跳过不计作验证。本次是变更范围的四层检查，不刷新历史未复查文件的覆盖结论。

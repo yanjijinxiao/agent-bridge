@@ -438,6 +438,8 @@ export function assertCodexProjectBinding(input: CodexRunnerInput): void {
 }
 
 export type EphemeralCodexRunnerInput = {
+  /** Explicit execution device; omitted retains the configured local route. */
+  readonly hostId?: string;
   readonly prompt: string;
   readonly cwd: string;
   readonly model?: string;
@@ -509,6 +511,8 @@ export type CodexProject = {
   roots: string[];
   lastUsedAt?: string;
   sessionCount?: number;
+  /** Device-side directory observation; unavailable projects stay in catalogs. */
+  available?: boolean;
 };
 
 /** Keeps the project source explicit so fallback never mixes backend catalogs. */

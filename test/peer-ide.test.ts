@@ -18,12 +18,12 @@ import { startLocalHttpServer } from "../src/server/http-server.js";
 import { resolveStatePaths } from "../src/state/paths.js";
 
 const subject = { principal: { accountId: principal.accountId, channel: "dingtalk" as const, providerId: "test-bot", actorId: principal.actorId }, basis: "im-personal" as const, epoch: 0 };
-async function fixture(t: test.TestContext) {
-  const f = await peerFixture(t, { device: true, webIDE: { enabled: true, binary: path.resolve("test/fixtures/peer-ide-code-server.mjs"), autoInstall: false } });
+async function fixture(t: test.TestContext, managedHost?: string) {
+  const f = await peerFixture(t, { device: true, managedHost, webIDE: { enabled: true, binary: path.resolve("test/fixtures/peer-ide-code-server.mjs"), autoInstall: false } });
   const roots = ["alpha", "beta"].map(n => { const p = path.join(f.root, n); fs.mkdirSync(p); return fs.realpathSync(p); });
   Object.assign(f.thread, { cwd: roots[0], projectId: "project", projectMembership: "assigned" });
   f.projects.push({ id: "project", name: "CLI project", roots });
-  await f.bind();
+  if (!managedHost) await f.bind();
   const context: IDEHostContext = { accountId: principal.accountId, subject, threadId: f.thread.threadId, workspace: roots[0], rootPaths: roots };
   const transport = new ConnectorIDEHostTransport(f.registry, { canonicalDirectory() { throw Error("unexpected local/SSH path"); }, launch() { throw Error("unexpected local/SSH path"); } });
   return { ...f, roots, context, transport, input: { hostId: f.ticket.hostId, id: crypto.randomBytes(16).toString("hex"), binary: "code-server", workspace: roots[0], rootPaths: roots,
@@ -56,8 +56,8 @@ test("management can enable a paired full IDE device before a project is bound, 
   assert.equal(f.runs.length, 0);
 });
 
-test("Connector full IDE preserves HTTP bytes, WebSocket traffic and both project roots without SSH", async t => {
-  const f = await fixture(t);
+for (const managedHost of [undefined, "local", "remote-ssh-discovered:existing"]) test(`Connector ${managedHost ?? "personal"} full IDE preserves HTTP bytes, WebSocket traffic and both project roots without SSH`, async t => {
+  const f = await fixture(t, managedHost);
   assert.equal(await f.transport.canonicalDirectory(f.ticket.hostId, f.roots[0], f.context), f.roots[0]);
   const launch = await f.transport.launch(f.input); t.after(() => launch.stop()); await ready(launch.socketPath);
   const response = JSON.parse(String(await request(launch.socketPath)));

@@ -12,7 +12,8 @@ import { PEER_BACKEND_CONTRACT } from "../src/peer/contract.js";
 
 test("all public backend ports have an explicit peer transport policy", () => {
   assert.equal(Object.keys(PEER_BACKEND_CONTRACT).length, 51);
-  assert.deepEqual(Object.entries(PEER_BACKEND_CONTRACT).filter(([, policy]) => policy === "gateway-local").map(([method]) => method), ["runEphemeral"]);
+  assert.deepEqual(Object.entries(PEER_BACKEND_CONTRACT).filter(([, policy]) => String(policy) === "gateway-local").map(([method]) => method), []);
+  assert.equal(PEER_BACKEND_CONTRACT.runEphemeral, "rpc");
 });
 
 test("queue callbacks remain live after queue/add returns and retain original request objects", async t => {

@@ -316,16 +316,14 @@
               <select id="backendInput" name="codexBackend" disabled>
                 <option value="app-server">Codex App Server</option>
               </select>
-              <small class="field-hint">桌面、CLI 与 Gateway 连接同一原生服务，使用完整的同一套接口。</small>
+              <small class="field-hint">所有机器均由 Connector 连接原生服务；Gateway 只转发消息和回执。</small>
             </label>
             <label>
-              <span>App server 连接</span>
-              <select id="appServerTransportInput" name="codexAppServerTransport">
-                <option value="auto">自动（优先 daemon）</option>
-                <option value="daemon">Daemon</option>
-                <option value="stdio">独立 stdio 进程</option>
+              <span>执行连接</span>
+              <select id="appServerTransportInput" disabled>
+                <option value="connector">Connector</option>
               </select>
-              <small class="field-hint">连接方式不改变接口能力；daemon 断连不会切换执行器。stdio 私有进程不具备独立于 Gateway 的生命周期。</small>
+              <small class="field-hint">本机和远端使用同一入口。Codex 连接方式在设备的 Connector 配置中设置；断连不会切换执行器。</small>
             </label>
             <label>
               <span>运行中消息的默认策略</span>

@@ -18,8 +18,10 @@ import { FILE_METHODS, PeerFiles } from "./files.js";
 import { MANAGEMENT_METHODS, PeerManagement } from "./management.js";
 import { PeerSharingAuthority, type OwnerConfirmation } from "./sharing-authority.js";
 import { PeerIDEService, type PeerIDEConfig } from "./ide-service.js";
+import { matchesManagedGrant, type ManagedConnectorExport } from "./managed-route.js";
+import { CodexSessionCompletionMonitor } from "../server/codex-session-monitor.js";
 
-const callSchema = z.object({ grant: grantSchema, method: z.enum(["listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "readTurnActivities", "getHistory", "getHistoryPage",
+const callSchema = z.object({ grant: grantSchema, method: z.enum(["monitorSessionEvents", "unmonitorSessionEvents", "listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "readTurnActivities", "getHistory", "getHistoryPage",
   "getRuntimeInfo", "warmUp", "listSkills", "listMcpServers", "serverIdentity", "readThreadProvenance", "listQueuedSubmissions", "addQueuedSubmission", "deleteQueuedSubmission", "runQueuedSubmission", "resumeAfterCapacity", "recoverSystemError", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "interruptTurn", "getGoal", "setGoal", "clearGoal", "receipt", "observeThreadInteractions", "unobserveThreadInteractions", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
   args: z.array(z.unknown()).max(4), operationId: z.string().regex(/^[a-f0-9]{64}$/).optional() }).strict();
 const runSchema = z.object({ threadId: z.string().optional(), ephemeral: z.boolean().optional(), cwd: z.string(), prompt: z.string().max(500_000), clientUserMessageId: z.string().optional(),
@@ -49,6 +51,8 @@ export type PeerExecutionOptions = {
   approve: (grant: PeerGrant) => Promise<boolean>;
   approveOwner?: (confirmation: OwnerConfirmation) => Promise<boolean>;
   webIDE?: PeerIDEConfig;
+  managedRoute?: ManagedConnectorExport;
+  codexHome?: string;
 };
 
 /** Pair a local Codex profile with a chat, then choose sessions in the chat.
@@ -79,7 +83,7 @@ export class PeerExecutionService {
     if (options.webIDE?.enabled) this.ide = new PeerIDEService({ config: options.webIDE, backend: options.backend, stateDir: options.stateDir,
       authorize: (grant, threadId) => {
         this.assertThread(threadId);
-        if (grant.delegation || !this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant))) throw new PeerError("access", "设备授权已失效。");
+        if (grant.delegation || !(matchesManagedGrant(options.managedRoute, grant) || this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant)))) throw new PeerError("access", "设备授权已失效。");
         this.sharing.assert(grant, "inspectThread", [threadId]);
       } });
     if (this.sharing.hasResources() && !this.privatePolicy) this.saveGrants(this.grants, true);
@@ -91,6 +95,7 @@ export class PeerExecutionService {
     this.grants = grants; this.privatePolicy = privatePolicy;
   }
   static async create(options: PeerExecutionOptions): Promise<PeerExecutionService> {
+    if (options.managedRoute && options.threadId) throw new Error("Managed Connector exports a host, not a single thread");
     if (!/^[\w-]{1,80}$/.test(options.profileId)) throw new Error("Invalid peer profile ID");
     const state = options.threadId ? await options.backend.inspectThread(options.threadId) : undefined;
     if (state) {
@@ -105,6 +110,7 @@ export class PeerExecutionService {
       projectCatalog: !options.threadId && info.capabilities.projectCatalog,
       projects: !options.threadId && info.capabilities.projects };
     const service = new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
+      ...(options.managedRoute ? { managedHost: options.managedRoute.hostId } : {}),
       writeGuard: 1, nativeContract: 1,
       ...(options.webIDE?.enabled ? { fullIDE: 1 as const } : {}),
       ...(options.backend.observeThreadInteractions ? { interactions: 1 as const } : {}),
@@ -117,10 +123,13 @@ export class PeerExecutionService {
     return service;
   }
   attach(connection: PeerConnection): void {
+    const monitors = new Map<string, () => void>();
+    connection.onClose(() => { for (const stop of monitors.values()) stop(); });
     this.ide?.attach(connection);
     const queues = new Map<string, () => void>(); this.queueLeases.set(connection, queues);
     connection.onClose(() => { this.files.close(connection); for (const retire of queues.values()) retire(); });
-    const approved = (grant: PeerGrant) => grant.delegation ? this.sharing.valid(grant) : this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant));
+    const approved = (grant: PeerGrant) => matchesManagedGrant(this.options.managedRoute, grant)
+      || (!this.options.managedRoute && (grant.delegation ? this.sharing.valid(grant) : this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant))));
     connection.handle("sharing.call", async value => {
       const call = z.object({ method: z.enum(["claim", "status", "invite", "request", "approve", "deny", "revoke", "workspace.list", "workspace.read", "workspace.write"]), input: z.unknown(), grant: grantSchema.optional() }).strict().parse(value);
       if (call.method !== "request" && (!call.grant || !approved(call.grant))) throw new PeerError("access", "资源授权未获本机确认或已失效。");
@@ -131,6 +140,7 @@ export class PeerExecutionService {
       });
     });
     connection.handle("binding.approve", async value => {
+      if (this.options.managedRoute) return false;
       const grant = grantSchema.parse(value);
       const allowedScope = this.description.thread ? grant.threadId === this.description.thread.threadId && !grant.scope : grant.scope === "device";
       if (!allowedScope || !await this.options.approve(grant) || !connection.open) return false;
@@ -143,6 +153,20 @@ export class PeerExecutionService {
       if (!approved(call.grant))
         throw new PeerError("access", "This chat/session grant was not approved on this device");
       try {
+        if (call.method === "monitorSessionEvents" || call.method === "unmonitorSessionEvents") {
+          if (!matchesManagedGrant(this.options.managedRoute, call.grant) || this.options.managedRoute?.hostId !== "local")
+            throw new PeerError("access", "Profile monitoring requires the configured local deployment route");
+          if (call.method === "unmonitorSessionEvents") { monitors.get(z.string().parse(call.args[0]))?.(); return null; }
+          if (!call.operationId || monitors.size) throw new PeerError("busy", "Profile monitor already registered");
+          const send = (name: string) => (event: unknown) => connection.request("execution.callback", { operationId: call.operationId, name, args: [event] }).then(() => {});
+          const monitor = new CodexSessionCompletionMonitor({ codexHome: this.options.codexHome,
+            onCompletion: send("onCompletion"), onRecoveredCompletion: send("onRecoveredCompletion"), onTaskChanged: send("onTaskChanged"), onActivity: send("onActivity") });
+          const closed = new Promise<void>(resolve => monitors.set(call.operationId!, resolve));
+          monitor.start();
+          try { await monitor.ready(); await send("onReady")(null); await closed; }
+          finally { monitors.delete(call.operationId); await monitor.stop(); }
+          return null;
+        }
         await this.sharing.verify(call.grant, call.method, call.args);
         if ((FILE_METHODS as readonly string[]).includes(call.method)) return await this.files.call(call.grant, connection, call.method, call.args[0], threadId => this.sharing.assert(call.grant, call.method, [{ threadId }]));
         if ((MANAGEMENT_METHODS as readonly string[]).includes(call.method)) return await this.management.call(call.grant, connection, call.method, call.args[0], call.operationId, () => this.sharing.assert(call.grant, call.method, call.args));
@@ -219,10 +243,14 @@ export class PeerExecutionService {
           const catalog = await backend.listProjects(undefined, metadataObservation.parse(args[0] ?? undefined));
           return { ...catalog, projects: catalog.projects.flatMap(project => {
             const roots = [...new Set(project.roots.flatMap(root => {
-              try { if (!path.isAbsolute(root)) return []; const actual = fs.realpathSync(root); return fs.statSync(actual).isDirectory() ? [actual] : []; }
-              catch { return []; }
+              if (!path.isAbsolute(root) || /[\r\n\0]/.test(root)) return [];
+              // Missing mounts do not delete a project or one of its roots.
+              // Execution/IDE validate the complete directory set at use time.
+              try { return [fs.realpathSync(root)]; }
+              catch { return [root]; }
             }))];
-            return roots.length ? [{ ...project, roots }] : [];
+            const available = roots.every(root => { try { return fs.statSync(root).isDirectory(); } catch { return false; } });
+            return roots.length ? [{ ...project, roots, ...(!available ? { available: false } : {}) }] : [];
           }) };
         }
         case "serverIdentity": {
@@ -251,6 +279,7 @@ export class PeerExecutionService {
         case "receipt": return this.receipts.get(z.string().regex(/^[a-f0-9]{64}$/).parse(args[0])) ?? null;
         case "getRuntimeInfo": {
           const observation = metadataObservation.parse(args[3] ?? undefined);
+          if (!args[1] && call.grant.scope === "device") return backend.getRuntimeInfo(z.string().parse(args[0]), undefined, undefined, observation);
           const state = await this.readState(args[1] ?? this.description.thread?.threadId, false,
             observation && { ...observation, includeTurns: false });
           return backend.getRuntimeInfo(state.cwd, state.threadId, undefined, observation);
@@ -328,9 +357,13 @@ export class PeerExecutionService {
     }
     const assertCurrent = peerWriteGuard(connection, operationId, method, () => this.sharing.assert(call.grant, method, args));
     const event = async (name: string, values: unknown[]) => { try { this.sharing.assert(call.grant, method, args); return await callback(name, values); } catch { return undefined; } };
-    const sourceId = method === "runQueuedSubmission" && (nativeInput as any)?.clientUserMessageId
-      ? `peer-${peerOperationId(call.grant.hostId, "addQueuedSubmission", call.grant.principal, (nativeInput as any).clientUserMessageId)}`
-      : `peer-${operationId}`;
+    const queueSource = method === "runQueuedSubmission" && (nativeInput as any)?.clientUserMessageId;
+    const queueOperation = queueSource && peerOperationId(call.grant.hostId, "addQueuedSubmission", call.grant.principal, queueSource);
+    // Entries accepted before the direct→Connector migration already have a
+    // native client ID. Native runQueuedSubmission still verifies the exact
+    // queued item/accepted turn; this never re-enqueues or resends its prompt.
+    const sourceId = queueSource ? this.options.managedRoute && !this.receipts.get(queueOperation)
+      ? queueSource : `peer-${queueOperation}` : `peer-${operationId}`;
     let queuePoll: NodeJS.Timeout | undefined, queueKey: string | undefined;
     let keepQueueCallback = false, queueRetired = false;
     let detachQueueClose = () => {};

@@ -1,10 +1,10 @@
 # 单一原生协议与核心所有权
 
-Gateway 的业务端口是 src/codex/backend.ts。CodexAppServerGateway 负责 host 路由与连接角色；AppServerCodexRunner 负责原生请求、通知与精确线程/轮次；daemon/remote-host/transport 只解决服务部署和连接。桌面和纯 CLI 的业务方法相同。自定义可执行文件名不决定是否创建私有核心。
+Gateway 的业务端口是 src/codex/backend.ts。Gateway 通过 connectorOnlyBackend 把逻辑主机路由到 Connector；设备侧 CodexAppServerGateway 负责原生连接角色；AppServerCodexRunner 负责原生请求、通知与精确线程/轮次；daemon/remote-host/transport 只解决服务部署和连接。桌面和纯 CLI 的业务方法相同。自定义可执行文件名不决定是否创建私有核心。
 
 ## 事实源和生命周期
 
-原生核心保存线程、队列、目标、执行权限和运行事实。Gateway 的主连接、元数据读连接、大历史读连接指向同一核心；读端口超时可以退休自身，但不停止执行核心。显式 stdio 是宿主拥有的私有连接，退出宿主会结束它，不具有独立 daemon 的重启保证。嵌入 Taskboard 借用 AccountManager 的原适配器，close 不拥有核心；独立 Taskboard 创建一个选定适配器，不启动 exec 回退。
+原生核心保存线程、队列、目标、执行权限和运行事实。Connector 的主连接、元数据读连接、大历史读连接指向同一核心；读端口超时可以退休自身，但不停止执行核心。显式 stdio 是宿主拥有的私有连接，退出宿主会结束它，不具有独立 daemon 的重启保证。嵌入 Taskboard 借用 AccountManager 的原适配器，close 不拥有核心；独立 Taskboard 创建一个选定适配器，不启动 exec 回退。
 
 普通续聊省略 nativeSettings 并继承已有 sandbox、审批策略和 reviewer。只有拥有设置的 UI 明确提交 nativeSettings 才覆盖。onApproval 回调存在不构成改权限的理由。thread/start/resume 的返回身份、turn/start 的接收、运行终态与投递状态分开；有界 RPC 超时不能结束一个已接收的长任务。
 

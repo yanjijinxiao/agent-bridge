@@ -9,12 +9,12 @@ import { CodexAppServerGateway } from "../src/codex/app-server-gateway.js";
 import type { CodexBridgeBackend, CodexRunnerInput } from "../src/codex/backend.js";
 import { PeerExecutionService } from "../src/peer/execution-service.js";
 import { PeerRegistry } from "../src/peer/registry.js";
-import { withPeerBackend } from "../src/peer/backend.js";
+import { withPeerBackend, connectorOnlyBackend } from "../src/peer/backend.js";
 import { GatewayPeerClient, GatewayPeerServer } from "../src/peer/transport.js";
 import { peerPrincipal } from "../src/peer/context.js";
 
 const identity = { accountId: "contract-bot", conversationId: "contract-chat", actorId: "contract-owner" };
-const modes = ["local", "ssh", "connector"] as const;
+const modes = ["local", "ssh", "connector", "managed-connector"] as const;
 type Mode = typeof modes[number];
 async function fixture(t: TestContext, mode: Mode) {
   const localRoot = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-contract-"));
@@ -45,22 +45,23 @@ async function fixture(t: TestContext, mode: Mode) {
     historyConnectionFactory: host => host === "local" ? native : (gateway as any).appServerFor(host) });
   let backend: CodexBridgeBackend = gateway, hostId = mode === "ssh" ? "ssh-contract" : "local";
   const cleanups: Array<() => unknown> = [];
-  if (mode === "connector") {
-    const registry = new PeerRegistry(path.join(root, "gateway", "grants.json"));
-    const service = await PeerExecutionService.create({ backend: gateway, profileId: "contract", stateDir: path.join(root, "device"), independent: true, approve: async () => true });
+  if (mode === "connector" || mode === "managed-connector") {
+    const managed = mode === "managed-connector" ? { hostId: "local", grantId: "a6dde6af-6785-4704-b532-23b13720f1c2", nodeId: "contract", profileId: "contract" } : undefined;
+    const registry = new PeerRegistry(path.join(root, "gateway", "grants.json"), managed ? [managed] : []);
+    const service = await PeerExecutionService.create({ backend: gateway, managedRoute: managed, profileId: "contract", stateDir: path.join(root, "device"), independent: true, approve: async () => true });
     const server = await GatewayPeerServer.listen({ host: "127.0.0.1", port: 0, credentials: { contract: "synthetic-contract-credential-only" }, accept: (node, connection) => registry.accept(node, connection) });
     const ready = Promise.withResolvers<{ code: string; hostId: string }>();
     const client = new GatewayPeerClient({ url: server.url, nodeId: "contract", token: "synthetic-contract-credential-only", connected: async connection => {
       service.attach(connection); ready.resolve(await connection.request("peer.register", service.description));
     } });
     client.start(); const ticket = await ready.promise;
-    await registry.connect(ticket.code, identity, () => {}); hostId = ticket.hostId;
+    if (!managed) await registry.connect(ticket.code, identity, () => {}); hostId = ticket.hostId;
     const trap = new Proxy(gateway, { get(target, key) {
       if (typeof Reflect.get(target, key) === "function" && !["close", "hasInFlightWork", "hasRestartBlockingWork", "isIndependentObservation"].includes(String(key)))
         return () => { throw Error(`Unexpected Gateway-local call: ${String(key)}`); };
       return Reflect.get(target, key);
     } });
-    backend = withPeerBackend(trap, registry);
+    backend = managed ? connectorOnlyBackend(registry) : withPeerBackend(trap, registry);
     cleanups.push(() => client.close(), () => registry.close(), () => server.close());
   }
   t.after(async () => { await backend.close(); for (const close of cleanups) await close(); await gateway.close(); if (remote) ssh(`${quote(remoteNode)} -e ${quote('require("node:fs").rmSync(process.argv[1], {recursive:true,force:true})')} ${quote(root)}`);

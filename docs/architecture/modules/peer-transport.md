@@ -1,6 +1,6 @@
 # Connector 模块与接口契约
 
-本模块把已授权设备上的 `CodexBridgeBackend` 接到现有 Gateway。机器人仍由原渠道适配器负责，输入策略、角色、审批卡片、复制控件、队列编排和投递沿用主链路。Connector 不运行第二套 agent 调度器。配置与操作见 [功能说明](../../gateway-peers.md)，资源共享见 [共享说明](../../peer-sharing.md)。
+本模块是 Gateway 的唯一执行入口，同机也通过 Connector。设备端仍复用唯一的 `CodexBridgeBackend` 原生适配器。机器人仍由原渠道适配器负责，输入策略、角色、审批卡片、复制控件、队列编排和投递沿用主链路。Connector 不运行第二套 agent 调度器。配置与操作见 [功能说明](../../gateway-peers.md)，资源共享见 [共享说明](../../peer-sharing.md)。
 
 ## 边界和职责
 
@@ -28,7 +28,7 @@
 - `files.version: 1`、`management.version: 1`、`sharing.version: 2`：分别约束文件、管理和资源授权协议。
 - 后端本身不支持的能力保留原生 capability 错误。固定 thread 和资源委托限制的是授权范围，不是备用执行器选择。
 
-`runEphemeral` 没有 host 参数，是 Gateway 自身的临时推理入口，保持原职责。远端新线程/临时线程经有 host 的 `run` 调用，需要完整设备授权；固定 thread 不能创建新线程。进程诊断同样需要设备授权。
+`runEphemeral` 可携带明确的 hostId，通过同一 Connector RPC 创建只读临时线程；省略时仅使用配置的逻辑 local 路由，缺失就明确失败，不借用另一人的设备。远端新线程/临时线程经有 host 的 `run` 调用，需要完整设备授权；固定 thread 不能创建新线程。进程诊断同样需要设备授权。
 
 ## 输入、队列和恢复
 
@@ -90,3 +90,9 @@ PEER-01.3：Connector 在没有显式 CA 时，仅为 wss://11.158.199.29:49186/
 /connect 复用原有聊天准入、角色守卫和设备本机 binding.approve。异步返回后重检来源、连接和期限；先持久化设备摘要，再保存 grant，最后发布 host。设备摘要写失败没有任何授权；grant 写失败留下可重连的认证身份，但不开放会话，后续重新配对。失败的待登记连接关闭并重新取得配对码，不重发输入。凭据由 credentials.ts 管理，Gateway 只存摘要，本机 device-identity.json 为 0600。新配置可省略 nodeId/tokenFile，旧配置必须二者同时保留且继续使用原状态路径。
 
 设备凭据不是用户或资源授权；删除凭据不能替代撤销会话 grants。新协议没有新增 App Server 执行器，也不更改原生任务生命周期。关闭自助登记只拒绝未知设备，已登记设备继续认证。管理员可在停止入口后移除 .devices.json 中指定设备记录，再启动入口以撤销该设备；旧静态 devices 需同步移除，不能宣称已有热撤销管理 UI。
+
+## 同机与历史主机迁移
+
+`managed-route.ts` 定义双端配置的逻辑 host 到 node/profile 映射，`registry.ts` 分离路由与个人配对权限。托管身份只能由预配置设备认证注册，不能自助登记抢占。`session-monitor.ts` 将原本 Gateway 读取本机 rollout 的观察迁到设备侧；停止观察不发送 stop。`AccountManager` 缓存设备投影的项目元数据，IDE 校验刷新设备目录，不再读取 Gateway 的 Codex Home。兼容层 `withPeerBackend` 仅保留给嵌入调用方和旧接口测试，生产只创建 `connectorOnlyBackend`。
+
+新增验证：`connector-only.test.ts`、`peer-ide.test.ts` 的本机/远端托管组合、`backend-transport-contract.test.ts` 的 managed-connector 原生契约。完整边界见 [迁移契约](../connector-only-execution.md)。

@@ -199,7 +199,7 @@ export class RuntimeStateStore {
   }
 
   setConnectorSelection(principal: { accountId: string; conversationId: string; actorId: string }, hostId: string): void {
-    if (hostId !== "local" && !/^peer:\S+$/.test(hostId)) throw new Error("Invalid Connector selection");
+    if (hostId !== "local" && !/^(peer|remote-ssh-discovered):\S+$/.test(hostId)) throw new Error("Invalid Connector selection");
     this.state.connectorSelections[JSON.stringify([principal.accountId, principal.conversationId, principal.actorId])] = { hostId, revision: crypto.randomUUID() };
     this.save();
   }
@@ -1167,7 +1167,7 @@ function normalizeConnectorSelections(value: unknown): RuntimeState["connectorSe
   for (const [key, selection] of Object.entries(value)) {
     const identity: unknown = JSON.parse(key);
     if (!Array.isArray(identity) || identity.length !== 3 || !identity.every(item => typeof item === "string" && item.length > 0)
-      || !isJsonObject(selection) || typeof selection.hostId !== "string" || !/^(local|peer:\S+)$/.test(selection.hostId)
+      || !isJsonObject(selection) || typeof selection.hostId !== "string" || !/^(local|(?:peer|remote-ssh-discovered):\S+)$/.test(selection.hostId)
       || typeof selection.revision !== "string" || !selection.revision)
       throw new Error("Invalid Connector selection; original state preserved");
   }

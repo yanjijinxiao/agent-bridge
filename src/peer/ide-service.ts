@@ -16,7 +16,7 @@ const directory = z.string().max(4096).refine(p => path.isAbsolute(p) && !/[\r\n
 export const peerIDETargetSchema = z.object({ threadId: z.string().min(1).max(512), workspace: directory,
   rootPaths: z.array(directory).min(2).max(32).optional() }).strict();
 export const peerIDEConfigSchema = z.object({ enabled: z.boolean().default(false),
-  binary: ideConfigSchema.shape.hosts.element.shape.binary.default("code-server"), autoInstall: z.boolean().default(false) }).strict();
+  dataRoot: directory.optional(), binary: ideConfigSchema.shape.hosts.element.shape.binary.default("code-server"), autoInstall: z.boolean().default(false) }).strict();
 export type PeerIDEConfig = z.infer<typeof peerIDEConfigSchema>;
 type Target = z.infer<typeof peerIDETargetSchema>;
 const common = { grant: peerGrantSchema, target: peerIDETargetSchema };
@@ -42,7 +42,7 @@ export class PeerIDEService {
   private closed = false;
   constructor(private readonly options: { config: PeerIDEConfig; backend: CodexBridgeBackend; stateDir: string;
     authorize(grant: SharedPeerGrant, threadId: string): void; transport?: IDEHostTransport }) {
-    this.transport = options.transport ?? new ProcessIDEHostTransport({ localDataRoot: path.join(options.stateDir, "ide", "instances") });
+    this.transport = options.transport ?? new ProcessIDEHostTransport({ localDataRoot: options.config.dataRoot ?? path.join(options.stateDir, "ide", "instances") });
     this.installer = new CodeServerInstaller(path.join(options.stateDir, "ide"), { allowed: host => host === "local" && options.config.enabled && options.config.autoInstall });
   }
   private guard(grant: SharedPeerGrant, threadId: string): void {

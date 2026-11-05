@@ -13,33 +13,36 @@ import { PeerConnection, PeerError } from "./rpc.js";
 import { PeerIDEStreams } from "./ide-stream.js";
 import { peerIDETargetSchema } from "./ide-service.js";
 
-/** The local/SSH implementation stays intact. Connector targets use the same
- * IDE manager and access server, with only this socket transport substituted. */
+/** Production IDE execution always uses Connector. The optional fallback is
+ * retained only for embedded library compatibility; AccountManager supplies none. */
 export class ConnectorIDEHostTransport implements IDEHostTransport {
   private readonly multiplexers = new WeakMap<PeerConnection, PeerIDEStreams>();
-  constructor(private readonly registry: PeerRegistry, private readonly fallback: IDEHostTransport) {}
+  constructor(private readonly registry: PeerRegistry, private readonly fallback?: IDEHostTransport) {}
   canAccess(hostId: string, context: IDEHostContext): boolean {
-    return hostId.startsWith("peer:") ? this.registry.canAccessIDE(hostId, context) : this.fallback.canAccess?.(hostId, context) ?? true;
+    return this.registry.isRouted(hostId) ? this.registry.canAccessIDE(hostId, context) : this.fallback?.canAccess?.(hostId, context) ?? !!this.fallback;
   }
+  private local(): IDEHostTransport { if (!this.fallback) throw new PeerError("offline", "该主机尚未配置 Connector，未使用本机或 SSH 执行。"); return this.fallback; }
+  ownsInstallation(hostId: string): boolean { return this.registry.isRouted(hostId) || !this.fallback; }
   private session(hostId: string, context?: IDEHostContext) {
     if (!context) throw new PeerError("access", "Connector IDE requires a browser identity");
     return { ...this.registry.ideConnection(hostId, context), target: peerIDETargetSchema.parse({ threadId: context.threadId,
       workspace: context.workspace, rootPaths: context.rootPaths }) };
   }
   async preparationStatus(hostId: string, context: IDEHostContext) {
+    if (!this.registry.isRouted(hostId) && this.fallback) return undefined;
     const { connection, grant, guard, target } = this.session(hostId, context); guard();
     const result = await connection.request("ide.call", { method: "status", grant, target }); guard();
     return z.object({ phase: z.enum(["checking", "remote-download", "gateway-download", "transferring", "verifying", "ready", "error"]),
       bytes: z.number().nonnegative().optional(), total: z.number().positive().optional() }).strict().nullable().parse(result) ?? undefined;
   }
   async canonicalDirectory(hostId: string, workspace: string, context?: IDEHostContext): Promise<string> {
-    if (!hostId.startsWith("peer:")) return this.fallback.canonicalDirectory(hostId, workspace, context);
+    if (!this.registry.isRouted(hostId)) return this.local().canonicalDirectory(hostId, workspace, context);
     const { connection, grant, guard, target } = this.session(hostId, context); guard();
     const result = await connection.request("ide.call", { method: "resolve", grant, target, workspace }); guard();
     return z.object({ workspace: z.string().refine(p => path.posix.isAbsolute(p) && !/[\r\n\0]/.test(p)) }).strict().parse(result).workspace;
   }
   async launch(input: IDELaunchInput): Promise<IDELaunch> {
-    if (!input.hostId.startsWith("peer:")) return this.fallback.launch(input);
+    if (!this.registry.isRouted(input.hostId)) return this.local().launch(input);
     const { connection, grant, guard, target } = this.session(input.hostId, input.context); guard(); input.signal?.throwIfAborted();
     // Request timeout is not a stop acknowledgement. If cancellation races a
     // launch, wait for its lease receipt and retire that exact lease below.

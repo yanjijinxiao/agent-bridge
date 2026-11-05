@@ -1,8 +1,8 @@
 import { withChannelWriteLeases } from "../bridge/channel-write-leases.js";
 import { PeerRegistry } from "../peer/registry.js";
 import { ConnectorIDEHostTransport } from "../peer/ide-transport.js";
-import { ProcessIDEHostTransport } from "../ide/transport.js";
-import { withPeerBackend } from "../peer/backend.js";
+import { ConnectorSessionMonitor } from "../peer/session-monitor.js";
+import { withPeerBackend, connectorOnlyBackend } from "../peer/backend.js";
 import { AdmissionService } from "../bridge/admission.js";
 import crypto from "node:crypto";
 import { migrateCardBootstrap } from "./migrate-card-bootstrap.js";
@@ -63,7 +63,6 @@ import type {
 import type { CodexThreadState } from "../codex/backend.js";
 import { localProjectsAtWorkspace, nativeProjectForManaged } from "../state/project-identity.js";
 import { assertCodexThreadRunnable, capacityFailureScope, CodexTurnExecutionError } from "../codex/backend.js";
-import { CodexAppServerGateway } from "../codex/app-server-gateway.js";
 import {
   LlmWikiMcpClientPool,
   type LlmWikiInspection
@@ -73,7 +72,7 @@ import type { CodexApprovalDecision, CodexApprovalRequest } from "../codex/appro
 import { isWorkspaceAllowed, loadConfig, type CodexImGatewayConfig } from "../state/config.js";
 import { accountStatePaths, type StatePaths } from "../state/paths.js";
 import {
-  CodexSessionCompletionMonitor,
+  type CodexSessionCompletionMonitor,
   type CodexSessionActivity,
   type CodexSessionCompletion,
   type CodexSessionTask
@@ -93,6 +92,7 @@ import {
   readCodexDesktopProjects,
   listCodexCliProjectCandidates,
   projectCandidatesFromBackendCatalog,
+  projectCandidatesFromConnectorCatalog,
   type CodexProjectCandidate
 } from "./codex-projects.js";
 import {
@@ -299,7 +299,7 @@ export type AccountManagerOptions = {
       onActivity: (activity: CodexSessionActivity) => Promise<void>;
       onRecoveredCompletion?: (completion: CodexSessionCompletion) => Promise<void>;
     }
-  ) => CodexSessionCompletionMonitor;
+  ) => Pick<CodexSessionCompletionMonitor, "start" | "stop" | "scanNow" | "ready">;
   codexDesktopApprovalMonitorFactory?: (
     handlers: NativeInteractionObserver
   ) => NativeRequestMonitor;
@@ -361,13 +361,14 @@ export class AccountManager {
   private readonly channelCapabilities: ChannelCapabilityProvider;
   private runtimeConfigurationChanging = false;
   private runner?: CodexBridgeBackend;
-  private codexSessionMonitor?: CodexSessionCompletionMonitor;
+  private codexSessionMonitor?: Pick<CodexSessionCompletionMonitor, "start" | "stop" | "scanNow" | "ready">;
   private nativeRequestMonitor?: NativeRequestMonitor;
   private taskboard?: TaskboardClient;
   private taskboardController?: AbortController;
   private taskboardTask?: Promise<void>;
 
   constructor(private readonly options: AccountManagerOptions) {
+    if (!options.runnerFactory) options.peerRegistry ??= new PeerRegistry(path.join(options.paths.runtimeDir, "peer-grants.json"));
     this.resultActions = new TurnResultActions(path.join(options.paths.runtimeDir, "turn-result-actions.json"));
     const persistedRelease = readReleaseOwner(options.paths.root);
     if (persistedRelease) {
@@ -396,8 +397,7 @@ export class AccountManager {
         return [...paired, ...configured].some(id => id === actorId || id === conversationId);
       }, allow: (accountId, target) => this.allowSender(accountId, target) });
     this.ide = new WorkspaceIDEManager({ root: options.paths.root, resolve: (accountId, sessionId) => this.ideWorkspace(accountId, sessionId),
-      ...(options.peerRegistry ? { transport: new ConnectorIDEHostTransport(options.peerRegistry,
-        new ProcessIDEHostTransport({ localDataRoot: path.join(options.paths.root, "ide", "instances") })) } : {}),
+      ...(options.peerRegistry ? { transport: new ConnectorIDEHostTransport(options.peerRegistry) } : {}),
       refresh: (accountId, sessionId) => this.refreshIDEWorkspace(accountId, sessionId) });
     this.interactionRouting = new InteractionRoutingJournal(path.join(options.paths.runtimeDir, "interaction-routing.json"));
     this.sessionControls = new SessionControlJournal(path.join(options.paths.runtimeDir, "session-controls.json"));
@@ -513,19 +513,14 @@ export class AccountManager {
     });
     this.adapterFactory = options.adapterFactory ?? channelFactoryWithLegacyOverrides(options);
     this.bridgeFactory = options.bridgeFactory ?? ((input) => new BridgeService(input));
-    this.runnerFactory = options.runnerFactory ?? ((config) => new CodexAppServerGateway({
-      backend: config.codexBackend,
-      appServerTransport: config.codexAppServerTransport,
-      codexBin: config.codexBin,
-      execSandbox: config.codexExecSandbox,
-      onThreadMutation: (threadId, hostId) => {
+    this.runnerFactory = options.runnerFactory ?? (() => connectorOnlyBackend(options.peerRegistry!,
+      scope => this.peerRecoverySource(scope), (threadId, hostId) => {
         if (this.systemRecovery.hasPendingRestore(threadId, hostId))
           throw new CodexInterventionError("原生会话正在恢复原活动状态，结果尚未确认；本条输入未提交，请查看系统恢复进展。");
         this.capacityRecovery.cancel(threadId, hostId); this.systemRecovery.cancel(threadId, hostId);
-      }
-    }));
+      }));
     this.codexSessionMonitorFactory = options.codexSessionMonitorFactory
-      ?? ((handlers) => new CodexSessionCompletionMonitor(handlers));
+      ?? ((handlers) => new ConnectorSessionMonitor(options.peerRegistry ?? new PeerRegistry(path.join(options.paths.runtimeDir, "peer-grants.json")), handlers));
     this.nativeRequestMonitorFactory = options.codexDesktopRequestMonitorFactory ?? options.codexDesktopApprovalMonitorFactory
       ?? ((handlers) => new AppServerRequestMonitor(() => this.runnerFor(this.configProvider()), handlers));
     this.taskboardClientFactory = options.taskboardClientFactory ?? ((url) => new TaskboardClient({ baseUrl: url }));
@@ -1090,17 +1085,30 @@ export class AccountManager {
     return this.ideWorkspace(accountId, sessionId);
   }
 
-  private ideProjects() { return (this.options.ideProjectsProvider ?? readCodexDesktopProjects)(); }
+  private readonly connectorProjects = new Map<string, readonly CodexProjectCandidate[]>();
+  private ideProjects() {
+    if (this.options.ideProjectsProvider) return this.options.ideProjectsProvider();
+    return this.options.peerRegistry ? [...this.connectorProjects.values()].flat() : readCodexDesktopProjects();
+  }
   private readIDEProjects(hostId: string): Promise<CodexProjectCatalog> {
     const pending = this.ideProjectReads.get(hostId); if (pending) return pending;
     let timer: NodeJS.Timeout | undefined;
-    const work = Promise.race([this.runnerFor().listProjects(hostId, { timeoutMs: 2_000 }), new Promise<never>((_, reject) => {
+    const work = Promise.race([this.runnerFor().listProjects(hostId, { timeoutMs: 2_000 }).then(catalog => {
+      if (this.options.peerRegistry?.isRouted(hostId)) this.connectorProjects.set(hostId, projectCandidatesFromConnectorCatalog(catalog, hostId));
+      return catalog;
+    }), new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error("原生项目目录核验超时")), 5_000);
     })]).finally(() => { if (timer) clearTimeout(timer); if (this.ideProjectReads.get(hostId) === work) this.ideProjectReads.delete(hostId); });
     this.ideProjectReads.set(hostId, work); return work;
   }
   private async ideMembershipIdentity(state: CodexThreadState, hostId: string): Promise<CodexThreadState> {
     if (state.persistence !== "active" || state.projectMembership !== "assigned" || !state.projectId) return state;
+    if (this.options.peerRegistry?.isRouted(hostId)) {
+      // Device projection already resolves explicit aliases. Refresh its full
+      // root set before reconciling an IDE target; never consult Gateway's Home.
+      await this.readIDEProjects(hostId);
+      return state;
+    }
     const projects = this.ideProjects();
     if (projects.some(p => p.projectId === state.projectId && (p.hostId ?? "local") === hostId)
       || listAccounts(this.options.paths).some(account => this.storeFor(account.accountId).listProjects()
@@ -1156,8 +1164,22 @@ export class AccountManager {
       ...(this.options.peerRegistry?.fullIDEHosts() ?? [])])];
   }
 
+  connectorStatus() { return this.options.peerRegistry?.status() ?? { mode: "connector-only" as const, routes: [] }; }
+  async connectorHealth(): Promise<{ ready: boolean; version?: string; error?: string }> {
+    return this.connectorStatus().routes.some(r => r.online) ? { ready: true, version: "Connector → Codex App Server" }
+      : { ready: false, error: "尚无在线 Connector；Gateway 不在本机启动 Codex，请连接执行设备。" };
+  }
+
   async listCodexProjects(runner = this.runnerFor(this.configProvider())): Promise<readonly CodexProjectCandidate[]> {
-    return projectCandidatesFromBackendCatalog(await runner.listProjects());
+    const hosts = this.options.peerRegistry?.managedHosts() ?? [];
+    if (!hosts.length) return projectCandidatesFromBackendCatalog(await runner.listProjects());
+    const catalogs = await Promise.allSettled(hosts.map(async host => {
+      const projects = projectCandidatesFromConnectorCatalog(await runner.listProjects(host), host);
+      this.connectorProjects.set(host, projects); return projects;
+    }));
+    if (catalogs.every(row => row.status === "rejected")) throw (catalogs[0] as PromiseRejectedResult).reason;
+    return catalogs.flatMap((row, index) => row.status === "fulfilled" ? row.value
+      : (this.connectorProjects.get(hosts[index]) ?? []).map(project => ({ ...project, available: false })));
   }
 
   listKnowledgeBases(accountId?: string): AccountKnowledgeBase[] {
@@ -1704,7 +1726,7 @@ export class AccountManager {
 
   private synchronizeManagedProject(store: RuntimeStateStore, project: ManagedProject): ManagedProject {
     if (this.configProvider().codexBackend === "exec" || this.runner?.backendInfo?.().id === "exec") return project;
-    const candidate = nativeProjectForManaged(project, readCodexDesktopProjects(), store.listProjects());
+    const candidate = nativeProjectForManaged(project, this.ideProjects(), store.listProjects());
     if (!candidate?.projectId) return project;
     if (
       project.sourceProjectId === candidate.projectId
@@ -2033,7 +2055,8 @@ export class AccountManager {
   private runnerFor(config = this.configProvider()): CodexBridgeBackend {
     if (this.runner) return this.runner;
     const native = this.runnerFactory(config);
-    const runner = this.options.peerRegistry ? withPeerBackend(native, this.options.peerRegistry, scope => this.peerRecoverySource(scope)) : native;
+    const runner = this.options.runnerFactory && this.options.peerRegistry
+      ? withPeerBackend(native, this.options.peerRegistry, scope => this.peerRecoverySource(scope)) : native;
     this.runner = runner;
     runner.warmUp(this.options.paths.root).catch((error: unknown) => {
       console.warn("[codex-im-gateway] Codex app-server warm-up failed", {
@@ -2043,8 +2066,8 @@ export class AccountManager {
     return runner;
   }
 
-  /** Embedded clients borrow this exact adapter, including an explicitly
-   * configured stdio connection. Closing a panel/service never owns the core. */
+  /** Embedded clients borrow the same Connector facade. Closing a panel/service
+   * owns neither the device process nor its native core. */
   taskboardNativeBackend(): object {
     const methods = ["runQueuedSubmission", "inspectThread", "readTurnLifecycle", "readTurnActivities", "listModels", "listSkills",
       "listMcpServers", "getAccountRateLimits", "observeThreadInteractions", "unobserveThreadInteractions"] as const;

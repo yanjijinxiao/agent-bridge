@@ -785,7 +785,7 @@ function renderSettings() {
   document.querySelector("#backendInput").value = "app-server";
   document.querySelector("#activeMessagePolicyInput").value = state.config.activeMessagePolicy || "steer";
   document.querySelector("#bindingIdleDaysInput").value = state.config.bindingIdleDays ?? 15;
-  document.querySelector("#appServerTransportInput").value = state.config.codexAppServerTransport || "auto";
+  document.querySelector("#appServerTransportInput").value = "connector";
   document.querySelector("#sandboxInput").value = state.config.codexExecSandbox || "";
   document.querySelector("#streamRepliesInput").checked = Boolean(state.config.streamReplies);
   document.querySelector("#taskboardEnabledInput").checked = Boolean(state.config.taskboardEnabled);
@@ -2452,7 +2452,6 @@ async function saveSettings(event) {
         codexBackend: "app-server",
         activeMessagePolicy: document.querySelector("#activeMessagePolicyInput").value,
         bindingIdleDays: Number(document.querySelector("#bindingIdleDaysInput").value),
-        codexAppServerTransport: document.querySelector("#appServerTransportInput").value,
         codexExecSandbox: document.querySelector("#sandboxInput").value || null,
         model: document.querySelector("#modelInput").value.trim(),
         effort: document.querySelector("#effortInput").value.trim(),

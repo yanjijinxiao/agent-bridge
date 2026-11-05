@@ -9,6 +9,7 @@ import { peerGrantSchema } from "./sharing-types.js";
 import { PeerSharingGateway } from "./sharing-gateway.js";
 import type { IDEHostContext } from "../ide/transport.js";
 import type { PeerEnrollment } from "./credentials.js";
+import { managedGrant, managedTarget, validateManagedRoutes, type ManagedConnectorRoute } from "./managed-route.js";
 
 const principalSchema = z.object({ accountId: z.string().min(1).max(512), conversationId: z.string().min(1).max(512), actorId: z.string().min(1).max(512) }).strict();
 export const grantSchema = peerGrantSchema;
@@ -21,12 +22,13 @@ const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/
   interactions: z.literal(1).optional(),
   nativeContract: z.literal(1).optional(),
   fullIDE: z.literal(1).optional(),
+  managedHost: z.string().optional(),
   files: z.object({ version: z.literal(1) }).strict().optional(),
   management: z.object({ version: z.literal(1) }).strict().optional(),
   sharing: z.object({ version: z.union([z.literal(1), z.literal(2)]) }).strict().optional(),
   info: z.object({ id: z.enum(["exec", "app-server"]), capabilities: z.record(z.string(), z.boolean()) }),
   independent: z.boolean() }).strict();
-export type PeerDescription = { profileId: string; label?: string; writeGuard?: 1; interactions?: 1; nativeContract?: 1; fullIDE?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
+export type PeerDescription = { profileId: string; label?: string; managedHost?: string; writeGuard?: 1; interactions?: 1; nativeContract?: 1; fullIDE?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
   info: { id: CodexBackendId; capabilities: CodexBackendCapabilities }; independent: boolean };
 type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection };
 const samePrincipal = (a: PeerPrincipal, b: PeerPrincipal) => a.accountId === b.accountId && a.conversationId === b.conversationId && a.actorId === b.actorId;
@@ -38,11 +40,24 @@ export class PeerRegistry implements PeerBridgePort {
   private grants: PeerGrant[];
   private readonly tickets = new Map<string, { hostId: string; host: Host; connection: PeerConnection; expiresAt: number; enrollment?: PeerEnrollment }>();
   private readonly callbacks = new WeakMap<PeerConnection, Map<string, (name: string, args: unknown[]) => Promise<unknown>>>();
-  constructor(private readonly stateFile: string) {
+  constructor(private readonly stateFile: string, private readonly managedRoutes: readonly ManagedConnectorRoute[] = []) {
+    validateManagedRoutes(managedRoutes);
     this.grants = z.object({ version: z.literal(1), grants: z.array(grantSchema) })
       .parse(readJsonFile(stateFile, { version: 1, grants: [] })).grants;
     this.sharing = new PeerSharingGateway(this, stateFile + ".sharing");
   }
+  managedRoute(hostId = "local"): ManagedConnectorRoute | undefined { return this.managedRoutes.find(r => r.hostId === hostId); }
+  managedHosts(): string[] { return this.managedRoutes.map(r => r.hostId); }
+  status() {
+    return { mode: "connector-only" as const, routes: [
+      ...this.managedRoutes.map(r => ({ hostId: r.hostId, connectorId: managedTarget(r), label: this.label(r.hostId), online: this.isOnline(r.hostId), managed: true })),
+      ...[...this.entries].filter(([, host]) => !host.description.managedHost).map(([id, host]) => ({ hostId: id, connectorId: id, label: this.label(id), online: host.connection?.open === true, managed: false }))
+    ] };
+  }
+  /** Routing is separate from user-device pairing. Existing host ACLs remain
+   * Gateway-owned; isPeer deliberately keeps its original authorization meaning. */
+  isRouted(hostId = "local"): boolean { return this.isPeer(hostId) || !!this.managedRoute(hostId); }
+  private host(hostId: string): Host | undefined { return this.entries.get(this.managedRoute(hostId) ? managedTarget(this.managedRoute(hostId)!) : hostId); }
   grantsFor(principal: PeerPrincipal): PeerGrant[] { return this.grants.filter(g => samePrincipal(g.principal, principal) && (!g.delegation || g.delegation.version === 2 && g.delegation.expiresAt > Date.now())); }
   sourcesForScope(scope: { hostId: string; threadId: string }): PeerPrincipal[] {
     return this.grants.filter(g => g.hostId === scope.hostId && (g.scope === "device" || g.threadId === scope.threadId)
@@ -86,12 +101,17 @@ export class PeerRegistry implements PeerBridgePort {
       const description = { ...raw, info: { id: raw.info.id, capabilities } } as PeerDescription;
       const suffix = description.thread ? `:${crypto.createHash("sha256").update(description.thread.threadId).digest("hex").slice(0, 16)}` : "";
       const hostId = `peer:${nodeId}:${description.profileId}${suffix}`;
+      const managed = this.managedRoutes.find(r => managedTarget(r) === hostId);
+      if (managed ? enrollment || description.thread || description.managedHost !== managed.hostId : description.managedHost !== undefined)
+        throw new PeerError("scope", "Managed Connector identity does not match the deployment route");
       const host: Host = { nodeId, description, connection };
       // Pending devices live only in the pairing ticket. They cannot publish
       // IDE/session hosts, displace a healthy connection or use old grants.
       if (!enrollment) { this.entries.get(hostId)?.connection?.close(); this.entries.set(hostId, host); }
       registered = true;
       connection.onClose(() => { if (host.connection === connection) host.connection = undefined; });
+      // An admin-provisioned export is not a reusable personal pairing code.
+      if (managed) return { hostId: managed.hostId, managed: true, paired: true };
       const code = crypto.randomBytes(6).toString("hex").toUpperCase();
       const expiresAt = Date.now() + 5 * 60_000;
       for (const [key, ticket] of this.tickets) if (ticket.expiresAt < Date.now() || !ticket.connection.open) this.tickets.delete(key);
@@ -136,8 +156,8 @@ export class PeerRegistry implements PeerBridgePort {
   /** Local management discovery only. A configured host is not a browser
    * grant: every IDE request still resolves its own personal device grant. */
   fullIDEHosts(): string[] {
-    return [...this.entries].filter(([id, host]) => host.connection?.open && host.description.fullIDE === 1
-      && this.grants.some(g => g.hostId === id && !g.delegation)).map(([id]) => id);
+    return [...this.managedHosts().filter(id => this.host(id)?.description.fullIDE === 1), ...[...this.entries].filter(([id, host]) => !host.description.managedHost && host.connection?.open && host.description.fullIDE === 1
+      && this.grants.some(g => g.hostId === id && !g.delegation)).map(([id]) => id)];
   }
   fullIDEAvailable(principal: PeerPrincipal, target: { hostId: string; threadId: string }): boolean {
     return this.entries.get(target.hostId)?.description.fullIDE === 1 && this.grantsFor(principal)
@@ -147,26 +167,30 @@ export class PeerRegistry implements PeerBridgePort {
    * A person's device pairing in another chat is still theirs; other actors,
    * accounts and text-sharing delegations are never candidates. */
   private ideGrant(hostId: string, context: IDEHostContext): PeerGrant | undefined {
+    const route = this.managedRoute(hostId);
+    if (route && context.administrative && context.threadId && this.host(hostId)?.description.fullIDE === 1) return managedGrant(route);
     const person = context.subject?.principal;
-    if (!person || person.accountId !== context.accountId || !context.threadId || this.entries.get(hostId)?.description.fullIDE !== 1) return;
+    if (!person || person.accountId !== context.accountId || !context.threadId || this.host(hostId)?.description.fullIDE !== 1) return;
+    const managed = this.managedRoute(hostId);
+    if (managed) return managedGrant(managed, { accountId: person.accountId, actorId: person.actorId, conversationId: "gateway-ide" });
     return this.grants.find(g => !g.delegation && g.hostId === hostId && g.principal.accountId === person.accountId
       && g.principal.actorId === person.actorId && (g.scope === "device" || g.threadId === context.threadId));
   }
   canAccessIDE(hostId: string, context: IDEHostContext): boolean { return !!this.ideGrant(hostId, context); }
   ideConnection(hostId: string, context: IDEHostContext) {
-    const grant = this.ideGrant(hostId, context), connection = this.entries.get(hostId)?.connection;
+    const grant = this.ideGrant(hostId, context), connection = this.host(hostId)?.connection;
     if (!grant) throw new PeerError("access", "完整 IDE 需要本人已确认的 Connector 授权，请由同一用户配对浏览器。");
     if (!connection?.open) throw new PeerConnectionError(false);
     return { grant, connection, guard: () => {
-      if (!connection.open || this.entries.get(hostId)?.connection !== connection || this.ideGrant(hostId, context)?.id !== grant.id)
+      if (!connection.open || this.host(hostId)?.connection !== connection || this.ideGrant(hostId, context)?.id !== grant.id)
         throw new PeerError("access", "Connector IDE 连接或授权已改变。");
     } };
   }
-  label(hostId: string): string { const host = this.entries.get(hostId); return host?.description.label ?? host?.nodeId ?? hostId; }
-  isOnline(hostId: string): boolean { return this.entries.get(hostId)?.connection?.open === true; }
+  label(hostId: string): string { const host = this.host(hostId); return host?.description.label ?? host?.nodeId ?? hostId; }
+  isOnline(hostId: string): boolean { return this.host(hostId)?.connection?.open === true; }
   isPeer(hostId?: string): boolean { return hostId?.startsWith("peer:") === true; }
   description(hostId: string): PeerDescription {
-    const host = this.entries.get(hostId);
+    const host = this.host(hostId);
     if (!host) throw new PeerConnectionError(false);
     return host.description;
   }
@@ -178,6 +202,8 @@ export class PeerRegistry implements PeerBridgePort {
     if ((method.startsWith("fileUpload") && !principal) || (principal
       && (principal.accountId !== scope.accountId || principal.conversationId !== scope.conversationId)))
       throw new PeerError("access", "File transfer has no authorized chat identity");
+    if (this.managedRoute(hostId)) return peerPrincipal.run(principal ?? { accountId: scope.accountId, conversationId: scope.conversationId, actorId: "gateway-delivery" },
+      () => this.invoke<T>(hostId, method, [payload]));
     const candidates = this.grants.filter(g => g.hostId === hostId && g.principal.accountId === scope.accountId
       && g.principal.conversationId === scope.conversationId && (!principal || samePrincipal(g.principal, principal))
       && (!g.delegation || g.delegation.version === 2 && g.delegation.expiresAt > Date.now())
@@ -193,9 +219,10 @@ export class PeerRegistry implements PeerBridgePort {
     const candidates = this.grants.filter(g => g.hostId === hostId && (!principal || samePrincipal(g.principal, principal))
       && (!selectedGrantId || g.id === selectedGrantId)
       && (!g.delegation || g.delegation.version === 2 && g.delegation.expiresAt > Date.now() && (!target || target === g.threadId)));
-    const grant = (target ? candidates.find(g => g.delegation && g.threadId === target) : candidates.find(g => !g.delegation)) ?? candidates[0];
-    if (!grant || write && !principal) throw new PeerError("access", "当前用户或入口未获准操作这个远程会话，请先通过 /connect 绑定。");
-    const host = this.entries.get(hostId);
+    const managed = this.managedRoute(hostId);
+    const grant = managed ? managedGrant(managed, principal) : (target ? candidates.find(g => g.delegation && g.threadId === target) : candidates.find(g => !g.delegation)) ?? candidates[0];
+    if (!grant || write && !principal && !managed) throw new PeerError("access", "当前用户或入口未获准操作这个远程会话，请先通过 /connect 绑定。");
+    const host = this.host(hostId);
     if (!host?.connection?.open) throw new PeerConnectionError(false);
     if (write && host.description.writeGuard !== 1) throw new PeerError("unsupported", "请更新 Connector：当前版本不支持最终写入前的来源检查。");
     const connection = host.connection, callbacks = this.callbacks.get(connection)!;
@@ -211,19 +238,19 @@ export class PeerRegistry implements PeerBridgePort {
     }
     let completed = false;
     try {
-      const result = await connection.request<T>("execution.call", { grant, method, args, operationId }, write || method === "observeThreadInteractions" ? PEER_EXECUTION_TIMEOUT_MS : 30_000, signal);
+      const result = await connection.request<T>("execution.call", { grant, method, args, operationId }, write || ["observeThreadInteractions", "monitorSessionEvents"].includes(method) ? PEER_EXECUTION_TIMEOUT_MS : 30_000, signal);
       if (grant.delegation && !this.grantsFor(grant.principal).some(g => g.id === grant.id)) throw new PeerError("access", "共享已撤销或过期，未继续投递。");
       completed = true; return result;
     }
     finally { if (operationId && registeredCallback && (!completed || !retainCallback)) callbacks.delete(operationId); }
   }
   callbackLease(hostId: string, operationId: string): () => void {
-    const connection = this.entries.get(hostId)?.connection;
+    const connection = this.host(hostId)?.connection;
     const callbacks = connection && this.callbacks.get(connection);
     return () => { callbacks?.delete(operationId); };
   }
   onDisconnect(hostId: string, handler: () => void): () => void {
-    const connection = this.entries.get(hostId)?.connection;
+    const connection = this.host(hostId)?.connection;
     if (!connection?.open) { handler(); return () => {}; }
     return connection.onClose(handler);
   }

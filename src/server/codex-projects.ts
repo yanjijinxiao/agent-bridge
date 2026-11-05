@@ -256,6 +256,19 @@ export function projectCandidatesFromBackendCatalog(
   });
 }
 
+/** Connector already resolved identities and observed directories on its own
+ * device. Gateway must not mix in its Desktop registry or stat these paths. */
+export function projectCandidatesFromConnectorCatalog(catalog: CodexProjectCatalog, hostId: string): readonly CodexProjectCandidate[] {
+  return catalog.projects.flatMap(project => {
+    if (!project.roots.length) return [];
+    return [{ projectId: project.id, projectKind: hostId === "local" ? "local" as const : "remote" as const,
+      hostId, name: project.name, workspace: project.roots[0],
+      ...(project.roots.length > 1 ? { rootPaths: project.roots } : {}),
+      lastUsedAt: project.lastUsedAt ?? new Date(0).toISOString(), sessionCount: project.sessionCount ?? 0,
+      available: project.available !== false }];
+  });
+}
+
 function listSessionProjectCandidates(codexHome: string): readonly CodexProjectCandidate[] {
   return listCodexCliProjects(codexHome).flatMap((project) => {
     const workspace = project.roots[0];

@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { AsyncLocalStorage } from "node:async_hooks";
 import http from "node:http";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -20,6 +21,9 @@ type Instance = { id: string; hostId: string; workspace: string; status: "starti
   rootPaths?: readonly string[]; workspaceFile?: string };
 export type IDEInstanceStatus = Omit<Instance, "launch">;
 export class WorkspaceIDEManager {
+  private readonly administration = new AsyncLocalStorage<boolean>();
+  /** Only the protected local management API calls this, never the IDE data plane. */
+  asAdministrator<T>(action: () => Promise<T>): Promise<T> { return this.administration.run(true, action); }
   readonly configStore: IDEConfigStore;
   readonly installer: CodeServerInstaller;
   private readonly references: Record<string, Reference>;
@@ -42,7 +46,7 @@ export class WorkspaceIDEManager {
     this.configStore = new IDEConfigStore(options.root);
     this.installer = new CodeServerInstaller(options.root, { io: options.installerIO,
       allowed: hostId => { const config = this.config(); return !this.closing && !this.reconfiguring.has(hostId)
-        && config.enabled && config.hosts.some(h => h.hostId === hostId && h.enabled && h.autoInstall); } });
+        && !this.transport?.ownsInstallation?.(hostId) && config.enabled && config.hosts.some(h => h.hostId === hostId && h.enabled && h.autoInstall); } });
     this.referencePath = path.join(options.root, "ide", "workspaces.json");
     try {
       const references = readJsonFile<Record<string, Reference>>(this.referencePath, {});
@@ -139,7 +143,7 @@ export class WorkspaceIDEManager {
   accountForEntry(id: string): string { this.resolve(id); return this.references[id].accountId; }
   private hostContext(id: string, subject?: IDEAccessSubject): IDEHostContext {
     const { reference, target } = this.referenceTarget(id);
-    return { accountId: reference.accountId, threadId: target.nativeThreadId, workspace: target.workspace, rootPaths: target.rootPaths, subject };
+    return { accountId: reference.accountId, threadId: target.nativeThreadId, workspace: target.workspace, rootPaths: target.rootPaths, subject, ...(this.administration.getStore() ? { administrative: true } : {}) };
   }
   canAccess(id: string, subject?: IDEAccessSubject): boolean {
     const target = this.resolve(id);
@@ -148,7 +152,7 @@ export class WorkspaceIDEManager {
   async preparationStatus(id: string, subject?: IDEAccessSubject) {
     if (!this.canAccess(id, subject)) throw new Error("当前身份未获项目 IDE 授权");
     const { hostId } = this.resolve(id);
-    return this.transport.preparationStatus && hostId.startsWith("peer:")
+    return this.transport.preparationStatus && (hostId.startsWith("peer:") || this.transport.ownsInstallation?.(hostId))
       ? this.transport.preparationStatus(hostId, this.hostContext(id, subject))
       : this.installer.list().find(s => s.hostId === hostId);
   }
@@ -209,7 +213,7 @@ export class WorkspaceIDEManager {
     check();
     if (!target || target.hostId !== base.hostId || target.owner !== base.owner || digest(base) !== digest(this.resolve(id))) throw new Error("项目上下文已改变，未启动 IDE");
     const { config, host } = this.host(target);
-    const binary = host.autoInstall && host.binary === "code-server" ? await this.installer.binary(target.hostId) : host.binary;
+    const binary = !this.transport.ownsInstallation?.(target.hostId) && host.autoInstall && host.binary === "code-server" ? await this.installer.binary(target.hostId) : host.binary;
     check();
     const context = this.hostContext(id, subject);
     const { workspace, rootPaths } = await this.canonical(target, context);

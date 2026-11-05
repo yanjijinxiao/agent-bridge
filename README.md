@@ -130,7 +130,7 @@ npm run peer -- --config /absolute/path/peer-client.json
 
 - Node.js `^22.13.0 || >=23.4.0`
 - Git
-- 已安装并登录 Codex CLI
+- 执行设备安装并登录 Codex CLI，运行独立的 Connector；仅运行 Gateway 的服务器不需要 Codex
 
 ```bash
 npm install -g @openai/codex
@@ -163,6 +163,8 @@ npm run build
 ```bash
 node dist/server/index.js
 ```
+
+启动前通过 `CODEX_IM_GATEWAY_PEER_CONFIG` 指向 Connector 监听配置，并在执行设备（同机也一样）启动 Connector。未配置设备时管理面仍可运行，执行明确提示未连接，不自动启动本机 Codex。已有本机/SSH 绑定使用[保留身份的迁移方式](./docs/architecture/connector-only-execution.md)。
 
 服务默认打开 [http://127.0.0.1:8787](http://127.0.0.1:8787)。`npm` 只负责安装锁定依赖和构建，不会全局安装或发布本服务。
 
@@ -251,11 +253,11 @@ Gateway 重启后会自动恢复已有绑定及跟随游标，并在渠道支持
 
 ## Codex 后端
 
-网关只实现一套标准 Codex App Server 接口。渠道、Web 和账号管理统一调用 `CodexAppServerGateway`；桌面 App 与 Gateway 是同一原生服务的客户端。只有 CLI 的服务器同样运行 `codex app-server`，不需要 GUI，也不缩减项目、Session、执行、历史、审批、队列、目标、动态工具等能力。
+网关的全部执行统一经过 Connector，包括和 Gateway 同机的任务：渠道 / Web → Connector facade → 设备侧 `CodexAppServerGateway` → 同一个原生 App Server。Gateway 不创建 Codex 客户端或执行进程。只有 CLI 的服务器同样运行 `codex app-server`，不需要 GUI，也不缩减项目、Session、执行、历史、审批、队列、目标、动态工具等能力。
 
 连接方式与业务实现分离。共享 daemon 的控制、元数据和历史连接指向同一原生服务；断连不切换执行器，已接收或回执不明的输入不重发。Gateway 重启后按原 thread/turn ID 重连核对。旧的 `codexExecutionOwner` 桌面/headless 选择已移除，`auto`/`exec` 旧配置在读取时迁移为 `app-server`；不更改原生会话的权限或审核设置。
 
-桌面 App 如果仍连接私有 stdio 服务，需要先在任务空闲时重新接入共享服务；仅重启 Gateway 不能合并两个已有的执行进程。明确选择私有 stdio 的环境使用同一协议，但其进程生命周期仍归 Gateway 所有，不能保证运行中重启不影响任务。部署与接口验收见[Codex 后端架构](./docs/codex-backends.md)。
+桌面 App 如果仍连接私有 stdio 服务，需要先在任务空闲时重新接入共享服务；仅重启 Gateway 不能合并两个已有的执行进程。明确选择私有 stdio 的环境使用同一协议，但其进程生命周期归 Connector 所有，不能保证重启该 Connector 时任务继续；单独重启 Gateway 不关闭 Connector。部署与接口验收见[Codex 后端架构](./docs/codex-backends.md)。
 
 内置 Taskboard 的 AI 面板与事件自动处理也使用同一套原生适配器：嵌入服务借用 Gateway 实例，独立服务加载根构建并使用明确配置的原生连接，不再自行启动 CLI `exec`。关闭观察不会中断独立核心已经接收的任务；显式私有 stdio 的宿主生命周期限制仍然存在。执行、交互和恢复边界见 [Taskboard 原生执行说明](./docs/architecture/modules/taskboard-native-execution.md)，未验证组合见 [当前剩余清单](./docs/architecture/remaining-work.md)。
 

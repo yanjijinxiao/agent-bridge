@@ -415,13 +415,15 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
     const workspace = matchPath(url.pathname, "/api/ide/workspaces/:id/:action");
     if (method === "POST" && workspace && ["open", "prepare"].includes(workspace.action)) {
       const input = z.object({ trustWorkspace: z.boolean().default(false), scope: z.string().regex(/^(?:v2:)?[a-f0-9]{64}$/).optional() }).strict().parse(await readJsonBody(request));
+      await ide.asAdministrator(async () => {
       const scope = ide.authorizationScope(workspace.id);
       if ((ide.resolve(workspace.id).rootPaths || input.scope) && input.scope !== scope) throw new Error("请重新核对完整工作区目录后再操作");
       const directory = input.trustWorkspace ? await ide.canonicalForTrust(workspace.id) : undefined;
       if (scope !== ide.authorizationScope(workspace.id)) throw new Error("项目目录已改变，未启动 IDE");
       const instance = workspace.action === "prepare" ? await ide.start(workspace.id, true, input.trustWorkspace, directory?.workspace, directory?.rootPaths)
         : await ide.open(workspace.id, input.trustWorkspace, directory?.workspace, directory?.rootPaths);
-      sendJson(response, 200, { instance }); return;
+      sendJson(response, 200, { instance });
+      }); return;
     }
     const instance = matchPath(url.pathname, "/api/ide/instances/:id/stop");
     if (method === "POST" && instance) { await ide.stop(instance.id); sendJson(response, 200, { ok: true }); return; }
@@ -430,10 +432,13 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
   if (method === "GET" && url.pathname === "/api/build") {
     sendJson(response, 200, { product: "codex-im-gateway", version: context.productVersion, pid: process.pid, build: readBuildInfo() }); return;
   }
+  if (method === "GET" && url.pathname === "/api/connectors") {
+    sendJson(response, 200, context.accountManager.connectorStatus()); return;
+  }
   if (method === "GET" && url.pathname === "/api/bootstrap") {
     const config = loadConfig(context.paths);
     const [codex, codexRuntime, codexModels] = await Promise.all([
-      context.observations.read(`binary:${config.codexBin}`, context.codexCheck ?? (() => checkCodex(config.codexBin)),
+      context.observations.read("connector-health", context.codexCheck ?? (() => context.accountManager.connectorHealth()),
         { ready: false, error: "Codex 状态核验暂未完成；管理功能仍可使用，请稍后重新检查。" }),
       readCodexRuntime(context),
       readCodexModels(context)

@@ -6,24 +6,26 @@ import { NativeInputReceiptObserver } from "../bridge/native-input-recovery.js";
 import type { PeerPrincipal } from "./context.js";
 import { CodexBackendCapabilityError, CodexQueueAdmissionError, CodexInterventionError, CodexThreadStateError, CodexRunAdmissionError, CodexTurnExecutionError, EXEC_BACKEND_CAPABILITIES,
   type CodexBridgeBackend, type CodexThreadState, type CodexTurnStatus, type CodexTurnObservation,
-  type CodexInputReceipt, type CodexStopResult } from "../codex/backend.js";
+  type CodexInputReceipt, type CodexStopResult, APP_SERVER_BACKEND_CAPABILITIES } from "../codex/backend.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
 import { PeerRegistry } from "./registry.js";
 import { PeerConnectionError, PeerError } from "./rpc.js";
 import { peerPrincipal } from "./context.js";
+import { gatewayServicePrincipal } from "./managed-route.js";
 import { downloadPeerFile, uploadPeerFiles } from "./files.js";
 
 
 /** Remote host routing decorates the existing facade; channel code continues
  * to use the same execution contract, including source/approval callbacks. */
 export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistry,
-  recoverySource?: (scope: { hostId: string; threadId: string }) => { source: PeerPrincipal; assertCurrent: () => void } | undefined): CodexBridgeBackend {
+  recoverySource?: (scope: { hostId: string; threadId: string }) => { source: PeerPrincipal; assertCurrent: () => void } | undefined,
+  onThreadMutation?: (threadId: string, hostId: string) => void): CodexBridgeBackend {
   const interactions = new PeerInteractionClient(registry);
   const receiptObserver = new NativeInputReceiptObserver();
   const queueCallbacks = new Map<string, () => void>();
   const queueItems = new Map<string, string>();
   const operations = new Set<{ hostId: string; threadId: string; turnId?: string; independent: boolean; controller: AbortController }>();
-  const describe = (hostId: string) => {
+  const describe = (hostId = "local") => {
     try { return registry.description(hostId); }
     catch (error) { if (error instanceof PeerConnectionError) throw new CodexCommunicationError("preflight", "peer/discover", undefined, undefined, error); throw error; }
   };
@@ -33,12 +35,16 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     return fn.apply(local, args);
   };
   const invoke = async <T = unknown>(method: string, args: unknown[], hostId: string, write = false, input?: Record<string, any>): Promise<T> => {
+    hostId ??= "local";
+    if (["run", "steer", "submitThreadMessage", "stop", "interruptTurn", "addQueuedSubmission", "setGoal", "clearGoal", "renameThread", "archiveThread", "unarchiveThread", "deleteThread"].includes(method)) {
+      const threadId = input?.threadId; if (threadId) onThreadMutation?.(threadId, hostId);
+    }
     if ((NATIVE_CONTRACT_METHODS.has(method) || input?.nativeSettings || input?.imagePaths?.length || input?.dynamicTools?.length
       || input?.onDynamicToolCall || input?.outputSchema || method === "run" && !input?.threadId) && describe(hostId).nativeContract !== 1)
       throw new PeerError("unsupported", "请升级 Connector：此接口需要 nativeContract: 1。");
     const authority = !peerPrincipal.getStore() && ["recoverSystemError", "resumeAfterCapacity"].includes(method)
       ? recoverySource?.({ hostId, threadId: input?.threadId }) : undefined;
-    const principal = peerPrincipal.getStore() ?? input?.assertCurrent?.source ?? authority?.source;
+    const principal = peerPrincipal.getStore() ?? input?.assertCurrent?.source ?? authority?.source ?? (registry.managedRoute(hostId) ? gatewayServicePrincipal : undefined);
     const operationId = write ? peerOperationId(hostId, method, principal, input?.clientUserMessageId ?? crypto.randomUUID()) : undefined;
     let acceptedTurnId: string | undefined;
     // Channel controllers associate native receipts with the exact request
@@ -178,7 +184,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       if (!retainQueue) retireInteractions();
     }
   };
-  const route = (method: string, args: unknown[], hostId?: string, write = false, input?: Record<string, any>) => registry.isPeer(hostId)
+  const route = (method: string, args: unknown[], hostId?: string, write = false, input?: Record<string, any>) => registry.isRouted(hostId)
     ? invoke(method, args, hostId!, write, input) : native(method, args);
   const unsupported = (capability: keyof typeof EXEC_BACKEND_CAPABILITIES, hostId: string) => {
     throw new CodexBackendCapabilityError(capability, describe(hostId).info.id);
@@ -194,17 +200,20 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
   const overrides: Partial<CodexBridgeBackend> = {
     withSource: (source, action) => peerPrincipal.run(source, action),
     async findNativeInputReceipts(scope, sources) {
-      if (!registry.isPeer(scope.hostId)) return local.findNativeInputReceipts
+      if (!registry.isRouted(scope.hostId)) return local.findNativeInputReceipts
         ? local.findNativeInputReceipts(scope, sources)
         : receiptObserver.observe("local", local, scope, new Set(sources.map(source => source.clientUserMessageId)));
       const groups = new Map<string, { principal: PeerPrincipal; ids: Map<string, string> }>();
       for (const source of sources) {
         // Legacy records without exact identity cannot borrow another user's
         // device grant, even when background recovery has no ambient principal.
-        if (!source.accountId || !source.conversationId || !source.actorId) continue;
-        const principal = { accountId: source.accountId, conversationId: source.conversationId, actorId: source.actorId };
+        if ((!source.accountId || !source.conversationId || !source.actorId) && !registry.managedRoute(scope.hostId)) continue;
+        const principal = source.accountId && source.conversationId && source.actorId
+          ? { accountId: source.accountId, conversationId: source.conversationId, actorId: source.actorId } : gatewayServicePrincipal;
         const key = JSON.stringify(principal);
         const group = groups.get(key) ?? { principal, ids: new Map<string, string>() };
+        // Direct submissions made before migration retain their native IDs.
+        if (registry.managedRoute(scope.hostId)) group.ids.set(source.clientUserMessageId, source.clientUserMessageId);
         for (const method of ["run", "steer", "submitThreadMessage"])
           group.ids.set(`peer-${peerOperationId(scope.hostId, method, principal, source.clientUserMessageId)}`, source.clientUserMessageId);
         groups.set(key, group);
@@ -221,30 +230,35 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       }
       return new Map([...matches].filter(([, turns]) => turns.size === 1).map(([id, turns]) => [id, [...turns][0]]));
     },
-    backendInfo(hostId) { return registry.isPeer(hostId) ? describe(hostId!).info : local.backendInfo(hostId); },
+    backendInfo(hostId) {
+      if (registry.managedRoute(hostId) && !registry.isOnline(hostId ?? "local")) return { id: "app-server", capabilities: APP_SERVER_BACKEND_CAPABILITIES };
+      return registry.isRouted(hostId) ? describe(hostId).info : local.backendInfo(hostId);
+    },
+    runEphemeral: input => registry.isRouted(input.hostId)
+      ? invoke("run", [{ ...input, ephemeral: true, sandbox: "read-only" }], input.hostId ?? "local", true, input) : local.runEphemeral(input),
     run: input => route("run", [input], input.hostId, true, input),
     steer: async (input, hostId) => {
-      if (!registry.isPeer(hostId)) return local.steer(input, hostId);
+      if (!registry.isRouted(hostId)) return local.steer(input, hostId);
       const scoped = { ...input, cwd: input.cwd ?? (await overrides.inspectThread!(input.threadId, hostId)).cwd };
       return invoke<CodexInputReceipt>("steer", [scoped], hostId!, true, scoped);
     },
     submitThreadMessage: (input, hostId) => route("submitThreadMessage", [input, hostId], hostId, true, input),
-    stop: (threadId, hostId, assertCurrent) => registry.isPeer(hostId)
+    stop: (threadId, hostId, assertCurrent) => registry.isRouted(hostId)
       ? invoke<CodexStopResult>("stop", [threadId], hostId!, true, { threadId, assertCurrent }) : local.stop(threadId, hostId, assertCurrent),
     readThreadSnapshot: (id, host) => route("readThreadSnapshot", [id, host], host),
     getHistory: (id, host) => route("getHistory", [id, host], host),
     getHistoryPage: (id, page, host) => route("getHistoryPage", [id, page, host], host),
     getRuntimeInfo: (cwd, id, host, observation) => route("getRuntimeInfo", [cwd, id, host, observation], host),
     listModels: (host?: string) => route("listModels", [host], host),
-    getAccountRateLimits: (host?: string, model?: string) => registry.isPeer(host)
+    getAccountRateLimits: (host?: string, model?: string) => registry.isRouted(host)
       ? invoke("getAccountRateLimits", [host, model], host!) : local.getAccountRateLimits(host, model),
     inspectThread: (id, host, observation) => route("inspectThread", [id, host, observation], host),
     async listSessionCatalog(input, host) {
-      if (!registry.isPeer(host)) return local.listSessionCatalog(input, host);
+      if (!registry.isRouted(host)) return local.listSessionCatalog(input, host);
       const description = describe(host!);
       if (!description.thread) {
         const catalog = await invoke<import("../codex/backend.js").CodexSessionCatalog>("listSessionCatalog", [input ?? {}], host!);
-        return { ...catalog, hostIds: [host!] };
+        return { ...catalog, hostIds: registry.managedRoute(host) ? registry.managedHosts() : [host!] };
       }
       const state = await invoke("inspectThread", [description.thread.threadId], host!) as CodexThreadState;
       const visible = (!input?.cwd || input.cwd === state.cwd) && (!input?.projectId || input.projectId === state.projectId)
@@ -253,22 +267,22 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       return { backend: description.info.id, source: description.info.id === "exec" ? "cli-rollouts" : "app-server-storage",
         threads: visible ? [state] : [], hostIds: [host!], complete: true, warnings: [] };
     },
-    async listThreads(input, host) { return registry.isPeer(host) ? (await overrides.listSessionCatalog!(input, host)).threads : local.listThreads(input, host); },
+    async listThreads(input, host) { return registry.isRouted(host) ? (await overrides.listSessionCatalog!(input, host)).threads : local.listThreads(input, host); },
     async listProjects(host, observation) {
-      if (!registry.isPeer(host)) return local.listProjects(host, observation);
+      if (!registry.isRouted(host)) return local.listProjects(host, observation);
       const description = describe(host!);
       if (description.thread) return { backend: description.info.id, projects: [] };
       if (!description.management) throw new PeerError("unsupported", "设备尚未启用项目目录，请更新 Connector。");
       return invoke<import("../codex/backend.js").CodexProjectCatalog>("listProjects", [observation], host!);
     },
-    async warmUp(cwd, host) { if (registry.isPeer(host)) await invoke("warmUp", [cwd], host!); else await local.warmUp(cwd, host); },
+    async warmUp(cwd, host) { if (registry.isRouted(host)) await invoke("warmUp", [cwd], host!); else await local.warmUp(cwd, host); },
     stageAttachments: async (files, input) => {
-      if (registry.isPeer(input.hostId)) {
+      if (registry.isRouted(input.hostId)) {
         if (!files.length) return [];
         if (!input.accountId || !input.conversationId || !input.threadId) throw new PeerError("scope", "Attachment staging requires a selected chat and thread");
         const principal = peerPrincipal.getStore();
         if (!principal || principal.accountId !== input.accountId || principal.conversationId !== input.conversationId
-          || !registry.hosts(principal).includes(input.hostId!)) throw new PeerError("access", "File transfer has no authorized chat identity");
+          || !registry.managedRoute(input.hostId) && !registry.hosts(principal).includes(input.hostId!)) throw new PeerError("access", "File transfer has no authorized chat identity");
         if (!describe(input.hostId!).files) throw new PeerError("unsupported", "设备尚未启用文件传输，请更新 Connector。");
         const scope = { accountId: input.accountId, conversationId: input.conversationId, threadId: input.threadId };
         return uploadPeerFiles(files, input.scope, input.threadId, input.maxBytes,
@@ -277,7 +291,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       return local.stageAttachments ? local.stageAttachments(files, input) : [...files];
     },
     fetchOutputFile: async (remotePath, input) => {
-      if (registry.isPeer(input.hostId)) {
+      if (registry.isRouted(input.hostId)) {
         if (!describe(input.hostId).files) throw new PeerError("unsupported", "设备尚未启用文件传输，请更新 Connector。");
         if (!input.accountId || !input.conversationId || !input.threadId) throw new PeerError("scope", "Output transfer requires a selected chat and thread");
         const scope = { accountId: input.accountId, conversationId: input.conversationId, threadId: input.threadId };
@@ -288,47 +302,47 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       throw new PeerError("unsupported", "This execution host has no output file transfer transport");
     },
     getGoal: async (id, host) => (await route("getGoal", [id, host], host)) ?? undefined,
-    setGoal: (id, value, host, assertCurrent) => registry.isPeer(host)
+    setGoal: (id, value, host, assertCurrent) => registry.isRouted(host)
       ? invoke<import("../codex/backend.js").CodexThreadGoal | null>("setGoal", [id, value], host!, true, { threadId: id, assertCurrent }).then(value => value ?? undefined) : local.setGoal(id, value, host, assertCurrent),
     clearGoal: async (id, host, assertCurrent) => {
-      if (registry.isPeer(host)) await invoke("clearGoal", [id], host!, true, { threadId: id, assertCurrent });
+      if (registry.isRouted(host)) await invoke("clearGoal", [id], host!, true, { threadId: id, assertCurrent });
       else await local.clearGoal(id, host, assertCurrent);
     },
-    createThread: (input, host) => registry.isPeer(host) ? manage("createThread", input, host!) : native("createThread", [input, host]),
-    renameThread: (id, title, host, assertCurrent, clientUserMessageId) => registry.isPeer(host)
+    createThread: (input, host) => registry.isRouted(host) ? manage("createThread", input, host!) : native("createThread", [input, host]),
+    renameThread: (id, title, host, assertCurrent, clientUserMessageId) => registry.isRouted(host)
       ? manage("renameThread", { threadId: id, title, assertCurrent, clientUserMessageId }, host!) : native("renameThread", [id, title, host, assertCurrent]),
     async archiveThread(id, host, assertCurrent, clientUserMessageId) {
-      if (registry.isPeer(host)) await manage("archiveThread", { threadId: id, assertCurrent, clientUserMessageId }, host!);
+      if (registry.isRouted(host)) await manage("archiveThread", { threadId: id, assertCurrent, clientUserMessageId }, host!);
       else await local.archiveThread(id, host, assertCurrent);
     },
-    unarchiveThread: (id, host, assertCurrent, clientUserMessageId) => registry.isPeer(host)
+    unarchiveThread: (id, host, assertCurrent, clientUserMessageId) => registry.isRouted(host)
       ? manage("unarchiveThread", { threadId: id, assertCurrent, clientUserMessageId }, host!) : local.unarchiveThread(id, host, assertCurrent),
     async deleteThread(id, host, assertCurrent, clientUserMessageId) {
-      if (registry.isPeer(host)) await manage("deleteThread", { threadId: id, assertCurrent, clientUserMessageId }, host!);
+      if (registry.isRouted(host)) await manage("deleteThread", { threadId: id, assertCurrent, clientUserMessageId }, host!);
       else await local.deleteThread(id, host, assertCurrent);
     },
-    recoverSystemError: (input, host) => registry.isPeer(host) ? invoke("recoverSystemError", [input], host!, true, input)
+    recoverSystemError: (input, host) => registry.isRouted(host) ? invoke("recoverSystemError", [input], host!, true, input)
       : local.recoverSystemError ? local.recoverSystemError(input, host) : Promise.resolve({ status: "unsupported" }),
-    readThreadProvenance: (id, host) => registry.isPeer(host) ? invoke<import("../codex/backend.js").CodexThreadProvenance | null>("readThreadProvenance", [id], host!).then(value => value ?? undefined) : local.readThreadProvenance?.(id, host) ?? Promise.resolve(undefined),
+    readThreadProvenance: (id, host) => registry.isRouted(host) ? invoke<import("../codex/backend.js").CodexThreadProvenance | null>("readThreadProvenance", [id], host!).then(value => value ?? undefined) : local.readThreadProvenance?.(id, host) ?? Promise.resolve(undefined),
     readTurnLifecycle: async (id, turn, host) => {
-      if (!registry.isPeer(host)) return local.readTurnLifecycle?.(id, turn, host) ?? { status: "unknown", source: "unknown" };
+      if (!registry.isRouted(host)) return local.readTurnLifecycle?.(id, turn, host) ?? { status: "unknown", source: "unknown" };
       return invoke<CodexTurnObservation>("readTurnLifecycle", [id, turn], host!);
     },
     readTurnActivities: (id, turn, host) => route("readTurnActivities", [id, turn, host], host),
     // Every host-scoped port is routed explicitly; a peer never reaches the local core.
     interruptTurn: async (id, turn, host, assertCurrent) => {
-      if (registry.isPeer(host)) await invoke("interruptTurn", [id, turn], host!, true, { threadId: id, assertCurrent });
+      if (registry.isRouted(host)) await invoke("interruptTurn", [id, turn], host!, true, { threadId: id, assertCurrent });
       else await native("interruptTurn", [id, turn, host, assertCurrent]);
     },
-    listSkills: async (cwd, host) => registry.isPeer(host) ? invoke("listSkills", [cwd], host!) : native("listSkills", [cwd, host]),
-    listMcpServers: async (id, host) => registry.isPeer(host) ? invoke("listMcpServers", [id], host!) : native("listMcpServers", [id, host]),
-    observeThreadInteractions: (id, host, observer, consumer) => registry.isPeer(host)
+    listSkills: async (cwd, host) => registry.isRouted(host) ? invoke("listSkills", [cwd], host!) : native("listSkills", [cwd, host]),
+    listMcpServers: async (id, host) => registry.isRouted(host) ? invoke("listMcpServers", [id], host!) : native("listMcpServers", [id, host]),
+    observeThreadInteractions: (id, host, observer, consumer) => registry.isRouted(host)
       ? interactions.observe(id, host, observer, consumer) : native("observeThreadInteractions", [id, host, observer, consumer]),
-    unobserveThreadInteractions: (id, host, consumer) => registry.isPeer(host)
+    unobserveThreadInteractions: (id, host, consumer) => registry.isRouted(host)
       ? interactions.unobserve(id, host, consumer) : native("unobserveThreadInteractions", [id, host, consumer]),
-    interactionSubscriptionReady: (id, host, consumer) => registry.isPeer(host) ? interactions.ready(id, host, consumer) : Boolean(local.interactionSubscriptionReady?.(id, host, consumer)),
+    interactionSubscriptionReady: (id, host, consumer) => registry.isRouted(host) ? interactions.ready(id, host, consumer) : Boolean(local.interactionSubscriptionReady?.(id, host, consumer)),
     serverIdentity: async host => {
-      if (registry.isPeer(host)) return invoke("serverIdentity", [], host!);
+      if (registry.isRouted(host)) return invoke("serverIdentity", [], host!);
       return native("serverIdentity", [host]);
     },
     hasInFlightWork: () => operations.size > 0 || Boolean(local.hasInFlightWork?.()),
@@ -342,14 +356,14 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     },
     async close() { receiptObserver.clear(); for (const retire of queueCallbacks.values()) retire(); await interactions.close(); for (const op of operations) op.controller.abort(); await local.close(); }
   };
-  overrides.addQueuedSubmission = (input, host) => registry.isPeer(host)
+  overrides.addQueuedSubmission = (input, host) => registry.isRouted(host)
     ? invoke("addQueuedSubmission", [input], host!, true, input) : native("addQueuedSubmission", [input, host]);
   overrides.listQueuedSubmissions = (id, cursor, host) => route("listQueuedSubmissions", [id, cursor, host], host);
-  overrides.deleteQueuedSubmission = (id, queuedId, host, assertCurrent) => registry.isPeer(host)
+  overrides.deleteQueuedSubmission = (id, queuedId, host, assertCurrent) => registry.isRouted(host)
     ? invoke("deleteQueuedSubmission", [id, queuedId], host!, true, { threadId: id, assertCurrent })
     : native("deleteQueuedSubmission", [id, queuedId, host, assertCurrent]);
   overrides.runQueuedSubmission = input => {
-    if (!registry.isPeer(input.hostId)) return native("runQueuedSubmission", [input]);
+    if (!registry.isRouted(input.hostId)) return native("runQueuedSubmission", [input]);
     const { prompt: _presentationOnly, ...wire } = input as typeof input & { prompt?: string };
     return invoke("runQueuedSubmission", [wire], input.hostId!, true, input);
   };
@@ -358,4 +372,23 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     const value = Object.hasOwn(overrides, key) ? (overrides as any)[key] : Reflect.get(target, key);
     return typeof value === "function" ? value.bind(Object.hasOwn(overrides, key) ? overrides : target) : value;
   } });
+}
+
+/** Production Gateway has no native core. Unconfigured/offline hosts fail
+ * before submission; this base cannot spawn Codex, use SSH or replay input. */
+export function connectorOnlyBackend(registry: PeerRegistry,
+  recoverySource?: Parameters<typeof withPeerBackend>[2],
+  onThreadMutation?: Parameters<typeof withPeerBackend>[3]): CodexBridgeBackend {
+  const base = {
+    systemErrorLifecycleRecovery: true,
+    backendInfo: () => ({ id: "app-server" as const, capabilities: APP_SERVER_BACKEND_CAPABILITIES }),
+    hasInFlightWork: () => false, hasRestartBlockingWork: () => false, isIndependentObservation: () => false,
+    detachIndependentObservations() {}, close() {}
+  };
+  const unavailable = new Proxy(base, { get(target, key) {
+    if (Reflect.has(target, key)) return Reflect.get(target, key);
+    if (key === "then") return undefined;
+    return () => { throw new CodexCommunicationError("preflight", `connector/not-configured/${String(key)}`); };
+  } }) as unknown as CodexBridgeBackend;
+  return withPeerBackend(unavailable, registry, recoverySource, onThreadMutation);
 }

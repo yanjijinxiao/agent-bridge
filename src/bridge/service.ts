@@ -105,6 +105,7 @@ import {
 } from "../state/runtime-state.js";
 import {
   projectCandidatesFromBackendCatalog,
+  projectCandidatesFromConnectorCatalog,
   type CodexProjectCandidate,
   type CodexSessionCandidate
 } from "../server/codex-projects.js";
@@ -237,7 +238,7 @@ export class BridgeService {
     const principal = this.catalogPrincipal(senderId);
     const host = this.connectorSelection.resolve(principal);
     if (host === "local" && !this.access.requireAccess(principal.actorId, senderId).allowed)
-      throw new ConnectorSelectionError("当前授权不包含 Gateway 本地目录，请通过 /connect 选择已授权设备。");
+      throw new ConnectorSelectionError("当前授权不包含本机 Connector，请通过 /connect 选择已授权设备。");
     return host;
   }
 
@@ -288,7 +289,8 @@ export class BridgeService {
   private modeSettings: ChannelModeSettings;
 
   constructor(private readonly options: BridgeServiceOptions) {
-    this.connectorSelection = new ConnectorSelection(options.stateStore, options.peer);
+    this.connectorSelection = new ConnectorSelection(options.stateStore, options.peer,
+      principal => this.access.requireAccess(principal.actorId, principal.conversationId).allowed);
     if (!options.channel && !options.weixin) throw new Error("A channel adapter client is required");
     this.channel = withChannelWriteLeases(options.channel ?? adaptLegacyClient(options.weixin!, {
       inboundDir: options.inboundDir ?? path.join(options.config.defaultCwd, ".codex-im-gateway-inbound"),
@@ -672,7 +674,7 @@ export class BridgeService {
             const online = this.options.peer!.isOnline?.(host);
             return `C${i + 1} · ${escapeTableMarkdown(this.options.peer!.label(host))}${selected === host ? " · 当前选择" : ""} · ${online === undefined ? "连接状态未知" : online ? "在线" : "离线"}\n${escapeTableMarkdown(host)}`;
           }).join("\n\n") : "你在当前聊天尚未配对设备。请先启动 Connector，再发送终端显示的完整 /connect 配对命令。";
-          const note = `${selected && !snapshot.hosts.includes(selected) ? selected === "local" ? "当前选择：Gateway 本地目录。\n" : "原选择已无授权，请重新选择；未自动切换设备。\n" : ""}切换只改变本人在当前聊天的目录范围，不改变会话绑定。`;
+          const note = `${selected && !snapshot.hosts.includes(selected) ? selected === "local" ? "当前选择：本机 Connector。\n" : "原选择已无授权，请重新选择；未自动切换设备。\n" : ""}切换只改变本人在当前聊天的目录范围，不改变会话绑定。`;
           await this.replyActionCard(message.senderId, createChoiceCard({ title, body, note, fallbackText: [title, body, note].join("\n\n"),
             choices: snapshot.hosts.map((host, i) => ({ label: `切换 C${i + 1}`, command: "connect", arg: `use C${i + 1}@${snapshot.id}`, copyValue: `/connect use C${i + 1}@${snapshot.id}` })) }));
           return;
@@ -682,12 +684,13 @@ export class BridgeService {
           guard();
           const host = use[1].toLowerCase() === "local" ? "local" : this.connectorSelection.select(principal, use[1], !!this.cardInteraction.getStore());
           if (host === "local") {
-            if (!this.access.requireAccess(principal.actorId, principal.conversationId).allowed) throw new ConnectorSelectionError("当前授权不包含 Gateway 本地目录。");
+            if (this.options.peer.isRouted && !this.options.peer.isRouted(host)) throw new ConnectorSelectionError("此 Gateway 未配置本机 Connector，请通过 /connect 选择已连接的设备。");
+            if (!this.access.requireAccess(principal.actorId, principal.conversationId).allowed) throw new ConnectorSelectionError("当前授权不包含本机 Connector。");
             this.options.stateStore.setConnectorSelection(principal, host);
           }
           this.invalidateCatalogs(message.senderId);
           const bound = this.executionSession(message.senderId);
-          const location = host === "local" ? "Gateway 本地目录" : `${this.options.peer.label(host)}（${host}）`;
+          const location = host === "local" ? "本机 Connector" : `${this.options.peer.label(host)}（${host}）`;
           await this.reply(message.senderId, `当前查看：${location}${host !== "local" && this.options.peer.isOnline?.(host) === false ? "（离线，已保留选择）" : ""}。\n\n${bound ? `当前对话仍绑定「${bound.title}」（${this.sessionHostId(bound)}）；选择目标设备的会话后才会换绑。` : "当前对话尚未绑定会话。"}\n\n/sessions 查看该设备的会话，/project 查看项目。`);
           return;
         }
@@ -940,7 +943,7 @@ export class BridgeService {
     const selectedHost = this.catalogHost(senderId);
     const assertCurrent = this.catalogGuard(senderId, this.conversationControlGuard(senderId, "participant"), selectedHost);
     if (target.kind === "standalone") {
-      if (selectedHost?.startsWith("peer:")) return this.createPeerSession(senderId, selectedHost, { standalone: true }, undefined, sourceId);
+      if (selectedHost?.startsWith("peer:") || this.options.peer?.isRouted?.(selectedHost ?? "local")) return this.createPeerSession(senderId, selectedHost ?? "local", { standalone: true }, undefined, sourceId);
       // Never reuse the current project's cwd, and never allocate on an inferred remote host.
       assertCurrent();
       fs.mkdirSync(store.standaloneWorkspacesDir, { recursive: true, mode: 0o700 });
@@ -971,7 +974,7 @@ export class BridgeService {
     if (selectedHost && (project.hostId ?? "local") !== selectedHost)
       throw new ConnectorSelectionError("当前项目属于另一台设备，请通过 /project 选择当前 Connector 的项目后再新建；原绑定未改变。");
     assertCurrent();
-    if (project.hostId?.startsWith("peer:")) return this.createPeerSession(senderId, project.hostId,
+    if (project.hostId?.startsWith("peer:") || this.options.peer?.isRouted?.(project.hostId ?? "local")) return this.createPeerSession(senderId, project.hostId ?? "local",
       { cwd: project.workspace, projectId: project.sourceProjectId, projectName: project.name,
         sourceThreadId: this.sessionHostId(this.executionSession(senderId)) === project.hostId ? this.executionSession(senderId)?.threadId : undefined }, project, sourceId);
     const session = store.createSession(senderId, project.workspace, undefined, project.id);
@@ -1691,7 +1694,8 @@ export class BridgeService {
       if (firstCatalog) await firstCatalog.catch(() => undefined); // Report once in the host loop below.
       let projectCatalog: readonly CodexProjectCandidate[] = [];
       try {
-        if (hostFilter?.startsWith("peer:")) projectCatalog = projectCandidatesFromBackendCatalog(await this.runner.listProjects(hostFilter), undefined, hostFilter);
+        if (hostFilter && this.options.peer?.isRouted?.(hostFilter)) projectCatalog = projectCandidatesFromConnectorCatalog(await this.runner.listProjects(hostFilter), hostFilter);
+        else if (hostFilter?.startsWith("peer:")) projectCatalog = projectCandidatesFromBackendCatalog(await this.runner.listProjects(hostFilter), undefined, hostFilter);
         else if (!hostFilter) projectCatalog = await this.codexProjectCandidates("all");
         else projectCatalog = (await this.localCodexProjectCandidates()).filter(p => (p.hostId ?? "local") === hostFilter);
       }
@@ -3036,6 +3040,7 @@ export class BridgeService {
   private async codexProjectCandidates(scope: "selected" | "all" = "selected"): Promise<readonly CodexProjectCandidate[]> {
     const principal = peerPrincipal.getStore(), paired = principal ? this.options.peer?.hosts(principal) ?? [] : [];
     const selected = scope === "selected" && principal ? this.catalogHost(principal.conversationId) : undefined;
+    if (selected && this.options.peer?.isRouted?.(selected)) return projectCandidatesFromConnectorCatalog(await this.runner.listProjects(selected), selected);
     if (selected?.startsWith("peer:")) return projectCandidatesFromBackendCatalog(await this.runner.listProjects(selected), undefined, selected);
     const localCandidates = !principal || this.access.requireAccess(principal.actorId, principal.conversationId).allowed
       ? await this.localCodexProjectCandidates() : [];
@@ -3158,13 +3163,13 @@ export class BridgeService {
         await this.reply(senderId, `当前渠道暂不支持直接发送 ${action.type} 文件：${path.basename(action.path)}`);
         return false;
       }
-      if (hostId !== "local") {
+      if (hostId !== "local" || this.options.peer?.isRouted?.(hostId)) {
         if (!this.runner.fetchOutputFile) {
           await this.reply(senderId, `远程执行器没有文件回传端口：${path.basename(action.path)}。请通过项目 Web IDE 下载。`);
           return false;
         }
         let binding: ReturnType<typeof sessionExecutionScope> | undefined;
-        if (hostId.startsWith("peer:")) {
+        if (hostId.startsWith("peer:") || this.options.peer?.isRouted?.(hostId)) {
           const session = this.executionSession(senderId);
           if (!this.options.accountId || !threadId || session?.threadId !== threadId || this.sessionHostId(session) !== hostId)
             throw new Error("Remote output has no current session binding");

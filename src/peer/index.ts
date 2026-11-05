@@ -13,6 +13,7 @@ import { GatewayPeerClient } from "./transport.js";
 import { acquireServiceProcessLock } from "../server/process-lock.js";
 import { peerIDEConfigSchema } from "./ide-service.js";
 import { deviceIdSchema, loadPeerIdentity } from "./credentials.js";
+import { managedExportSchema } from "./managed-route.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -26,8 +27,10 @@ async function main(): Promise<void> {
     codexHome: z.string().optional(), codexBin: z.string().default("codex"), backend: z.literal("app-server").default("app-server"),
     appServerTransport: z.enum(["daemon", "stdio"]).default("daemon"),
     webIDE: peerIDEConfigSchema.optional(),
+    managedRoute: managedExportSchema.optional(),
     stateDir: z.string().optional() }).strict().refine(value => Boolean(value.nodeId) === Boolean(value.tokenFile),
-      "旧凭据必须同时保留 nodeId 和 tokenFile；新设备请同时省略，由 Connector 自动生成身份").parse(readJsonFile(file, null));
+      "旧凭据必须同时保留 nodeId 和 tokenFile；新设备请同时省略，由 Connector 自动生成身份")
+    .refine(value => !value.managedRoute || !!value.tokenFile && !value.threadId, "托管迁移必须预配置设备身份且导出完整主机").parse(readJsonFile(file, null));
   const resolve = (name: string) => path.resolve(path.dirname(file), name);
   const backend = withConnectorProjects(new CodexBackendRouter({ backend: config.backend, appServerTransport: config.appServerTransport,
     codexBin: config.codexBin, codexHome: config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME }), config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME);
@@ -43,7 +46,8 @@ async function main(): Promise<void> {
       : loadPeerIdentity(stateDir, config.url);
     const label = config.label ?? os.hostname();
     service = await PeerExecutionService.create({ backend, threadId: config.threadId, profileId: config.profileId, label,
-      stateDir, webIDE: config.webIDE,
+      stateDir, webIDE: config.webIDE, managedRoute: config.managedRoute,
+      codexHome: config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME,
       independent: config.appServerTransport === "daemon",
       approveOwner: confirmation => {
         const answer = questions.then(async () => {
@@ -67,7 +71,8 @@ async function main(): Promise<void> {
       status: state => console.log(`Gateway peer: ${state}`),
       connected: async connection => {
         service!.attach(connection);
-        const ticket = await connection.request<{ code: string; hostId: string; enrollment?: boolean; paired?: boolean }>("peer.register", service!.description);
+        const ticket = await connection.request<{ code: string; hostId: string; managed?: boolean; enrollment?: boolean; paired?: boolean }>("peer.register", service!.description);
+        if (ticket.managed) { console.log(`托管 Connector 已连接：${label}；保留原 Gateway 准入和会话绑定。`); return; }
         console.log(`${ticket.enrollment ? "设备待登记；完成配对前不能访问会话。" : ticket.paired ? "已连接，正在恢复已有授权，无需重复配对。" : "已连接。"}\n${ticket.paired ? "如需授权新的聊天，" : ""}请在钉钉私聊发送 /connect ${ticket.code}，或在群聊 @机器人 后发送。\n设备：${label}\n配对码有效期 5 分钟；本机确认后，在钉钉选择要绑定的会话。设备凭据由程序保存，无需分发。`);
       } });
     let stopping: Promise<void> | undefined;

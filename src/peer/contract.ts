@@ -5,7 +5,7 @@ import type { CodexBridgeBackend } from "../codex/backend.js";
 export const PEER_BACKEND_CONTRACT = {
   withSource: "source-context", findNativeInputReceipts: "source-recovery",
   backendInfo: "negotiated", run: "rpc", steer: "rpc", submitThreadMessage: "rpc", stop: "rpc",
-  runEphemeral: "gateway-local", warmUp: "rpc", listProjects: "rpc", listThreads: "catalog-projection",
+  runEphemeral: "rpc", warmUp: "rpc", listProjects: "rpc", listThreads: "catalog-projection",
   listSessionCatalog: "rpc", getHistory: "rpc", getHistoryPage: "rpc", readThreadSnapshot: "rpc",
   inspectThread: "rpc", getRuntimeInfo: "rpc", listModels: "rpc", getAccountRateLimits: "rpc",
   listSkills: "rpc", listMcpServers: "rpc", serverIdentity: "rpc", readThreadProvenance: "rpc",
