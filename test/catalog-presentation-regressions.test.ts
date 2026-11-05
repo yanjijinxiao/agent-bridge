@@ -16,7 +16,7 @@ import type { FriendlyChannelIntent } from "../src/bridge/channel-intent.js";
 const candidate = (id: string, name = id, hostId = "local"): CodexProjectCandidate => ({ projectId: id, name, hostId,
   projectKind: hostId === "local" ? "local" : "remote", workspace: "/" + id, sessionCount: 0, lastUsedAt: "" });
 const codeValues = (text: string) => Lexer.lex(text).filter(t => t.type === "code").map(t => t.text);
-function fixture(t: { after(fn: () => void): void }, initial: CodexProjectCandidate[] = []) {
+function fixture(t: { after(fn: () => void): void }, initial: CodexProjectCandidate[] = [], sessionCount = 55) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-catalog-regression-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new RuntimeStateStore(resolveStatePaths(root)), texts: string[] = [], cards: ChannelActionCard[] = [], runs: unknown[] = [];
@@ -26,10 +26,10 @@ function fixture(t: { after(fn: () => void): void }, initial: CodexProjectCandid
     weixin: { async sendText(x) { texts.push(x.text); return { messageId: "text" }; },
       async sendActionCard(x) { cards.push(x.card); return { messageId: "card" }; } },
     runner: { async run(input: unknown) { runs.push(input); return { text: "done", threadId: "native", raw: "" }; },
-      async listThreads() { return Array.from({ length: 55 }, (_, i) => ({ threadId: `t${i}`, title: `Task ${i}`, cwd: "/repo",
+      async listThreads() { return Array.from({ length: sessionCount }, (_, i) => ({ threadId: `t${i}`, title: `Task ${i}`, cwd: "/repo",
         persistence: "active", runtimeStatus: "unknown", activeFlags: [], updatedAt: new Date(100000 - i).toISOString() })); } } as never });
   const send = (text: string, senderId = "alice") => service.handleMessage({ senderId, replyTargetId: "room", text, id: String(sequence++), raw: {} });
-  return { store, texts, cards, runs, send, service, setCandidates(value: CodexProjectCandidate[]) { candidates = value; },
+  return { root, store, texts, cards, runs, send, service, setCandidates(value: CodexProjectCandidate[]) { candidates = value; },
     setIntent(value: FriendlyChannelIntent) { intent = value; } };
 }
 
@@ -41,10 +41,10 @@ test("native action body has no duplicate copy instructions; text fallback keeps
   assert.equal(card.actionGroups.flat().length, 2);
 });
 
-test("persisted 50-row preference does not generate 50 copy boxes; default is a short page", async t => {
+test("default 50-row pages do not generate 50 copy boxes; explicit preferences remain stable", async t => {
   const f = fixture(t);
   await f.send("/sessions");
-  assert.equal(f.cards[0].body.match(/\[R\d+\]/g)?.length, 10);
+  assert.equal(f.cards[0].body.match(/\[R\d+\]/g)?.length, 50);
   assert.deepEqual(codeValues(f.cards[0].fallbackText), ["/session R编号", "/sessions more"]);
   assert.match(f.cards[0].fallbackText, /模板/);
   assert.deepEqual(codeValues(f.cards[0].body), []);
@@ -56,6 +56,20 @@ test("persisted 50-row preference does not generate 50 copy boxes; default is a 
   assert.ok(card.fallbackText.length < 4000);
   await f.send("/sessions more");
   assert.match(f.cards.at(-1)!.body, /\[R51\] Task 50/);
+});
+
+test("32 sessions fit one default page, while an explicitly saved small-page preference survives reload", async t => {
+  const f = fixture(t, [], 32);
+  await f.send("/sessions");
+  assert.match(f.cards.at(-1)!.title, /32 个.*第 1\/1 页/);
+  assert.equal(f.cards.at(-1)!.body.match(/\[R\d+\]/g)?.length, 32);
+  assert.deepEqual(codeValues(f.cards.at(-1)!.fallbackText), ["/session R编号"]);
+  await f.send("/sessions size 10");
+  assert.match(f.cards.at(-1)!.title, /第 1\/4 页/);
+  const restored = new RuntimeStateStore(resolveStatePaths(f.root));
+  assert.equal(restored.getSessionPageSize("room", "alice"), 10);
+  await f.send("/sessions", "bob");
+  assert.match(f.cards.at(-1)!.title, /第 1\/1 页/);
 });
 
 test("historical native registration cannot make the current App project name ambiguous", async t => {
@@ -104,15 +118,15 @@ test("project selectors preserve identities through reordered discovery and reje
 });
 
 test("project catalog paginates without per-row copy boxes and distinguishes hosts", async t => {
-  const f = fixture(t, Array.from({length: 23}, (_, i) => candidate(`p${i}`, "Same", `remote-${i}`)));
+  const f = fixture(t, Array.from({length: 53}, (_, i) => candidate(`p${i}`, "Same", `remote-${i}`)));
   await f.send("/project");
   const first = f.cards.at(-1)!;
-  assert.equal(first.table!.rows.length, 10);
+  assert.equal(first.table!.rows.length, 50);
   assert.ok(first.table!.rows.every(row => row[3] === "可选择"), "an unbound row must not be marked current when no project is selected");
   assert.deepEqual(codeValues(first.fallbackText), ["/project 项目编号", "/project page 2"]);
-  assert.equal(new Set(first.table!.rows.map(row => row[2])).size, 10);
-  await f.send("/project page 2"); assert.equal(f.cards.at(-1)!.table!.rows[0][0], "C11");
-  await f.send("/new C11"); assert.equal(f.store.getActiveProject("room")?.sourceProjectId, "p10");
+  assert.equal(new Set(first.table!.rows.map(row => row[2])).size, 50);
+  await f.send("/project page 2"); assert.equal(f.cards.at(-1)!.table!.rows[0][0], "C51");
+  await f.send("/new C51"); assert.equal(f.store.getActiveProject("room")?.sourceProjectId, "p50");
 });
 
 test("active DingTalk snapshot stays a single complete paragraph, retaining summaries across repeated rewrites", () => {

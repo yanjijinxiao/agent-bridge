@@ -1,5 +1,7 @@
 # 需求与 case 核对表
 
+命令展示密度 CAT-02.5 增量见[展示预算与原生目录范围核验](../audits/2026-11-05-command-density.md)：默认会话/项目50项、历史20条、准入/队列50条，权限范围保持原边界。
+
 原生配置与设备自助登记增量：IDE-08.4、PEER-01.4，见[本次四层检查及命名用例](../audits/2026-11-04-native-config-enrollment/README.md)。旧汇总数字是对应历史检查点，不能代替增量证据。
 
 由 gateway-requirements.json 汇总。verified 只证明其记录的具体边界；最新权限展示增量见[检查记录](../audits/2026-11-04-permission-visibility/README.md)。其他未完成范围沿用原清单。
@@ -29,7 +31,7 @@ Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audi
 | BIND-04 · 主交互与来源路由 | binding | 3 | 2 | 1 | 0 |
 | BIND-05 · 绑定总览 | binding | 3 | 3 | 0 | 0 |
 | CAT-01 · 完整普通会话目录 | catalog | 6 | 6 | 0 | 0 |
-| CAT-02 · 顺序、分页与稳定选择 | catalog | 4 | 4 | 0 | 0 |
+| CAT-02 · 顺序、分页与稳定选择 | catalog | 5 | 5 | 0 | 0 |
 | CAT-03 · 项目身份与创建 | catalog | 5 | 4 | 1 | 0 |
 | CAT-04 · 历史与详情 | catalog | 4 | 3 | 1 | 0 |
 | CTRL-01 · 普通忙时 steer | controls | 4 | 1 | 3 | 0 |

@@ -4,7 +4,7 @@
 
 ## 1. 产品目标
 
-已有会话以 `/sessions` 为主入口：分页列出全部可绑定的未归档会话，默认每页 10 个，`/sessions size 50` 可调整为 5-50 条并按聊天和用户持久保存；支持 `more`、`prev`、`page N`、`search 关键词` 和 `unbound` 筛选。`/session R1` 或 `/session 会话ID [--host 主机ID]` 可直接绑定；项目归属可以为空，不从工作目录猜测归属。
+已有会话以 `/sessions` 为主入口：分页列出全部可绑定的未归档会话，默认每页 50 项，`/sessions size 50` 可调整为 5-50 条并按聊天和用户持久保存；支持 `more`、`prev`、`page N`、`search 关键词` 和 `unbound` 筛选。`/session R1` 或 `/session 会话ID [--host 主机ID]` 可直接绑定；项目归属可以为空，不从工作目录猜测归属。
 
 项目是可选入口，适用于新建会话、Taskboard 和问答模式。`/project` 选择时自动绑定并切换；旧 `/project add` 只是兼容别名。选择项目后，这些项目级操作使用该项目作为工作上下文：
 

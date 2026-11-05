@@ -15,7 +15,7 @@ import { normalizeDingTalkCardContent } from "../src/channels/dingtalk.js";
 const numbersOf = (card: ChannelActionCard) => [...card.body.matchAll(/\[R(\d+)\]/g)].map(m => `R${m[1]}`);
 
 for (const backend of ["exec", "app-server"] as const) {
-  test(`${backend}: 103 sessions fit eleven compact default pages; resizing preserves identity, filter and preferences`, async t => {
+  test(`${backend}: 103 sessions fit three compact default pages; resizing preserves identity, filter and preferences`, async t => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-session-density-"));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     const paths = resolveStatePaths(root), store = new RuntimeStateStore(paths);
@@ -31,10 +31,10 @@ for (const backend of ["exec", "app-server"] as const) {
       runner: { async listThreads() { lists++; return states; }, async inspectThread() { inspections++; throw new Error("Listing must not bind"); } } as never });
     const send = (text: string, actor = "alice", chat = "chat") => service.handleMessage({ senderId: actor, replyTargetId: chat, id: String(seq++), text, raw: {} });
     await send("/sessions");
-    assert.match(cards[0].title, /103 个.*第 1\/11 页/);
-    assert.equal(numbersOf(cards[0]).length, 10);
+    assert.match(cards[0].title, /103 个.*第 1\/3 页/);
+    assert.equal(numbersOf(cards[0]).length, 50);
     const numbers = numbersOf(cards[0]);
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 2; i++) {
       await send("/sessions more");
       numbers.push(...numbersOf(cards.at(-1)!));
     }
@@ -64,9 +64,9 @@ for (const backend of ["exec", "app-server"] as const) {
     assert.equal(store.listSessions().length, 0);
     assert.equal(new RuntimeStateStore(paths).getSessionPageSize("chat", "alice"), 50);
     await send("/sessions", "bob");
-    assert.equal(numbersOf(cards.at(-1)!).length, 10, "another actor retains default");
+    assert.equal(numbersOf(cards.at(-1)!).length, 50, "another actor retains default");
     await send("/sessions", "alice", "other");
-    assert.equal(numbersOf(cards.at(-1)!).length, 10, "another chat retains default");
+    assert.equal(numbersOf(cards.at(-1)!).length, 50, "another chat retains default");
     await send("/sessions search 任务 10");
     assert.equal(numbersOf(cards.at(-1)!).length, 4);
     assert.match(cards.at(-1)!.note!, /每页 50 项/);
@@ -102,10 +102,10 @@ test("saved page sizes reject invalid values and keep defaults for old state fil
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-session-settings-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const paths = resolveStatePaths(root), store = new RuntimeStateStore(paths);
-  assert.equal(store.getSessionPageSize("chat", "actor"), 10);
+  assert.equal(store.getSessionPageSize("chat", "actor"), 50);
   for (const size of [0, 51, NaN, Infinity, 7.5]) assert.throws(() => store.setSessionPageSize("chat", "actor", size));
   fs.writeFileSync(paths.statePath, JSON.stringify({ sessionPageSizes: { '["chat","actor"]': 10000 } }));
-  assert.equal(new RuntimeStateStore(paths).getSessionPageSize("chat", "actor"), 10);
+  assert.equal(new RuntimeStateStore(paths).getSessionPageSize("chat", "actor"), 50);
   fs.writeFileSync(paths.statePath, "{}");
-  assert.equal(new RuntimeStateStore(paths).getSessionPageSize("chat", "actor"), 10);
+  assert.equal(new RuntimeStateStore(paths).getSessionPageSize("chat", "actor"), 50);
 });

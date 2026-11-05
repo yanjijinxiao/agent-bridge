@@ -1,3 +1,4 @@
+import { DEFAULT_COMMAND_LIST_SIZE } from "../channels/command-display.js";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -167,8 +168,8 @@ export class AdmissionService {
       const rows = this.snapshot().requests.filter(inScope), suffix = all ? " --all" : "";
       return [this.personalStatus(p, conversationId, kind),
         all ? "本渠道全部待处理申请（管理员私聊）" : admin ? "当前聊天待处理申请" : "本人在当前聊天的申请",
-        ...(rows.length ? rows.slice(0, 10).map(r => `${r.principal.actorId} · ${r.kind === "group" ? "群聊" : "私聊"} ${r.conversationId}\n${r.phase === "applying" ? `申请 ${r.id}：上次授权结果未确认，请在本机核对。` : copyBlock(`/access show ${r.id}${suffix}`)}`) : ["暂无待处理申请。"]),
-        ...(rows.length > 10 ? ["仅展示前 10 条；处理后再查看。"] : []),
+        ...(rows.length ? rows.slice(0, DEFAULT_COMMAND_LIST_SIZE).map(r => `${r.principal.actorId} · ${r.kind === "group" ? "群聊" : "私聊"} ${r.conversationId}\n${r.phase === "applying" ? `申请 ${r.id}：上次授权结果未确认，请在本机核对。` : copyBlock(`/access show ${r.id}${suffix}`)}`) : ["暂无待处理申请。"]),
+        ...(rows.length > DEFAULT_COMMAND_LIST_SIZE ? [`显示前 ${DEFAULT_COMMAND_LIST_SIZE} 条，共 ${rows.length} 条申请；处理后再查看。`] : []),
         ...(admin && !all ? ["跨聊天管理请在机器人私聊发送 /access all。"] : [])].join("\n\n");
     }
     const detail = parts[0] === "show", decision = ["actor", "conversation", "deny"].includes(parts[0]);

@@ -170,7 +170,7 @@ Explicit per-session overrides remain intact: `ask` offers only supported guarde
 | Command | Behavior |
 | --- | --- |
 | `/help`, `/help session` | Show all commands, or just the session intervention guide |
-| `/sessions` or `/sessions all` | Pinned sessions, then project folders with nested sessions in native order, then other sessions. Empty projects remain visible; unavailable/incomplete catalogs are labeled separately. Pinned sessions appear once. Default 10 items per page (sessions or empty folders); no project prerequisite |
+| `/sessions` or `/sessions all` | Pinned sessions, then project folders with nested sessions in native order, then other sessions. Empty projects remain visible; unavailable/incomplete catalogs are labeled separately. Pinned sessions appear once. Default 50 items per page (sessions or empty folders); no project prerequisite |
 | `/sessions size 50` | Set 5-50 items per page, persisted per account/conversation/actor; project headings do not consume items or R numbers. Re-page a valid snapshot without rediscovery or changing R identities |
 | `/sessions detail R1` or `/session detail R1` | Read details from the current actor's catalog snapshot without binding; available to viewers |
 | `/sessions more`, `/sessions prev`, `/sessions page 3` | Page within the same snapshot; R codes remain stable for 15 minutes, until refreshed |

@@ -189,7 +189,7 @@ Common commands:
 | --- | --- |
 | `/help` | Show all commands |
 | `/status` | Show project, session, backend, model, and task status |
-| `/sessions` | Pinned, project folders with sessions (including empty folders), then others; 10 items per page |
+| `/sessions` | Pinned, project folders with sessions (including empty folders), then others; 50 items per page |
 | `/sessions size 50` | Set page size (5-50, saved per conversation and user) |
 | `/sessions detail R1` | Read title, host, workspace and ID without switching |
 | `/sessions more` | Next page (prev for previous, page 3 to jump) |

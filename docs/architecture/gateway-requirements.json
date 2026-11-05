@@ -4400,7 +4400,7 @@
         2907,
         2908
       ],
-      "contract": "置顶→原生项目及缩进会话（保留空项目）→其他；组内原生顺序，默认每页10项且保留5至50偏好，空项目不占R编号，R快照按账号/对话/人隔离15分钟。",
+      "contract": "置顶→原生项目及缩进会话（保留空项目）→其他；组内原生顺序，默认每页50项且保留5至50偏好，空项目不占R编号，R快照按账号/对话/人隔离15分钟。",
       "implementationReview": "pending",
       "cases": [
         {
@@ -4596,6 +4596,65 @@
             "date": "2026-11-04",
             "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
             "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
+          }
+        },
+        {
+          "id": "CAT-02.5",
+          "scenario": "默认50项目录、20条历史及50条权限范围内准入/队列回执；分页不改编号，明确旧偏好保留，长卡不丢行。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/catalog-presentation-regressions.test.ts",
+              "name": "32 sessions fit one default page, while an explicitly saved small-page preference survives reload"
+            },
+            {
+              "file": "test/catalog-presentation-regressions.test.ts",
+              "name": "project catalog paginates without per-row copy boxes and distinguishes hosts"
+            },
+            {
+              "file": "test/session-density.test.ts",
+              "name": "app-server: 103 sessions fit three compact default pages; resizing preserves identity, filter and preferences"
+            },
+            {
+              "file": "test/admission-visibility.test.ts",
+              "name": "admission listing shows 50 requests with overflow count and preserves current-chat scope"
+            },
+            {
+              "file": "test/command-display-density.test.ts",
+              "name": "history defaults to 20 public messages and more consumes the remaining snapshot without repeats"
+            },
+            {
+              "file": "test/command-display-density.test.ts",
+              "name": "queue listing shows 50 recent receipts and only cancellation choices for those visible rows"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/command-display.ts",
+              "sha256": "ff29d27af8264594fbf257fc6a3f9f8e6d3316b119fe9ef9505039e3a2007be8"
+            },
+            {
+              "file": "src/state/session-list-settings.ts",
+              "sha256": "be511739f7f1e5299928e87f7d9ae928b2d17b7aa226963b169651544d03b460"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "f760243fa4655542c84be43740e388e31d594559c4b386d485e6411b740af079"
+            },
+            {
+              "file": "src/bridge/admission.ts",
+              "sha256": "b049eb64d1e106273e2ee1b5e56d74005961deae4d5a62bcf78773b7263f9160"
+            },
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "b9ad86b017b87eded1d75bba7e84c187e1726beeb243b4aa2e66c6949d7dc20e"
+            }
+          ],
+          "verifiedBoundary": "68项相关模块回归与类型检查通过；覆盖展示容量、分页稳定性和授权边界，不代表手机端视觉验收，也不修复单Connector多主机目录。",
+          "implementationRecheck": {
+            "date": "2026-11-05",
+            "scope": "命令展示预算；只读核验当前Mac原生列表返回范围。",
+            "report": "docs/audits/2026-11-05-command-density.md"
           }
         }
       ]

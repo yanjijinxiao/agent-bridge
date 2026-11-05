@@ -206,7 +206,7 @@ node dist/server/index.js
 | --- | --- |
 | `/help` | 查看全部命令 |
 | `/status` | 查看当前项目、Session、后端、模型和任务状态 |
-| `/sessions` | 置顶→项目及其会话→其他会话；保留空项目，默认每页 10 项 |
+| `/sessions` | 置顶→项目及其会话→其他会话；保留空项目，默认每页 50 项 |
 | `/sessions size 50` | 每页项数设为 50（支持 5-50，按聊天和用户保存） |
 | `/sessions detail R1` | 查看标题、主机、目录和 ID，不切换会话 |
 | `/sessions more` | 下一页（prev 上一页，page 3 跳页） |

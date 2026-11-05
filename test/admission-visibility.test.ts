@@ -77,6 +77,17 @@ test("admins see this chat by default; cross-chat admission listing is explicit 
   assert.throws(() => f.service.command(person, "person-dm", "direct", "all"), /管理员/);
 });
 
+test("admission listing shows 50 requests with overflow count and preserves current-chat scope", t => {
+  const f = fixture(t); f.enroll();
+  const requests = Array.from({ length: 51 }, (_, i) => f.request(`applicant-${i}`, "room"));
+  const elsewhere = f.request("foreign-applicant", "another-room");
+  const text = rendered(f.service.command(admin, "room", "group", ""));
+  assert.equal(requests.filter(r => text.includes(r.id)).length, 50);
+  assert.match(text, /显示前 50 条，共 51 条/);
+  assert.ok(!text.includes(elsewhere.id));
+  assert.deepEqual(f.changes, []);
+});
+
 test("admission details and copied decision cards enforce the same current-chat or explicit private scope", t => {
   const f = fixture(t); f.enroll(); const r = f.request("other-applicant", "other-room");
   assert.throws(() => f.service.command(admin, "room", "group", `show ${r.id}`), /范围/);

@@ -40,7 +40,7 @@ test("focused session help describes policies, permissions and backend limits", 
   const text = channelHelpText([], command.arg);
   assert.equal(command.name, "help");
   assert.ok(chunkText(text).length <= 2, "focused help remains bounded after native session management commands");
-  assert.match(text, /保留空项目，默认每页 10 项/);
+  assert.match(text, /保留空项目，默认每页 50 项/);
   assert.match(text, /\/sessions size 50/);
   assert.match(text, /\/follow \[on\|off\|sync\]/);
   for (const name of interventionCommands) assert.ok(text.includes(name));

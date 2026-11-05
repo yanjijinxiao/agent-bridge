@@ -1,6 +1,7 @@
 import { withChannelWriteLeases } from "./channel-write-leases.js";
 import { peerPrincipal, type PeerBridgePort } from "../peer/context.js";
 import { ConnectorSelection, ConnectorSelectionError } from "./connector-selection.js";
+import { DEFAULT_COMMAND_LIST_SIZE, DEFAULT_HISTORY_SIZE } from "../channels/command-display.js";
 import { AdmissionService, admissionPrincipal } from "./admission.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
@@ -1158,7 +1159,7 @@ export class BridgeService {
           status: p.id === activeProjectId ? "当前 · 历史登记" : "历史登记" });
       }
       const displayed = retained ? rows.filter(row => row.status.includes("历史登记")) : rows;
-      const pageSize = 10, pages = Math.max(1, Math.ceil(displayed.length / pageSize));
+      const pageSize = DEFAULT_COMMAND_LIST_SIZE, pages = Math.max(1, Math.ceil(displayed.length / pageSize));
       const page = Math.min(pages, Number(/(?:^|\s)page\s+(\d+)$/i.exec(input)?.[1] ?? 1));
       const pageRows = displayed.slice((page - 1) * pageSize, page * pageSize);
       const key = this.catalogActorKey(senderId);
@@ -1861,7 +1862,7 @@ export class BridgeService {
       return;
     }
     const more = arg.trim().toLowerCase() === "more";
-    const requested = more || !arg.trim() ? 8 : Number(arg.trim());
+    const requested = more || !arg.trim() ? DEFAULT_HISTORY_SIZE : Number(arg.trim());
     if (!Number.isInteger(requested) || requested < 1 || requested > 20) {
       await this.reply(senderId, copyableChoices("历史条数支持 1–20；请选择可直接发送的查询命令。", [{ label: "最近 10 条", value: "/history 10" }, { label: "更早的对话", value: "/history more" }]));
       return;
@@ -2226,11 +2227,13 @@ export class BridgeService {
       const checked = await observeStatus(() => this.nativeQueue.reconcile(this.options.accountId ?? "standalone", this.runner, { conversationId: message.senderId }));
       if (!checked.available) warning = "后端未在查询预算内完成核对，以下为持久化回执，不代表已确认的当前状态。";
       const rows = this.nativeQueue.list(this.options.accountId ?? "standalone", message.senderId);
-      const replies = rows.filter(r => r.status === "queued" && (r.actorId === (this.actor.getStore() ?? message.senderId) || this.role(message.senderId) === "controller"))
-        .slice(-20).map(r => ({ label: `请求取消待执行消息 ${r.queuedSubmissionId ?? r.clientUserMessageId}`, value: `/queue cancel ${r.queuedSubmissionId ?? r.clientUserMessageId}` }));
+      const displayed = rows.slice(-DEFAULT_COMMAND_LIST_SIZE);
+      const replies = displayed.filter(r => r.status === "queued" && (r.actorId === (this.actor.getStore() ?? message.senderId) || this.role(message.senderId) === "controller"))
+        .map(r => ({ label: `请求取消待执行消息 ${r.queuedSubmissionId ?? r.clientUserMessageId}`, value: `/queue cancel ${r.queuedSubmissionId ?? r.clientUserMessageId}` }));
       await this.reply(message.senderId, copyableChoices(rows.length ? ["本聊天的原生队列回执（任务内容与顺序由 Codex 保存）：",
         ...(warning ? [warning] : []),
-        ...rows.slice(-20).map(r => `${r.queuedSubmissionId ?? r.clientUserMessageId} · ${r.status}${r.status === "completed" ? r.delivered ? " · 结果已处理" : " · 结果未确认投递" : ""}\nSession：${r.threadId}${r.reason ? "\n" + r.reason : ""}`),
+        ...displayed.map(r => `${r.queuedSubmissionId ?? r.clientUserMessageId} · ${r.status}${r.status === "completed" ? r.delivered ? " · 结果已处理" : " · 结果未确认投递" : ""}\nSession：${r.threadId}${r.reason ? "\n" + r.reason : ""}`),
+        ...(rows.length > displayed.length ? [`显示最近 ${displayed.length} 条，共 ${rows.length} 条回执。`] : []),
         "下方只列出当前可请求取消的待执行项；是否取消以原生队列回执为准。发送新内容排队时，使用 /queue 加实际内容，不要发送占位符。"].join("\n\n")
         : "本聊天暂无原生队列回执。需要排队时，发送 /queue 加实际内容，不要发送占位符。", [{ label: "刷新队列回执", value: "/queue list" }, ...replies]));
       return;
