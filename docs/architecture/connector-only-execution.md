@@ -63,3 +63,7 @@ Gateway、Connector、原生 daemon 分别管理生命周期。macOS 使用独�
 2026-11-05 首次线上切换已完成：头头与探探的 Gateway 运行 5e5ed71；头头 25 个绑定、原准入和浏览器授权保留，两个原生核心 PID 未变。托管 Connector 由独立 launchd 服务管理；远端通过独立 SSH 作业和隧道承载，不归 Gateway 进程所有。远端 SSH 客户端退出不保证服务端 Connector 已退出，升级时须核对锁对应的实际进程并仅停止该 Connector，不能删除活进程锁或停止 Codex。IDE 配置复用和临时附件兼容的最终补丁须与 Gateway/Connector 同步发布，验证结果记入部署产物。
 
 最终兼容补丁完整回归：3293 项，3207 通过、86 条件跳过、0 失败；typecheck 与 diff 检查通过。日志 connector-unification-final-compat.log；条件跳过不计入已验收。测试使用隔离数据，不向真实 IM 发送消息。
+
+上线性能核验发现：sessionSummary → interactionDestinations → ThreadEventHub.status 逐层重新枚举所有订阅，读取配置和克隆绑定随会话数放大，导致管理接口超时。AccountManager 现只在一次同步展示读取内复用订阅视图，finally 释放，禁止跨 await 或写入守卫保留；配置在单次订阅枚举内只读一次。NAT-07.9 用 30 个活跃绑定验证读取次数、立即换绑和异常清理，模块 78 项全通过。
+
+多会话性能修正后完整回归：3294 项，3208 通过、86 条件跳过、0 失败；类型检查通过。该优化不修改 Connector 协议、授权或原生任务生命周期。

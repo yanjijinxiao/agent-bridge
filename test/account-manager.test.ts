@@ -273,6 +273,28 @@ function setup(t: test.TestContext, options: { taskboardClient?: object; taskCar
   };
 }
 
+test("session summaries share one synchronous subscription view and immediately observe rebinds", async t => {
+  const f = setup(t); await f.manager.startAccount("account-one", false);
+  const store = f.bridges.get("account-one")!.stateStore;
+  for (let n = 0; n < 30; n++) { const s = store.createSession(`room-${n}`, f.root, `session-${n}`); store.setSessionThread(s.id, `thread-${n}`); }
+  const manager = f.manager as any, original = manager.configProvider;
+  let reads = 0; manager.configProvider = () => { reads++; return original(); };
+  const before = f.manager.listSessions();
+  assert.equal(before.filter(s => s.active).length, 30);
+  assert.ok(reads < 100, `Session listing repeatedly rebuilt subscriptions: ${reads} configuration reads`);
+  const old = store.getBoundSession("room-0")!;
+  const next = store.createSession("room-0", f.root, "replacement"); store.setSessionThread(next.id, "replacement-thread");
+  const after = f.manager.listSessions();
+  assert.equal(after.find(s => s.id === old.id)?.active, false);
+  assert.equal(after.find(s => s.id === next.id)?.active, true);
+  assert.equal(f.manager.getSessionInteractionRoute("account-one", next.id).current, true);
+  const summary = manager.sessionSummary;
+  manager.sessionSummary = () => { throw Error("projection failed"); };
+  assert.throws(() => f.manager.listSessions(), /projection failed/);
+  manager.sessionSummary = summary;
+  assert.equal(manager.subscriptionSnapshot, undefined, "a failed read cannot retain stale binding authority");
+});
+
 test("receive connection errors preserve the original card until an explicit account stop", async t => {
   let monitor!: import("../src/channels/types.js").ChannelMonitorOptions;
   const updates: string[] = []; let starts = 0;

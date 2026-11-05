@@ -17961,6 +17961,25 @@
           ],
           "verifiedBoundary": "真实 Connector RPC 文件字节回传及释放；目录、符号链接、超限、错误会话和个人设备越界拒绝。",
           "remainingBoundary": "未向真实 IM 发送测试附件；已有渠道附件投递隔离测试另计。"
+        },
+        {
+          "id": "NAT-07.9",
+          "scenario": "多会话列表不会反复重建全量订阅，读取快照不跨请求保留权限",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/account-manager.test.ts",
+              "name": "session summaries share one synchronous subscription view and immediately observe rebinds"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "e26b47dbf9e6f664abedd216ab94e9fea07a48843471d806349eddd6533d4c01"
+            }
+          ],
+          "verifiedBoundary": "30 个活跃绑定的配置读取次数有界；换绑后立即更新，读取异常后释放快照；78 项模块回归通过。",
+          "remainingBoundary": "线上响应时间与最终制品切换另行验证。"
         }
       ]
     }
@@ -18148,7 +18167,8 @@
       "NAT-07.5",
       "NAT-07.6",
       "NAT-07.7",
-      "NAT-07.8"
+      "NAT-07.8",
+      "NAT-07.9"
     ]
   }
 }

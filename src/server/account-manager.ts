@@ -1029,11 +1029,11 @@ export class AccountManager {
   }
 
   listSessions(): AccountSession[] {
-    return listAccounts(this.options.paths).flatMap((account) => {
+    return this.withSubscriptionSnapshot(() => listAccounts(this.options.paths).flatMap((account) => {
       const store = this.storeFor(account.accountId);
       return store.listSessions().map(session => this.sessionSummary(account.accountId, session,
         store.getBoundSession(session.senderId)?.id === session.id));
-    }).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    }).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
   }
 
   /** Only already-managed project membership grants an IDE target. No caller
@@ -2181,7 +2181,20 @@ export class AccountManager {
     await this.threadEvents.activity("local", activity.sessionId, activity.turnId, activity.text);
   }
 
+  private subscriptionSnapshot?: ThreadSubscription[];
+  /** One synchronous read projection shares one subscription view. Never keep
+   * it across an await or mutation: the next read/write guard must see rebinds
+   * and revocations immediately. Without this, N session summaries recursively
+   * enumerate every subscription for each interaction destination. */
+  private withSubscriptionSnapshot<T>(read: () => T): T {
+    if (this.subscriptionSnapshot) return read();
+    this.subscriptionSnapshot = this.threadSubscriptions();
+    try { return read(); } finally { this.subscriptionSnapshot = undefined; }
+  }
+
   private threadSubscriptions(): ThreadSubscription[] {
+    if (this.subscriptionSnapshot) return this.subscriptionSnapshot;
+    const config = this.configProvider();
     const result: ThreadSubscription[] = [];
     for (const [accountId, entry] of this.entries) {
       // A temporary reconnect is not an unsubscribe. Keep persistent delivery
@@ -2193,7 +2206,7 @@ export class AccountManager {
         const hostId = session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local";
         // A pure Gateway may use exec locally while its Connector supports
         // native following. Delivery capability belongs to the execution host.
-        if (hostId === "local" && this.configProvider().codexBackend === "exec") continue;
+        if (hostId === "local" && config.codexBackend === "exec") continue;
         try {
           if (this.runner?.backendInfo?.(hostId).capabilities.liveFollow === false) continue;
         } catch (error) {
@@ -2211,7 +2224,7 @@ export class AccountManager {
           recipientId: session.senderId, client: entry.client,
           managed,
           enabled: store.getBoundSession(session.senderId)?.id === session.id && (managed || session.follow !== false),
-          progressEnabled: session.streamReplies ?? this.configProvider().streamReplies,
+          progressEnabled: session.streamReplies ?? config.streamReplies,
           contextToken: store.getContextToken(session.senderId),
           onTextDelivered: (part) => entry.webhook?.publish({ direction: "outbound", id: part.messageId,
             recipientId: session.senderId, text: part.text, attachments: [] })
@@ -2307,11 +2320,11 @@ export class AccountManager {
   }
 
   private interactionDestinations(): InteractionDestination[] {
-    return this.threadSubscriptions().filter(binding => binding.enabled
+    return this.withSubscriptionSnapshot(() => this.threadSubscriptions().filter(binding => binding.enabled
       && !["archived", "missing"].includes(this.threadEvents.status(binding.key).runtime?.persistence ?? "")).map(binding => {
       const [accountId, sessionId] = JSON.parse(binding.key) as [string, string];
       return { accountId, sessionId, recipientId: binding.recipientId, hostId: binding.hostId, threadId: binding.threadId };
-    });
+    }));
   }
 
   private rememberInteractionOrigin(accountId: string, session: ManagedSession, turnId: string): void {
