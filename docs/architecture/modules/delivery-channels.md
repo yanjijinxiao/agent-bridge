@@ -67,3 +67,7 @@ wecom-inbound使用有总时限与密文字节上限的fetchWithBudget，再调�
 AccountManager.nativeResultAuthority 按账号/绑定/session/host/thread/turn/收件对话核验现有接收回执，精确匹配成功后跳过无关的旧队列查询。ThreadEventHub.resultReady 只解决历史核对失败时的精确结果可投递性，实际动作仍经过 applyNativeResult、绑定租约和 TurnResultActions。来源未知不意味着任务仍在运行；展示等待结果状态，保留 sourceText 直至动作校验及处理成功。sourceText 是内部待投递原文，绝不能直接经过渠道 Markdown 输出。迁移字段均可选，旧已准备好的纯正文待投递记录仍按原格式恢复。
 
 24 项定向用例覆盖阶段格式、原卡收尾、附件与旧回执组合、错误 host 拒绝授权、重启、轮次切换和重复完成。源文件逐段检查及静态/配置范围见[此次四层记录](../../audits/2026-11-05-terminal-progress-regression.md)。
+
+## 钉钉短流式状态与完整快照
+
+ChannelProgressLayout 提供可信 status，不从模型 Markdown 猜区域。activeDingTalkLayout 是 HTTPS/SDK/初始创建共享的投影：只流式更新短状态；其余完整正文加原停止/IDE页脚通过 staticMsgContent 更新。旧调用没有 status 时保留全部正文，使用可信 activity 状态行。缓存仅在静态更新收到确认后更新，心跳不重写未变的正文；最终态沿原静态全文与实例回执链路收尾。保持原模板和持久化格式。DEL-09.5 的证据、四层范围和手机未验边界见[排查记录](../../audits/2026-11-05-card-stream-budget.md)。

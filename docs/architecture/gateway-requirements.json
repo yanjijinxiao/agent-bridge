@@ -9691,6 +9691,46 @@
               }
             ]
           }
+        },
+        {
+          "id": "DEL-09.5",
+          "scenario": "钉钉长任务只流式传短状态，完整阶段/滚动活动/复制框/IDE走静态快照；换卡、重连、更新失败和最终收尾不丢内容。",
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/dingtalk-progress-wire-budget.test.ts",
+              "name": "DEL-09.5: https long phases stay complete while every task stream frame fits 1 KiB"
+            },
+            {
+              "file": "test/dingtalk-progress-wire-budget.test.ts",
+              "name": "DEL-09.5: https rejected snapshot is retried on the same card after transport reconstruction"
+            },
+            {
+              "file": "test/dingtalk-progress-wire-budget.test.ts",
+              "name": "DEL-09.5: sdk long phases stay complete while every task stream frame fits 1 KiB"
+            },
+            {
+              "file": "test/dingtalk-progress-wire-budget.test.ts",
+              "name": "DEL-09.5: sdk rejected snapshot is retried on the same card after transport reconstruction"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/dingtalk.ts",
+              "sha256": "bc01aa02dab83274264538bbda444e0e414d3bb59583c64a0266a62b2b2913e2"
+            },
+            {
+              "file": "src/channels/turn-progress-card.ts",
+              "sha256": "e2cdcfea1ca264c0eaa05d1a6ae3a128ff84b852ec17eaf734fedc7a61445a46"
+            },
+            {
+              "file": "src/channels/types.ts",
+              "sha256": "53381c1eb4dfecd681bcf37c288591a93df0720633279f6285d4312ec3e6d63b"
+            }
+          ],
+          "verifiedBoundary": "真实HTTPS/SDK投影加受控渠道：流式UTF-8字节、24阶段中文/emoji、既有卡预算换卡、完整成果、静态失败再恢复、复用实例、终态不重开输入态。",
+          "testGap": "手机首帧后不刷新的全部原因尚未复现；协议成功及服务端消息正确不等于手机像素验收。",
+          "reviewReport": "docs/audits/2026-11-05-card-stream-budget.md"
         }
       ]
     },

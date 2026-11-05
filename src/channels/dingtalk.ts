@@ -807,7 +807,7 @@ type DingTalkHttpsAICardClientOptions = {
 export class DingTalkHttpsAICardClient implements DingTalkAICardClient {
   private readonly updateChains = new Map<string, Promise<void>>();
   private readonly inputingCards = new Set<string>();
-  private readonly progressFooters = new Map<string, string>();
+  private readonly progressSnapshots = new Map<string, string>();
   private readonly cardLifecycles = new Map<string, { id: string; owned: boolean }>();
   private readonly streamGuids = new DingTalkStreamSequence();
   private readonly transport: PinnedNetworkLifecycleTransport;
@@ -856,7 +856,7 @@ export class DingTalkHttpsAICardClient implements DingTalkAICardClient {
       await this.deliver(input);
       input.onStage?.("delivered");
       this.inputingCards.delete(input.outTrackId);
-      this.progressFooters.delete(input.outTrackId);
+      this.progressSnapshots.delete(input.outTrackId);
     } catch (error) {
       this.cardLifecycles.delete(input.outTrackId);
       if (lifecycle.owned) this.transport.close(lifecycle.id);
@@ -900,13 +900,13 @@ export class DingTalkHttpsAICardClient implements DingTalkAICardClient {
   }
 
   private async updateWithRetry(input: DingTalkAICardUpdateInput, lifecycleId: string): Promise<void> {
-    const footer = activeDingTalkFooter(input);
-    const content = footer === undefined ? visibleDingTalkTerminalContent(input) : dingTalkProgressContent(input.progressLayout!.body);
+    const layout = activeDingTalkLayout(input), footer = layout?.footer;
+    const content = layout?.body ?? visibleDingTalkTerminalContent(input);
     if (content.length > 50_000) throw new Error("DingTalk card payload requires pagination");
     if (input.presentation === "static") {
       if (!input.finalize) throw new Error("Static DingTalk card cannot represent active work");
       await this.updateCardState(lifecycleId, input, content, "3", true);
-      this.inputingCards.delete(input.outTrackId); this.progressFooters.delete(input.outTrackId); return;
+      this.inputingCards.delete(input.outTrackId); this.progressSnapshots.delete(input.outTrackId); return;
     }
     const firstUpdate = !this.inputingCards.has(input.outTrackId);
     if (!input.finalize && !nativeDingTalkLoading(input)) {
@@ -914,16 +914,16 @@ export class DingTalkHttpsAICardClient implements DingTalkAICardClient {
       // stream. A later running frame reselects input mode on this SAME card.
       await this.updateCardState(lifecycleId, input, content, "3", true);
       this.inputingCards.delete(input.outTrackId);
-      this.progressFooters.delete(input.outTrackId);
+      this.progressSnapshots.delete(input.outTrackId);
       return;
     }
-    // One writer owns the active body. Re-entering input mode patches only
-    // template controls, never the content key already owned by streaming.
-    // Rewriting both resets native Markdown widgets (notably fenced commands).
-    if (firstUpdate || this.progressFooters.get(input.outTrackId) !== footer) {
+    // Only the short status heading uses the streaming parser. Growing phase
+    // history, the rolling activity window and copy widgets share a complete
+    // static snapshot. A heartbeat must not rewrite that unchanged snapshot.
+    if (!input.finalize && (firstUpdate || this.progressSnapshots.get(input.outTrackId) !== footer)) {
       await this.updateCardState(lifecycleId, input, content, "2", true, true, footer);
-      if (footer === undefined) this.progressFooters.delete(input.outTrackId);
-      else this.progressFooters.set(input.outTrackId, footer);
+      if (footer === undefined) this.progressSnapshots.delete(input.outTrackId);
+      else this.progressSnapshots.set(input.outTrackId, footer);
     }
     this.inputingCards.add(input.outTrackId);
     const streamBody = dingTalkCardStreamingUpdateBody({
@@ -946,7 +946,7 @@ export class DingTalkHttpsAICardClient implements DingTalkAICardClient {
     if (input.finalize) {
       await this.updateCardState(lifecycleId, input, content, "3", true);
       this.inputingCards.delete(input.outTrackId);
-      this.progressFooters.delete(input.outTrackId);
+      this.progressSnapshots.delete(input.outTrackId);
     }
   }
 
@@ -1045,7 +1045,7 @@ export class DingTalkSdkAICardClient implements DingTalkAICardClient {
   private readonly runtime = new RuntimeOptions({ connectTimeout: 30_000, readTimeout: 30_000 });
   private readonly updateChains = new Map<string, Promise<void>>();
   private readonly inputingCards = new Set<string>();
-  private readonly progressFooters = new Map<string, string>();
+  private readonly progressSnapshots = new Map<string, string>();
   private readonly streamGuids = new DingTalkStreamSequence();
 
   constructor(
@@ -1089,7 +1089,7 @@ export class DingTalkSdkAICardClient implements DingTalkAICardClient {
       await this.deliver(input);
       input.onStage?.("delivered");
       this.inputingCards.delete(input.outTrackId);
-      this.progressFooters.delete(input.outTrackId);
+      this.progressSnapshots.delete(input.outTrackId);
     } catch (error) {
       logCardFailure(error, operation, input.outTrackId);
       if (operation === "create" && error instanceof DingTalkCardMutationError && !error.uncertain) throw error;
@@ -1137,25 +1137,25 @@ export class DingTalkSdkAICardClient implements DingTalkAICardClient {
   }
 
   private async updateWithRetry(input: DingTalkAICardUpdateInput): Promise<void> {
-    const footer = activeDingTalkFooter(input);
-    const content = footer === undefined ? visibleDingTalkTerminalContent(input) : dingTalkProgressContent(input.progressLayout!.body);
+    const layout = activeDingTalkLayout(input), footer = layout?.footer;
+    const content = layout?.body ?? visibleDingTalkTerminalContent(input);
     if (content.length > 50_000) throw new Error("DingTalk card payload requires pagination");
     if (input.presentation === "static") {
       if (!input.finalize) throw new Error("Static DingTalk card cannot represent active work");
       await this.updateCardStateWithRetry(input, content, "3", true);
-      this.inputingCards.delete(input.outTrackId); this.progressFooters.delete(input.outTrackId); return;
+      this.inputingCards.delete(input.outTrackId); this.progressSnapshots.delete(input.outTrackId); return;
     }
     const firstUpdate = !this.inputingCards.has(input.outTrackId);
     if (!input.finalize && !nativeDingTalkLoading(input)) {
       await this.updateCardStateWithRetry(input, content, "3", true);
       this.inputingCards.delete(input.outTrackId);
-      this.progressFooters.delete(input.outTrackId);
+      this.progressSnapshots.delete(input.outTrackId);
       return;
     }
-    if (firstUpdate || this.progressFooters.get(input.outTrackId) !== footer) {
+    if (!input.finalize && (firstUpdate || this.progressSnapshots.get(input.outTrackId) !== footer)) {
       await this.updateCardStateWithRetry(input, content, "2", true, true, footer);
-      if (footer === undefined) this.progressFooters.delete(input.outTrackId);
-      else this.progressFooters.set(input.outTrackId, footer);
+      if (footer === undefined) this.progressSnapshots.delete(input.outTrackId);
+      else this.progressSnapshots.set(input.outTrackId, footer);
     }
     this.inputingCards.add(input.outTrackId);
     const guid = this.streamGuids.next();
@@ -1184,7 +1184,7 @@ export class DingTalkSdkAICardClient implements DingTalkAICardClient {
         if (input.finalize) {
           await this.updateCardStateWithRetry(input, content, "3", true);
           this.inputingCards.delete(input.outTrackId);
-          this.progressFooters.delete(input.outTrackId);
+          this.progressSnapshots.delete(input.outTrackId);
         }
         return;
       } catch (error) {
@@ -1286,19 +1286,31 @@ function nativeDingTalkLoading(input: DingTalkCardActivity): boolean {
 }
 
 function initialDingTalkCardData(input: { contentKey: string; text: string; finalize?: boolean } & DingTalkCardActivity): Record<string, string> {
-  const footer = activeDingTalkFooter(input);
-  const source = footer === undefined ? input.text : input.progressLayout!.body;
-  const text = footer !== undefined ? dingTalkProgressContent(source) : normalizeDingTalkCardContent(!input.finalize && nativeDingTalkLoading(input) ? dingTalkLoadingBody(source) : source);
+  const layout = activeDingTalkLayout(input), footer = layout?.footer;
+  const text = layout?.body ?? normalizeDingTalkCardContent(!input.finalize && nativeDingTalkLoading(input) ? dingTalkLoadingBody(input.text) : input.text);
   if (!text.trim()) throw new Error("DingTalk card initial content must not be empty");
   if (text.length > 50_000) throw new Error("DingTalk card payload requires pagination");
   // Publish a populated first frame, not an empty template awaiting a second request.
   return dingTalkCardStateParamMap({ contentKey: input.contentKey, text, footer, flowStatus: input.finalize || !nativeDingTalkLoading(input) ? "3" : "2" });
 }
 
-function activeDingTalkFooter(input: DingTalkCardActivity & { contentKey: string; finalize?: boolean }): string | undefined {
+function activeDingTalkLayout(input: DingTalkCardActivity & { contentKey: string; finalize?: boolean }): { body: string; footer: string } | undefined {
   if (input.finalize || !input.progressLayout || !nativeDingTalkLoading(input)) return undefined;
   if (input.contentKey === "staticMsgContent") throw new Error("DingTalk streaming key conflicts with static footer");
-  return normalizeDingTalkCardContent(input.progressLayout.footer);
+  const { body, footer, status } = input.progressLayout;
+  // Older layout callers have no trusted heading. Do not infer one from prose
+  // or drop their content: use a native activity heading and retain the body.
+  const hasStatus = Boolean(status && (body === status || body.startsWith(`${status}\n\n`)));
+  const heading = hasStatus ? status! : turnStatusHeading(input.activity ?? "running");
+  const live = dingTalkProgressContent(heading);
+  // DingTalk documents <= 1 KB per streaming call and recommends <= 3 KB
+  // overall. A full replacement of a long phase document violated both even
+  // when HTTP/business receipts were successful. Keep UTF-8 wire bytes bounded.
+  if (Buffer.byteLength(live) > 1_024) throw new Error("DingTalk progress status exceeds streaming budget");
+  const snapshot = [dingTalkProgressContent(hasStatus ? body.slice(status!.length).trimStart() : body),
+    normalizeDingTalkCardContent(footer)].filter(Boolean).join("\n\n");
+  if (snapshot.length > 50_000) throw new Error("DingTalk card payload requires pagination");
+  return { body: live, footer: snapshot };
 }
 
 export function dingTalkCardStateParamMap(input: {

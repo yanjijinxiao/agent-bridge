@@ -1140,7 +1140,9 @@ test("DingTalk HTTPS allowlist recovery reuses its delivered card without multip
   assert.equal(calls.filter((call) => call.url.endsWith("/deliver")).length, 1);
   assert.equal(calls.filter((call) => call.url.endsWith("/streaming")).length, 2);
   assert.ok(calls.every((call) => call.body.outTrackId === originalCard));
-  assert.match(String(calls.findLast((call) => call.url.endsWith("/streaming"))?.body.content), /最新状态/);
+  const snapshot = calls.findLast(call => call.body.cardData)!.body.cardData as { cardParamMap: Record<string, string> };
+  assert.match(snapshot.cardParamMap.staticMsgContent, /最新状态/);
+  assert.ok(Buffer.byteLength(String(calls.findLast(call => call.url.endsWith("/streaming"))?.body.content)) <= 1024);
   assert.equal(await stream.finalize("最终结果"), true);
 });
 

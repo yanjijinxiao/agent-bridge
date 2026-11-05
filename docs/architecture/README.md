@@ -67,7 +67,7 @@
 | 原生接收与回执落盘间真实崩溃，精确恢复接收与离线完成的结果，不重发 | IN-02.2 | [接收交接](modules/inbound-forwarding.md)、[恢复记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md) |
 | 重启仅保护实际消息交接；已接收任务继续，既有远端重连不锁重启 | REL-01.9、REL-02.5 | [发布与重启](modules/release-lifecycle.md) |
 | systemError恢复、容量只读对账不阻塞重启或重放原输入 | REC-01.4、REC-02.4 | [恢复协调](modules/recovery-coordinators.md) |
-| 阶段成果保留、实时窗口、超长续卡、原图标及缩进；任务结束与结果待投递独立 | DEL-08.8–DEL-08.11 | [阶段架构](phase-progress.md)、[渠道模块](modules/delivery-channels.md) |
+| 阶段成果保留、实时窗口、超长续卡、原图标及缩进；任务结束与结果待投递独立；钉钉短流式状态与完整快照 | DEL-08.8–DEL-08.11、DEL-09.5 | [阶段架构](phase-progress.md)、[渠道模块](modules/delivery-channels.md) |
 | /stop独立复制框、连续卡片更新、分段后最终@与IDE归属 | DEL-10.1、DEL-09.3、DEL-08.4 | [结果与渠道](modules/delivery-channels.md) |
 | Web区分执行完成与答复待投递；审批漏重放与可信问题快照 | DEL-01.3、INT-02.1/.2 | [管理UI](modules/management-ui.md)、[原生交互](modules/native-interactions.md) |
 | 原28项补测、精确断言和剩余范围；33种流程节点的配置与执行边界 | AUDIT-01、TB-10.3 | [审查方法](modules/audit-method.md)、[节点对照](taskboard-node-contracts.md) |

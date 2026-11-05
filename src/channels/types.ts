@@ -10,8 +10,9 @@ export type ChannelReceipt = { messageId: string; parts?: ChannelDeliveryPart[] 
 export type ChannelTextInput = { toUserId: string; text: string; contextToken?: string };
 export type ChannelMention = { userId: string; name?: string };
 /** Trusted view regions, never recovered by parsing model-authored Markdown.
- * A native stream cursor belongs to body; interactive/static widgets to footer. */
-export type ChannelProgressLayout = { body: string; footer: string };
+ * status is the leading heading in body. A transport may stream only that
+ * bounded heading and snapshot the complete remaining body plus its widgets. */
+export type ChannelProgressLayout = { body: string; footer: string; status?: string };
 /** Provider-confirmed public conversation metadata, never inferred from IDs or session titles. */
 export type ChannelConversationIdentity = { kind: "direct" | "group"; name?: string };
 /** Trusted application intent, not part of model-authored card content. */

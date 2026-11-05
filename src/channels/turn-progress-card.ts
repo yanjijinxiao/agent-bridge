@@ -26,7 +26,7 @@ export function renderTurnProgressCard(input: ProgressFacts): string {
 
 export function renderTurnProgressLayout(input: ProgressFacts): ChannelProgressLayout {
   const { sections, status, controls } = progressParts(input);
-  return { body: [...sections, status].filter(Boolean).join("\n\n"), footer: controls };
+  return { body: [...sections, status].filter(Boolean).join("\n\n"), footer: controls, status: sections[0] };
 }
 
 function progressParts(input: ProgressFacts) {
