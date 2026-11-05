@@ -12,12 +12,12 @@
   <strong>Use local or remote OpenAI Codex from WeChat, Enterprise WeChat, Feishu, and DingTalk.</strong>
 </p>
 
-`codex-im-gateway` forwards messages to Codex on the selected device and returns progress, approvals, and results to the originating chat. Desktop and CLI-only environments use one standard Codex App Server interface, reached locally, over SSH, or through an outbound Connector.
+`codex-im-gateway` forwards messages to Codex on the selected device and returns progress, approvals, and results to the originating chat. Desktop and CLI-only environments use one standard Codex App Server interface. Every Gateway execution path uses an outbound Connector, which reuses the existing local and remote host connections.
 
 | Execution location | Connection |
 | --- | --- |
-| Gateway machine | Its configured native App Server |
-| Registered SSH host | The existing host identity and SSH configuration |
+| Gateway machine | An independently running Connector on the same machine connects to its configured native App Server |
+| An SSH host registered with Connector | The same Connector reuses the target host identity and SSH configuration; another Connector on each remote host is unnecessary |
 | A user's computer or server | A Connector dials Gateway; the user pairs and selects a session in IM, without opening inbound ports on the device |
 
 The local administration console binds to `127.0.0.1` and is not a multi-user login portal. Administrators separately enable Connector WSS and project IDE HTTPS endpoints; do not expose the management port. Gateway retains channel configuration and forwarding state. Native sessions, model credentials, and Connector pairing receipts stay on their respective devices.
@@ -36,8 +36,8 @@ The local administration console binds to `127.0.0.1` and is not a multi-user lo
 
 - **One gateway for multiple channels**: Personal WeChat, Enterprise WeChat, Feishu, and DingTalk run in parallel with account-isolated projects, sessions, approvals, and notifications.
 - **One native Codex interface**: Desktop, Gateway and CLI clients use the selected host’s App Server for execution, following, interactions and remote projects. Connection failure never selects another executor.
-- **Connector devices**: Each device has separate credentials and locally confirms the requesting person and chat. Paired users can select native projects and sessions and exchange attachments through IM.
-- **Project and session management**: Discover local and remote projects from Codex Desktop and Codex session data; bind, switch, create, resume, queue, and validate archived or missing sessions.
+- **Connector devices**: Each device has separate credentials and locally confirms the requesting person and chat. A single Connector can reach its local and registered remote hosts. Paired users can select native projects and sessions and exchange attachments through IM.
+- **Project and session management**: Connector discovers registered hosts and queries each host's native project and session catalog; bind, switch, create, resume, queue, and validate archived or missing sessions. Identically named projects on different hosts stay distinct.
 - **Long-running agent tasks**: Accepted tasks have no fixed overall timeout. Channels receive readable progress, tool state, and elapsed time while the final answer remains intact.
 - **Media, approvals, and notifications**: Handle images, voice, video, and files according to channel capabilities. Command, file-change, and permission approvals return to the originating account and conversation.
 - **Local management and extensions**: Manage channels, projects, sessions, models, and notifications from a Web console. An embedded Taskboard and declarative Skill capabilities can extend the channel workbench.
@@ -83,6 +83,8 @@ You do not need to deploy another Gateway or register a bot application. Ask its
 5. Verify the requesting person, chat, and scope in the device terminal, then enter `yes`. Pairing codes last five minutes and are single-use.
 6. Select a session from the returned list and use `/status` to check the device and directory. Pair again when moving to another chat.
 
+A Connector appears once in `/connect`; its `/sessions` and `/project` catalogs can include local and registered remote projects. Execution, attachments, and IDE use the selected session's actual host. Remote registrations and SSH settings come from Connector's Codex data directory. Restart Connector after adding a remote host registration to refresh its exported hosts. A CLI-only server can also run Connector directly using the same App Server interface.
+
 Install dependencies:
 
 ```bash
@@ -117,7 +119,7 @@ Preserve configuration and stateDir across upgrades: they contain device identit
 
 - Node.js `^22.13.0 || >=23.4.0`
 - Git
-- An installed and authenticated Codex CLI
+- An installed and authenticated Codex CLI and an independently running Connector on the execution device; a Gateway-only server does not need Codex
 
 ```bash
 npm install -g @openai/codex
@@ -150,6 +152,8 @@ npm run build
 ```bash
 node dist/server/index.js
 ```
+
+Before starting Gateway, point `CODEX_IM_GATEWAY_PEER_CONFIG` to the Connector listener configuration and start Connector on the execution device, even for same-machine deployments. Without a configured device the management console remains available, but execution reports no connection; Gateway does not start local Codex. See [migration with preserved identities](./docs/architecture/connector-only-execution.md) for existing local/SSH bindings.
 
 The service opens [http://127.0.0.1:8787](http://127.0.0.1:8787) by default. npm only installs locked dependencies and builds the project; it does not globally install or publish the service.
 
@@ -211,19 +215,21 @@ Common commands:
 | `/stop` | Interrupt the current task |
 | `/connect` | Show your authorized devices in this chat, selection and connection status |
 | `/connect use C2` | Save the current Connector for /sessions and /project without changing the conversation binding |
-| `/connect use local` | Return to the Gateway local catalog; existing admission is required |
+| `/connect use local` | Select the administrator-configured logical local Connector; requires existing admission and rejects an absent route |
 | `/sessions all` | Explicitly list all accessible sources; `--host ID` is a temporary filter |
 | `/access` | Show personal/current-chat admission |
 | `/ide` | Open the current project IDE if enabled |
 | `/unbind` | Unbind this chat without stopping the task |
 
-Remote projects reuse the `hostId` stored by Codex Desktop and the local SSH configuration. The gateway never stores SSH passwords or private-key contents. See the [channel project workbench](./docs/channel-project-modes.md) for projects, modes, and Taskboard interaction.
+Messages and attachments use the current conversation binding; changing the `/connect` catalog selection alone does not change that target. Gateway downloads and validates attachments, then Connector stages them on the session's actual host, including same-machine deployments. Plain text never enters file staging. An attachment-preparation notice saying the input was not submitted is separate from the original task's outcome; inspect `/inbox` for saved records and available actions. Old inputs are not automatically replayed.
+
+Remote projects reuse the registered `hostId` and SSH configuration on the Connector machine. Gateway never stores SSH passwords or private-key contents. See the [channel project workbench](./docs/channel-project-modes.md) for projects, modes, and Taskboard interaction.
 
 Session lists also hide explicitly classified probe records and report the hidden count. Normal conversations are never filtered merely for a `READY` title or CLI source, and no records are deleted or archived. See [session-purpose filtering and restoration](./docs/codex-backends.md#probe-records-versus-user-conversations).
 
 ## Codex backends
 
-Every Gateway execution path now uses a Connector, including work on the same machine. Gateway does not start Codex or fall back to local/SSH execution. Configure `CODEX_IM_GATEWAY_PEER_CONFIG`, run the Connector independently on each execution device, and keep both services supervised separately. Existing bindings can retain their logical host IDs through explicit deployment routes; see [migration and invariants](./docs/architecture/connector-only-execution.md).
+Every Gateway execution path uses a Connector, including work on the same machine. Gateway does not start Codex or fall back to local/SSH execution. Configure `CODEX_IM_GATEWAY_PEER_CONFIG` and supervise Gateway and Connector separately. Each Connector can carry multiple authorized native hosts, so it need not be installed on every reachable remote host. Existing bindings can retain their logical host IDs through explicit deployment routes; see [migration and invariants](./docs/architecture/connector-only-execution.md) and [host routing](./docs/architecture/connector-host-routing.md).
 
 Gateway implements one standard App Server interface for project, session, execution, history, approval, queue, goal and status operations. Desktop and CLI-only deployments differ only in connection and service deployment. GUI installation is not required on a CLI-only host.
 
@@ -334,5 +340,3 @@ XavierJiezou/codex-weixin → lsiten/codex-channel-bridge → yanjijinxiao/codex
 Existing copyright notices and the [MIT License](./LICENSE) are preserved. See [NOTICE](./NOTICE) for attribution. The WeChat iLink integration shape references the MIT-licensed `Tencent/openclaw-weixin`; no AGPL source code was copied.
 
 This is an unofficial community project and is not affiliated with or endorsed by OpenAI, Tencent, WeCom, ByteDance, Feishu, Alibaba, DingTalk, or the upstream maintainers.
-
-A single Connector profile can route to its local and registered remote native hosts through the existing Codex backend. `/connect` selects the device; `/sessions` and `/project` include its authorized hosts. Session bindings, files and IDE keep their exact target host. See [host routing](docs/architecture/connector-host-routing.md).

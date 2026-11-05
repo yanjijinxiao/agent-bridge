@@ -4,11 +4,11 @@ Gateway 的生产执行入口已统一到 Connector，同机部署也运行独�
 
 目录选择：`/connect` 展示本人当前聊天的设备，点击切换或 `/connect use C2` 保存当前 Connector，后续 `/sessions` 和 `/project` 默认查询它承载的已授权本机和远程主机，重启后仍保留。切换目录不换绑、不停止原任务；选中会话才换绑。`/sessions all` 显式聚合，`/sessions --host ...` 为临时查询。离线/撤权不自动回退；新建不能沿用其他设备目录。接口和状态边界见 [当前 Connector](architecture/modules/connector-selection.md)。
 
-本功能由管理员显式启用：未设置 `CODEX_IM_GATEWAY_PEER_CONFIG` 时不启动 Peer 监听，也不改变原有机器人后端。多人共享与共享工作区仍需按实际部署完成独立验收。第一次使用探探可先阅读 [Connector 与使用教程](tantan-connector-guide.md)；本文主要说明通用部署和接口。
+监听入口由管理员显式启用：未设置 `CODEX_IM_GATEWAY_PEER_CONFIG` 时不启动 Peer 监听，管理面仍可运行，但执行会提示没有可用 Connector，不回退到 Gateway 本机或 SSH 执行。多人共享与共享工作区仍需按实际部署完成独立验收。第一次使用探探可先阅读 [Connector 与使用教程](tantan-connector-guide.md)；本文主要说明通用部署和接口。
 
 服务器 A 运行 Gateway 和机器人，设备 B 主动连接 A。先配对设备，再在钉钉中查看、选择和切换 B 的 Codex 会话。本机配置无需填写 session ID，服务器按需向客户端查询会话目录。B 无需开放入站端口，A 无需 SSH 登录 B；双方需要网络互通。
 
-流程简化（2026-11-04）：`/access` 管理本人/当前聊天的准入，个人准入同时用于 IDE，不重复登记；`/connect 配对码` 经设备确认后立即显示该设备的项目与会话，不再要求补发 `/sessions`。配对不执行或自动选择任务。IDE 默认采用个人浏览器确认，管理员也可显式开启持链接直接进入；后者目前每个账号只有一个固定授权来源，仍需具有目标设备权限，不能视为新用户自动获得自己机器的 IDE。详见 [Web IDE 访问模式](web-ide.md)。
+`/access` 管理本人/当前聊天的准入，个人准入同时用于 IDE，不重复登记；`/connect 配对码` 经设备确认后立即显示该设备的项目与会话，不再要求补发 `/sessions`。配对不执行或自动选择任务。IDE 默认采用个人浏览器确认，管理员也可显式开启持链接直接进入；后者目前每个账号只有一个固定授权来源，仍需具有目标设备权限，不能视为新用户自动获得自己机器的 IDE。详见 [Web IDE 访问模式](web-ide.md)。
 
 已有单一 HTTPS 前端的部署可使用 `scripts/peer-ide-tls-front.mjs`：Peer WebSocket 转到 loopback 19478，IDE HTTP/WS 转到 loopback 28480，保留 Host/Origin/Cookie 供原授权模块验证，不发布 `/api` 管理面。端口和证书目录可通过脚本列出的环境变量配置；Gateway IDE 配置的 publicOrigin 必须与外部固定入口一致。
 
@@ -20,10 +20,13 @@ Gateway 的生产执行入口已统一到 Connector，同机部署也运行独�
 
 ## 1. 准备两端
 
-两台设备都使用这个分支并执行：
+两端使用兼容的当前 Gateway / Connector 程序。从源码安装时，分别安装依赖和构建：
 
 ```sh
 npm ci
+```
+
+```sh
 npm run build:bridge
 ```
 
@@ -86,10 +89,15 @@ Gateway 使用统一 Connector facade；Connector 使用唯一的原生 App Serv
 
 默认开放该 Codex profile 的普通会话及其已登记的远程主机，复用已有的原生后端与 SSH 连接配置，无需在每台远端安装 Connector。一个配对设备在 /connect 中只占一个选项；/sessions 按项目展示各目标主机的会话，执行、附件和 IDE 跟随原目标。远端不可达时保留部分目录并提示，不能切换到另一执行器。若只想开放某一个会话，可显式添加 `threadId`；这种受限配置仍按原流程直接绑定指定会话。
 
+远端登记从 Connector 的 Codex 数据目录读取，并在启动时确定导出的主机清单。新增远端登记后重启 Connector；已有主机上新增项目或会话则刷新目录。B 负责按已有 SSH 配置连接目标主机，A 不保存这些 SSH 凭据或替它发现主机。管理员迁移已有逻辑主机时，显式配置 managedRoute / managedHosts 并保留原绑定，不能把普通用户的配对配置直接替换成托管权限。
+
+启动命令模板，需替换实际配置路径：
+
 ```sh
 npm run peer -- --config /absolute/path/peer-client.json
-# 开发时也可使用 npm run peer:dev -- --config /absolute/path/peer-client.json
 ```
+
+开发时可使用同参数的 npm run peer:dev。
 
 配对流程：
 
@@ -99,19 +107,11 @@ npm run peer -- --config /absolute/path/peer-client.json
 4. 钉钉确认配对后直接显示当前设备的标题、工作目录、状态和 R 编号，点击选择按钮或发送 `/session R2` 绑定；以后仍可发送 `/sessions` 或 `/sessions --host 主机ID` 刷新。若 Connector 固定到某个未归档会话，仍直接绑定该指定会话。
 5. 后续文字消息继续所选会话。发送 `/sessions` 可刷新当前设备的列表，再通过 `/session R编号` 切换；新增的本机会话无需重启客户端即可发现。`/history` 查看历史，`/stop` 请求停止，`/leave` 退出当前聊天绑定。
 
-例如钉钉显示：
+例如，目录把“开发网关”列为 R2 时，选择该行即可绑定，再发送“继续完善设备连接功能”。R2 只代表这次列表的编号，不能作为长期固定标识；同名项目按目标主机和原生身份区分。
 
-```text
-可绑定会话 · 我的笔记本
-R1  排查资源问题    /Users/me/project-a
-R2  开发网关        /Users/me/project-b
+发送 `/connect` 可再次打开当前聊天已授权设备的入口。`/sessions` 默认使用该用户在当前聊天保存的 Connector 选择；未选择且只有一个可用来源时自动选择它，有多个来源时要求先选。目录包含所选 Connector 承载的已授权主机，保留空项目，默认每页 50 项。`/sessions all` 查看所有可访问来源，`/sessions --host 主机ID` 临时指定目录来源，不改变默认选择；Connector 根标识仍会展开其已授权主机。选择目录不换绑；只有选中会话后，普通消息才改发到新绑定。
 
-你：/session R2
-机器人：已绑定会话：开发网关
-你：继续完善设备连接功能
-```
-
-发送 `/connect` 可再次打开已配对设备的入口；选择设备后查看它的会话列表。`/sessions` 默认显示当前绑定的远程设备，或唯一已配对设备的会话；`/sessions all` 查看所有来源，`/sessions --host 主机ID` 明确指定设备。配对和查看目录不创建任务，也不会把未选择的普通消息发往 Gateway 本地执行。
+`/connect use local` 仅选择管理员已配置且本人有权使用的逻辑 local Connector；没有该路由时拒绝操作，不恢复 Gateway 直连执行。普通用户从 /connect 的实际设备列表选择即可。
 
 配对码一次使用后即失效，即使本机拒绝也不能复用。过期或拒绝后可重启 B 客户端获取新码。客户端自动重连，已完成的授权在双方重启后仍有效，设备模式的主机 ID 按设备和 profile 保持稳定，切换会话不改变主机。首次授权需要交互式终端，非 TTY 不自动批准；之后在钉钉切换会话无需再次回本机确认。退出 B 客户端用 Ctrl-C；它不注册后台系统服务。
 
@@ -138,8 +138,9 @@ Gateway 本机管理 UI 保留管理员控制台边界；它没有按钉钉用�
 | 监听端 | `GatewayPeerServer.listen` | 校验设备身份，接受连接 |
 | 拨号端 | `GatewayPeerClient.start/close` | 主动连接、心跳、自动重连 |
 | 双向连接 | `PeerConnection.handle/request` | 两端对等的版本化 RPC |
-| 远端执行器 | `PeerExecutionService` | 查询本机会话目录，确认设备访问授权、执行选中会话、持久回执 |
-| 路由适配 | `withPeerBackend` | 将 `peer:` 主机接入现有 `CodexBridgeBackend`，其他本地/SSH 路由保留 |
+| 设备执行服务 | `PeerExecutionService` | 每个导出主机复用原生后端，确认访问授权、查询目录、执行选中会话并保存回执 |
+| Gateway 路由适配 | `connectorOnlyBackend` | 所有执行端口通过 Connector；逻辑 local 和旧 SSH 主机也使用已配置的设备路由 |
+| 目标主机适配 | `hostScopedBackend` | 同一 Connector 复用既有后端的本机/远端能力，保留每个方法的目标主机及回调 |
 | 远端对话入口/出口 | `createPeerChannelAdapter` / `attachPeerConversation` | 在连接任意一端适配现有 `ChannelAdapter`，收消息并回传回复 |
 
 远端对话适配器目前是可嵌入 API，测试已分别接到监听端和拨号端的真实 `BridgeService`。配置文件和 CLI 首先覆盖“机器人 → 远端 Codex”的执行器场景，尚未提供对话客户端的管理 UI 或独立交互 CLI。
@@ -150,13 +151,7 @@ Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输�
 
 固定路径 `/gateway/v1/peer`，原生客户端在 Upgrade 时发送 `X-Gateway-Peer-Id` 和 `Authorization: Bearer <设备令牌>`。新设备自动生成凭据，并额外发送 X-Gateway-Peer-Enroll: 1。只有监听端显式启用 enrollment 才接受未知设备的受限配对连接；已知设备凭据不符不能退回自助登记。配对经 IM 准入、本机确认和持久化成功后才开放目录、执行与 IDE。Gateway 保存凭据摘要，Connector 本机保存原凭据。带浏览器 Origin 的直连被拒绝；当前协议不接受浏览器 cookie 作为授权。
 
-```json
-{ "version": 1, "type": "request", "id": "请求UUID", "method": "方法名", "params": {} }
-```
-
-```json
-{ "version": 1, "type": "response", "id": "原请求UUID", "result": {} }
-```
+请求包含 version、type=request、id、method 和 params；响应包含 version、type=response、相同 id 和 result。它们是内部协议字段，普通用户无需在聊天中构造或发送。
 
 失败响应以 `error: { code, message, data? }` 代替 `result`。每个方向均可主动发请求；进度、审批等回调也是有回执的请求。
 
@@ -175,69 +170,72 @@ Farming、其他 Agent 和第三方 IM 可在上述层增加适配器。传输�
 连接每 15 秒 ping/pong，单帧最大 1 MiB，每方向最多 256 个在途请求。历史可分页；超限明确报错。协议版本不匹配拒绝连接，不猜测兼容字段。
 
 Codex 公共 facade 端口按 [接口表](architecture/modules/peer-interface-matrix.md) 适配，包含队列、恢复、Skills/MCP、精确中断、goal、独立交互、动态工具及显式原生设置。写入需要 `writeGuard: 1`；扩展原生端口需要 `nativeContract: 1`。不支持的原生能力或越出资源范围的调用明确拒绝，不改用 Gateway 本机。原生目录只在获准后查询。
-### 本机项目与会话管理
+### 目标主机的项目与会话管理
 
 两端更新后，注册信息通过 `management: { version: 1 }` 声明能力。除上述执行方法外，允许 `createThread`、`renameThread`、`archiveThread`、`unarchiveThread`，以及仅限已归档会话的 `deleteThread`；聊天中不开放永久删除命令。`listProjects` 从获准设备读取原生项目目录，Gateway 不检查远端路径在服务器上是否存在。旧 Connector 的管理请求会明确提示升级。
 
-```text
-/project                      查看本机原生项目及 C 编号
-/new C1                       在选中项目新建原生空会话并绑定
-/new                          在当前项目新建
-/new --standalone             在当前设备的私有目录新建无项目会话
-```
+| 命令 | 用途 |
+| --- | --- |
+| /project | 查看当前 Connector 承载的原生项目及编号 |
+| /new C1 | 在本次列表对应的项目新建原生空会话并绑定，C1 须替换为实际编号 |
+| /new | 在当前项目新建 |
+| /new --standalone | 在当前选定来源的私有目录新建无项目会话 |
 
 项目查询只提供目录和选择能力，项目新增、重命名、删除仍不在本次范围内。创建采用原生 `thread/start`，不会发送 `turn/start`，下一条消息才启动任务，也不会覆盖设备的默认模型。项目工作目录必须匹配设备端确认的项目根目录，或同项目现有会话的工作树；`/new --standalone` 的工作区放在 `stateDir/workspaces/`；完整设备授权的原生创建接口也可显式选择设备上的已有目录，固定会话或资源委托不能扩大到其他目录。未绑定时若只有一个已配对设备，可直接新建该设备的独立会话；多个设备时要求先选择来源。
 
-通用 `/session rename|archive|restore`、`/sessions archived` 已拆到独立后续分支，本分支不新增这些聊天命令。管理端口仍供授权调用方使用，固定会话授权只允许操作该 thread。`/leave` 继续只解除聊天绑定。原生空线程在首条输入前可能尚未物化，适配器保留其订阅；不承诺在首次输入前重启仍可恢复该空线程。
+当前聊天未开放通用 `/session rename|archive|restore` 和 `/sessions archived` 命令；管理端口仍供授权调用方使用，固定会话授权只允许操作该 thread。`/leave` 继续只解除聊天绑定。原生空线程在首条输入前可能尚未物化，适配器保留其订阅；不承诺在首次输入前重启仍可恢复该空线程。
 每次管理写入都使用稳定源消息身份并持久记录意图、原生创建 ID 和结果。断线后状态不明的写入不自动重放，可刷新会话目录核对；重复的已完成操作返回原结果。管理与文件能力均不扩大既有用户、聊天和设备授权。
 
-项目创建接入复用原生精确 ID；目录的通用别名展示调整已拆分，不在本分支改变本地和 SSH 目录。
+项目归属使用目标主机和原生精确 ID。Desktop 登记用于发现主机和明确的身份映射，不用项目名称或相同 cwd 猜测归属，也不把远端登记条目伪造成原生项目。
 
 ### 会话附件传输
 
 两端均需更新到包含文件传输的版本。注册信息中的 `files: { version: 1 }` 声明能力；缺失 writeGuard 的旧 Connector 不允许写入；缺失文件能力时尝试传文件明确提示更新，不会把设备路径当作 Gateway 本地路径读取。
 
-- 入站：复用渠道下载和附件校验，再以 256 KiB 分块传给 B。上传必须有当前聊天用户身份，并匹配其设备授权和所选 thread。B 自行决定存储位置：`stateDir/files/inbound/<授权>/<thread摘要>/<会话摘要>/`，文件名带 SHA-256，重复传输复用已核对内容。完成前只写私有 `.part` 文件。
+- 入站：复用渠道下载和附件校验，再以 256 KiB 分块传给 B。上传携带账号、聊天和 thread，并匹配当前用户的授权；逻辑 local、旧远端别名和个人设备使用同一准备入口，纯文字不进入文件转存。本机文件由主机文件服务存入自己的 stateDir/files/inbound；远端再经既有原生文件端口放到实际执行主机。文件名带 SHA-256，重复传输复用已核对内容，完成前只写私有 `.part` 文件。
 - 出站：模型继续使用 `codex-im-gateway-actions` 的 `send` 动作。B 只允许读取所选会话真实工作目录内、或该授权和 thread 的入站附件目录内的普通文件。解析真实路径，拒绝指向目录外的符号链接、相对路径及特殊文件；不允许读取其他聊天的附件。生成在临时目录等其他位置的文件，需先保存到会话工作目录再发送。
 - Gateway 收到完整文件并核对 SHA-256 后，才交给原有渠道 `sendMedia`；发送完成或失败均清理 Gateway 临时副本。传输期间切换或退出绑定，则不向旧聊天发送文件。文件输出沿用既有结果动作回执，未知渠道投递不自动重复。
-- 单文件上限取 Gateway `maxInboundBytes` 和 100 MiB 中较小值；仍遵守渠道本身的限制。每个 Connector 最多 8 个活跃传输、合计 200 MiB 声明大小，每个传输最长 5 分钟。单帧仍为 1 MiB。校验失败、过期或连接关闭会释放文件描述符并清理未完成上传。
+- 单文件上限取 Gateway `maxInboundBytes` 和 100 MiB 中较小值；仍遵守渠道本身的限制。每个主机文件服务最多 8 个活跃传输、合计 200 MiB 声明大小，每个传输最长 5 分钟。单帧仍为 1 MiB。校验失败、过期或连接关闭会释放文件描述符并清理未完成上传。
 - 断线后重新上传从头开始，按内容去重复用完整文件；尚无跨连接断点续传。已完成附件保留，供本机会话继续使用。传输不替代本机 Codex 的沙箱和审批，也不提供公网下载 URL。
 - 能否发送图片、视频或文件由渠道能力决定。例如当前钉钉适配器支持出站文件，图片和视频的原生发送能力仍受其适配状态限制。
+
+附件准备失败表示这条输入尚未提交，不表示原生任务已失败。原记录可通过 /inbox 核对；修复或更新程序不会自动重发 held 记录，已接收或回执不明的输入也不重发。针对来源参数遗漏和逻辑 local 跳过转存的回归，从真实 BridgeService 入口经过 Connector 验证，不能只用手工填写参数的文件 RPC 测试代替。
 
 ## 5. 可靠性与范围
 
 - A 复用现有 `ForwardingInbox`、输入回执、权限、绑定和回复投递。B 在调用 Codex 前持久记录提交意图，在原生接受后持久记录 turn ID；重复的稳定源消息不会启动第二次执行。
 - 崩溃恢复保留既有 `peer-` 原生输入编号，按原机器人账号、聊天和用户的授权重新读取所选设备历史，再复用主分支的完整分页、精确 ID 和唯一轮次校验。只有确认接受后才持久化 Gateway 回执并补投结果；身份缺失、权限已撤销或历史不完整时保持未确认，不借用其他用户的授权，也不重发输入。
 - 已知未提交的离线错误按现有逻辑保留和重试。发送后状态不明、或原生已接受的输入不自动重发。重连恢复的是连接，不能宣称任意故障下“恰好一次执行”。可用 `/inbox`、`/history` 核对结果。
-- 独立 app-server daemon / Desktop 的执行可以在 Gateway 观察连接断开后继续；Gateway 仅在其接受回执持久化后允许安全分离观察。显式 `stdio` 连接属于客户端进程生命周期，不获得这一豁免。
+- 独立 app-server daemon 的执行可以在 Gateway 观察连接断开后继续；Gateway 重启后按原主机、thread 和 turn 重连核对。显式 `stdio` 的核心属于 Connector，重启该 Connector 可能中断任务；单独重启 Gateway 不关闭 Connector 或它的核心。
 - 默认沿用 B 的模型、effort、认证和本地资源配置。A 的全局模型默认值不覆盖它；聊天中显式设置的 `/model` 或 `/effort` 仍会传给 B。
-- 每个客户端连接一个本地 Codex profile，支持选择、创建、重命名、归档和恢复普通会话，可选固定到单个 thread。主要验证 macOS/Linux 的绝对路径；不附着任意终端进程。
+- 每个客户端使用一个 Codex 数据目录及原生连接配置，可以导出本机和其中已登记的远端主机；固定 thread 的配置不导出额外主机。管理端口支持选择、创建、重命名、归档和恢复，聊天实际提供哪些命令以 /help 为准。主要验证 macOS/Linux 的绝对路径；不附着任意终端进程。
 - 原生队列、目标、容量/系统恢复、Skills/MCP、精确中断、独立交互、动态工具和结构化输出已接入公共端口；见接口表与逐项测试。项目增删改和 Taskboard 产品入口不由 Connector 自动新增。完整 code-server 需按下节显式启用。
 - 显式 nativeSettings 限获准设备用户；资源委托沿用原生权限。所有文件路径属于设备，不读取 Gateway 同名文件。
 - Web 管理的远程发送入口仍需用户级 Peer 授权接入；当前产品使用已有 IM 渠道。双向远端 Channel 保留独立原型，不属于此次机器人 Connector 合入范围。
 
 ## 6. 验证
 
-当前接口、范围与结果见 [合入记录](peer-merge-readiness.md)。以下为早期版本的历史验证，不代表当前分支仍包含其中的通用会话管理命令。
+当前接口与范围见 [接口表](architecture/modules/peer-interface-matrix.md)。可运行以下隔离检查：
 
 ```sh
 npm run typecheck
-node --test --test-timeout=20000 --import tsx test/peer-transport.test.ts test/peer-execution.test.ts test/peer-bridge.test.ts test/peer-files.test.ts test/peer-management.test.ts
 ```
 
-这些自动化测试实际建立回环 WebSocket，经过真实 RPC、注册、配对、BridgeService、授权、持久回执和文件分块传输，Codex 使用模拟后端。
+```sh
+node --test --test-timeout=120000 --import tsx test/connector-host-routing.test.ts test/connector-attachment-entry.test.ts test/peer-files.test.ts test/attachment-source-binding.test.ts
+```
 
-2026-10-30 的实机联调使用 macOS Codex App/0.163.0 daemon、远端 Linux 容器 Gateway 和钉钉测试机器人：附件进入本机后读出了预设标识；同一文件通过输出动作回传，钉钉中出现文件消息及确认回复。传输内部执行 SHA-256 校验。DWS 的消息查询未返回该机器人文件的资源 ID，因此尚未通过 DWS 再次下载钉钉端文件进行独立校验。真实审批、其他平台和故障注入仍不在这次实机验证范围内。
-
-同日管理联调验证了本机项目目录、原生空会话创建（创建后 0 个模型轮次）、重命名、归档、按 R 编号恢复，以及恢复后继续同一原生会话并收到固定回复。另通过 `/new --standalone` 在 Mac Connector 私有目录新建并自动绑定了无项目会话。项目身份映射修复有独立回归，在项目中新建会话并自动绑定的完整路径另由真实 WebSocket + 模拟后端集成测试覆盖。
+这些自动化测试实际建立回环 WebSocket，经过真实 RPC、BridgeService、授权、持久回执和文件分块传输，Codex 推理使用测试后端。实际单 Connector 两主机及附件准备的证据见 [多主机检查](audits/2026-11-05-connector-host-routing.md) 和 [附件入口检查](audits/2026-11-05-connector-attachment-scope.md)。历史平台联调保存在 [合入记录](peer-merge-readiness.md)，不作为新用户安装时必须回退到某个旧版本的要求。
 
 共享准入只决定谁能访问哪个原生会话；操作权限复用现有 `/role`，不另设 `read / chat / control` 分档。文件回传与 Web 编辑器仍单独授权。升级时旧分档委托必须重新批准，Gateway 与 Connector 需配套升级，详见[会话所有权与共享工作区](./peer-sharing.md)。
 
-Connector导出的项目ID使用设备当前host/home的明确Desktop迁移映射，与原生session归属一致；这一适配只在Connector进程内启用，本地及SSH列表保持main行为。
+Connector 导出的项目 ID 使用设备当前 host/home 的明确 Desktop 迁移映射，与原生 session 归属一致。本机和 SSH 主机均通过同一个 Connector 路由适配，Gateway 不再分别维护目录实现。
 
 ## 完整 Web IDE
 
 Connector 配置可增加 `webIDE`：`enabled` 默认 false；`binary` 默认 code-server，亦可选择本机已安装的绝对路径；`autoInstall` 默认 false，设为 true 时按固定官方版本、长度和 SHA256 安装到本用户目录。设备需要可用 Git 和终端 shell；Linux 需满足官方 code-server 的 glibc 条件。配置后重启 Connector，独立 daemon 上已接收的 Codex 任务继续。
+
+远端项目在实际主机运行 IDE，不继承 Connector 本机的绝对 binary 路径。未启用自动安装时，仍可发现并复用远端已有安装，再按 PATH 查找；找不到则报告缺失，不擅自开启下载。
 
 Gateway 的 IDE 页面启用该 peer 主机，并使用可访问的共享 HTTPS 入口。无需为 Connector 开放 SSH、code-server TCP 端口或另一套密码。在所选原生项目发送 /ide；浏览器按账号配置使用个人确认或显式链接直达，最长 90 天，不自动续期。链接直达授权来源必须有目标设备的有效非委托授权；新用户配对后仍需单独核对，不能复用别人设备的权限。仅 ide-read/ide-write 的共享访客继续使用文本页，不能获得 Git/终端。
 
