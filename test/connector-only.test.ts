@@ -50,6 +50,28 @@ test("managed deployment authorization cannot be borrowed through the physical p
     await assert.rejects(f.serverConnection.request("execution.call", { grant: bad, method: "inspectThread", args: [f.thread.threadId] }), /not approved/);
 });
 
+for (const hostId of ["local", "remote-ssh-discovered:old-machine"]) {
+  test(`managed ${hostId} preserves temporary output exports without changing personal file scope`, async t => {
+    const f = await peerFixture(t, { managedHost: hostId, device: true });
+    f.thread.cwd = path.join(f.root, "workspace"); fs.mkdirSync(f.thread.cwd);
+    const file = path.join(f.root, "export.pdf"), bytes = Buffer.from("temporary native output"); fs.writeFileSync(file, bytes);
+    const input = { hostId, accountId: principal.accountId, conversationId: principal.conversationId, threadId: f.thread.threadId, maxBytes: 100 };
+    const copy = await f.facade.fetchOutputFile!(file, input);
+    assert.notEqual(copy.path, file); assert.deepEqual(fs.readFileSync(copy.path), bytes);
+    await copy.dispose(); assert.equal(fs.existsSync(copy.path), false); assert.equal(fs.existsSync(file), true);
+    await assert.rejects(f.facade.fetchOutputFile!(file, { ...input, maxBytes: 1 }), /limit/);
+    const link = path.join(f.root, "export-link.pdf"); fs.symlinkSync(file, link);
+    await assert.rejects(f.facade.fetchOutputFile!(link, input), /symbolic link/);
+    await assert.rejects(f.facade.fetchOutputFile!(f.thread.cwd, input), /regular/);
+    await assert.rejects(f.facade.fetchOutputFile!(file, { ...input, threadId: "missing" }));
+    await assert.rejects(f.facade.fetchOutputFile!(file, { ...input, hostId: "peer:laptop:work" }), /not authorized/);
+    const personal = await peerFixture(t, { device: true }); await personal.bind();
+    personal.thread.cwd = f.thread.cwd;
+    await assert.rejects(personal.facade.fetchOutputFile!(file, { ...input, hostId: personal.ticket.hostId, threadId: personal.thread.threadId }), /selected session workspace/);
+    assert.equal(f.runs.length, 0); assert.equal(personal.runs.length, 0);
+  });
+}
+
 test("managed input rechecks the live Gateway guard and never submits after revocation", async t => {
   const f = await peerFixture(t, { managedHost: "local", device: true });
   await assert.rejects(f.as(() => f.facade.run(f.input({ assertCurrent() { throw Error("revoked"); } }))), CodexCommunicationError);

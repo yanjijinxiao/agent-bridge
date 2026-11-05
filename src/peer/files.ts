@@ -60,7 +60,12 @@ type Lease = {
 export class PeerFiles {
   private readonly leases = new Map<string, Lease>();
   constructor(private readonly stateDir: string,
-    private readonly inspect: (threadId: string, write: boolean) => Promise<{ cwd: string }>) {}
+    private readonly inspect: (threadId: string, write: boolean) => Promise<{ cwd: string }>,
+    // Only an explicitly configured deployment grant inherits the old host's
+    // output scope (including temporary exports). Personal grants stay confined
+    // to the selected workspace and received attachments. This never grants an
+    // upload destination or bypasses thread, connection or descriptor checks.
+    private readonly hostOutputAllowed: (grant: PeerGrant) => boolean = () => false) {}
   private directory(grant: PeerGrant, threadId: string, scope?: string): string {
     let dir = fs.realpathSync(this.stateDir);
     for (const part of ["files", "inbound", grant.id, hash(threadId), ...(scope ? [hash(scope)] : [])]) {
@@ -112,8 +117,10 @@ export class PeerFiles {
       authorize?.(p.threadId);
       if (!owner.open) throw new PeerError("offline", "File transfer connection closed");
       if (!path.isAbsolute(p.path)) throw new PeerError("path", "An absolute output file path is required");
-      const file = fs.realpathSync(p.path), workspace = fs.realpathSync(state.cwd), inbound = this.directory(grant, p.threadId);
-      if (!inside(workspace, file) && !inside(inbound, file)) throw new PeerError("path", "Output file must belong to the selected session workspace or its received attachments");
+      const file = fs.realpathSync(p.path), inbound = this.directory(grant, p.threadId);
+      if (!this.hostOutputAllowed(grant) && !inside(fs.realpathSync(state.cwd), file) && !inside(inbound, file))
+        throw new PeerError("path", "Output file must belong to the selected session workspace or its received attachments");
+      if (fs.lstatSync(p.path).isSymbolicLink()) throw new PeerError("path", "Output file must not be a symbolic link");
       const { fd, stat } = open(file, p.maxBytes);
       try {
         const expected = digest(fd, stat.size), current = fs.statSync(file);

@@ -17825,7 +17825,7 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "110eef696962750244a351e804b1a00a3656db2d945c70967d82eb51b9e952de"
+              "sha256": "51618e47d6bc6d1842b99b1e152c1bb71ef6efc38994fef6d3429ae7afe70abb"
             }
           ],
           "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
@@ -17848,7 +17848,7 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "110eef696962750244a351e804b1a00a3656db2d945c70967d82eb51b9e952de"
+              "sha256": "51618e47d6bc6d1842b99b1e152c1bb71ef6efc38994fef6d3429ae7afe70abb"
             }
           ],
           "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
@@ -17871,7 +17871,7 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "110eef696962750244a351e804b1a00a3656db2d945c70967d82eb51b9e952de"
+              "sha256": "51618e47d6bc6d1842b99b1e152c1bb71ef6efc38994fef6d3429ae7afe70abb"
             },
             {
               "file": "src/server/account-manager.ts",
@@ -17929,11 +17929,38 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "110eef696962750244a351e804b1a00a3656db2d945c70967d82eb51b9e952de"
+              "sha256": "51618e47d6bc6d1842b99b1e152c1bb71ef6efc38994fef6d3429ae7afe70abb"
             }
           ],
           "verifiedBoundary": "实际子进程 IDE 夹具、HTTP/WS，断言工作区文件路径保留原实例编号。",
           "remainingBoundary": "手机视觉未验证；真实上线验证另记。"
+        },
+        {
+          "id": "NAT-07.8",
+          "scenario": "托管迁移保留临时目录导出附件能力，个人 Connector 文件范围不扩大",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-only.test.ts",
+              "name": "managed local preserves temporary output exports without changing personal file scope"
+            },
+            {
+              "file": "test/connector-only.test.ts",
+              "name": "managed remote-ssh-discovered:old-machine preserves temporary output exports without changing personal file scope"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/files.ts",
+              "sha256": "46229824b3720bdf4d57530da319d4e1a089b9f04253ef3b07abc89ef6918e65"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "51618e47d6bc6d1842b99b1e152c1bb71ef6efc38994fef6d3429ae7afe70abb"
+            }
+          ],
+          "verifiedBoundary": "真实 Connector RPC 文件字节回传及释放；目录、符号链接、超限、错误会话和个人设备越界拒绝。",
+          "remainingBoundary": "未向真实 IM 发送测试附件；已有渠道附件投递隔离测试另计。"
         }
       ]
     }
@@ -18120,7 +18147,8 @@
       "NAT-07.4",
       "NAT-07.5",
       "NAT-07.6",
-      "NAT-07.7"
+      "NAT-07.7",
+      "NAT-07.8"
     ]
   }
 }

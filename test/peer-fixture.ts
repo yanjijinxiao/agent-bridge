@@ -66,6 +66,9 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
   } as unknown as CodexBridgeBackend;
   const managed = options.managedHost ? { hostId: options.managedHost, grantId: crypto.randomUUID(), nodeId: "laptop", profileId: "work" } : undefined;
   const registry = new PeerRegistry(path.join(root, "server", "grants.json"), managed ? [managed] : []);
+  // Production acquires the process lock in this directory before creating
+  // the execution service, including hosts that never persist pairing grants.
+  fs.mkdirSync(path.join(root, "client"), { mode: 0o700 });
   let service = await PeerExecutionService.create({ backend, threadId: options.device ? undefined : thread.threadId, label: "我的笔记本", profileId: "work", stateDir: path.join(root, "client"),
     codexHome: path.join(root, "codex-home"), managedRoute: managed, independent: options.independent ?? true, approve: options.approve ?? (async () => true), approveOwner: options.approveOwner, webIDE: options.webIDE });
   let serverConnection!: PeerConnection, clientConnection!: PeerConnection;

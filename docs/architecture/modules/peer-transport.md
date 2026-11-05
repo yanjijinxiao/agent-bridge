@@ -96,3 +96,5 @@ PEER-01.3：Connector 在没有显式 CA 时，仅为 wss://11.158.199.29:49186/
 `managed-route.ts` 定义双端配置的逻辑 host 到 node/profile 映射，`registry.ts` 分离路由与个人配对权限。托管身份只能由预配置设备认证注册，不能自助登记抢占。`session-monitor.ts` 将原本 Gateway 读取本机 rollout 的观察迁到设备侧；停止观察不发送 stop。`AccountManager` 缓存设备投影的项目元数据，IDE 校验刷新设备目录，不再读取 Gateway 的 Codex Home。兼容层 `withPeerBackend` 仅保留给嵌入调用方和旧接口测试，生产只创建 `connectorOnlyBackend`。
 
 新增验证：`connector-only.test.ts`、`peer-ide.test.ts` 的本机/远端托管组合、`backend-transport-contract.test.ts` 的 managed-connector 原生契约。完整边界见 [迁移契约](../connector-only-execution.md)。
+
+托管迁移的文件回传保留旧主机导出能力（包括临时目录），授权只来自双端预配置的 managedRoute；个人 grant 保留工作目录及收到附件的边界。PeerFiles 在最终授权后检查文件、尺寸及稳定性，分块传输仍受连接与授权租约约束。此差异对应 NAT-07.8，不能仅凭 host 名或注册声明放宽范围。

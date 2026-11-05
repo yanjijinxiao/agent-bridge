@@ -76,7 +76,7 @@ export class PeerExecutionService {
     if (Array.isArray(stored)) this.grants = z.array(grantSchema).parse(stored);
     else { this.grants = z.object({ version: z.literal(2), grants: z.array(grantSchema) }).strict().parse(stored).grants; this.privatePolicy = true; }
     this.receipts = new PeerReceipts(path.join(options.stateDir, "receipts.json"));
-    this.files = new PeerFiles(options.stateDir, (id, write) => this.readState(id, write));
+    this.files = new PeerFiles(options.stateDir, (id, write) => this.readState(id, write), grant => matchesManagedGrant(options.managedRoute, grant));
     this.interactions = new PeerInteractionService(options.backend);
     this.management = new PeerManagement(options.backend, options.stateDir, this.receipts);
     this.sharing = new PeerSharingAuthority(path.join(options.stateDir, "sharing.json"), options.backend, options.approveOwner ?? (async () => false));
