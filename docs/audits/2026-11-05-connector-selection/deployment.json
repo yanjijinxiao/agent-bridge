@@ -1,0 +1,57 @@
+{
+  "observedAt": "2026-11-05T01:08:31.186Z",
+  "commit": "3826708acfdb7aff1c78eec46d08d398f6d06ba5",
+  "sourceHash": "27b1e211707e901e3632d7ce07e80206b12aac2ebcf2f16b01b9d51a31849965",
+  "artifactSha256": "2359088a5ac7b995fe9dd06bcb43fe148492815f8e92fb81ec05181abc412aea",
+  "toutou": {
+    "beforePid": 22359,
+    "pid": 83540,
+    "commit": "3826708acfdb7aff1c78eec46d08d398f6d06ba5",
+    "accounts": [
+      {
+        "id": "hermes-dingtalk",
+        "status": "running"
+      }
+    ],
+    "endpoints": [
+      {
+        "host": "local",
+        "state": "ready"
+      },
+      {
+        "host": "remote-ssh-discovered:11.158.199.43",
+        "state": "ready"
+      },
+      {
+        "host": "local",
+        "state": "ready"
+      }
+    ],
+    "ttlDays": 90,
+    "permissionsAndBindingsPreserved": true,
+    "browserGrantsPreserved": true,
+    "admissionReopened": true
+  },
+  "tantan": {
+    "beforePid": 104371,
+    "pid": 108352,
+    "commit": "3826708acfdb7aff1c78eec46d08d398f6d06ba5",
+    "accounts": [
+      {
+        "id": "tantan-test",
+        "status": "running"
+      }
+    ],
+    "endpoints": [],
+    "ttlDays": 90,
+    "permissionsAndBindingsPreserved": true,
+    "browserGrantsPreserved": true,
+    "admissionReopened": true
+  },
+  "nativeProcessCheck": {
+    "retained": true,
+    "count": 7,
+    "missing": []
+  },
+  "scope": "Only Gateway processes restarted; no Codex or Connector client restart; mobile UI not claimed"
+}
