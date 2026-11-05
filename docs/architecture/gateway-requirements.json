@@ -17825,7 +17825,7 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "1a1ad857baa2105cfd2a0e76aa4b0b750f3778d1568e379b1046e9fc22dafe60"
+              "sha256": "110eef696962750244a351e804b1a00a3656db2d945c70967d82eb51b9e952de"
             }
           ],
           "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
@@ -17848,7 +17848,7 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "1a1ad857baa2105cfd2a0e76aa4b0b750f3778d1568e379b1046e9fc22dafe60"
+              "sha256": "110eef696962750244a351e804b1a00a3656db2d945c70967d82eb51b9e952de"
             }
           ],
           "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
@@ -17871,7 +17871,7 @@
             },
             {
               "file": "src/peer/execution-service.ts",
-              "sha256": "1a1ad857baa2105cfd2a0e76aa4b0b750f3778d1568e379b1046e9fc22dafe60"
+              "sha256": "110eef696962750244a351e804b1a00a3656db2d945c70967d82eb51b9e952de"
             },
             {
               "file": "src/server/account-manager.ts",
@@ -17903,6 +17903,37 @@
           ],
           "verifiedBoundary": "隔离 Connector RPC 和原生 JSONL 契约；真实 2 核心/25 绑定的只读迁移核验另见架构文档。",
           "remainingBoundary": "未将条件跳过测试、手机实机视觉验收或线上用户点击视为通过。"
+        },
+        {
+          "id": "NAT-07.7",
+          "scenario": "托管 IDE 复用原 instance ID 与 dataRoot，个人设备继续按身份隔离配置目录",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-ide.test.ts",
+              "name": "Connector personal full IDE preserves HTTP bytes, WebSocket traffic and both project roots without SSH"
+            },
+            {
+              "file": "test/peer-ide.test.ts",
+              "name": "Connector local full IDE preserves HTTP bytes, WebSocket traffic and both project roots without SSH"
+            },
+            {
+              "file": "test/peer-ide.test.ts",
+              "name": "Connector remote-ssh-discovered:existing full IDE preserves HTTP bytes, WebSocket traffic and both project roots without SSH"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/ide-service.ts",
+              "sha256": "7ac4c3f57598c88ac695b52a4652ff76472ef428cee2a43577004df45ea87f44"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "110eef696962750244a351e804b1a00a3656db2d945c70967d82eb51b9e952de"
+            }
+          ],
+          "verifiedBoundary": "实际子进程 IDE 夹具、HTTP/WS，断言工作区文件路径保留原实例编号。",
+          "remainingBoundary": "手机视觉未验证；真实上线验证另记。"
         }
       ]
     }
@@ -18088,7 +18119,8 @@
       "NAT-07.3",
       "NAT-07.4",
       "NAT-07.5",
-      "NAT-07.6"
+      "NAT-07.6",
+      "NAT-07.7"
     ]
   }
 }

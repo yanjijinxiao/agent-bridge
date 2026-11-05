@@ -55,3 +55,5 @@ Gateway、Connector、原生 daemon 分别管理生命周期。macOS 使用独�
 `scripts/verify-connector-migration.mjs` 提供 snapshot / verify 两步，只读比较：原生 process ID、既有绑定的 thread/cwd/项目归属/persistence，以及经明确别名投影后的项目 ID 和完整根目录。原本就不可读的 thread 单独记录，不为了核验而 resume；新出现的不可读或身份变化会失败。实时状态可能随任务推进变化，不把运行中变完成误判为迁移。
 
 2026-11-05 预切换：真实本机及远端 2 个原生核心、25 个绑定通过比较；未停止或重发任何既有任务。项目空目录、缺失挂载、多根目录和显式别名纳入比较。最终上线记录另记；预切换通过不等于已上线。
+
+上线实测补充：托管 IDE 必须同时保留 dataRoot 和原 instance ID。个人 Connector 原有的 principal+instance 散列规则会创建新配置目录，触发扩展冷启动并丢失原外观配置；托管路由现复用 Gateway 原 instance ID，个人设备仍按 principal 隔离。peer-ide.test.ts 的三种路径同时断言这个差异。头头和探探的首次切换已核对绑定、权限、浏览器授权与入口；此配置复用修正需在最终制品中继续核验。

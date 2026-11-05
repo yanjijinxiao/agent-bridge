@@ -3,6 +3,7 @@ import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { z } from "zod";
+import { matchesManagedGrant, type ManagedConnectorExport } from "./managed-route.js";
 import type { CodexBridgeBackend } from "../codex/backend.js";
 import { ideConfigSchema } from "../ide/config.js";
 import { CodeServerInstaller, IDEInstallPendingError } from "../ide/installer.js";
@@ -41,6 +42,7 @@ export class PeerIDEService {
   private readonly cleanups = new Set<() => Promise<void>>();
   private closed = false;
   constructor(private readonly options: { config: PeerIDEConfig; backend: CodexBridgeBackend; stateDir: string;
+    managedRoute?: ManagedConnectorExport;
     authorize(grant: SharedPeerGrant, threadId: string): void; transport?: IDEHostTransport }) {
     this.transport = options.transport ?? new ProcessIDEHostTransport({ localDataRoot: options.config.dataRoot ?? path.join(options.stateDir, "ide", "instances") });
     this.installer = new CodeServerInstaller(path.join(options.stateDir, "ide"), { allowed: host => host === "local" && options.config.enabled && options.config.autoInstall });
@@ -137,7 +139,10 @@ export class PeerIDEService {
       try {
         lease.launch = await this.transport.launch({ hostId: "local", workspace: fs.realpathSync(call.target.workspace),
           rootPaths: call.target.rootPaths?.map(p => fs.realpathSync(p)),
-          id: crypto.createHash("sha256").update(JSON.stringify([call.grant.principal, call.id])).digest("hex").slice(0, 32),
+          // Migrated Gateway workspaces already have a stable instance ID and
+          // user profile. Personal devices still isolate profiles by principal.
+          id: matchesManagedGrant(this.options.managedRoute, call.grant) ? call.id
+            : crypto.createHash("sha256").update(JSON.stringify([call.grant.principal, call.id])).digest("hex").slice(0, 32),
           binary, ...call.profile, prepare: call.prepare, trustWorkspace: call.trustWorkspace,
           signal: lease.abort.signal, onProfile: p => { profile = p; } });
         await this.validate(call.grant, call.target);

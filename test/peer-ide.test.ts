@@ -63,6 +63,8 @@ for (const managedHost of [undefined, "local", "remote-ssh-discovered:existing"]
   const response = JSON.parse(String(await request(launch.socketPath)));
   assert.equal(response.cwd, f.roots[0]); assert.ok(response.args.includes("--disable-workspace-trust"));
   assert.deepEqual(JSON.parse(fs.readFileSync(launch.workspaceFile!, "utf8")).folders.map((r: any) => r.path), f.roots);
+  if (managedHost) assert.equal(path.basename(path.dirname(launch.workspaceFile!)), f.input.id, "migrated IDE must reuse the original instance profile");
+  else assert.notEqual(path.basename(path.dirname(launch.workspaceFile!)), f.input.id, "personal Connector retains per-principal profiles");
   const bytes = crypto.randomBytes(2 * 1024 * 1024);
   assert.deepEqual(await request(launch.socketPath, "/echo", bytes), bytes, "payload larger than RPC frame is streamed intact");
   const ws = new WebSocket(`ws+unix://${launch.socketPath}:/`); t.after(() => ws.terminate());

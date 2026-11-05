@@ -80,7 +80,7 @@ export class PeerExecutionService {
     this.interactions = new PeerInteractionService(options.backend);
     this.management = new PeerManagement(options.backend, options.stateDir, this.receipts);
     this.sharing = new PeerSharingAuthority(path.join(options.stateDir, "sharing.json"), options.backend, options.approveOwner ?? (async () => false));
-    if (options.webIDE?.enabled) this.ide = new PeerIDEService({ config: options.webIDE, backend: options.backend, stateDir: options.stateDir,
+    if (options.webIDE?.enabled) this.ide = new PeerIDEService({ config: options.webIDE, backend: options.backend, stateDir: options.stateDir, managedRoute: options.managedRoute,
       authorize: (grant, threadId) => {
         this.assertThread(threadId);
         if (grant.delegation || !(matchesManagedGrant(options.managedRoute, grant) || this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant)))) throw new PeerError("access", "设备授权已失效。");
