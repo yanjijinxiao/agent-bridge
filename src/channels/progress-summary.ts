@@ -3,7 +3,7 @@ import { presentAssistantText } from "./assistant-presentation.js";
 export function progressKind(text: string): "thought" | "activity" | "failure" | "update" {
   if (/^🤔/u.test(text.trim())) return "thought";
   if (/^❌/u.test(text.trim())) return "failure";
-  if (/^[🔎✅✏️]\s*(?:(?:正在|已)?(?:执行|调用|修改|搜索|读取)|(?:命令|远程命令|Python 脚本|Git 操作|文件检查|文件修改|验证测试|工具操作|本地操作)(?:完成|失败|$))/u.test(text.trim())) return "activity";
+  if (/^(?:🔎|✅|✏️|🔌|🧩|👥)\s*(?:(?:正在|已)?(?:执行|调用|修改|搜索|读取)|(?:命令|远程命令|Python 脚本|Git 操作|文件检查|文件修改|验证测试|工具操作|本地操作|工具调用|动态工具|协作步骤)(?:完成|失败|$))/u.test(text.trim())) return "activity";
   return "update";
 }
 
@@ -24,7 +24,8 @@ export function splitProgressRecords(text: string): string[] {
   const lines = presentAssistantText(text).trim().split(/\r?\n/).map(line => line.trim().replace(/^[-*]\s+/, "")).filter(Boolean);
   const machine = (line: string) => progressKind(line) === "activity" || progressKind(line) === "failure"
     || /^🧹\s*正在整理长会话上下文$/u.test(line) || /^✅\s*上下文整理完成$/u.test(line);
-  return lines.length > 1 && lines.every(machine) ? lines.map(line => summarizeProgress(line)) : [summarizeProgress(text)];
+  return lines.length > 1 && lines.every(machine) ? lines.map(line => summarizeProgress(line))
+    : [summarizeProgress(text, progressKind(text) === "update" ? Number.MAX_SAFE_INTEGER : 600)];
 }
 
 export function summarizeProgress(text: string, maxLength = 600): string {

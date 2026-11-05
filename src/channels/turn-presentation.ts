@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { ChannelTurnTextStream, type ChannelStreamCheckpoint } from "./progress.js";
 import type { ChannelTextClient } from "./types.js";
 import type { TurnActivity } from "./turn-status.js";
+import { phaseParagraphs } from "./phase-progress.js";
 
 export type TurnReplyStream = Pick<ChannelTurnTextStream, "supported" | "checkpoint" | "deliveryState" | "suspend"
   | "flush" | "synchronize" | "progress" | "answer" | "finalize" | "fail" | "setActivity" | "waitForBackend" | "waitForRecovery" | "reportTerminalFailure">;
@@ -74,7 +75,7 @@ export class ChannelTurnPresentation implements TurnReplyStream {
       const hasCard = Boolean(checkpoint.messageId || checkpoint.creationAttempted || checkpoint.bootstrap);
       if (this.lastAnswer) this.answerPrefix = { length: this.lastAnswer.length, digest: digest(this.lastAnswer) };
       if (hasCard) {
-        checkpoint.terminal = { text: stageSummary(checkpoint, boundary.kind), error: false, outcome: "continued" };
+        checkpoint.terminal = { text: this.decorateSummary(stageSummary(checkpoint, boundary.kind)), error: false, outcome: "continued" };
         const retired = { inputId: boundary.id, checkpoint, attempts: 0 };
         this.previous.push(retired);
         this.current = this.makeStream();
@@ -109,7 +110,7 @@ export class ChannelTurnPresentation implements TurnReplyStream {
       this.answerPrefix = undefined; this.lastAnswer = "";
       this.current = this.makeStream();
       if (!checkpoint.finished && !checkpoint.terminal && (checkpoint.messageId || checkpoint.creationAttempted || checkpoint.bootstrap)) {
-        checkpoint.terminal = { text: stageSummary(checkpoint, "next-turn"), error: false, outcome: "continued" };
+        checkpoint.terminal = { text: this.decorateSummary(stageSummary(checkpoint, "next-turn")), error: false, outcome: "continued" };
         const retired = { inputId: id, checkpoint, attempts: 0 };
         this.previous.push(retired); this.oldStreams.set(id, old);
         this.save();
@@ -157,8 +158,38 @@ export class ChannelTurnPresentation implements TurnReplyStream {
   }
   progress(text: string): Promise<boolean> { return this.run(async () => {
     if (this.suspended) return true;
-    this.retrySummaries(); return this.current.progress(text);
+    this.retrySummaries();
+    let result = false;
+    for (const [index, part] of this.current.progressParts(text).entries()) {
+      if (index > 0 || this.current.progressWouldOverflow(part)) this.rotateProgress();
+      result = await this.current.progress(part) || result;
+    }
+    return result;
   }); }
+
+  private rotateProgress(): void {
+    const old = this.current, checkpoint = frame(old.checkpoint());
+    // A lost create receipt is never a reason to create a replacement card.
+    if (!checkpoint.messageId || checkpoint.finished || checkpoint.terminal) return;
+    const id = `progress:${checkpoint.streamId}`;
+    checkpoint.terminal = { text: old.stageSummary(), error: false, outcome: "continued" };
+    const retired = { inputId: id, checkpoint, attempts: 0 };
+    this.previous.push(retired);
+    this.current = this.makeStream({ startedAt: checkpoint.startedAt, progressEntries: [],
+      thought: "", answerPreview: checkpoint.answerPreview, finished: false,
+      ...(checkpoint.activity ? { activity: checkpoint.activity } : {}),
+      ...(checkpoint.statusHeader ? { statusHeader: true } : {}) });
+    this.oldStreams.set(id, old);
+    try { this.save(); } catch (error) {
+      this.current = old; this.previous.pop(); this.oldStreams.delete(id);
+      throw error;
+    }
+    this.closeSegment(retired, old);
+  }
+
+  private decorateSummary(text: string): string {
+    try { return this.persistence?.decorateProgress?.(text) ?? text; } catch { return text; }
+  }
   answer(text: string): Promise<boolean> { return this.run(async () => {
     if (this.suspended) return true;
     this.lastAnswer = text;
@@ -195,7 +226,8 @@ function frame(checkpoint: ChannelStreamCheckpoint): ChannelStreamCheckpoint {
 }
 function digest(text: string): string { return crypto.createHash("sha256").update(text).digest("hex"); }
 function stageSummary(checkpoint: ChannelStreamCheckpoint, kind: Boundary["kind"] | "next-turn"): string {
-  const entries = checkpoint.progressEntries.slice(-5).map(text => `- ${bounded(text, 220)}`);
+  const entries = checkpoint.phaseProgress ? phaseParagraphs(checkpoint.phaseProgress, true)
+    : checkpoint.progressEntries.slice(-5).map(text => `- ${bounded(text, 220)}`);
   if (!entries.length && checkpoint.thought.trim()) entries.push(`- ${bounded(checkpoint.thought, 220)}`);
   return ["**阶段小结**", entries.join("\n") || "本阶段暂无可核对的公开进展。",
     kind === "answer" ? "问题回答已获 Codex 接收确认，后续进展见下一张卡。"

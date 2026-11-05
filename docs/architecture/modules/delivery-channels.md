@@ -2,6 +2,8 @@
 
 TurnPresentation/ThreadEventHub 保存按 host/thread/turn、阶段、卡片和页的展示状态。进展摘要、commentary、公开工具状态与最终答案分开，长任务持续刷新；原生 running/terminal 决定执行状态，渠道回执决定平台接收。Task 卡用普通字号状态与原生 loading，不额外附大标题冒充新答案。
 
+进行中的公开 commentary 由 phase-progress 按阶段保留，工具/公开摘要只保留有界动态窗口。下一段 commentary 结束上一段的活动窗口，保留工具计数小结。长卡由 TurnPresentation 先保存新旧句柄和收尾意图，再沿相同任务开下一张卡；旧卡收尾失败不转移新卡结果，创建回执未知不授权重建。复制框与 IDE 页脚由原展示层管理。详情与边界见[阶段成果与实时活动](../phase-progress.md)。会话恢复通知使用独立标题，idle 不得把已失败轮次显示为“已完成”。
+
 ## 接收健康、输入恢复与当前进展
 
 账号的接收连接 error 只说明渠道收消息异常，不代表会话解绑。AccountManager 在账号实例未被取消且仍有 client/store 时保留 running/starting/error 的订阅；明确停止、取消实例和解除绑定仍退出跟随。重连保留原卡及游标，不能将故障转换成“已停止同步”。CHAN-04.4 通过真实 monitor 回调验证 error→connecting→connected 和 stop 后迟到回调。

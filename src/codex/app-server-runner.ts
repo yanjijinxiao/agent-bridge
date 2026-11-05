@@ -2045,8 +2045,11 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const delta = typeof params.delta === "string" ? params.delta : "";
       if (!key || !itemId || !delta) return;
       const summaries = this.reasoningSummariesByTurn.get(key) ?? new Map<string, string>();
-      const summary = `${summaries.get(itemId) ?? ""}${delta}`;
-      summaries.set(itemId, summary);
+      // Native summaries have independent parts. Concatenating the tail of
+      // one Markdown heading with the next produced "coverage**Fetching...".
+      const partId = `${itemId}:${typeof params.summaryIndex === "number" ? params.summaryIndex : 0}`;
+      const summary = `${summaries.get(partId) ?? ""}${delta}`;
+      summaries.set(partId, summary);
       this.reasoningSummariesByTurn.set(key, summaries);
       if (summary.trim()) this.emitProgress(key, `🤔 ${boundedText(summary, 600)}`);
       return;

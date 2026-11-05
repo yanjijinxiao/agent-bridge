@@ -979,7 +979,9 @@ export class ThreadEventHub {
         else {
           let text = progress.message;
           try { text = await this.options.decorateFinal?.(sub, text) ?? text; } catch { /* optional IDE metadata */ }
-          await stream.finalize(text, progress.phase !== "recovered");
+          await stream.finalize(text, progress.phase !== "recovered", {
+            outcome: progress.phase === "recovered" ? "session-restored" : "session-unconfirmed"
+          });
         }
       } finally { await stream.suspend(); }
     })));

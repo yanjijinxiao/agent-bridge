@@ -18,6 +18,19 @@ test("reasoning delta accumulation retains whitespace between wire chunks",async
   await runner.close();
 });
 
+test("separate native summary parts never concatenate Markdown headings", async () => {
+  const runner: any = new AppServerCodexRunner(), progress: string[] = [];
+  const key = "thread\0turn";
+  runner.turnStreams.set(key, { chain: Promise.resolve(), onProgress: (text: string) => { progress.push(text); } });
+  for (const [summaryIndex, delta] of [[0, "**Checking docs coverage**"], [1, "**Fetching remote"], [1, " updates first**"]])
+    runner.handleMessage(JSON.stringify({ method: "item/reasoning/summaryTextDelta",
+      params: { threadId: "thread", turnId: "turn", itemId: "summary", summaryIndex, delta } }));
+  await runner.turnStreams.get(key).chain;
+  assert.equal(progress.at(-1), "🤔 **Fetching remote updates first**");
+  assert.ok(progress.every(text => !text.includes("coverage****Fetching")));
+  await runner.close();
+});
+
 for(const persistence of ["active","archived","all"] as const) test(`storage catalog respects ${persistence} persistence when Desktop catalog is absent`,async t=>{
   const root=fs.mkdtempSync(path.join(os.tmpdir(),"gateway-catalog-contract-"));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
   const runner:any=new AppServerCodexRunner({codexHome:root}),requests:boolean[]=[];

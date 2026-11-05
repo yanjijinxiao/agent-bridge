@@ -5,6 +5,7 @@ import path from "node:path";
 import test, { type TestContext } from "node:test";
 import { ThreadEventHub, type ThreadSubscription } from "../src/server/thread-event-hub.js";
 import type { CodexThreadSnapshot } from "../src/codex/backend.js";
+import { TEXT_CAPABILITIES } from "../src/channels/client.js";
 
 function fixture(t: TestContext) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-confirmed-system-failure-"));
@@ -159,6 +160,7 @@ test("a binding change during final decoration cannot deliver into the replaceme
 
 test("system recovery progress uses one separate card and never rewrites a failed task as successful", async t => {
   const f = fixture(t), writes: Array<{ messageId: string; text: string; finalize?: boolean }> = [];
+  f.sub.client = { ...f.sub.client, capabilities: { ...TEXT_CAPABILITIES, progress: "available", turnStatusHeader: "available" } };
   let starts = 0;
   f.sub.client.startTextStream = async () => ({ messageId: `recovery-${++starts}` });
   f.sub.client.updateTextStream = async input => { writes.push(input); };
@@ -172,6 +174,8 @@ test("system recovery progress uses one separate card and never rewrites a faile
   assert.equal(writes.filter(row => row.messageId === "original").length, 1);
   assert.match(writes.find(row => row.messageId === "original")!.text, /原生轮次已确认失败/);
   assert.equal(writes.at(-1)?.messageId, "recovery-1"); assert.equal(writes.at(-1)?.finalize, true);
+  assert.match(writes.at(-1)!.text, /^\*\*会话已恢复（原任务未重试）\*\*/);
+  assert.doesNotMatch(writes.at(-1)!.text, /已完成|任务成功/);
   assert.equal(hub.status("binding").runtimeRecovery?.phase, "recovered");
   assert.equal(hub.status("binding").runtime?.runtimeStatus, "idle");
   assert.equal(f.read().checkpoint.terminal.outcome, "failed");

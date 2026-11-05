@@ -4,6 +4,7 @@ import { turnStatusHeading, type TurnActivity } from "./turn-status.js";
 import type { ChannelProgressLayout } from "./types.js";
 import { markdownPreview } from "./markdown-preview.js";
 import { copyBlock } from "./copyable.js";
+import { phaseActivity, phaseParagraphs, type PhaseProgress } from "./phase-progress.js";
 
 /** A pure view of task facts. No timers, delivery state or execution decisions. */
 type ProgressFacts = {
@@ -15,6 +16,7 @@ type ProgressFacts = {
   tools: { completed: number; failed: number; active?: string };
   answerPreview: string;
   notice?: string;
+  phases?: PhaseProgress;
 };
 
 export function renderTurnProgressCard(input: ProgressFacts): string {
@@ -44,15 +46,23 @@ function progressParts(input: ProgressFacts) {
   const current = progressProse(input.notice || input.current, 360);
   const thought = input.thought && progressProse(input.thought, 160);
   const sections = [`${turnStatusHeading(input.activity)} ${icon} · ${metadata.join(" · ")}`, current];
-  if (!input.notice && thought && !current.includes(thought)) {
+  if (input.phases) {
+    const history = phaseParagraphs(input.phases);
+    const live = phaseActivity(input.phases);
+    sections.splice(1, 1, ...history);
+    if (input.notice) sections.push(progressProse(input.notice, 360));
+    else if (live.length) sections.push(live.join("\n"));
+    else if (!history.length) sections.push(current);
+  }
+  if (!input.phases && !input.notice && thought && !current.includes(thought)) {
     sections.push(`💭 ${thought}`);
   }
   // Keep errors visible without making a mobile progress card a growing log.
   const milestones = input.recent.filter(entry => progressKind(entry) !== "failure").slice(-2);
   const errors = input.recent.filter(entry => progressKind(entry) === "failure").slice(-2);
   const recent = input.recent.filter(entry => milestones.includes(entry) || errors.includes(entry));
-  if (recent.length) sections.push(recent.map(entry => `- ${progressProse(entry, 140).replace(/\n/g, "\n  ")}`).join("\n"));
-  if (tools.active) sections.push(progressProse(tools.active, 100));
+  if (!input.phases && recent.length) sections.push(recent.map(entry => `- ${progressProse(entry, 140).replace(/\n/g, "\n  ")}`).join("\n"));
+  if (!input.phases && tools.active) sections.push(progressProse(tools.active, 100));
   if (input.answerPreview) sections.push(`回复预览（尚未完成）\n\n${markdownPreview(input.answerPreview, 600)}`);
   // /stop targets the chat's current task, not the historical card. Once the
   // native state is unconfirmed, offering it here could interrupt a newer task.

@@ -9,6 +9,7 @@ import { copyBlock } from "./copyable.js";
 import { TURN_STATUS_BYTES, turnStatusHeading, withTurnStatus, type TurnActivity, type TurnOutcome } from "./turn-status.js";
 import { renderTurnProgressCard, renderTurnProgressLayout } from "./turn-progress-card.js";
 import { restoredBootstrap, canRetryUnsentCreation, type ChannelStreamBootstrap, type ChannelStreamFailure } from "./stream-bootstrap.js";
+import { applyPhaseProgress, emptyPhaseProgress, phaseParagraphs, activitySummary, splitPhaseCommentary, type PhaseProgress } from "./phase-progress.js";
 
 const MAX_RECOVERY_PROBES = 3;
 
@@ -22,6 +23,8 @@ export type ChannelStreamCheckpoint = {
   startedAt: number;
   progressEntries: string[];
   progressReceipts?: string[];
+  /** Durable commentary history, independent of the bounded activity window. */
+  phaseProgress?: PhaseProgress;
   thought: string;
   answerPreview: string;
   finished: boolean;
@@ -90,6 +93,7 @@ export class ChannelTurnTextStream {
   private toolActivity = { completed: 0, failed: 0 } as NonNullable<ChannelStreamCheckpoint["toolActivity"]>;
   private opening?: Promise<boolean>;
   private readonly progressEntries: string[] = [];
+  private phaseProgress = emptyPhaseProgress();
   private thought = "正在理解任务并规划下一步…";
   private readonly progressReceipts = new Set<string>();
   private answerPreview = "";
@@ -132,6 +136,8 @@ export class ChannelTurnTextStream {
       if (this.bootstrap?.stage === "delivered") this.messageId ??= this.bootstrap.messageId;
       this.startedAt = saved.startedAt;
       this.progressEntries.push(...meaningfulProgress(saved.progressEntries));
+      if (saved.phaseProgress?.version === 1) this.phaseProgress = structuredClone(saved.phaseProgress);
+      else for (const entry of saved.progressEntries) applyPhaseProgress(this.phaseProgress, entry);
       for (const receipt of (Array.isArray(saved.progressReceipts) ? saved.progressReceipts : []).slice(-128))
         if (/^[a-f0-9]{64}$/.test(receipt)) this.progressReceipts.add(receipt);
       this.toolActivity = saved.toolActivity ? { ...saved.toolActivity } : {
@@ -160,6 +166,7 @@ export class ChannelTurnTextStream {
       ...(this.bootstrap ? { bootstrap: structuredClone(this.bootstrap) } : {}),
       ...(this.presentationFailure ? { presentationFailure: this.presentationFailure } : {}),
       progressEntries: [...this.progressEntries], thought: this.thought,
+      phaseProgress: structuredClone(this.phaseProgress),
       ...(this.progressReceipts.size ? { progressReceipts: [...this.progressReceipts] } : {}),
       answerPreview: this.answerPreview, finished: this.finished,
       ...(this.communicationNotice ? { communicationNotice: this.communicationNotice } : {}),
@@ -236,6 +243,7 @@ export class ChannelTurnTextStream {
       this.progressReceipts.delete(receipt); this.progressReceipts.add(receipt);
       if (this.progressReceipts.size > 128) this.progressReceipts.delete(this.progressReceipts.values().next().value!);
       const kind = progressKind(content);
+      applyPhaseProgress(this.phaseProgress, content);
       if (kind === "thought") {
         this.thought = boundedProgressText(content.replace(/^🤔\s*/, ""), 600);
       } else if (kind === "activity" || kind === "failure") {
@@ -273,6 +281,35 @@ export class ChannelTurnTextStream {
     this.activity = "running";
     this.answerPreview = boundedProgressText(content, 2_400);
     return this.publish(this.render());
+  }
+
+  /** Reserve room for the bounded live window, answer preview and static
+   * controls. Rollover is presentation-only and requires a known old handle. */
+  progressWouldOverflow(text: string): boolean {
+    if (!this.supported || !this.messageId || this.finished || this.terminal || !this.phaseProgress.phases.length) return false;
+    const phases = structuredClone(this.phaseProgress);
+    for (const record of splitProgressRecords(text)) applyPhaseProgress(phases, record);
+    const layout = renderTurnProgressLayout({ ...this.progressFacts(), phases, thought: undefined, answerPreview: "" });
+    let footer = layout.footer;
+    try { footer = this.persistence?.decorateProgress?.(footer) ?? footer; } catch { /* optional IDE metadata */ }
+    const budget = this.client.capabilities?.resultPageBytes ?? DEFAULT_RESULT_PAGE_BYTES;
+    return Buffer.byteLength(layout.body + "\n\n" + footer) > budget - Math.min(2_000, Math.floor(budget / 3));
+  }
+
+  /** Keep every commentary byte, even when one native message exceeds a card. */
+  progressParts(text: string): string[] {
+    if (!this.supported || progressKind(text) !== "update") return [text];
+    const budget = this.client.capabilities?.resultPageBytes ?? DEFAULT_RESULT_PAGE_BYTES;
+    return splitPhaseCommentary(text, Math.max(400, Math.floor(budget / 3)));
+  }
+
+  stageSummary(): string {
+    const entries = phaseParagraphs(this.phaseProgress, true);
+    if (!entries.length) entries.push(activitySummary(this.phaseProgress) || "本阶段暂无可核对的公开进展。");
+    const text = ["**阶段小结**", ...entries, "后续进展见下一张卡；卡片切换不会停止原任务，也不代表整个任务已完成。"].join("\n\n");
+    // Pass only a historical summary to the shared IDE decorator: /stop must
+    // never survive on a retired card and target a newer task in the chat.
+    try { return this.persistence?.decorateProgress?.(text) ?? text; } catch { return text; }
   }
 
   private async publish(content: string): Promise<boolean> {
@@ -620,7 +657,8 @@ export class ChannelTurnTextStream {
       thought: current && !/^(?:正在理解任务并规划下一步|正在等待当前步骤返回结果|正在应用并检查代码修改|正在分析刚完成步骤的结果并决定下一步|正在分析失败原因并寻找可行的下一步|正在处理当前步骤并决定下一步|正在组织最终回复)/.test(this.thought)
         ? this.thought : undefined,
       recent: this.progressEntries.filter(entry => entry !== current), tools: this.toolActivity,
-      answerPreview: this.answerPreview, notice: this.communicationNotice || this.recoveryNotice };
+      answerPreview: this.answerPreview, notice: this.communicationNotice || this.recoveryNotice,
+      phases: this.phaseProgress };
   }
 
   private visibleActivity(): TurnActivity {

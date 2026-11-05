@@ -9019,7 +9019,7 @@
         2321,
         2536
       ],
-      "contract": "公开summary/commentary/工具状态持续可见；普通字号状态和原生圆环；loading与停止/IDE独立。",
+      "contract": "公开 commentary 按阶段保留；工具与公开摘要使用有界实时窗口，阶段结束保留活动小结。超出卡片预算先持久化新旧实例再续卡；普通字号状态、复制框与 IDE 页脚保留。会话恢复不代表任务完成。",
       "implementationReview": "pending",
       "cases": [
         {
@@ -9229,6 +9229,167 @@
             "scope": "c9662db后队列来源恢复、投递ACK、Hub观察前一致性检查及历史后的owner复核；修改点逐行及确定性/真实骤停复核，列出其余方法AST比对未变。原设备/供应商边界不扩大。",
             "report": "docs/audits/2026-11-03-queue-crash-validation/README.md"
           }
+        },
+        {
+          "id": "DEL-08.8",
+          "scenario": "阶段说明不被工具刷屏淘汰；重启保留历史，动态窗口转为活动小结",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/phase-progress.test.ts",
+              "name": "commentary persists while live tool and thought activity stays bounded, then becomes a phase summary"
+            },
+            {
+              "file": "test/phase-progress.test.ts",
+              "name": "more than four commentary phases remain visible with no duplicate commentary in the live window"
+            },
+            {
+              "file": "test/phase-progress.test.ts",
+              "name": "phase summaries preserve failed tool evidence without declaring the task failed or successful"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/phase-progress.ts",
+              "sha256": "4575367f62395695f370ec92dda57d14c7ac23a63720724182e2b8a942f7a344"
+            },
+            {
+              "file": "src/channels/progress.ts",
+              "sha256": "06b072dbabdeda76b54cfe09647bc4f6e1941abf29ea1957af45e01dd3fc39da"
+            },
+            {
+              "file": "src/channels/turn-presentation.ts",
+              "sha256": "79bfd2bf9123f07cdebd3658a144233a0ca5b3432b09605f7251af3f25633160"
+            },
+            {
+              "file": "src/channels/turn-progress-card.ts",
+              "sha256": "185d6e30006693f1afca377114d08e0ff52078ff1aa396d5d5020a21ee1e06b1"
+            },
+            {
+              "file": "src/channels/turn-status.ts",
+              "sha256": "09008d906c12497e10530cd6f46a0e30b9d6e2f8274cb618cffc668f23edf9d7"
+            },
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "c47e00504f7a822c514d9ac90fb24c7f929173629baf7691e324d670f15f2c86"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "85a6a5bf726dbbb3d5e7a91a8e76034a394cbfabba804f23d55c962031c6dc92"
+            }
+          ],
+          "verifiedBoundary": "真实投影/持久化/恢复组件和模拟渠道回执；不是手机实机验收。旧版本同组 42 项有 9 项失败，修改后通过。",
+          "report": "docs/audits/2026-11-05-phase-progress.md"
+        },
+        {
+          "id": "DEL-08.9",
+          "scenario": "UTF-8/渲染字节预算换卡；完整保留超长说明，旧卡异常、创建未知不串结果或重复建卡",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/phase-progress.test.ts",
+              "name": "long Chinese commentary rotates durably, preserves all phases and IDE, and removes old stop controls"
+            },
+            {
+              "file": "test/phase-progress.test.ts",
+              "name": "one oversized commentary preserves every source character (核)"
+            },
+            {
+              "file": "test/phase-progress.test.ts",
+              "name": "one oversized commentary preserves every source character (A)"
+            },
+            {
+              "file": "test/phase-progress.test.ts",
+              "name": "escaping-heavy commentary budgets rendered bytes and preserves exact source slices"
+            },
+            {
+              "file": "test/phase-progress.test.ts",
+              "name": "a failed old summary does not block the new card and restart retries only its original handle"
+            },
+            {
+              "file": "test/phase-progress.test.ts",
+              "name": "a lost continuation create receipt never authorizes further replacement cards"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/phase-progress.ts",
+              "sha256": "4575367f62395695f370ec92dda57d14c7ac23a63720724182e2b8a942f7a344"
+            },
+            {
+              "file": "src/channels/progress.ts",
+              "sha256": "06b072dbabdeda76b54cfe09647bc4f6e1941abf29ea1957af45e01dd3fc39da"
+            },
+            {
+              "file": "src/channels/turn-presentation.ts",
+              "sha256": "79bfd2bf9123f07cdebd3658a144233a0ca5b3432b09605f7251af3f25633160"
+            },
+            {
+              "file": "src/channels/turn-progress-card.ts",
+              "sha256": "185d6e30006693f1afca377114d08e0ff52078ff1aa396d5d5020a21ee1e06b1"
+            },
+            {
+              "file": "src/channels/turn-status.ts",
+              "sha256": "09008d906c12497e10530cd6f46a0e30b9d6e2f8274cb618cffc668f23edf9d7"
+            },
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "c47e00504f7a822c514d9ac90fb24c7f929173629baf7691e324d670f15f2c86"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "85a6a5bf726dbbb3d5e7a91a8e76034a394cbfabba804f23d55c962031c6dc92"
+            }
+          ],
+          "verifiedBoundary": "真实投影/持久化/恢复组件和模拟渠道回执；不是手机实机验收。旧版本同组 42 项有 9 项失败，修改后通过。",
+          "report": "docs/audits/2026-11-05-phase-progress.md"
+        },
+        {
+          "id": "DEL-08.10",
+          "scenario": "恢复到 idle 使用会话恢复标题；独立公开摘要分段不粘连 Markdown",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/thread-system-error.test.ts",
+              "name": "system recovery progress uses one separate card and never rewrites a failed task as successful"
+            },
+            {
+              "file": "test/intent-review-protocol.test.ts",
+              "name": "separate native summary parts never concatenate Markdown headings"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/phase-progress.ts",
+              "sha256": "4575367f62395695f370ec92dda57d14c7ac23a63720724182e2b8a942f7a344"
+            },
+            {
+              "file": "src/channels/progress.ts",
+              "sha256": "06b072dbabdeda76b54cfe09647bc4f6e1941abf29ea1957af45e01dd3fc39da"
+            },
+            {
+              "file": "src/channels/turn-presentation.ts",
+              "sha256": "79bfd2bf9123f07cdebd3658a144233a0ca5b3432b09605f7251af3f25633160"
+            },
+            {
+              "file": "src/channels/turn-progress-card.ts",
+              "sha256": "185d6e30006693f1afca377114d08e0ff52078ff1aa396d5d5020a21ee1e06b1"
+            },
+            {
+              "file": "src/channels/turn-status.ts",
+              "sha256": "09008d906c12497e10530cd6f46a0e30b9d6e2f8274cb618cffc668f23edf9d7"
+            },
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "c47e00504f7a822c514d9ac90fb24c7f929173629baf7691e324d670f15f2c86"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "85a6a5bf726dbbb3d5e7a91a8e76034a394cbfabba804f23d55c962031c6dc92"
+            }
+          ],
+          "verifiedBoundary": "真实投影/持久化/恢复组件和模拟渠道回执；不是手机实机验收。旧版本同组 42 项有 9 项失败，修改后通过。",
+          "report": "docs/audits/2026-11-05-phase-progress.md"
         }
       ]
     },
