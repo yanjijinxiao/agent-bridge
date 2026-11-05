@@ -1,5 +1,7 @@
 # 需求与 case 核对表
 
+2026-11-05 最新展示增量：DEL-08.8–DEL-08.11 覆盖阶段说明保留、实时窗口、超长切卡、恢复状态、原圆点/图标/缩进，以及精确输入对应附件不被旧回执阻塞。见[阶段架构](phase-progress.md)、[阶段回归](../audits/2026-11-05-phase-progress.md)、[终态与排版回归](../audits/2026-11-05-terminal-progress-regression.md)。
+
 命令展示密度 CAT-02.5 增量见[展示预算与原生目录范围核验](../audits/2026-11-05-command-density.md)：默认会话/项目50项、历史20条、准入/队列50条，权限范围保持原边界。
 
 原生配置与设备自助登记增量：IDE-08.4、PEER-01.4，见[本次四层检查及命名用例](../audits/2026-11-04-native-config-enrollment/README.md)。旧汇总数字是对应历史检查点，不能代替增量证据。
@@ -55,7 +57,7 @@ Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audi
 | DEL-05 · 分段而非任务完成 | delivery | 3 | 2 | 1 | 0 |
 | DEL-06 · 最终参与者原生提醒 | delivery | 3 | 2 | 1 | 0 |
 | DEL-07 · 长回答完整可读 | delivery | 3 | 2 | 1 | 0 |
-| DEL-08 · 进展真实且简洁 | delivery | 7 | 4 | 3 | 0 |
+| DEL-08 · 进展真实且简洁 | delivery | 11 | 8 | 3 | 0 |
 | DEL-09 · Markdown语义完整 | delivery | 4 | 2 | 2 | 0 |
 | DEL-10 · 复制按用户任务 | delivery | 3 | 1 | 2 | 0 |
 | CHAN-01 · 四种IM统一前端 | channel | 4 | 2 | 2 | 0 |
@@ -69,7 +71,7 @@ Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audi
 | IDE-05 · 一次确认与原浏览器证明 | ide | 4 | 4 | 0 | 0 |
 | IDE-06 · 已授权外链立即进入 | ide | 3 | 2 | 1 | 0 |
 | IDE-07 · HTTP及WS实时复核 | ide | 3 | 3 | 0 | 0 |
-| IDE-08 · 安装和Profile真正生效 | ide | 3 | 2 | 1 | 0 |
+| IDE-08 · 安装和Profile真正生效 | ide | 5 | 4 | 1 | 0 |
 | IDE-09 · 入口地址及TLS协调 | ide | 5 | 4 | 1 | 0 |
 | IDE-10 · 主机增量热接入 | ide | 3 | 3 | 0 | 0 |
 | WEB-01 · 表单与刷新归属 | web | 10 | 8 | 2 | 0 |
@@ -77,7 +79,7 @@ Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audi
 | TB-01 · 任务板可选集成 | taskboard | 9 | 7 | 2 | 0 |
 | KB-01 · 知识库与QA边界 | knowledge | 5 | 4 | 1 | 0 |
 | REL-01 · 重启仅保护Gateway交接 | release | 8 | 6 | 2 | 0 |
-| REL-02 · 直接发布与真实制品 | release | 10 | 8 | 2 | 0 |
+| REL-02 · 直接发布与真实制品 | release | 11 | 9 | 2 | 0 |
 | AUDIT-01 · 四层职责和按行证据 | audit | 4 | 2 | 2 | 0 |
 | TB-02 · 独立 AI 面板的实现职责 | taskboard | 11 | 9 | 2 | 0 |
 | WEB-03 · 管理接口和静态资源的实际响应 | web | 2 | 2 | 0 | 0 |
@@ -91,13 +93,20 @@ Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audi
 | TB-10 · 工作流编辑与执行能力分开核验 | taskboard | 4 | 3 | 1 | 0 |
 | TB-11 · 云迁移提交与补偿的独立事实 | taskboard | 4 | 4 | 0 | 0 |
 | TB-12 · 议题键盘操作的合法性与单次交接 | taskboard | 2 | 2 | 0 | 0 |
-| PEER-01 · 同一后端接口的 Connector 传输 | peer | 3 | 3 | 0 | 0 |
+| PEER-01 · 同一后端接口的 Connector 传输 | peer | 4 | 4 | 0 | 0 |
 | PEER-02 · 配对、绑定与所有者准入 | peer | 2 | 2 | 0 | 0 |
 | PEER-03 · 原生队列与恢复 | peer | 3 | 3 | 0 | 0 |
 | PEER-04 · 设备文件与工作区边界 | peer | 3 | 3 | 0 | 0 |
 | TB-13 · 列表读取与页面加载状态 | taskboard | 1 | 1 | 0 | 0 |
+| IDE-11 · Connector完整IDE与设备权限 | ide | 6 | 6 | 0 | 0 |
+| IDE-12 · IDE准备同页展示与失败恢复 | ide | 2 | 2 | 0 | 0 |
+| IDE-13 · 个人浏览器一次确认与默认信任 | ide | 2 | 2 | 0 | 0 |
+| IDE-14 · 明确启用的持链接直接进入 | ide | 3 | 3 | 0 | 0 |
+| KB-02 · 移除 Gateway 自建长期记忆 | knowledge | 4 | 4 | 0 | 0 |
+| CAT-05 · 个人当前 Connector 目录选择 | catalog | 4 | 4 | 0 | 0 |
+| NAT-07 · Gateway 全部执行统一到 Connector | native | 11 | 11 | 0 | 0 |
 
-当前共 385 个场景，301 项有列明边界的验证记录，84 项保留部分覆盖限制。
+当前共 427 个场景，343 项有列明边界的验证记录，84 项保留部分覆盖限制。本表仅汇总已有记录，不刷新历史验证结论。
 
 2026-11-04 链接直达增量：IDE-14.1–14.3，3 个场景均有直接测试映射，5 个测试（含全新 Chrome）通过。启用账号可持链接进入；未启用账号保留 IDE-13 的本人确认。详见 [增量检查](../audits/2026-11-04-ide-link-access/README.md)。
 

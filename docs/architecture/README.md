@@ -4,7 +4,7 @@
 
 ## 当前未完成工作
 
-[当前剩余清单](remaining-work.md)分开记录未实现功能、缺测组合与真实设备验收。当前385个case全部有测试映射，301项已有窄边界通过记录、84项部分覆盖。最新[IM权限展示范围增量](../audits/2026-11-04-permission-visibility/README.md)新增AUTH-02.4/.5；仅此范围有本轮新增检查，不把历史验证写成本轮全库重新精读。
+[当前剩余清单](remaining-work.md)分开记录未实现功能、缺测组合与真实设备验收。当前 427 个 case 全部有测试映射，343 项已有窄边界通过记录、84 项部分覆盖。数字是已有记录汇总，不代表本次全库重新精读。最新[阶段展示与终态回归](../audits/2026-11-05-terminal-progress-regression.md)补齐 DEL-08.8–DEL-08.11 的相关文档入口。
 
 ## 阅读顺序
 
@@ -67,6 +67,7 @@
 | 原生接收与回执落盘间真实崩溃，精确恢复接收与离线完成的结果，不重发 | IN-02.2 | [接收交接](modules/inbound-forwarding.md)、[恢复记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-native-crash-recovery.md) |
 | 重启仅保护实际消息交接；已接收任务继续，既有远端重连不锁重启 | REL-01.9、REL-02.5 | [发布与重启](modules/release-lifecycle.md) |
 | systemError恢复、容量只读对账不阻塞重启或重放原输入 | REC-01.4、REC-02.4 | [恢复协调](modules/recovery-coordinators.md) |
+| 阶段成果保留、实时窗口、超长续卡、原图标及缩进；任务结束与结果待投递独立 | DEL-08.8–DEL-08.11 | [阶段架构](phase-progress.md)、[渠道模块](modules/delivery-channels.md) |
 | /stop独立复制框、连续卡片更新、分段后最终@与IDE归属 | DEL-10.1、DEL-09.3、DEL-08.4 | [结果与渠道](modules/delivery-channels.md) |
 | Web区分执行完成与答复待投递；审批漏重放与可信问题快照 | DEL-01.3、INT-02.1/.2 | [管理UI](modules/management-ui.md)、[原生交互](modules/native-interactions.md) |
 | 原28项补测、精确断言和剩余范围；33种流程节点的配置与执行边界 | AUDIT-01、TB-10.3 | [审查方法](modules/audit-method.md)、[节点对照](taskboard-node-contracts.md) |
@@ -74,6 +75,10 @@
 功能总文档与需求JSON对应；精选函数合同只覆盖已登记的函数，不代表仓库所有函数均已逐个验收。
 
 ## 当前检查点
+
+2026-11-05 阶段展示和终态回归：54 项定向检查通过，根回归 3336 项（3250 通过、86 条件跳过、0 失败）；b45af83 已推送并用于头头、探探。文档同步不改变运行代码，手机显示与附件实际可见性仍须按真实接收情况核对。
+
+以下为历史增量检查点：
 
 2026-11-04权限展示增量：/access默认本人和当前聊天，管理员跨聊天管理只在私聊显式进行；/connect明确现有三元授权范围。完整根回归3096通过、0失败、82环境跳过；其他未改功能保留既有有界证据。详细四层范围、函数比较、跳过项和上线回执见上述增量报告。
 

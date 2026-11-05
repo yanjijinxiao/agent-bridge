@@ -18489,14 +18489,14 @@
     }
   },
   "currentSummary": {
-    "audit": "2026-11-03-checklist-followthrough",
-    "requirements": 86,
-    "cases": 383,
-    "mappedCases": 383,
-    "recordedNarrowVerified": 299,
+    "audit": "2026-11-05-documentation-sync",
+    "requirements": 93,
+    "cases": 427,
+    "mappedCases": 427,
+    "recordedNarrowVerified": 343,
     "partialCases": 84,
-    "selectedFunctionContracts": 217,
-    "note": "逐项验收边界，不等于所有平台和任意时序；历史证据与本轮运行分别保存。"
+    "selectedFunctionContracts": 261,
+    "note": "本次仅重新汇总已登记记录；保留各 case 的来源版本、散列和验证限制，不代表本次重新验收全库。最新运行证据见 2026-11-05-terminal-progress-regression。"
   },
   "connectorIDEUpdate": {
     "date": "2026-11-04",
