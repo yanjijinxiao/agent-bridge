@@ -10,7 +10,7 @@ import type { ManagedSession } from "../src/state/runtime-state.js";
 const session: ManagedSession = { id: "session", senderId: "chat", title: "Explicit title", workspace: "/remote/work",
   projectBinding: "none", hostId: "remote", collaborationMode: "plan", model: "chosen", effort: "high", createdAt: "", updatedAt: "" };
 for (const source of ["Web", "DingTalk", "WeChat", "Feishu", "WeCom"] as const) {
-  test(`${source} shares remote staging and explicit project/model/plan settings`, async () => {
+  test(`${source} stages remote files while ignoring legacy execution overrides`, async () => {
     const calls: unknown[] = [];
     const runner = { async stageAttachments(files: any[], options: unknown) { calls.push(options); return files.map(f => ({ ...f, path: "/remote/file" })); } } as unknown as CodexBridgeBackend;
     const prepared = await prepareTurnSubmission({ runner, session, config: defaultConfig("/local"), accountId: "account", conversationId: "chat",
@@ -18,7 +18,7 @@ for (const source of ["Web", "DingTalk", "WeChat", "Feishu", "WeCom"] as const) 
       project: { id: "old", name: "stale project", sourceProjectId: "native-old", workspace: "/old", createdAt: "", updatedAt: "" } });
     assert.equal(calls.length, 1); assert.match(prepared.prompt, /saved to \/remote\/file/); assert.doesNotMatch(prepared.prompt, /\/local\/upload/);
     assert.equal(prepared.projectBinding, "none"); assert.equal(prepared.projectId, undefined); assert.equal(prepared.projectName, undefined);
-    assert.equal(prepared.collaborationMode, "plan"); assert.equal(prepared.model, "chosen"); assert.equal(prepared.effort, "high");
+    assert.equal(prepared.collaborationMode, undefined); assert.equal(prepared.model, undefined); assert.equal(prepared.effort, undefined);
   });
 }
 

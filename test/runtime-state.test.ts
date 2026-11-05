@@ -302,46 +302,31 @@ test("migrates existing session workspaces into account-local projects", (t) => 
   assert.equal(reloaded.getSession(session.id)?.projectId, project?.id);
 });
 
-test("persists model and reasoning effort overrides per managed session", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-weixin-session-runtime-"));
+for (const projectBinding of [undefined, "none", "unknown"] as const) test(`retires legacy execution overrides on load without changing native bindings (${projectBinding ?? "project"})`, t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "native-settings-migration-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const paths = resolveStatePaths(root);
-  const store = new RuntimeStateStore(paths);
-  const first = store.createSession("alice@im.wechat", "/work/one", "First");
-  store.setModelOverride("alice@im.wechat", "gpt-session");
-  store.setEffortOverride("alice@im.wechat", "high");
-  const second = store.createSession("alice@im.wechat", "/work/two", "Second");
-
-  assert.equal(store.getSession(first.id)?.model, "gpt-session");
-  assert.equal(store.getSession(first.id)?.effort, "high");
-  assert.equal(store.getSession(second.id)?.model, undefined);
-  assert.equal(store.getSession(second.id)?.effort, undefined);
-
-  const reloaded = new RuntimeStateStore(paths);
-  reloaded.activateSession(first.id);
-  assert.equal(reloaded.getActiveSession("alice@im.wechat")?.model, "gpt-session");
-  assert.equal(reloaded.getActiveSession("alice@im.wechat")?.effort, "high");
-  reloaded.setModelOverride("alice@im.wechat");
-  reloaded.setEffortOverride("alice@im.wechat");
-  assert.equal(reloaded.getActiveSession("alice@im.wechat")?.model, undefined);
-  assert.equal(reloaded.getActiveSession("alice@im.wechat")?.effort, undefined);
+  const paths = resolveStatePaths(root), store = new RuntimeStateStore(paths);
+  const first = store.createSession("actor", "/work", "Existing");
+  store.setSessionThread(first.id, "native-thread");
+  const legacy = JSON.parse(fs.readFileSync(paths.statePath, "utf8"));
+  Object.assign(legacy.sessions[0], { projectBinding, model: "stale-model", effort: "high", collaborationMode: "plan", streamReplies: false });
+  fs.writeFileSync(paths.statePath, JSON.stringify(legacy));
+  const restored = new RuntimeStateStore(paths).getSession(first.id)!;
+  assert.equal(restored.threadId, "native-thread");
+  assert.equal(restored.model, undefined); assert.equal(restored.effort, undefined); assert.equal(restored.collaborationMode, undefined);
+  assert.equal(restored.streamReplies, false);
+  assert.equal(JSON.parse(fs.readFileSync(paths.statePath, "utf8")).sessions[0].model, undefined);
 });
 
-test("updates model, effort, and streaming by managed session id for Web controls", (t) => {
-  const store = createStore(t);
-  const first = store.createSession("alice@im.wechat", "/work/one", "First");
-  const second = store.createSession("alice@im.wechat", "/work/two", "Second");
-
-  store.updateSessionRuntime(first.id, { model: "gpt-session", effort: "high", streamReplies: true });
-  assert.equal(store.getSession(first.id)?.model, "gpt-session");
-  assert.equal(store.getSession(first.id)?.effort, "high");
-  assert.equal(store.getSession(first.id)?.streamReplies, true);
-  assert.equal(store.getSession(second.id)?.model, undefined);
-
-  store.updateSessionRuntime(first.id, { model: null, effort: null, streamReplies: null });
-  assert.equal(store.getSession(first.id)?.model, undefined);
-  assert.equal(store.getSession(first.id)?.effort, undefined);
-  assert.equal(store.getSession(first.id)?.streamReplies, undefined);
+test("runtime state saves presentation preferences and rejects new execution overrides", t => {
+  const store = createStore(t), session = store.createSession("actor", "/work");
+  assert.throws(() => store.updateSessionRuntime(session.id, { model: "model" }), /App Server/);
+  assert.throws(() => store.setEffortOverride("actor", "high"), /App Server/);
+  assert.throws(() => store.setSessionCollaborationMode(session.id, "plan"), /App Server/);
+  store.updateSessionRuntime(session.id, { streamReplies: true });
+  assert.equal(store.getSession(session.id)?.streamReplies, true);
+  store.updateSessionRuntime(session.id, { model: null, effort: null, streamReplies: null });
+  assert.equal(store.getSession(session.id)?.streamReplies, undefined);
 });
 
 test("retired Gateway memory fields migrate away without changing bindings or llm-wiki", t => {

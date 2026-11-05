@@ -9,7 +9,7 @@ function fixture() {
     { accountId: "two", id: "same", title: "B", workspace: "/b", responding: false }];
   const key = (s: any) => `${s.accountId}:${s.id}`;
   const state = { selectedSessionKey: key(sessions[0]), sendingSessions: new Set<string>(), savingRuntimeSessions: new Set<string>(),
-    config: { streamReplies: false }, chatFiles: [], sessionMessages: [], loadingMessages: false };
+    sessionRuntimes: new Map(), config: { streamReplies: false }, chatFiles: [], sessionMessages: [], loadingMessages: false };
   let markup = "", releases: Array<() => void> = [];
   const elements = Object.fromEntries(["chatInput", "chatAttachButton", "chatFileInput", "refreshMessagesButton", "chatTitle", "chatContext"]
     .map(k => [k, { value: "new message", focus() {} }]));
@@ -59,7 +59,7 @@ test("uncertain Web sends keep the receipt identity and never refill the origina
 
 test("same-session history reads discard an older response, including an older error", async () => {
   const f = fixture(), releases: Array<{ resolve: (value: unknown) => void; reject: (reason: unknown) => void }> = [];
-  Object.assign(f.context, { api: () => new Promise((resolve, reject) => releases.push({ resolve, reject })) });
+  Object.assign(f.context, { api: (url: string) => url.endsWith("/runtime") ? Promise.resolve({ runtime: { model: "native" } }) : new Promise((resolve, reject) => releases.push({ resolve, reject })) });
   const start = source.indexOf("let messageLoadGeneration =");
   vm.runInContext(source.slice(start, source.indexOf("\nfunction renderChatPanel(", start)), f.context);
   const first = vm.runInContext("loadSelectedSessionMessages()", f.context), second = vm.runInContext("loadSelectedSessionMessages()", f.context);

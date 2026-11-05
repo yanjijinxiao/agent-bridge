@@ -5974,56 +5974,56 @@
         },
         {
           "id": "CTRL-04.5",
-          "scenario": "恢复model/effort继承先保存设置，查询回执后来源换绑/ABA/降权/撤权/停止只退休旧展示；不能把已保存设置称作未提交。",
+          "scenario": "旧 model/effort default 仅查询原生设置；回执后来源换绑/ABA/降权/撤权/停止只退休旧展示，不写 Gateway 或原生替代值。",
           "status": "verified",
           "tests": [
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring model inheritance retains the local write and retires stale presentation (unchanged)"
+              "name": "reading native model retires stale presentation (unchanged)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring model inheritance retains the local write and retires stale presentation (binding)"
+              "name": "reading native model retires stale presentation (binding)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring model inheritance retains the local write and retires stale presentation (aba)"
+              "name": "reading native model retires stale presentation (aba)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring model inheritance retains the local write and retires stale presentation (role)"
+              "name": "reading native model retires stale presentation (role)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring model inheritance retains the local write and retires stale presentation (access)"
+              "name": "reading native model retires stale presentation (access)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring model inheritance retains the local write and retires stale presentation (stopped)"
+              "name": "reading native model retires stale presentation (stopped)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring effort inheritance retains the local write and retires stale presentation (unchanged)"
+              "name": "reading native effort retires stale presentation (unchanged)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring effort inheritance retains the local write and retires stale presentation (binding)"
+              "name": "reading native effort retires stale presentation (binding)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring effort inheritance retains the local write and retires stale presentation (aba)"
+              "name": "reading native effort retires stale presentation (aba)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring effort inheritance retains the local write and retires stale presentation (role)"
+              "name": "reading native effort retires stale presentation (role)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring effort inheritance retains the local write and retires stale presentation (access)"
+              "name": "reading native effort retires stale presentation (access)"
             },
             {
               "file": "test/runtime-default-response-source.test.ts",
-              "name": "restoring effort inheritance retains the local write and retires stale presentation (stopped)"
+              "name": "reading native effort retires stale presentation (stopped)"
             }
           ],
           "implementation": [
@@ -6032,7 +6032,7 @@
               "sha256": "08625816fce47e91a8b32c0d978fc7d0639fad2d3e406429ae33750470f02fc9"
             }
           ],
-          "verifiedBoundary": "实际Bridge+RuntimeStateStore，2种设置×6种来源结果；原10反例失败及2正常对照。",
+          "verifiedBoundary": "model/effort × unchanged、binding、aba、role、access、stopped；只读兼容命令不保存覆盖值，旧来源零展示。",
           "implementationRecheck": {
             "date": "2026-11-04",
             "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
@@ -12508,12 +12508,12 @@
         },
         {
           "id": "WEB-01.9",
-          "scenario": "设置回执只确认原提交快照，保留等待中的文本、开关、模型/effort草稿；相同等待不重复PUT，失败保留草稿。",
+          "scenario": "设置回执只确认原提交快照，保留等待中的文本和开关草稿；相同等待不重复PUT，失败保留草稿；全局设置不提交模型/effort。",
           "status": "verified",
           "tests": [
             {
               "file": "test/settings-draft.test.ts",
-              "name": "a settings acknowledgement preserves later text, checkbox and model/effort edits"
+              "name": "a settings acknowledgement preserves later text and checkbox edits without saving native execution settings"
             },
             {
               "file": "test/settings-draft.test.ts",
@@ -18349,6 +18349,320 @@
           ],
           "verifiedBoundary": "真实 BridgeService + Connector socket 的 12 种组合；原版 4 个失败反例、修复后通过；真实单 Mac Connector 连接两主机，纯文字/图片/文件准备及附件回传成功，未提交模型输入。",
           "remainingBoundary": "手机实际渲染未测；历史 held 输入未自动重发。"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-06",
+      "module": "controls",
+      "title": "原生执行设置唯一权威",
+      "sourceRecords": [],
+      "contract": "model/effort/plan 仅通过原生 App Server 修改；Gateway 不持久化或自动重放执行覆盖值。",
+      "implementationReview": "2026-11-05 scoped four-layer review; see native-execution-settings audit",
+      "cases": [
+        {
+          "id": "CTRL-06.1",
+          "scenario": "原生设置为唯一权威：IM 设置后桌面修改及重连不覆盖后改值；无占位输入，权限不变。",
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/native-thread-settings.test.ts",
+              "name": "native settings survive client replacement and desktop edits govern ordinary continuation"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "6a7f3110f76c838769381803a3bf3a4e29dbdd5b54579f8a09a109d0fa0727eb"
+            },
+            {
+              "file": "src/bridge/turn-submission.ts",
+              "sha256": "0e8f225111ccc259457568fea304bdbf44df40549285e1331d4577ef45380a84"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a0b7ce8568b74f4fa6ee82b05dc284a8485224d75cb71bc8ad6145ef74fe2fbf"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "6da002de84014c0118fb95216b9f3fcbf919bcdd37f3f9f0d587de5215a0bd64"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "b5842c6a78232314473a344dbf8ce87658cf18c0904cd0b02bbe3a19a1195c7e"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "d06d28587dc0ab4fcbab9481ccb2502367ae7409db6daebc448b70d5e0f57246"
+            },
+            {
+              "file": "src/web/app.js",
+              "sha256": "e5e0707234e2dda7cec3f06af5c583e40c55ced019a2d9968f2ceefeba7beed2"
+            }
+          ],
+          "verifiedBoundary": "命名隔离测试与真实 App Server 测试，具体运行结果见本次审计；不涵盖所有旧 Codex 版本及手机客户端。"
+        },
+        {
+          "id": "CTRL-06.2",
+          "scenario": "执行中更新仅影响下一轮；原轮次自然完成，不中断不重发。",
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/native-thread-settings.test.ts",
+              "name": "settings changed during a running turn affect only the next turn and do not interrupt it"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "6a7f3110f76c838769381803a3bf3a4e29dbdd5b54579f8a09a109d0fa0727eb"
+            },
+            {
+              "file": "src/bridge/turn-submission.ts",
+              "sha256": "0e8f225111ccc259457568fea304bdbf44df40549285e1331d4577ef45380a84"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a0b7ce8568b74f4fa6ee82b05dc284a8485224d75cb71bc8ad6145ef74fe2fbf"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "6da002de84014c0118fb95216b9f3fcbf919bcdd37f3f9f0d587de5215a0bd64"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "b5842c6a78232314473a344dbf8ce87658cf18c0904cd0b02bbe3a19a1195c7e"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "d06d28587dc0ab4fcbab9481ccb2502367ae7409db6daebc448b70d5e0f57246"
+            },
+            {
+              "file": "src/web/app.js",
+              "sha256": "e5e0707234e2dda7cec3f06af5c583e40c55ced019a2d9968f2ceefeba7beed2"
+            }
+          ],
+          "verifiedBoundary": "命名隔离测试与真实 App Server 测试，具体运行结果见本次审计；不涵盖所有旧 Codex 版本及手机客户端。"
+        },
+        {
+          "id": "CTRL-06.3",
+          "scenario": "同一 Connector 端口传递设置，配对/本机/远程别名均核对精确线程及末次来源；旧设备不保存替代值。",
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/peer-thread-settings.test.ts",
+              "name": "native settings traverse the selected Connector with final source checks (paired)"
+            },
+            {
+              "file": "test/peer-thread-settings.test.ts",
+              "name": "native settings traverse the selected Connector with final source checks (local)"
+            },
+            {
+              "file": "test/peer-thread-settings.test.ts",
+              "name": "native settings traverse the selected Connector with final source checks (remote-ssh-discovered:test)"
+            },
+            {
+              "file": "test/peer-real-native.test.ts",
+              "name": "real native Connector preserves queued source receipts across disconnect without replay"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "6a7f3110f76c838769381803a3bf3a4e29dbdd5b54579f8a09a109d0fa0727eb"
+            },
+            {
+              "file": "src/bridge/turn-submission.ts",
+              "sha256": "0e8f225111ccc259457568fea304bdbf44df40549285e1331d4577ef45380a84"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a0b7ce8568b74f4fa6ee82b05dc284a8485224d75cb71bc8ad6145ef74fe2fbf"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "6da002de84014c0118fb95216b9f3fcbf919bcdd37f3f9f0d587de5215a0bd64"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "b5842c6a78232314473a344dbf8ce87658cf18c0904cd0b02bbe3a19a1195c7e"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "d06d28587dc0ab4fcbab9481ccb2502367ae7409db6daebc448b70d5e0f57246"
+            },
+            {
+              "file": "src/web/app.js",
+              "sha256": "e5e0707234e2dda7cec3f06af5c583e40c55ced019a2d9968f2ceefeba7beed2"
+            }
+          ],
+          "verifiedBoundary": "命名隔离测试与真实 App Server 测试，具体运行结果见本次审计；不涵盖所有旧 Codex 版本及手机客户端。"
+        },
+        {
+          "id": "CTRL-06.4",
+          "scenario": "Web 修改只提交本次字段，空选择只查询；原生身份创建后才改设置，换绑或未知回执不重发。",
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/web-native-settings.test.ts",
+              "name": "Web model changes do not replay unrelated stale execution settings"
+            },
+            {
+              "file": "test/web-native-settings.test.ts",
+              "name": "Web effort changes do not replay unrelated stale execution settings"
+            },
+            {
+              "file": "test/web-native-settings.test.ts",
+              "name": "Web stream changes do not replay unrelated stale execution settings"
+            },
+            {
+              "file": "test/web-native-settings.test.ts",
+              "name": "Web refresh changes do not replay unrelated stale execution settings"
+            },
+            {
+              "file": "test/native-settings-controls.test.ts",
+              "name": "Web session settings write the selected native thread and keep only presentation preferences on disk"
+            },
+            {
+              "file": "test/native-settings-controls.test.ts",
+              "name": "settings reject a changed binding after asynchronous preparation without writing to either target"
+            },
+            {
+              "file": "test/native-settings-controls.test.ts",
+              "name": "unknown settings receipts are not replayed and do not leave a Gateway override"
+            },
+            {
+              "file": "test/native-settings-controls.test.ts",
+              "name": "an unstarted Gateway session creates and records one native identity before applying settings"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "6a7f3110f76c838769381803a3bf3a4e29dbdd5b54579f8a09a109d0fa0727eb"
+            },
+            {
+              "file": "src/bridge/turn-submission.ts",
+              "sha256": "0e8f225111ccc259457568fea304bdbf44df40549285e1331d4577ef45380a84"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a0b7ce8568b74f4fa6ee82b05dc284a8485224d75cb71bc8ad6145ef74fe2fbf"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "6da002de84014c0118fb95216b9f3fcbf919bcdd37f3f9f0d587de5215a0bd64"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "b5842c6a78232314473a344dbf8ce87658cf18c0904cd0b02bbe3a19a1195c7e"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "d06d28587dc0ab4fcbab9481ccb2502367ae7409db6daebc448b70d5e0f57246"
+            },
+            {
+              "file": "src/web/app.js",
+              "sha256": "e5e0707234e2dda7cec3f06af5c583e40c55ced019a2d9968f2ceefeba7beed2"
+            }
+          ],
+          "verifiedBoundary": "命名隔离测试与真实 App Server 测试，具体运行结果见本次审计；不涵盖所有旧 Codex 版本及手机客户端。"
+        },
+        {
+          "id": "CTRL-06.5",
+          "scenario": "旧会话三种项目归属及全局模型覆盖退休，不改变绑定/准入/原生文件权限；普通续聊省略执行覆盖字段。",
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/runtime-state.test.ts",
+              "name": "retires legacy execution overrides on load without changing native bindings (project)"
+            },
+            {
+              "file": "test/runtime-state.test.ts",
+              "name": "retires legacy execution overrides on load without changing native bindings (none)"
+            },
+            {
+              "file": "test/runtime-state.test.ts",
+              "name": "retires legacy execution overrides on load without changing native bindings (unknown)"
+            },
+            {
+              "file": "test/config.test.ts",
+              "name": "legacy Gateway model defaults are retired without changing access or Codex permissions"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "6a7f3110f76c838769381803a3bf3a4e29dbdd5b54579f8a09a109d0fa0727eb"
+            },
+            {
+              "file": "src/bridge/turn-submission.ts",
+              "sha256": "0e8f225111ccc259457568fea304bdbf44df40549285e1331d4577ef45380a84"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a0b7ce8568b74f4fa6ee82b05dc284a8485224d75cb71bc8ad6145ef74fe2fbf"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "6da002de84014c0118fb95216b9f3fcbf919bcdd37f3f9f0d587de5215a0bd64"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "b5842c6a78232314473a344dbf8ce87658cf18c0904cd0b02bbe3a19a1195c7e"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "d06d28587dc0ab4fcbab9481ccb2502367ae7409db6daebc448b70d5e0f57246"
+            },
+            {
+              "file": "src/web/app.js",
+              "sha256": "e5e0707234e2dda7cec3f06af5c583e40c55ced019a2d9968f2ceefeba7beed2"
+            }
+          ],
+          "verifiedBoundary": "命名隔离测试与真实 App Server 测试，具体运行结果见本次审计；不涵盖所有旧 Codex 版本及手机客户端。"
+        },
+        {
+          "id": "CTRL-06.6",
+          "scenario": "设置 RPC 超时归为未知提交，不冒充可自动重试的未提交。",
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/codex-app-server.test.ts",
+              "name": "a native settings RPC timeout is unconfirmed and never a retryable preflight failure"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "6a7f3110f76c838769381803a3bf3a4e29dbdd5b54579f8a09a109d0fa0727eb"
+            },
+            {
+              "file": "src/bridge/turn-submission.ts",
+              "sha256": "0e8f225111ccc259457568fea304bdbf44df40549285e1331d4577ef45380a84"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a0b7ce8568b74f4fa6ee82b05dc284a8485224d75cb71bc8ad6145ef74fe2fbf"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "6da002de84014c0118fb95216b9f3fcbf919bcdd37f3f9f0d587de5215a0bd64"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "b5842c6a78232314473a344dbf8ce87658cf18c0904cd0b02bbe3a19a1195c7e"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "d06d28587dc0ab4fcbab9481ccb2502367ae7409db6daebc448b70d5e0f57246"
+            },
+            {
+              "file": "src/web/app.js",
+              "sha256": "e5e0707234e2dda7cec3f06af5c583e40c55ced019a2d9968f2ceefeba7beed2"
+            }
+          ],
+          "verifiedBoundary": "命名隔离测试与真实 App Server 测试，具体运行结果见本次审计；不涵盖所有旧 Codex 版本及手机客户端。"
         }
       ]
     }

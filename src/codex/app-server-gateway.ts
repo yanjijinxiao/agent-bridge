@@ -221,6 +221,12 @@ export class CodexAppServerGateway implements CodexBridgeBackend {
     return observation ? (observation.purpose === "status" ? this.statusReader : this.metadataReader).runtime(cwd, threadId, hostId, observation.timeoutMs) : this.appServerFor(hostId).getRuntimeInfo(cwd, threadId);
   }
   listThreads(input?: CodexThreadListInput, hostId?: string) { return this.appServerFor(hostId).listThreads(input); }
+  async updateThreadSettings(threadId: string, patch: import("./backend.js").CodexThreadSettingsPatch, hostId?: string, assertCurrent?: import("./write-guard.js").CodexWriteGuard) {
+    const backend = this.appServerFor(hostId);
+    if (!backend.updateThreadSettings) throw new CodexBackendCapabilityError("runtimeInfo", backend.id);
+    assertCurrent?.(); this.mutating(threadId, hostId);
+    return backend.updateThreadSettings(threadId, patch, assertCurrent);
+  }
   listSessionCatalog(input?: CodexThreadListInput, hostId?: string) { return this.appServerFor(hostId).listSessionCatalog(input); }
   listModels(hostId?: string) { return this.appServerFor(hostId).listModels(); }
   listSkills(cwd: string, hostId?: string) {

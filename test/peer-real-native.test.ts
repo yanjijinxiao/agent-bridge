@@ -78,4 +78,12 @@ test("real native Connector preserves queued source receipts across disconnect w
   const nativeInputs = finalHistory.messages.filter(m => m.clientUserMessageId === "queue-original");
   assert.equal(nativeInputs.length, 1);
   assert.equal(parsePrompt(nativeInputs[0].text).text, "second");
+  const changed = await as(() => facade.updateThreadSettings!(created.threadId, { model: "peer-native-choice", effort: "low" }, ticket.hostId, () => {}));
+  assert.equal(changed.model, "peer-native-choice");
+  assert.equal(core.calls.length, 2, "settings cross the Connector without a placeholder model turn");
+  const desktop = await core.rpc("peer_settings_desktop");
+  await desktop.request("thread/resume", { threadId: created.threadId, excludeTurns: true });
+  await desktop.request("thread/settings/update", { threadId: created.threadId, model: "desktop-latest" });
+  await until(() => desktop.events.some(e => e.method === "thread/settings/updated" && e.params.threadSettings.model === "desktop-latest"));
+  assert.equal((await as(() => facade.getRuntimeInfo(core.root, created.threadId, ticket.hostId))).model, "desktop-latest");
 });

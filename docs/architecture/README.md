@@ -104,3 +104,5 @@
 新增PEER-01～PEER-04及9个明确场景，逐项映射实际测试；主分支原310case的验证边界保留。查看[完整接口表](modules/peer-interface-matrix.md)、[功能文档](../gateway-peers.md)、[本轮合并记录](../audits/2026-11-03-peer-contract-review/merge-completion.md)。本轮没有把已有完整Web IDE/Taskboard的产品入口声称为Connector支持。
 
 Connector合并时的历史检查点为319个case（213个窄边界通过、106个partial）、160条精选函数合同；当前值见首页。Connector增量不会将主分支未验证的产品组合改成通过。
+
+- [原生执行设置唯一权威：CTRL-06](../audits/2026-11-05-native-execution-settings.md)：模型/effort/Plan 原生设置、生效确认、旧覆盖值退休、IM/Web/Connector 一致性。

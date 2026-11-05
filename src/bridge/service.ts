@@ -1255,7 +1255,6 @@ export class BridgeService {
       const session = existing
         ? this.options.stateStore.activateSession(existing.id)
         : this.options.stateStore.createSession(senderId, project.workspace, undefined, project.id);
-      this.options.stateStore.setSessionCollaborationMode(session.id, "default");
       this.options.stateStore.setInteractionMode(senderId, "session");
       await this.replyActionCard(senderId, createChoiceCard({
         title: "已进入会话模式",
@@ -1391,18 +1390,20 @@ export class BridgeService {
       await this.reply(senderId, "用法：/plan [on|off|toggle]。未更改当前计划模式。");
       return;
     }
-    const mode = input === "on" || input === "plan"
+    const requested = input === "on" || input === "plan"
       ? "plan"
       : input === "off" || input === "default"
         ? "default"
-        : session.collaborationMode === "plan" ? "default" : "plan";
-    this.options.stateStore.setSessionCollaborationMode(session.id, mode);
+        : "toggle";
+    const updated = await this.applyNativeExecutionSettings(senderId, { collaborationMode: requested }, this.conversationControlGuard(senderId, "controller"));
+    if (!updated) return;
+    const mode = updated.collaborationMode;
     await this.replyActionCard(senderId, createChoiceCard({
       title: mode === "plan" ? "已开启计划模式" : "已回到普通对话",
       template: mode === "plan" ? "blue" : "green",
       body: mode === "plan"
         ? "下一条消息起，Codex 会在同一会话中使用原生计划能力，并正常回复澄清问题和方案。"
-        : "已移除计划协作状态。下一条消息起使用不附加任何模式的普通对话。",
+        : "原生会话已切回普通模式，下一轮开始生效。",
       fallbackText: mode === "plan" ? "已开启 Codex 计划模式。" : "已回到普通对话。",
       choices: [
         { label: mode === "plan" ? "回到普通对话" : "切到计划模式", command: "plan", arg: "toggle", style: "primary" },
@@ -1572,7 +1573,7 @@ export class BridgeService {
 
   private updateExecutionRuntime(
     senderId: string,
-    overrides: { model?: string | null; effort?: string | null; streamReplies?: boolean | null }
+    overrides: { streamReplies?: boolean | null }
   ): void {
     let session = this.executionSession(senderId);
     const project = this.options.stateStore.getActiveProject(senderId);
@@ -1586,6 +1587,35 @@ export class BridgeService {
     }
     if (!session) throw new Error("No active session for current mode");
     this.options.stateStore.updateSessionRuntime(session.id, overrides);
+  }
+
+  /** Settings are explicit native controls, never saved overrides or fake turns. */
+  private async applyNativeExecutionSettings(senderId: string, patch: import("../codex/backend.js").CodexThreadSettingsPatch,
+    initialGuard: () => void): Promise<CodexRuntimeInfo | undefined> {
+    let guard = initialGuard;
+    guard();
+    let session = this.executionSession(senderId);
+    if (!session) throw new Error("请先通过 /new 创建或通过 /session 绑定会话，再修改设置。");
+    if (!this.runner.updateThreadSettings) throw new Error("当前 Connector 不支持原生会话设置，请升级 Connector。");
+    if (!session.threadId) {
+      if (!this.runner.createThread) throw new Error("当前后端不支持原生会话创建。");
+      const target = session;
+      const project = target.projectId ? this.options.stateStore.getProject(target.projectId) : undefined;
+      const created = await this.runner.createThread({ cwd: target.workspace, title: target.title, projectId: project?.sourceProjectId,
+        projectBinding: target.projectBinding === "none" ? "none" : undefined, clientUserMessageId: randomUUID(),
+        assertCurrent: () => guard(), onThreadCreated: async id => {
+          guard(); this.options.stateStore.setSessionThread(target.id, id);
+          guard = this.conversationControlGuard(senderId, "controller");
+        } }, this.sessionHostId(target));
+      guard();
+      session = this.executionSession(senderId);
+      if (!session?.threadId || session.threadId !== created.threadId) throw new Error("原生会话创建回执未确认，未修改设置，请核对会话。");
+    }
+    const result = await this.runner.updateThreadSettings(session.threadId, patch, this.sessionHostId(session), guard);
+    // The native change may have succeeded while this chat changed binding.
+    // Retire the old acknowledgement instead of showing it on the new target.
+    try { guard(); } catch { return undefined; }
+    return result;
   }
 
   private async handleSessionCommand(senderId: string, arg: string, sourceId?: string): Promise<void> {
@@ -2466,13 +2496,13 @@ export class BridgeService {
       assertCurrent();
       const session = this.executionSession(senderId);
       const lines = [
-        `当前模型：${runtime.model ?? "Codex 默认"}${session?.model ? "（本会话）" : "（继承 Web/Codex 设置）"}`
+        `当前模型：${runtime.model ?? "Codex 默认"}（Codex 原生会话）`
       ];
       if (models.length) {
         lines.push("", "可用模型：", ...models.map((model, index) => `${index + 1}. ${model.displayName}（${model.model}）`));
-        lines.push("", "发送 /model <序号或模型 ID> 切换；/model default 恢复继承设置。");
+        lines.push("", "发送 /model <序号或模型 ID> 切换；/model default 查看 Codex 当前设置。");
       } else {
-        lines.push("", "暂时无法读取模型列表。仍可发送 /model <完整模型 ID> 切换。", "/model default 恢复继承设置。");
+        lines.push("", "暂时无法读取模型列表。仍可发送 /model <完整模型 ID> 切换。", "/model default 查看 Codex 当前设置。");
       }
       await this.replyActionCard(senderId, createCommandSelectionCard({
         title: "选择模型",
@@ -2485,25 +2515,22 @@ export class BridgeService {
           arg: /^(?:\d+|default)$/i.test(model.model) ? `--id ${model.model}` : model.model,
           active: model.model === runtime.model
         })),
-        includeDefault: true,
         fallbackText: lines.join("\n")
       }));
       return;
     }
     if (!explicitId && input.toLowerCase() === "default") {
       assertCurrent();
-      this.updateExecutionRuntime(senderId, { model: null });
       const runtime = await this.effectiveRuntime(senderId);
-      // The local setting is already saved. Retire an obsolete audience
-      // without reporting that this confirmed change was never submitted.
+      // An obsolete audience must not receive another binding's settings.
       try { assertCurrent(); } catch { return; }
-      await this.reply(senderId, `已恢复继承 Web/Codex 模型设置。\n当前模型：${runtime.model ?? "Codex 默认"}`);
+      await this.reply(senderId, `已统一使用 Codex 原生会话模型设置。\n当前模型：${runtime.model ?? "Codex 默认"}`);
       return;
     }
 
     const selected = explicitId ? models.find(model => model.model === input) : selectModel(models, input);
     if (!selected && (models.length || !isPlausibleModelId(input))) {
-      const fallbackText = "模型不存在。发送 /model 查看可用模型，或使用 /model default 恢复继承设置。";
+      const fallbackText = "模型不存在。发送 /model 查看可用模型，或使用 /model default 查看 Codex 当前设置。";
       await this.replyActionCard(senderId, createChoiceCard({
         title: "模型不存在",
         body: `没有找到“${input}”，请重新选择模型。`,
@@ -2515,14 +2542,13 @@ export class BridgeService {
     const currentRuntime = await this.effectiveRuntime(senderId);
     assertCurrent();
     const model = selected?.model ?? input;
-    this.updateExecutionRuntime(senderId, { model });
     let adjustedEffort: string | undefined;
     if (currentRuntime.effort && selected?.supportedEfforts.length && !selected.supportedEfforts.some((option) => option.effort === currentRuntime.effort)) {
       adjustedEffort = selected.supportedEfforts.some((option) => option.effort === selected.defaultEffort)
         ? selected.defaultEffort
         : selected.supportedEfforts[0]?.effort;
-      this.updateExecutionRuntime(senderId, { effort: adjustedEffort });
     }
+    if (!await this.applyNativeExecutionSettings(senderId, { model, ...(adjustedEffort ? { effort: adjustedEffort } : {}) }, assertCurrent)) return;
     await this.reply(senderId, [
       `本会话模型已切换为：${selected?.displayName ?? model}（${model}）`,
       ...(adjustedEffort ? [`原来的推理强度不受该模型支持，已自动调整为：${formatEffort(adjustedEffort)}`] : []),
@@ -2546,13 +2572,13 @@ export class BridgeService {
     if (!input) {
       const session = this.executionSession(senderId);
       const fallbackText = [
-        `当前推理强度：${formatEffort(runtime.effort)}${session?.effort ? "（本会话）" : "（继承 Web/Codex 设置）"}`,
+        `当前推理强度：${formatEffort(runtime.effort)}（Codex 原生会话）`,
         `当前模型：${runtime.model ?? "Codex 默认"}`,
         "",
         "可用推理强度：",
         ...efforts.map((effort, index) => `${index + 1}. ${formatEffort(effort)}`),
         "",
-        "发送 /effort <序号或英文值> 切换；/effort default 恢复继承设置。"
+        "发送 /effort <序号或英文值> 切换；/effort default 查看 Codex 当前设置。"
       ].join("\n");
       await this.replyActionCard(senderId, createCommandSelectionCard({
         title: "选择推理强度",
@@ -2566,17 +2592,15 @@ export class BridgeService {
           arg: effort,
           active: effort === runtime.effort
         })),
-        includeDefault: true,
         fallbackText
       }));
       return;
     }
     if (input.toLowerCase() === "default") {
       assertCurrent();
-      this.updateExecutionRuntime(senderId, { effort: null });
       const nextRuntime = await this.effectiveRuntime(senderId);
       try { assertCurrent(); } catch { return; }
-      await this.reply(senderId, `已恢复继承 Web/Codex 推理强度设置。\n当前推理强度：${formatEffort(nextRuntime.effort)}`);
+      await this.reply(senderId, `已统一使用 Codex 原生会话推理强度设置。\n当前推理强度：${formatEffort(nextRuntime.effort)}`);
       return;
     }
     const effort = selectEffort(efforts, input);
@@ -2591,7 +2615,7 @@ export class BridgeService {
       return;
     }
     assertCurrent();
-    this.updateExecutionRuntime(senderId, { effort });
+    if (!await this.applyNativeExecutionSettings(senderId, { effort }, assertCurrent)) return;
     await this.reply(senderId, `本会话推理强度已切换为：${formatEffort(effort)}\n下一条消息开始生效。`);
   }
 
@@ -3298,7 +3322,7 @@ export class BridgeService {
       `任务：${issue ? `${issue.identifier} · ${formatTaskboardStatus(issue.status)} · ${issue.title}` : taskResult.available ? "尚未绑定 Taskboard Issue" : "关联信息暂不可读取"}`,
       `会话：${session?.title ?? "未绑定任何 session"}`,
       ...(!session ? ["普通消息不会提交；使用 /sessions 查看，/session 绑定或 /new 新建。"] : []),
-      `对话状态：${session?.collaborationMode === "plan" ? "计划协作" : "普通对话（未附加模式）"}`,
+      `对话状态：${runtime.collaborationMode === "plan" ? "计划协作" : runtime.collaborationMode === "default" ? "普通对话" : "原生模式暂未同步"}`,
       `工作目录：${workspace}`,
       `thread：${session?.threadId || "尚未创建"}`,
       `运行状态：${execution}`,
@@ -3311,8 +3335,8 @@ export class BridgeService {
       `backend：${this.options.config.codexBackend}`,
       `app-server transport：${this.options.config.codexAppServerTransport}`,
       `exec sandbox：${this.options.config.codexExecSandbox ?? "Codex 默认"}`,
-      `model: ${session?.model ?? (this.sessionHostId(session).startsWith("peer:") ? undefined : this.options.config.model) ?? runtime.model ?? (runtimeResult.available ? "(Codex default)" : "(暂未读取)")}`,
-      `effort: ${session?.effort ?? (this.sessionHostId(session).startsWith("peer:") ? undefined : this.options.config.effort) ?? runtime.effort ?? (runtimeResult.available ? "(Codex default)" : "(暂未读取)")}`,
+      `model: ${runtime.model ?? (runtimeResult.available ? "(Codex default)" : "(暂未读取)")}`,
+      `effort: ${runtime.effort ?? (runtimeResult.available ? "(Codex default)" : "(暂未读取)")}`,
       ...(!taskResult.available || !runtimeResult.available || !stateResult.available
         ? ["部分状态未在查询预算内确认；原任务与绑定未改变。"] : []),
       `过程回复：${(session?.streamReplies ?? this.options.config.streamReplies) ? "开启" : "关闭"}${typeof session?.streamReplies === "boolean" ? "（当前会话）" : "（全局）"}`
@@ -3356,11 +3380,7 @@ export class BridgeService {
     } catch (error) {
       console.warn(`Codex runtime info unavailable: ${error instanceof Error ? error.message : String(error)}`);
     }
-    return {
-      model: session?.model ?? (this.sessionHostId(session)?.startsWith("peer:") ? undefined : this.options.config.model) ?? runtime.model,
-      effort: session?.effort ?? (this.sessionHostId(session)?.startsWith("peer:") ? undefined : this.options.config.effort) ?? runtime.effort,
-      provider: runtime.provider
-    };
+    return runtime;
   }
 
   private projectHostId(projectId?: string): string | undefined {

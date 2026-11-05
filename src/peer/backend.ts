@@ -36,7 +36,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
   };
   const invoke = async <T = unknown>(method: string, args: unknown[], hostId: string, write = false, input?: Record<string, any>): Promise<T> => {
     hostId ??= "local";
-    if (["run", "steer", "submitThreadMessage", "stop", "interruptTurn", "addQueuedSubmission", "setGoal", "clearGoal", "renameThread", "archiveThread", "unarchiveThread", "deleteThread"].includes(method)) {
+    if (["run", "steer", "submitThreadMessage", "stop", "interruptTurn", "addQueuedSubmission", "setGoal", "clearGoal", "updateThreadSettings", "renameThread", "archiveThread", "unarchiveThread", "deleteThread"].includes(method)) {
       const threadId = input?.threadId; if (threadId) onThreadMutation?.(threadId, hostId);
     }
     if ((NATIVE_CONTRACT_METHODS.has(method) || input?.nativeSettings || input?.imagePaths?.length || input?.dynamicTools?.length
@@ -249,6 +249,9 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     getHistory: (id, host) => route("getHistory", [id, host], host),
     getHistoryPage: (id, page, host) => route("getHistoryPage", [id, page, host], host),
     getRuntimeInfo: (cwd, id, host, observation) => route("getRuntimeInfo", [cwd, id, host, observation], host),
+    updateThreadSettings: (id, patch, host, assertCurrent) => registry.isRouted(host)
+      ? invoke("updateThreadSettings", [id, patch], host!, true, { threadId: id, assertCurrent })
+      : native("updateThreadSettings", [id, patch, host, assertCurrent]),
     listModels: (host?: string) => route("listModels", [host], host),
     getAccountRateLimits: (host?: string, model?: string) => registry.isRouted(host)
       ? invoke("getAccountRateLimits", [host, model], host!) : local.getAccountRateLimits(host, model),

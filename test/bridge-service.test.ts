@@ -87,7 +87,7 @@ test("reports WeChat Codex turn status and resolves runtime details for status",
   });
   assert.match(replies.at(-1) ?? "", /model: gpt-test/);
   assert.match(replies.at(-1) ?? "", /effort: high/);
-  assert.match(replies.at(-1) ?? "", /普通对话（未附加模式）/);
+  assert.match(replies.at(-1) ?? "", /原生模式暂未同步/);
 });
 
 test("does not send an experimental collaboration mode for an ordinary bound session", async (t) => {
@@ -1473,6 +1473,8 @@ test("lists and switches model and reasoning effort for the active WeChat sessio
   const stateStore = new RuntimeStateStore(paths);
   stateStore.createProject("Test project", tmpDir);
   stateStore.createSession("alice@im.wechat", tmpDir);
+  const native = { model: "gpt-default", effort: "medium" };
+  const patches: object[] = [];
   const replies: string[] = [];
   const runs: Array<{ model?: string; effort?: string }> = [];
   const models = [{
@@ -1519,8 +1521,10 @@ test("lists and switches model and reasoning effort for the active WeChat sessio
         runs.push(input);
         return { raw: "", text: "done", threadId: "thread-model" };
       },
-      async getRuntimeInfo() {
-        return { model: "runtime-model", effort: "low" };
+      async getRuntimeInfo() { return { ...native }; },
+      async createThread(input: any) { await input.onThreadCreated?.("thread-model"); return { threadId: "thread-model" }; },
+      async updateThreadSettings(id: string, patch: any, _host: string, guard: () => void) {
+        guard(); assert.equal(id, "thread-model"); patches.push(patch); Object.assign(native, patch); return { ...native };
       },
       async stop() {}
     } as never
@@ -1536,20 +1540,21 @@ test("lists and switches model and reasoning effort for the active WeChat sessio
   await send("model-list", "/model");
   assert.match(replies.at(-1) ?? "", /2\. GPT Fast（gpt-fast）/);
   await send("model-switch", "/model 2");
-  assert.equal(stateStore.getActiveSession("alice@im.wechat")?.model, "gpt-fast");
-  assert.equal(stateStore.getActiveSession("alice@im.wechat")?.effort, "low");
+  assert.equal(native.model, "gpt-fast");
+  assert.equal(stateStore.getActiveSession("alice@im.wechat")?.model, undefined);
+  assert.equal(native.effort, "low");
 
   await send("effort-list", "/effort");
   assert.match(replies.at(-1) ?? "", /2\. 高（high）/);
   assert.doesNotMatch(replies.at(-1) ?? "", /medium/);
   await send("effort-switch", "/effort 2");
-  assert.equal(stateStore.getActiveSession("alice@im.wechat")?.effort, "high");
+  assert.equal(native.effort, "high");
   await send("invalid-effort", "/effort ultra");
-  assert.equal(stateStore.getActiveSession("alice@im.wechat")?.effort, "high");
+  assert.equal(native.effort, "high");
 
   await send("turn", "使用当前设置");
-  assert.equal(runs.at(-1)?.model, "gpt-fast");
-  assert.equal(runs.at(-1)?.effort, "high");
+  assert.equal(runs.at(-1)?.model, undefined);
+  assert.equal(runs.at(-1)?.effort, undefined);
   await send("status", "/status");
   assert.match(replies.at(-1) ?? "", /model: gpt-fast/);
   assert.match(replies.at(-1) ?? "", /effort: high/);
@@ -1557,16 +1562,20 @@ test("lists and switches model and reasoning effort for the active WeChat sessio
   const overriddenSession = stateStore.getActiveSession("alice@im.wechat")?.id;
   await send("new", "/new");
   await send("new-turn", "新会话使用默认值");
-  assert.equal(runs.at(-1)?.model, "gpt-default");
-  assert.equal(runs.at(-1)?.effort, "medium");
+  assert.equal(runs.at(-1)?.model, undefined);
+  assert.equal(runs.at(-1)?.effort, undefined);
 
   assert.ok(overriddenSession);
   stateStore.activateSession(overriddenSession);
   await send("model-default", "/model default");
   await send("effort-default", "/effort default");
+  assert.equal(patches.length, 2, "default aliases must not write settings");
+  native.model = "desktop-model"; native.effort = "low";
+  await send("status-desktop", "/status");
+  assert.match(replies.at(-1)!, /model: desktop-model/);
   await send("default-turn", "恢复默认值");
-  assert.equal(runs.at(-1)?.model, "gpt-default");
-  assert.equal(runs.at(-1)?.effort, "medium");
+  assert.equal(runs.at(-1)?.model, undefined);
+  assert.equal(runs.at(-1)?.effort, undefined);
   assert.equal(new RuntimeStateStore(paths).getSession(overriddenSession)?.model, undefined);
   assert.equal(new RuntimeStateStore(paths).getSession(overriddenSession)?.effort, undefined);
 });

@@ -133,3 +133,17 @@ test("rejects an invalid codex exec sandbox", (t) => {
     /Invalid codexExecSandbox/
   );
 });
+
+test("legacy Gateway model defaults are retired without changing access or Codex permissions", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "native-setting-config-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const paths = resolveStatePaths(root);
+  const legacy = { ...defaultConfig(root), model: "old-override", effort: "high", codexExecSandbox: "workspace-write" as const, allowedSenderIds: ["owner"] };
+  fs.writeFileSync(paths.configPath, JSON.stringify(legacy));
+  const config = loadConfig(paths);
+  assert.equal(config.model, undefined); assert.equal(config.effort, undefined);
+  assert.equal(config.codexExecSandbox, "workspace-write"); assert.deepEqual(config.allowedSenderIds, ["owner"]);
+  saveConfig(paths, legacy);
+  const stored = JSON.parse(fs.readFileSync(paths.configPath, "utf8"));
+  assert.equal(stored.model, undefined); assert.equal(stored.effort, undefined);
+});

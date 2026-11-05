@@ -203,6 +203,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private readonly itemPhasesByTurn = new Map<string, Map<string, string>>();
   private readonly reasoningSummariesByTurn = new Map<string, Map<string, string>>();
   private readonly runtimeInfoByThread = new Map<string, CodexRuntimeInfo>();
+  private readonly settingsObservers = new Map<string, Set<(value: CodexRuntimeInfo) => void>>();
   private readonly threadStates = new Map<string, CodexThreadState>();
   private operationLeases = 0;
   private readonly expectedTurnThreads = new Map<string, number>();
@@ -1443,11 +1444,15 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   async getRuntimeInfo(cwd: string, threadId?: string): Promise<CodexRuntimeInfo> {
-    const active = threadId ? this.runtimeInfoByThread.get(threadId) : undefined;
-    if (active?.model || active?.effort) {
-      return active;
-    }
     await this.ensureConnected();
+    if (threadId) {
+      // thread/read reports current loaded settings or the last persisted
+      // native settings. Never substitute cached/global values for this thread.
+      const thread = nativeThread(await this.request("thread/read", { threadId, includeTurns: false }), threadId);
+      return { ...runtimeInfoFromThreadResponse(thread),
+        ...(this.runtimeInfoByThread.get(threadId)?.collaborationMode
+          ? { collaborationMode: this.runtimeInfoByThread.get(threadId)!.collaborationMode } : {}) };
+    }
     const response = await this.request("config/read", { cwd, includeLayers: false }) as Record<string, unknown>;
     const config = response.config as Record<string, unknown> | undefined;
     return compactRuntimeInfo({
@@ -1455,6 +1460,65 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       effort: config?.model_reasoning_effort,
       provider: config?.model_provider ?? config?.modelProvider
     });
+  }
+
+  async updateThreadSettings(threadId: string, patch: import("./backend.js").CodexThreadSettingsPatch,
+    assertCurrent?: import("./write-guard.js").CodexWriteGuard): Promise<CodexRuntimeInfo> {
+    this.operationLeases++;
+    try {
+      await this.ensureConnected();
+      // Subscribe to the same owner to receive the settings-applied event.
+      // A freshly created persistent thread can briefly precede its rollout
+      // index. Retry only that explicit read/attach rejection, never a settings
+      // write or an ambiguous transport failure, and never create a turn.
+      let response: Record<string, unknown>;
+      const deadline = Date.now() + 5000;
+      for (;;) {
+        try {
+          response = await guardNativeWrite(assertCurrent, () => this.request("thread/resume", { threadId, excludeTurns: true })) as Record<string, unknown>;
+          break;
+        } catch (error) {
+          if (!/no rollout found for thread id/i.test(String(error)) || Date.now() >= deadline) throw error;
+          nativeThread(await this.request("thread/read", { threadId, includeTurns: false }), threadId);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      nativeThread(response, threadId); this.subscribedThreads.add(threadId);
+      const current = runtimeInfoFromThreadResponse(response);
+      const mode = patch.collaborationMode === "toggle"
+        ? current.collaborationMode === "plan" ? "default" : current.collaborationMode === "default" ? "plan" : undefined
+        : patch.collaborationMode;
+      if (patch.collaborationMode && (!mode || !current.model)) throw new Error("原生会话未返回完整计划模式设置，未修改设置。");
+      const params = compactObject({ threadId, model: patch.model, effort: patch.effort,
+        ...(mode ? { collaborationMode: { mode, settings: {
+          model: patch.model ?? current.model, reasoning_effort: patch.effort ?? current.effort ?? null, developer_instructions: null
+        } } } : {}) });
+      const matches = (value: CodexRuntimeInfo) => (!patch.model || value.model === patch.model)
+        && (!patch.effort || value.effort === patch.effort) && (!mode || value.collaborationMode === mode);
+      if (matches(current)) { assertCurrent?.(); return current; }
+      let observe!: (value: CodexRuntimeInfo) => void;
+      let timer!: ReturnType<typeof setTimeout>;
+      const applied = new Promise<CodexRuntimeInfo>((resolve, reject) => {
+        observe = value => { if (matches(value)) resolve(value); };
+        timer = setTimeout(() => reject(new Error("设置请求已提交，但原生生效回执尚未确认；请查询当前设置，未自动重发。")), 5000);
+      });
+      void applied.catch(() => {});
+      const observers = this.settingsObservers.get(threadId) ?? new Set();
+      observers.add(observe); this.settingsObservers.set(threadId, observers);
+      try {
+        try { await guardNativeWrite(assertCurrent, () => this.request("thread/settings/update", params)); }
+        catch (error) {
+          if (/method not found|unknown (?:method|variant)|experimental.*(?:disabled|unsupported)/i.test(String(error)))
+            throw new Error("当前 Codex 不支持原生会话设置接口，请升级 Codex；Gateway 未保存替代设置。");
+          throw error;
+        }
+        return await applied;
+      } finally {
+        clearTimeout(timer); observers.delete(observe);
+        if (!observers.size) this.settingsObservers.delete(threadId);
+      }
+
+    } finally { this.operationLeases--; await this.recyclePrivateTransportIfIdle(); }
   }
 
   async listModels(): Promise<CodexModelOption[]> {
@@ -1809,7 +1873,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const timer = setTimeout(() => {
         const error = new Error(`app-server request ${method} timed out after ${timeoutMs}ms`);
         this.pending.delete(id);
-        const submitting = ["turn/start", "turn/steer", "thread/queue/start", "thread/queue/add"].includes(method);
+        const submitting = ["turn/start", "turn/steer", "thread/queue/start", "thread/queue/add", "thread/settings/update"].includes(method);
         const threadId = typeof params.threadId === "string" ? params.threadId : undefined;
         if (["turn/start", "thread/queue/start"].includes(method) && threadId) this.unconfirmedStarts.add(threadId);
         reject(communicationError(error, { phase: submitting ? "submission" : "preflight", operation: method, threadId }));
@@ -1898,6 +1962,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private handleNotification(method: string, params: Record<string, unknown>, raw: string): void {
+    if (method === "thread/settings/updated" && typeof params.threadId === "string" && isRecord(params.threadSettings)) {
+      const settings = runtimeInfoFromThreadResponse(params.threadSettings);
+      this.runtimeInfoByThread.set(params.threadId, settings);
+      for (const observer of this.settingsObservers.get(params.threadId) ?? []) observer(settings);
+      return;
+    }
     if (method === "turn/completed") {
       const turn = params.turn;
       // A malformed terminal event is not evidence of success, failure, or
@@ -2802,13 +2872,15 @@ function parseModelOption(value: unknown): CodexModelOption | undefined {
 function runtimeInfoFromThreadResponse(response: Record<string, unknown>): CodexRuntimeInfo {
   return compactRuntimeInfo({
     model: response.model,
-    effort: response.reasoningEffort,
-    provider: response.modelProvider ?? response.model_provider
+    effort: response.reasoningEffort ?? response.effort,
+    provider: response.modelProvider ?? response.model_provider,
+    collaborationMode: isRecord(response.collaborationMode) ? response.collaborationMode.mode : undefined
   });
 }
 
-function compactRuntimeInfo(input: { model?: unknown; effort?: unknown; provider?: unknown }): CodexRuntimeInfo {
+function compactRuntimeInfo(input: { model?: unknown; effort?: unknown; provider?: unknown; collaborationMode?: unknown }): CodexRuntimeInfo {
   return {
+    ...(input.collaborationMode === "default" || input.collaborationMode === "plan" ? { collaborationMode: input.collaborationMode } : {}),
     ...(typeof input.model === "string" && input.model ? { model: input.model } : {}),
     ...(typeof input.effort === "string" && input.effort ? { effort: input.effort } : {}),
     ...(typeof input.provider === "string" && input.provider ? { provider: input.provider } : {})

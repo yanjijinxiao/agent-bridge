@@ -7,7 +7,7 @@ export const PEER_BACKEND_CONTRACT = {
   backendInfo: "negotiated", run: "rpc", steer: "rpc", submitThreadMessage: "rpc", stop: "rpc",
   runEphemeral: "rpc", warmUp: "rpc", listProjects: "rpc", listThreads: "catalog-projection",
   listSessionCatalog: "rpc", getHistory: "rpc", getHistoryPage: "rpc", readThreadSnapshot: "rpc",
-  inspectThread: "rpc", getRuntimeInfo: "rpc", listModels: "rpc", getAccountRateLimits: "rpc",
+  inspectThread: "rpc", getRuntimeInfo: "rpc", updateThreadSettings: "rpc", listModels: "rpc", getAccountRateLimits: "rpc",
   listSkills: "rpc", listMcpServers: "rpc", serverIdentity: "rpc", readThreadProvenance: "rpc",
   getGoal: "rpc", setGoal: "rpc", clearGoal: "rpc", createThread: "rpc", renameThread: "rpc",
   archiveThread: "rpc", unarchiveThread: "rpc", deleteThread: "rpc", interruptTurn: "rpc",
@@ -21,6 +21,6 @@ export const PEER_BACKEND_CONTRACT = {
 } as const satisfies Record<keyof CodexBridgeBackend, string>;
 
 export const NATIVE_CONTRACT_METHODS = new Set([
-  "warmUp", "listSkills", "listMcpServers", "serverIdentity", "readThreadProvenance", "addQueuedSubmission",
+  "updateThreadSettings", "warmUp", "listSkills", "listMcpServers", "serverIdentity", "readThreadProvenance", "addQueuedSubmission",
   "listQueuedSubmissions", "deleteQueuedSubmission", "runQueuedSubmission", "recoverSystemError", "resumeAfterCapacity"
 ]);

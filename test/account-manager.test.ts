@@ -1670,8 +1670,8 @@ for (const source of ["local", "peer:device", "peer:unavailable"]) {
     } });
     const runtime = await f.manager.getCodexRuntimeInfo({ hostId: source, threadId: "thread", cwd: "/project" });
     assert.deepEqual(runtime, source === "peer:unavailable" ? {} : {
-      model: source === "local" ? "gateway-model" : "native-model",
-      effort: source === "local" ? "high" : "low", provider: "native-provider"
+      model: "native-model",
+      effort: "low", provider: "native-provider"
     });
   });
 }
@@ -1796,24 +1796,25 @@ test("Web turns ignore retired memory actions without reinjecting them", async (
   assert.doesNotMatch(String(runs[1].developerInstructions), /交付前运行测试、类型检查和构建|private-knowledge|under remember/);
 });
 
-test("uses WeChat session model overrides when continuing the same session from Web", async (t) => {
+test("Web continuation ignores retired IM execution overrides", async (t) => {
   const { manager, paths, root, runs } = setup(t);
   const session = manager.createSession("account-one", "alice@im.wechat", root, "Shared chat");
   const store = new RuntimeStateStore(accountStatePaths(paths, "account-one"));
-  store.setModelOverride("alice@im.wechat", "gpt-session");
-  store.setEffortOverride("alice@im.wechat", "high");
+  const legacy = JSON.parse(fs.readFileSync(accountStatePaths(paths, "account-one").statePath, "utf8"));
+  Object.assign(legacy.sessions[0], { model: "stale-model", effort: "high" });
+  fs.writeFileSync(accountStatePaths(paths, "account-one").statePath, JSON.stringify(legacy));
 
   await manager.startAccount("account-one");
   await manager.continueSession("account-one", session.id, "从 Web 继续");
 
-  assert.equal(runs[0].model, "gpt-session");
-  assert.equal(runs[0].effort, "high");
+  assert.equal(runs[0].model, undefined);
+  assert.equal(runs[0].effort, undefined);
 });
 
 test("streams Web progress without exposing final-answer deltas", async (t) => {
   const { manager, root, setRunHandler } = setup(t);
   const session = manager.createSession("account-one", "alice@im.wechat", root, "Streaming chat");
-  manager.updateSessionRuntime("account-one", session.id, { streamReplies: true });
+  await manager.updateSessionRuntime("account-one", session.id, { streamReplies: true });
   const progress: string[] = [];
   setRunHandler(async (input) => {
     assert.equal(input.onDelta, undefined);
@@ -1828,7 +1829,7 @@ test("streams Web progress without exposing final-answer deltas", async (t) => {
   });
   assert.deepEqual(progress, ["正在处理"]);
 
-  manager.updateSessionRuntime("account-one", session.id, { streamReplies: false });
+  await manager.updateSessionRuntime("account-one", session.id, { streamReplies: false });
   assert.equal(manager.isSessionStreamEnabled("account-one", session.id), false);
 });
 

@@ -9,6 +9,7 @@
 | listSessionCatalog / listThreads / listProjects | 原生目录、过滤、分页及 host 投影；路径在设备侧确认 | management、bridge、transport-contract |
 | inspectThread / readThreadSnapshot / getHistory / getHistoryPage | 保留 persistence/runtime/turn；missing 不转成通信失败；观察预算透传 | transport-contract、native-compat |
 | getRuntimeInfo / listModels / getAccountRateLimits | 设备模型与模型级用量；Gateway 默认不覆盖 | native-compat、transport-contract |
+| updateThreadSettings | 原生 model/effort/collaborationMode 修改；同一 grant/thread、最终写前来源检查、生效通知确认；未知回执不重发 | peer-thread-settings、peer-real-native、native-thread-settings |
 | getGoal / setGoal / clearGoal | 同一原生目标，不新增调度器 | transport-contract、main-orthogonality |
 | listSkills / listMcpServers / serverIdentity | 原生目录/诊断；进程诊断限定设备授权 | transport-contract |
 | createThread / renameThread / archiveThread / unarchiveThread / deleteThread | 原生管理，写前检查；删除仅限已归档；空线程的持久化由原生首条输入决定 | management、transport-contract |

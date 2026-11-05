@@ -22,16 +22,14 @@ function fixture() {
   return { field, state, pending, calls, save, confirm, button, notices };
 }
 
-test("a settings acknowledgement preserves later text, checkbox and model/effort edits", async () => {
+test("a settings acknowledgement preserves later text and checkbox edits without saving native execution settings", async () => {
   const h = fixture(); const save = h.save();
   h.field("#defaultCwdInput").value = "/new-draft"; h.field("#streamRepliesInput").checked = true;
-  h.field("#modelInput").value = "b"; h.field("#effortInput").value = "high";
   h.confirm(); await save;
   assert.equal(h.state.config.defaultCwd, "/confirmed");
   assert.equal(h.field("#defaultCwdInput").value, "/new-draft");
   assert.equal(h.field("#streamRepliesInput").checked, true);
-  assert.equal(h.field("#modelInput").value, "b"); assert.equal(h.field("#effortInput").value, "high");
-  assert.equal(h.calls[0].body.defaultCwd, "/saved"); assert.equal(h.calls[0].body.model, "a");
+  assert.equal(h.calls[0].body.defaultCwd, "/saved"); assert.equal(h.calls[0].body.model, undefined); assert.equal(h.calls[0].body.effort, undefined);
   assert.match(h.notices.at(-1)!, /未保存/);
 });
 test("a second settings submit cannot race the pending write", async () => {

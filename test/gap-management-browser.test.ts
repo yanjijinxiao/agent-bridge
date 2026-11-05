@@ -70,14 +70,14 @@ test("isolated production Gateway browser gap scenarios", { skip: !process.env.C
     await evaluate("document.querySelector('[data-view=settings]').click();window.settingsFetch=window.fetch.bind(window);window.settingsWrites=0;window.fetch=async(...args)=>{const response=await settingsFetch(...args);if(String(args[0])==='/api/config' && args[1]?.method==='PUT'){settingsWrites++;await new Promise(resolve=>window.releaseSettings=resolve)}return response};document.querySelector('#settingsForm').requestSubmit()");
     try {
       await eventually(() => evaluate("typeof window.releaseSettings === 'function'"), "settings acknowledgement was not held");
-      await evaluate("document.querySelector('#defaultCwdInput').value='/unsaved-after-submit';document.querySelector('#streamRepliesInput').checked=!state.config.streamReplies;document.querySelector('#modelInput').add(new Option('Draft model','draft-model'));document.querySelector('#modelInput').value='draft-model';document.querySelector('#effortInput').add(new Option('Draft effort','high'));document.querySelector('#effortInput').value='high';document.querySelector('#settingsForm').dispatchEvent(new SubmitEvent('submit',{bubbles:true,cancelable:true}));releaseSettings()");
+      await evaluate("document.querySelector('#defaultCwdInput').value='/unsaved-after-submit';document.querySelector('#streamRepliesInput').checked=!state.config.streamReplies;document.querySelector('#settingsForm').dispatchEvent(new SubmitEvent('submit',{bubbles:true,cancelable:true}));releaseSettings()");
       await eventually(() => evaluate("!document.querySelector('#settingsForm button[type=submit]').disabled"), "settings save never settled");
       assert.equal(await evaluate("settingsWrites"), 1);
       assert.equal(loadConfig(paths).defaultCwd, root);
       assert.equal(await evaluate("document.querySelector('#defaultCwdInput').value"), "/unsaved-after-submit");
       assert.equal(await evaluate("document.querySelector('#streamRepliesInput').checked === !state.config.streamReplies"), true);
-      assert.equal(await evaluate("document.querySelector('#modelInput').value"), "draft-model");
-      assert.equal(await evaluate("document.querySelector('#effortInput').value"), "high");
+      assert.equal(await evaluate("document.querySelector('#modelInput') === null"), true);
+      assert.equal(await evaluate("document.querySelector('#effortInput') === null"), true);
     } finally {
       await evaluate("window.releaseSettings?.();window.fetch=settingsFetch;renderSettings();document.querySelector('[data-view=sessions]').click()");
     }

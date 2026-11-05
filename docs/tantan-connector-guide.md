@@ -563,3 +563,11 @@ JSON 中的 `~` 和 `$HOME` 不会像终端命令那样展开。需要引用主�
 5. stateDir 保持稳定，没有第二个 Connector 同时使用它。
 
 **不需要填写**钉钉用户 ID、群 ID、session ID、配对码、机器人 AppKey/AppSecret 或 Codex 登录密钥。连接成功后，Connector 才会显示带配对码的完整 /connect 命令；按第 3 节在钉钉发送，并在设备终端核对确认。
+
+## 模型、推理强度和计划模式
+
+绑定会话后，使用 `/model` 查看并选择模型，`/effort` 选择推理强度，`/plan on` 或 `/plan off` 切换计划模式。这些操作直接修改你设备上该 Codex 会话的原生设置，从下一轮生效；修改设置本身不会启动任务。
+
+探探不另存一份覆盖值。在 Codex App 改过模型后，之后从探探发消息也沿用该会话的最新原生设置；Gateway 或 Connector 重启不会把旧值盖回来。旧的 `/model default`、`/effort default` 命令现在只查看当前原生值。`/stream` 控制的是探探的进度展示，仍作为展示偏好保存。
+
+如果设备上的 Codex 或 Connector 太旧、不支持原生设置接口，会明确提示升级，不会显示假成功或把设置偷偷存到 Gateway。设置回执未确认时先查看当前设置，不重复发送任务。

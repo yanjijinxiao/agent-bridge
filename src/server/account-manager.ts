@@ -1331,23 +1331,17 @@ export class AccountManager {
 
   async getCodexRuntimeInfo(scope?: CodexRuntimeQuery): Promise<CodexRuntimeInfo> {
     const config = this.configProvider();
-    // A Connector owns its execution defaults. Gateway-local overrides cannot
-    // describe that runtime, even when its observation is unavailable.
-    const configured: CodexRuntimeInfo = scope?.hostId?.startsWith("peer:") ? {} : {
-      ...(config.model ? { model: config.model } : {}),
-      ...(config.effort ? { effort: config.effort } : {})
-    };
-    try {
-      const runtime = await this.runnerFor(config).getRuntimeInfo(scope?.cwd ?? config.defaultCwd, scope?.threadId, scope?.hostId);
-      return {
-        model: configured.model ?? runtime.model,
-        effort: configured.effort ?? runtime.effort,
-        ...(runtime.provider ? { provider: runtime.provider } : {})
-      };
-    } catch (error) {
+    try { return await this.runnerFor(config).getRuntimeInfo(scope?.cwd ?? config.defaultCwd, scope?.threadId, scope?.hostId); }
+    catch (error) {
       console.warn(`Codex runtime info unavailable: ${error instanceof Error ? error.message : String(error)}`);
-      return configured;
+      return {};
     }
+  }
+
+  async getSessionRuntimeInfo(accountId: string, sessionId: string): Promise<CodexRuntimeInfo> {
+    const store = this.storeFor(accountId), session = requireSession(store, sessionId);
+    const hostId = session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local";
+    return this.runnerFor().getRuntimeInfo(session.workspace, session.threadId, hostId, { timeoutMs: 2000, purpose: "status" });
   }
 
   async getCodexModels(scope?: CodexRuntimeQuery): Promise<CodexModelOption[]> {
@@ -1395,8 +1389,40 @@ export class AccountManager {
     return this.sessionSummary(accountId, session, this.isActive(accountId, session.id));
   }
 
-  updateSessionRuntime(accountId: string, sessionId: string, overrides: SessionRuntimeOverrides): AccountSession {
-    const session = this.storeFor(accountId).updateSessionRuntime(sessionId, overrides);
+  async updateSessionRuntime(accountId: string, sessionId: string, overrides: SessionRuntimeOverrides): Promise<AccountSession> {
+    const store = this.storeFor(accountId);
+    let session = requireSession(store, sessionId);
+    const hostId = session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local";
+    // Admin changes are tied to this selected session, not whichever session
+    // happens to be active after an asynchronous native request.
+    const identity = (value: ManagedSession) => JSON.stringify([value.id, value.threadId, value.executionGeneration,
+      value.workspace, value.projectId, value.hostId, store.getProject(value.projectId ?? "")?.hostId,
+      store.getProject(value.projectId ?? "")?.rootPaths]);
+    let expected = identity(session);
+    const guard = () => {
+      this.assertRuntimeWritable(); store.refresh();
+      if (identity(requireSession(store, sessionId)) !== expected) throw new CodexInterventionError("会话已改变，设置未提交。");
+    };
+    const patch = { ...(overrides.model?.trim() ? { model: overrides.model.trim() } : {}),
+      ...(overrides.effort?.trim() ? { effort: overrides.effort.trim() } : {}) };
+    if (Object.keys(patch).length) {
+      const runner = this.runnerFor();
+      if (!runner.updateThreadSettings) throw new Error("当前 Connector 不支持原生会话设置，请升级 Connector。");
+      if (!session.threadId) {
+        if (!runner.createThread) throw new Error("当前后端不支持原生会话创建。");
+        const project = store.getProject(session.projectId ?? "");
+        const created = await runner.createThread({ cwd: session.workspace, title: session.title, projectId: project?.sourceProjectId,
+          projectBinding: session.projectBinding === "none" ? "none" : undefined, assertCurrent: guard,
+          onThreadCreated: async id => { guard(); session = store.setSessionThread(sessionId, id); expected = identity(session); } }, hostId);
+        guard();
+        if (session.threadId !== created.threadId) throw new Error("原生会话身份未确认，未修改设置。");
+      }
+      await runner.updateThreadSettings(session.threadId!, patch, hostId, guard);
+    }
+    // Only presentation preferences are Gateway-owned. Null model/effort from
+    // older clients are a no-op, not a reset of someone else's native choice.
+    guard();
+    if (overrides.streamReplies !== undefined) session = store.updateSessionRuntime(sessionId, { streamReplies: overrides.streamReplies });
     return this.sessionSummary(accountId, session, this.isActive(accountId, session.id));
   }
 

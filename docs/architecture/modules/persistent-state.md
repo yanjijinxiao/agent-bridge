@@ -25,3 +25,5 @@ STATE-01.1经真实AccountManager等待原生长轮期间rename/unbind，完成�
 ## 移除旧记忆字段
 
 账号状态加载迁移会去掉退役的 knowledge 与 knowledgeEnabled，不再提供记忆读写 API。其余绑定、准入、回执及独立 knowledgeBases 配置保持原值；不读取或写入 Codex 原生记忆文件。动作日志仍保留历史散列用于附件去重，不把旧日志中的记忆动作恢复成业务功能。
+
+执行设置迁移：旧 session 的 model/effort/collaborationMode 在归一化入口一律移除，覆盖有项目、明确无项目、归属未知三种会话；旧全局 config 的 model/effort 不再参与执行，并在下一次保存时退休。不能把这些旧值回放到原生会话。绑定、准入、原生接收/投递回执和展示偏好继续由各自仓储保存。见 CTRL-06。

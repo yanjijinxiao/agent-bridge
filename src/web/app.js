@@ -9,6 +9,7 @@ const state = {
   config: null,
   codex: null,
   codexRuntime: null,
+  sessionRuntimes: new Map(),
   codexModels: [],
   taskboard: null,
   taskboardIssues: [],
@@ -164,10 +165,9 @@ function bindEvents() {
   document.querySelector("#newSessionButton").addEventListener("click", openNewSessionDialog);
   document.querySelector("#addProjectButton").addEventListener("click", () => void openNewProjectDialog());
   document.querySelector("#settingsForm").addEventListener("submit", (event) => void saveSettings(event));
-  document.querySelector("#modelInput").addEventListener("change", () => renderEffortOptions(""));
   els.sessionModelInput.addEventListener("change", () => void handleSessionModelChange());
-  els.sessionEffortInput.addEventListener("change", () => void saveSessionRuntimeSettings());
-  els.sessionStreamInput.addEventListener("change", () => void saveSessionRuntimeSettings());
+  els.sessionEffortInput.addEventListener("change", () => void saveSessionRuntimeSettings("effort"));
+  els.sessionStreamInput.addEventListener("change", () => void saveSessionRuntimeSettings("stream"));
   document.querySelector("#accountForm").addEventListener("submit", (event) => saveAccountSettings(event).catch((error) => setAccountFormError(String(error))));
   document.querySelector("#accountWebhookProviderInput").addEventListener("change", () => {
     updateAccountWebhookProviderPresentation();
@@ -790,9 +790,8 @@ function renderSettings() {
   document.querySelector("#streamRepliesInput").checked = Boolean(state.config.streamReplies);
   document.querySelector("#taskboardEnabledInput").checked = Boolean(state.config.taskboardEnabled);
   document.querySelector("#taskboardUrlInput").value = state.config.taskboardUrl || "http://127.0.0.1:47823";
-  renderModelOptions();
-  document.querySelector("#effectiveModelValue").textContent = state.codexRuntime?.model || state.config.model || "Codex 默认";
-  document.querySelector("#effectiveEffortValue").textContent = state.codexRuntime?.effort || state.config.effort || "Codex 默认";
+  document.querySelector("#effectiveModelValue").textContent = state.codexRuntime?.model || "Codex 默认";
+  document.querySelector("#effectiveEffortValue").textContent = state.codexRuntime?.effort || "Codex 默认";
   renderTaskboardStatus();
 }
 
@@ -1114,53 +1113,6 @@ function taskboardPriorityText(priority) {
   return ({ urgent: "紧急", high: "高", medium: "中", low: "低", none: "未设置" })[priority] || priority;
 }
 
-function renderModelOptions(preferredModel = state.config?.model || "", preferredEffort = state.config?.effort || "") {
-  const select = document.querySelector("#modelInput");
-  const configuredModel = preferredModel;
-  const effectiveModel = state.codexRuntime?.model || "";
-  const models = Array.isArray(state.codexModels) ? state.codexModels : [];
-  const options = [{
-    value: "",
-    label: effectiveModel ? `沿用 Codex 设置（当前：${effectiveModel}）` : "沿用 Codex 设置"
-  }, ...models.map((model) => ({
-    value: model.model,
-    label: model.displayName && model.displayName !== model.model
-      ? `${model.displayName} · ${model.model}`
-      : model.model,
-    title: model.description || ""
-  }))];
-  if (configuredModel && !options.some((option) => option.value === configuredModel)) {
-    options.push({ value: configuredModel, label: `${configuredModel}（${configuredModel === state.config?.model ? "当前配置" : "当前选择"}）` });
-  }
-  select.innerHTML = options.map((option) => `<option value="${escapeAttr(option.value)}"${option.title ? ` title="${escapeAttr(option.title)}"` : ""}>${escapeHtml(option.label)}</option>`).join("");
-  select.value = configuredModel;
-  renderEffortOptions(preferredEffort);
-}
-
-function renderEffortOptions(preferredEffort) {
-  const modelValue = document.querySelector("#modelInput").value;
-  const effectiveModel = modelValue || state.codexRuntime?.model || "";
-  const model = state.codexModels.find((candidate) => candidate.model === effectiveModel);
-  const allEfforts = model?.supportedEfforts?.length
-    ? model.supportedEfforts
-    : state.codexModels.flatMap((candidate) => candidate.supportedEfforts || []);
-  const efforts = [...new Map(allEfforts.map((option) => [option.effort, option])).values()]
-    .sort((a, b) => effortRank(a.effort) - effortRank(b.effort));
-  if (preferredEffort && !efforts.some((option) => option.effort === preferredEffort)) {
-    efforts.push({ effort: preferredEffort, description: "当前配置" });
-  }
-  const inheritedEffort = state.codexRuntime?.effort || model?.defaultEffort;
-  const inheritedLabel = inheritedEffort
-    ? `沿用 Codex 设置（当前：${effortInlineName(inheritedEffort)}）`
-    : "沿用 Codex 设置";
-  const select = document.querySelector("#effortInput");
-  select.innerHTML = [
-    `<option value="">${escapeHtml(inheritedLabel)}</option>`,
-    ...efforts.map((option) => `<option value="${escapeAttr(option.effort)}"${option.description ? ` title="${escapeAttr(option.description)}"` : ""}>${escapeHtml(effortDisplayName(option.effort))}</option>`)
-  ].join("");
-  select.value = preferredEffort;
-}
-
 function effortDisplayName(effort) {
   const label = ({ minimal: "最小", low: "低", medium: "中", high: "高", xhigh: "超高", max: "最大", ultra: "极高" })[effort];
   return label ? `${label}（${effort}）` : effort;
@@ -1473,8 +1425,12 @@ async function loadSelectedSessionMessages() {
   state.loadingMessages = true;
   renderChatPanel();
   try {
-    const result = await api(`/api/sessions/${encodeURIComponent(session.accountId)}/${encodeURIComponent(session.id)}/messages`);
+    const [result, runtime] = await Promise.all([
+      api(`/api/sessions/${encodeURIComponent(session.accountId)}/${encodeURIComponent(session.id)}/messages`),
+      api(`/api/sessions/${encodeURIComponent(session.accountId)}/${encodeURIComponent(session.id)}/runtime`).catch(() => ({ runtime: {} }))
+    ]);
     if (state.selectedSessionKey !== key || generation !== messageLoadGeneration) return;
+    state.sessionRuntimes.set(key, runtime.runtime || {});
     state.sessionMessages = result.messages || [];
     state.loadedSessionKey = key;
   } catch (error) {
@@ -1597,17 +1553,16 @@ function formatProcessingDuration(startValue, endValue) {
 }
 
 function renderSessionRuntimeControls(session) {
+  const nativeRuntime = session ? state.sessionRuntimes.get(sessionKey(session)) || {} : {};
   const disabled = !session || isSessionSending() || isSessionSavingRuntime();
   els.sessionModelInput.disabled = disabled;
   els.sessionEffortInput.disabled = disabled;
   els.sessionStreamInput.disabled = disabled;
   const renderKey = session ? [
     sessionKey(session),
-    session.model || "",
-    session.effort || "",
+    nativeRuntime.model || "",
+    nativeRuntime.effort || "",
     typeof session.streamReplies === "boolean" ? String(session.streamReplies) : "inherit",
-    state.config?.model || "",
-    state.config?.effort || "",
     String(Boolean(state.config?.streamReplies)),
     state.codexRuntime?.model || "",
     state.codexRuntime?.effort || "",
@@ -1623,11 +1578,11 @@ function renderSessionRuntimeControls(session) {
     return;
   }
 
-  const inheritedModel = state.config?.model || state.codexRuntime?.model || "";
+  const inheritedModel = nativeRuntime.model || "";
   const models = Array.isArray(state.codexModels) ? state.codexModels : [];
   const options = [{
     value: "",
-    label: inheritedModel ? `继承全局（${inheritedModel}）` : "继承全局设置"
+    label: inheritedModel ? `Codex 当前设置（${inheritedModel}）` : "Codex 当前设置"
   }, ...models.map((model) => ({
     value: model.model,
     label: model.displayName && model.displayName !== model.model
@@ -1635,12 +1590,12 @@ function renderSessionRuntimeControls(session) {
       : model.model,
     title: model.description || ""
   }))];
-  if (session.model && !options.some((option) => option.value === session.model)) {
-    options.push({ value: session.model, label: `${session.model}（当前会话）`, title: "" });
+  if (nativeRuntime.model && !options.some((option) => option.value === nativeRuntime.model)) {
+    options.push({ value: nativeRuntime.model, label: `${nativeRuntime.model}（当前会话）`, title: "" });
   }
   els.sessionModelInput.innerHTML = options.map((option) => `<option value="${escapeAttr(option.value)}"${option.title ? ` title="${escapeAttr(option.title)}"` : ""}>${escapeHtml(option.label)}</option>`).join("");
-  els.sessionModelInput.value = session.model || "";
-  setSessionEffortOptions(session.model || "", session.effort || "");
+  els.sessionModelInput.value = nativeRuntime.model || "";
+  setSessionEffortOptions(nativeRuntime.model || "", nativeRuntime.effort || "");
   els.sessionStreamInput.innerHTML = [
     `<option value="">继承全局（${state.config?.streamReplies ? "开启" : "关闭"}）</option>`,
     '<option value="on">开启</option>',
@@ -1652,7 +1607,8 @@ function renderSessionRuntimeControls(session) {
 }
 
 function setSessionEffortOptions(modelOverride, preferredEffort) {
-  const effectiveModel = modelOverride || state.config?.model || state.codexRuntime?.model || "";
+  const nativeRuntime = state.sessionRuntimes.get(state.selectedSessionKey) || {};
+  const effectiveModel = modelOverride || nativeRuntime.model || "";
   const model = state.codexModels.find((candidate) => candidate.model === effectiveModel);
   const advertised = model?.supportedEfforts?.length
     ? model.supportedEfforts
@@ -1662,10 +1618,10 @@ function setSessionEffortOptions(modelOverride, preferredEffort) {
   if (preferredEffort && !efforts.some((option) => option.effort === preferredEffort)) {
     efforts.push({ effort: preferredEffort, description: "当前会话" });
   }
-  const inheritedEffort = state.config?.effort || state.codexRuntime?.effort || model?.defaultEffort;
+  const inheritedEffort = nativeRuntime.effort || model?.defaultEffort;
   const inheritedLabel = inheritedEffort
-    ? `继承全局（${effortInlineName(inheritedEffort)}）`
-    : "继承全局设置";
+    ? `Codex 当前设置（${effortInlineName(inheritedEffort)}）`
+    : "Codex 当前设置";
   els.sessionEffortInput.innerHTML = [
     `<option value="">${escapeHtml(inheritedLabel)}</option>`,
     ...efforts.map((option) => `<option value="${escapeAttr(option.effort)}"${option.description ? ` title="${escapeAttr(option.description)}"` : ""}>${escapeHtml(effortDisplayName(option.effort))}</option>`)
@@ -1675,19 +1631,20 @@ function setSessionEffortOptions(modelOverride, preferredEffort) {
 
 async function handleSessionModelChange() {
   const modelValue = els.sessionModelInput.value;
-  const model = state.codexModels.find((candidate) => candidate.model === (modelValue || state.config?.model || state.codexRuntime?.model));
+  const nativeRuntime = state.sessionRuntimes.get(state.selectedSessionKey) || {};
+  const model = state.codexModels.find((candidate) => candidate.model === (modelValue || nativeRuntime.model));
   const efforts = model?.supportedEfforts?.map((option) => option.effort) || [];
   let effortValue = els.sessionEffortInput.value;
-  const inheritedEffort = state.config?.effort || state.codexRuntime?.effort || "";
+  const inheritedEffort = nativeRuntime.effort || "";
   const effectiveEffort = effortValue || inheritedEffort;
   if (effectiveEffort && efforts.length && !efforts.includes(effectiveEffort)) {
     effortValue = efforts.includes(model?.defaultEffort) ? model.defaultEffort : efforts[0] || "";
   }
   setSessionEffortOptions(modelValue, effortValue);
-  await saveSessionRuntimeSettings();
+  await saveSessionRuntimeSettings("model", effortValue !== (nativeRuntime.effort || ""));
 }
 
-async function saveSessionRuntimeSettings() {
+async function saveSessionRuntimeSettings(field, adjustEffort = false) {
   const session = selectedSession();
   if (!session || isSessionSavingRuntime()) return;
   const key = sessionKey(session);
@@ -1697,19 +1654,23 @@ async function saveSessionRuntimeSettings() {
   state.savingRuntimeSessions.add(key);
   renderChatPanel();
   try {
-    const result = await api(`/api/sessions/${encodeURIComponent(session.accountId)}/${encodeURIComponent(session.id)}`, {
-      method: "PATCH",
-      body: {
-        model: model || null,
-        effort: effort || null,
-        streamReplies: stream ? stream === "on" : null
-      }
-    });
-    const index = state.sessions.findIndex((candidate) => sessionKey(candidate) === key);
-    if (index >= 0) state.sessions[index] = result.session;
+    const body = {
+      ...(field === "model" && model ? { model } : {}),
+      ...((field === "effort" || adjustEffort) && effort ? { effort } : {}),
+      ...(field === "stream" ? { streamReplies: stream ? stream === "on" : null } : {})
+    };
+    if (Object.keys(body).length) {
+      const result = await api(`/api/sessions/${encodeURIComponent(session.accountId)}/${encodeURIComponent(session.id)}`, { method: "PATCH", body });
+      const index = state.sessions.findIndex((candidate) => sessionKey(candidate) === key);
+      if (index >= 0) state.sessions[index] = result.session;
+    }
+    try {
+      const latest = await api(`/api/sessions/${encodeURIComponent(session.accountId)}/${encodeURIComponent(session.id)}/runtime`);
+      state.sessionRuntimes.set(key, latest.runtime || {});
+    } catch { state.sessionRuntimes.delete(key); }
     els.sessionRuntimeToolbar.dataset.renderKey = "";
     renderSessions();
-    toast("会话设置已更新");
+    toast(Object.keys(body).length ? "会话设置已更新" : "已读取 Codex 当前设置");
   } catch (error) {
     toast(error.message, true);
     await refreshData(false);
@@ -2453,8 +2414,6 @@ async function saveSettings(event) {
         activeMessagePolicy: document.querySelector("#activeMessagePolicyInput").value,
         bindingIdleDays: Number(document.querySelector("#bindingIdleDaysInput").value),
         codexExecSandbox: document.querySelector("#sandboxInput").value || null,
-        model: document.querySelector("#modelInput").value.trim(),
-        effort: document.querySelector("#effortInput").value.trim(),
         streamReplies: document.querySelector("#streamRepliesInput").checked,
         taskboardEnabled: document.querySelector("#taskboardEnabledInput").checked,
         taskboardUrl: document.querySelector("#taskboardUrlInput").value.trim()
@@ -2467,10 +2426,7 @@ async function saveSettings(event) {
     // waiting. Capture those drafts before rebuilding the confirmed projection.
     const changed = new Map([...submitted].filter(([input, entry]) => input[entry.property] !== entry.value)
       .map(([input, entry]) => [input, { property: entry.property, value: input[entry.property] }]));
-    const model = document.querySelector("#modelInput"), effort = document.querySelector("#effortInput");
-    const preferredModel = model.value, preferredEffort = effort.value;
     renderAll();
-    if (changed.has(model) || changed.has(effort)) renderModelOptions(preferredModel, preferredEffort);
     for (const [input, entry] of changed) input[entry.property] = entry.value;
     toast(changed.size ? "设置已保存；后续修改仍未保存" : "设置已保存");
     void refreshTaskboardIssues(false, { background: true, loadDetail: false });

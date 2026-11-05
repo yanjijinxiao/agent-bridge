@@ -14,6 +14,8 @@ for (const selection of ["model", "effort"] as const) test(`native ${selection} 
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new RuntimeStateStore(resolveStatePaths(root));
   const project = store.createProject("Project", root), session = store.createSession("actor", root, "Session", project.id);
+  store.setSessionThread(session.id, "native-thread");
+  const native: { model: string; effort?: string } = { model: "other", effort: "medium" };
   const cards: ChannelActionCard[] = [];
   let reversed = false;
   const service = new BridgeService({ config: { ...defaultConfig(root), allowedSenderIds: ["actor"] }, stateStore: store,
@@ -23,7 +25,7 @@ for (const selection of ["model", "effort"] as const) test(`native ${selection} 
       return reversed ? models.reverse() : models;
     },
     weixin: { async sendText() { return { messageId: "ack" }; }, async sendActionCard(input: { card: ChannelActionCard }) { cards.push(input.card); return { messageId: "card" }; } },
-    runner: { async getRuntimeInfo() { return { model: "alpha", effort: "medium" }; } } as never });
+    runner: { async getRuntimeInfo() { return { ...native }; }, async updateThreadSettings(id: string, patch: object, _host: string, guard: () => void) { guard(); assert.equal(id, "native-thread"); Object.assign(native, patch); return { ...native }; } } as never });
   t.after(() => service.suspendUserInputs());
   const send = (id: string, text: string) => service.handleMessage({ id, senderId: "actor", text, attachments: [], raw: {} });
   await send("show", `/${selection}`);
@@ -33,7 +35,8 @@ for (const selection of ["model", "effort"] as const) test(`native ${selection} 
   await service.handleMessage({ id: "legacy-click", senderId: "actor", text: `/${selection} 1`, attachments: [], interaction: { kind: "card", messageId: "old-card" }, raw: {} });
   assert.equal(store.getSession(session.id)?.[selection], undefined);
   await send("click", `/${action.command} ${action.arg}`);
-  assert.equal(store.getSession(session.id)?.[selection], selection === "model" ? "alpha" : "low");
+  assert.equal(native[selection], selection === "model" ? "alpha" : "low");
+  assert.equal(store.getSession(session.id)?.[selection], undefined);
 });
 
 test("a project button from an earlier list cannot silently target the new row at the same index", async t => {
@@ -67,18 +70,22 @@ for (const model of ["1", "default"]) test(`native model choice distinguishes th
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new RuntimeStateStore(resolveStatePaths(root));
   const project = store.createProject("Project", root), session = store.createSession("actor", root, "Session", project.id);
+  store.setSessionThread(session.id, "native-thread");
+  const native: { model: string; effort?: string } = { model: "other", effort: "medium" };
   const cards: ChannelActionCard[] = [];
   const service = new BridgeService({ config: { ...defaultConfig(root), allowedSenderIds: ["actor"] }, stateStore: store,
     listCodexModels: async () => ["other", model].map(id => ({ model: id, displayName: id, description: "synthetic",
       isDefault: false, defaultEffort: "medium", supportedEfforts: [] })),
     weixin: { async sendText() { return { messageId: "ack" }; }, async sendActionCard(input: { card: ChannelActionCard }) { cards.push(input.card); return { messageId: "card" }; } },
-    runner: { async getRuntimeInfo() { return { model: "other" }; } } as never });
+    runner: { async getRuntimeInfo() { return { ...native }; }, async updateThreadSettings(id: string, patch: object, _host: string, guard: () => void) { guard(); assert.equal(id, "native-thread"); Object.assign(native, patch); return { ...native }; } } as never });
   t.after(() => service.suspendUserInputs());
   await service.handleMessage({ id: "show", senderId: "actor", text: "/model", attachments: [], raw: {} });
   const action = cards[0].actionGroups.flat()[1].value;
   await service.handleMessage({ id: "click", senderId: "actor", text: `/${action.command} ${action.arg}`, attachments: [],
     interaction: { kind: "card", messageId: "card" }, raw: {} });
-  assert.equal(store.getSession(session.id)?.model, model);
+  assert.equal(native.model, model);
+  assert.equal(store.getSession(session.id)?.model, undefined);
   await service.handleMessage({ id: "reset", senderId: "actor", text: "/model default", attachments: [], raw: {} });
-  assert.equal(store.getSession(session.id)?.model, undefined, "manual default still resets inheritance");
+  assert.equal(store.getSession(session.id)?.model, undefined, "manual default must not save overrides");
+  assert.equal(native.model, model, "default is a read-only compatibility alias");
 });

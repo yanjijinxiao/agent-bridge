@@ -17,7 +17,7 @@ test("real IM and Web entry points share remote preparation, settings and exact 
   saveAccount(paths, { accountId: "one", userId: "actor", token: "synthetic", baseUrl: "https://example.invalid", enabled: true });
   const store = new RuntimeStateStore(accountStatePaths(paths, "one"));
   const session = store.createSession("chat", "/remote/work", "Independent plan", undefined, "session", undefined, { standalone: true, hostId: "remote" });
-  store.setSessionCollaborationMode(session.id, "plan"); store.setModelOverride("chat", "chosen-model"); store.setEffortOverride("chat", "high");
+  // Native settings are intentionally absent from both application submission paths.
   const file = path.join(accountStatePaths(paths, "one").inboundDir, "input.txt"); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, "synthetic");
   const inputs: any[] = [], staged: string[] = []; let monitor: any;
   const backend = {
@@ -47,8 +47,8 @@ test("real IM and Web entry points share remote preparation, settings and exact 
   await manager.continueSession("one", session.id, "inspect file", [{ name: "input.txt", data: Buffer.from("synthetic") }], undefined, "web-source");
   assert.equal(inputs.length, 2); assert.equal(staged.length, 2); assert.equal(staged[0], staged[1]);
   for (const input of inputs) {
-    assert.equal(input.projectBinding, "none"); assert.equal(input.collaborationMode, "plan"); assert.equal(input.hostId, "remote");
-    assert.equal(input.model, "chosen-model"); assert.equal(input.effort, "high"); assert.match(input.prompt, /\/remote\/attachment/);
+    assert.equal(input.projectBinding, "none"); assert.equal(input.collaborationMode, undefined); assert.equal(input.hostId, "remote");
+    assert.equal(input.model, undefined); assert.equal(input.effort, undefined); assert.match(input.prompt, /\/remote\/attachment/);
   }
   const receipts = Object.values(new InboundReceiptJournal(path.join(paths.runtimeDir, "one", "inbound-receipts.jsonl")).snapshot());
   assert.deepEqual(receipts.map(r => r.turnId).sort(), ["turn-1", "turn-2"]);

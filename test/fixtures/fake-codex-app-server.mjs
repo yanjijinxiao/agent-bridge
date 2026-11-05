@@ -16,6 +16,7 @@ const pendingToolCalls = new Map();
 const pendingUserInputs = new Map();
 const goals = new Map();
 const threadNames = new Map();
+const threadSettings = new Map();
 const threadProjects = new Map();
 if (process.argv.includes("--existing-other-project")) threadProjects.set("thread-existing", "other-native-project");
 const threadDeveloperInstructions = new Map();
@@ -260,6 +261,7 @@ rl.on("line", (line) => {
     if (message.params?.developerInstructions) {
       threadDeveloperInstructions.set("thread-new", message.params.developerInstructions);
     }
+    threadSettings.set("thread-new", { model: message.params.model ?? "configured-model", reasoningEffort: "high" });
     respond(message.id, {
       thread: { id: "thread-new", projectId, name: null },
       model: message.params.model ?? "configured-model",
@@ -287,6 +289,7 @@ rl.on("line", (line) => {
       fail(message.id, `thread ${message.params.threadId} is still subscribed by this client`);
       return;
     }
+    threadSettings.set(message.params.threadId, { model: "resumed-model", reasoningEffort: "medium" });
     // Loaded native threads keep their creation instructions. A resume RPC
     // carrying new text is not evidence that the model received that text;
     // continuation rules must arrive in turn/start application context.
@@ -453,6 +456,7 @@ rl.on("line", (line) => {
         id,
         name: "Archived fixture",
         cwd: "/tmp/project",
+        ...threadSettings.get(message.params.threadId),
         path: `/tmp/fake-codex-home/archived_sessions/${id}.jsonl`,
         status: { type: "notLoaded" },
         updatedAt: 1_700_000_100
@@ -504,6 +508,8 @@ rl.on("line", (line) => {
     return;
   }
 
+  if (message.method === "thread/settings/update" && process.argv.includes("--settings-timeout")) return;
+
   if (message.method === "thread/read") {
     if (process.argv.includes("--bounded-inspection") && message.params.includeTurns !== false) {
       fail(message.id, "inspection and idle waiting must not hydrate full history"); return;
@@ -530,6 +536,7 @@ rl.on("line", (line) => {
             : message.params.threadId === "removed" ? { projectId: null }
               : message.params.threadId === "malformed" ? { projectId: 42 } : {} : {}),
         cwd: "/tmp/project",
+        ...threadSettings.get(message.params.threadId),
         path: `/tmp/fake-codex-home/sessions/${message.params.threadId}.jsonl`,
         ...(!process.argv.includes("--native-membership-shapes") ? {
           projectId: threadProjects.get(message.params.threadId) ?? null,

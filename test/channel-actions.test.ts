@@ -197,7 +197,7 @@ test("Bridge uses channel-native cards for help and fixed selections", async (t)
   );
   assert.deepEqual(
     cards[4].actionGroups.flatMap((group) => group.map((action) => action.value.arg)),
-    ["low", "medium", "default"]
+    ["low", "medium"]
   );
   assert.equal(texts.length, 0);
   assert.match(cards[0].body, /\/history/);
@@ -273,6 +273,7 @@ test("keeps project mode, plan mode, and goals on the selected project's thread"
   stateStore.createSession("oc_test", firstProject.workspace, "First session", firstProject.id);
   const cards: ChannelActionCard[] = [];
   const goalThreads: string[] = [];
+  let nativeMode = "plan";
   const service = new BridgeService({
     config: { ...defaultConfig(root), allowedSenderIds: ["oc_test"] },
     stateStore,
@@ -284,6 +285,10 @@ test("keeps project mode, plan mode, and goals on the selected project's thread"
       }
     },
     runner: {
+      async updateThreadSettings(id: string, patch: any, _host: string, guard: () => void) {
+        guard(); assert.equal(id, "thread-second"); nativeMode = patch.collaborationMode === "toggle" ? nativeMode === "plan" ? "default" : "plan" : patch.collaborationMode;
+        return { collaborationMode: nativeMode };
+      },
       async listProjects() { return { backend: "app-server", projects: [] }; },
       async listThreads() { return []; },
       async getGoal(threadId: string) {
@@ -314,8 +319,9 @@ test("keeps project mode, plan mode, and goals on the selected project's thread"
     { version: 1, command: "mode", arg: "qa" }
   ]);
 
-  stateStore.setSessionCollaborationMode(secondSession.id, "plan");
+
   await send("session-mode", "/mode session");
+  assert.equal(nativeMode, "plan", "switching the Gateway panel does not reset native settings");
   assert.equal(stateStore.getActiveSession("oc_test")?.id, secondSession.id);
   assert.equal(stateStore.getActiveSession("oc_test")?.collaborationMode, undefined);
   assert.deepEqual(
@@ -324,7 +330,8 @@ test("keeps project mode, plan mode, and goals on the selected project's thread"
   );
 
   await send("plan", "/plan on");
-  assert.equal(stateStore.getActiveSession("oc_test")?.collaborationMode, "plan");
+  assert.equal(nativeMode, "plan");
+  assert.equal(stateStore.getActiveSession("oc_test")?.collaborationMode, undefined);
   assert.deepEqual(
     cards[2].actionGroups.flatMap((group) => group.map((action) => action.value)),
     [
@@ -375,6 +382,7 @@ test("ordinary plan and goal requests are transparent while explicit slash contr
       }
     },
     runner: {
+      async updateThreadSettings(_id: string, patch: any, _host: string, guard: () => void) { guard(); return { collaborationMode: patch.collaborationMode }; },
       async listProjects() { return { backend: "app-server", projects: [] }; },
       async listThreads() { return []; },
       async run(input: { prompt: string; collaborationMode?: "default" | "plan" }) {

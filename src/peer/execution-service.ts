@@ -24,7 +24,7 @@ import { PeerHostDirectories } from "./host-directories.js";
 import { SharedWorkspaceHost } from "./shared-workspace.js";
 
 const callSchema = z.object({ grant: grantSchema, method: z.enum(["monitorSessionEvents", "unmonitorSessionEvents", "listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "readTurnActivities", "getHistory", "getHistoryPage",
-  "getRuntimeInfo", "warmUp", "listSkills", "listMcpServers", "serverIdentity", "readThreadProvenance", "listQueuedSubmissions", "addQueuedSubmission", "deleteQueuedSubmission", "runQueuedSubmission", "resumeAfterCapacity", "recoverSystemError", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "interruptTurn", "getGoal", "setGoal", "clearGoal", "receipt", "observeThreadInteractions", "unobserveThreadInteractions", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
+  "getRuntimeInfo", "updateThreadSettings", "warmUp", "listSkills", "listMcpServers", "serverIdentity", "readThreadProvenance", "listQueuedSubmissions", "addQueuedSubmission", "deleteQueuedSubmission", "runQueuedSubmission", "resumeAfterCapacity", "recoverSystemError", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "interruptTurn", "getGoal", "setGoal", "clearGoal", "receipt", "observeThreadInteractions", "unobserveThreadInteractions", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
   args: z.array(z.unknown()).max(4), operationId: z.string().regex(/^[a-f0-9]{64}$/).optional() }).strict();
 const runSchema = z.object({ threadId: z.string().optional(), ephemeral: z.boolean().optional(), cwd: z.string(), prompt: z.string().max(500_000), clientUserMessageId: z.string().optional(),
   developerInstructions: z.string().optional(), threadTitle: z.string().optional(), model: z.string().optional(), effort: z.string().optional(),
@@ -42,7 +42,7 @@ const queueAddSchema = z.object({ threadId: z.string().min(1), prompt: z.string(
 const queuedRunSchema = runSchema.omit({ prompt: true }).extend({ threadId: z.string().min(1), queuedSubmissionId: z.string().optional(), acceptedTurnId: z.string().optional(), observeOnly: z.boolean().optional() });
 const capacitySchema = z.object({ threadId: z.string().min(1), failedTurnId: z.string().min(1), clientUserMessageId: z.string().min(1) }).strict();
 const recoverySchema = z.object({ threadId: z.string().min(1), failedTurnId: z.string().min(1), lifecycle: z.object({ restoring: z.boolean().optional(), archiveConfirmed: z.boolean().optional() }).strict().optional() }).strict();
-const writes = new Set(["run", "steer", "submitThreadMessage", "stop", "interruptTurn", "setGoal", "clearGoal", "addQueuedSubmission", "deleteQueuedSubmission", "runQueuedSubmission", "resumeAfterCapacity", "recoverSystemError"]);
+const writes = new Set(["updateThreadSettings", "run", "steer", "submitThreadMessage", "stop", "interruptTurn", "setGoal", "clearGoal", "addQueuedSubmission", "deleteQueuedSubmission", "runQueuedSubmission", "resumeAfterCapacity", "recoverSystemError"]);
 const goalSchema = z.object({ objective: z.string().max(500000).optional(), status: z.enum(["active", "paused", "complete", "blocked", "usageLimited", "budgetLimited"]).optional(), tokenBudget: z.number().int().positive().optional() }).strict();
 const catalogSchema = z.object({ cwd: z.string().optional(), projectId: z.string().optional(), unassigned: z.boolean().optional(),
   persistence: z.enum(["active", "archived", "all"]).optional(), limit: z.number().int().min(1).max(1000).optional() }).strict();
@@ -484,6 +484,12 @@ export class PeerExecutionService {
         if (!backend.interruptTurn) throw new PeerError("unsupported", "设备不支持精确轮次中断。");
         await backend.interruptTurn(threadId, z.string().min(1).max(512).parse(args[1]), undefined, assertCurrent); result = null;
       } else if (method === "setGoal") result = await backend.setGoal(threadId, goalSchema.parse(args[1]), undefined, assertCurrent);
+      else if (method === "updateThreadSettings") {
+        if (!backend.updateThreadSettings) throw new PeerError("unsupported", "设备尚未支持原生会话设置，请升级 Connector。");
+        const patch = z.object({ model: z.string().trim().min(1).max(200).optional(), effort: z.string().trim().min(1).max(50).optional(),
+          collaborationMode: z.enum(["default", "plan", "toggle"]).optional() }).strict().parse(args[1]);
+        result = await backend.updateThreadSettings(threadId, patch, undefined, assertCurrent);
+      }
       else if (method === "clearGoal") { await backend.clearGoal(threadId, undefined, assertCurrent); result = null; }
       else {
         if (method !== "steer" && method !== "submitThreadMessage") throw new PeerError("unsupported", "Native operation unavailable");

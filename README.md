@@ -239,6 +239,8 @@ node dist/server/index.js
 | `/ide` | 获取已启用的当前项目 IDE 入口 |
 | `/unbind` | 解绑当前聊天，不停止原任务 |
 
+模型、推理强度和 Plan 模式直接修改所绑定的 Codex 原生会话。Gateway 不另存执行覆盖值，普通续聊和重启不会覆盖你后来在 Codex App 中的选择；旧 `/model default`、`/effort default` 只刷新当前原生设置。过程进度、绑定和消息回执仍由 Gateway 保存。
+
 普通消息在任务运行中默认安全 `steer`，也可显式 `/queue` 或用 `/policy queue` 排到下一轮。所有操作都使用选定主机的原生 App Server，读取失败或回执不明不会切换执行器或重发。`/leave` 会持续退出绑定，直到显式选择会话或 `/new`。`/stream off` 关闭过程进度但保留最终结果。全部命令及兼容别名见[渠道命令审计](./docs/channel-command-audit.md)。
 
 文字、图片和文件都发往当前绑定会话；仅切换 `/connect` 的目录来源不会改变发送目标。附件先经 Gateway 下载校验，再由 Connector 转存到会话所在主机，同机部署也遵守相同流程。纯文字不进入附件转存。若提示“附件未能转存，这条消息尚未提交”，可用 `/inbox` 核对保存记录和可用操作；这不表示原任务失败，也不会自动重发旧消息。

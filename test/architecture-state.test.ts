@@ -111,15 +111,15 @@ test("accepted Web observation disconnect does not send a failed task notificati
   assert.equal(f.inputs.length, 1); assert.deepEqual(f.notices, []);
 });
 
-test("Web serializes explicit plan/independent settings and stages remote uploads before running", async t => {
+test("Web preserves native execution settings and independent binding and stages remote uploads before running", async t => {
   const f = fixture(t), store = (f.manager as any).storeFor("one") as RuntimeStateStore;
   const s = store.createSession("chat", "/remote/work", "Remote", undefined, "session", undefined, { standalone: true, hostId: "remote" });
-  store.setSessionCollaborationMode(s.id, "plan"); let staged = 0;
+  let staged = 0;
   (f.runner as any).stageAttachments = async (files: any[]) => { staged++; return files.map(file => ({ ...file, path: "/remote/upload" })); };
   await f.manager.startAccount("one", false);
   await f.manager.continueSession("one", s.id, "read", [{ name: "file.txt", data: Buffer.from("synthetic") }]);
   assert.equal(staged, 1); assert.match(f.inputs[0].prompt, /\/remote\/upload/);
-  assert.equal(f.inputs[0].projectBinding, "none"); assert.equal(f.inputs[0].collaborationMode, "plan");
+  assert.equal(f.inputs[0].projectBinding, "none"); assert.equal(f.inputs[0].collaborationMode, undefined);
   assert.match(f.inputs[0].clientUserMessageId, /^gateway-/);
 });
 

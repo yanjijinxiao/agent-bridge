@@ -11,7 +11,7 @@ import { withPeerBackend } from "../src/peer/backend.js";
 import { PEER_BACKEND_CONTRACT } from "../src/peer/contract.js";
 
 test("all public backend ports have an explicit peer transport policy", () => {
-  assert.equal(Object.keys(PEER_BACKEND_CONTRACT).length, 51);
+  assert.equal(Object.keys(PEER_BACKEND_CONTRACT).length, 52);
   assert.deepEqual(Object.entries(PEER_BACKEND_CONTRACT).filter(([, policy]) => String(policy) === "gateway-local").map(([method]) => method), []);
   assert.equal(PEER_BACKEND_CONTRACT.runEphemeral, "rpc");
 });

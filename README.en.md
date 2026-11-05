@@ -221,6 +221,8 @@ Common commands:
 | `/ide` | Open the current project IDE if enabled |
 | `/unbind` | Unbind this chat without stopping the task |
 
+Model, reasoning effort and Plan controls update the bound native Codex thread. Gateway does not persist execution overrides or reapply old choices on continuation/restart. Later changes in Codex App remain authoritative. Legacy `/model default` and `/effort default` only refresh native settings; progress preferences, bindings and forwarding receipts stay Gateway-owned.
+
 Messages and attachments use the current conversation binding; changing the `/connect` catalog selection alone does not change that target. Gateway downloads and validates attachments, then Connector stages them on the session's actual host, including same-machine deployments. Plain text never enters file staging. An attachment-preparation notice saying the input was not submitted is separate from the original task's outcome; inspect `/inbox` for saved records and available actions. Old inputs are not automatically replayed.
 
 Remote projects reuse the registered `hostId` and SSH configuration on the Connector machine. Gateway never stores SSH passwords or private-key contents. See the [channel project workbench](./docs/channel-project-modes.md) for projects, modes, and Taskboard interaction.

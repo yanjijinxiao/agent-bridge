@@ -12,7 +12,11 @@ queue/add 可以立即自动消费；queue/start/恢复观察不能补充已经�
 
 这是原生字段限制下的明确兼容方式：队列 input 采用已有 buildPrompt/parsePrompt 的规则前缀格式，Gateway 历史和预览剥离规则，只显示用户内容；Codex 原始历史可能保留该前缀。普通 turn/start 继续使用独立 application context。规则没有原生 sandbox/approval 配置写入，不使用 thread/injectItems，不新建占位轮次，也不在未知提交后重复 add 或补发任务。恢复时使用已入队的原内容，不按当前渠道、知识或配置重写旧输入；已消费的历史旧项无法追补，不伪称修复。
 
-模型/effort 的 default 先保存继承意图，再只读查询当前原生值。查询后来源退休不撤销已保存设置。目标 get/set/clear 和表单见 goal-controls；原生目标状态不创建新执行器。停止、队列删除、答案及审批均保留明确身份，不把“最新轮次”代替用户原来的精确目标。
+模型、effort 和计划模式的唯一事实源是原生会话。显式选择通过同一 Connector 和原生 `thread/settings/update` 更新后续轮次，收到匹配的 `thread/settings/updated` 后才报告生效；只提交本次修改，不启动占位任务，不改全局 config，不修改正在执行轮次。Gateway 不持久化执行覆盖值，普通续聊和重启不重新应用旧值。旧 state 中的 model/effort/collaborationMode 退休时直接移除，不能迁移成一次原生写入，以免覆盖桌面中更新的设置。
+
+`/model default`、`/effort default` 兼容旧命令，仅刷新并说明当前已统一使用 Codex 会话设置；不再维护独立的“继承开关”。未创建原生线程的会话须先创建原生空线程并保存精确身份，再修改设置；创建或设置回执未知时不自动重试。写入前重新检查来源和绑定；原生不支持设置接口时明确报错，不退回本地保存。状态查询轻读原生模型/effort，不以缓存或 Gateway 配置冒充当前值；原生只读接口不提供计划模式时显示未知，切换命令从原生 resume 的完整设置计算。
+
+目标 get/set/clear 和表单见 goal-controls；原生目标状态不创建新执行器。停止、队列删除、答案及审批均保留明确身份，不把“最新轮次”代替用户原来的精确目标。
 
 ## case 和失败归属
 

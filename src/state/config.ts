@@ -38,6 +38,7 @@ export type CodexImGatewayConfig = {
   codexBackend: "auto" | "app-server" | "exec";
   codexAppServerTransport: AppServerConnectionMode;
   codexExecSandbox?: CodexExecSandbox;
+  /** @deprecated Legacy input only; native App Server owns execution settings. */
   model?: string;
   effort?: string;
   streamReplies: boolean;
@@ -76,8 +77,8 @@ export function defaultConfig(cwd = defaultStateDir()): CodexImGatewayConfig {
 export function loadConfig(paths: StatePaths, cwd?: string): CodexImGatewayConfig {
   const base = defaultConfig(cwd ?? paths.root);
   const raw = readJsonObjectFile<Partial<CodexImGatewayConfig> & { codexExecutionOwner?: unknown }>(paths.configPath, {});
-  const { codexExecutionOwner: _retiredOwner, ...loaded } = raw;
-  validateOperationalFields(loaded);
+  validateOperationalFields(raw);
+  const { codexExecutionOwner: _retiredOwner, model: _retiredModel, effort: _retiredEffort, ...loaded } = raw;
   const codexExecSandbox = parseCodexExecSandbox(loaded.codexExecSandbox);
   const defaultCwd = path.resolve(loaded.defaultCwd ?? base.defaultCwd);
   const taskboardUrl = typeof loaded.taskboardUrl === "string" && loaded.taskboardUrl.trim() ? loaded.taskboardUrl.trim() : base.taskboardUrl;
@@ -114,7 +115,7 @@ function normalizeAppServerTransport(
 export function saveConfig(paths: StatePaths, config: CodexImGatewayConfig): void {
   validateOperationalFields(config);
   if (!validManagedTaskboardOrigin(config.taskboardUrl)) throw new Error("Invalid configuration field: taskboardUrl; expected an HTTP IPv4 loopback origin supported by the bundled server");
-  const { codexExecutionOwner: _retiredOwner, ...current } = config as CodexImGatewayConfig & { codexExecutionOwner?: unknown };
+  const { codexExecutionOwner: _retiredOwner, model: _retiredModel, effort: _retiredEffort, ...current } = config as CodexImGatewayConfig & { codexExecutionOwner?: unknown };
   writeJsonFile(paths.configPath, {
     ...current,
     codexBackend: "app-server",

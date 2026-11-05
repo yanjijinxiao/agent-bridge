@@ -35,3 +35,9 @@ native-bridge-instructions 使用真实安装的原生核心和隔离假模型�
 NATIVE-02.7历史缺陷已修复：原生queue/add/start没有独立application context字段；新入队项在首次持久提交前携带渠道规则前缀，Gateway展示时按明确标记隐藏前缀。queued-bridge-context逐渠道检查真实模型请求、单输入和权限不变；peer-real-native检查Connector断连后的同一回执。旧已接收项不改写或重发，原生历史仍可能显示该前缀。探探审计中的pending-queue-context保留修复前失败证据，不能继续列作当前未修复。
 
 显式UI设置在已加载线程上必须同时由 turn/start 应用 sandboxPolicy、approvalPolicy、approvalsReviewer、cwd 和 runtimeWorkspaceRoots；仅 thread/resume 携带这些设置可能只是重新订阅，不能证明已生效。workspace-write 的显式可写根来自完整选定runtime roots；原生返回会把隐式可写cwd从额外writableRoots中去重，核对时须结合cwd与runtimeWorkspaceRoots。普通续接和容量恢复省略这些覆盖，不因有审批回调而写入。真实Mac 0.166/Linux 0.163矩阵均验证了变更及下一轮继承。
+
+## 原生执行设置
+
+`thread/settings/update` 修改会话后续轮次的模型、推理强度或 Plan 模式。RPC 的空成功响应只表示接收；Runner 先订阅同一 thread，再等待匹配的 `thread/settings/updated` 确认应用。Plan 切换从 `thread/resume` 的完整 collaborationMode 计算，不用本地标志猜测。首次创建空线程的 rollout 索引可能稍晚可用，仅对明确的 no-rollout 读/附着拒绝做有界重读；不重试设置写入，不创建占位轮次。
+
+`thread/read` 用于当前模型/effort 查询，普通 `turn/start` 省略执行设置以继承原生值。设置期间正在执行的轮次自然完成；更新影响下一轮。未知设置回执保留为 unconfirmed，不降成可重试的 preflight。旧版本缺接口明确报错，不能用 Gateway 数据或新任务模拟成功。能力验证和部署版本见 [CTRL-06 检查记录](../../audits/2026-11-05-native-execution-settings.md)。

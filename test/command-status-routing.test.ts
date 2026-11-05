@@ -55,7 +55,7 @@ test("status bypasses stalled skill discovery and uses only bounded, isolated di
   const f = fixture(t, { slow: true }); const start = performance.now();
   await f.send("@头头/status");
   assert.ok(performance.now() - start < 2500);
-  assert.match(f.replies[0], /运行状态：暂未确认/); assert.match(f.replies[0], /model: configured-model/);
+  assert.match(f.replies[0], /运行状态：暂未确认/); assert.match(f.replies[0], /model: \(暂未读取\)/);
   assert.match(f.replies[0], /关联信息暂不可读取/); assert.ok(!f.replies[0].includes("model: (Codex default)"));
   assert.equal(f.prompts.length, 0);
   assert.equal(f.reads.length, 2); for (const observation of f.reads as any[]) { assert.equal(observation.purpose, "status"); assert.equal(observation.timeoutMs, 3000); }

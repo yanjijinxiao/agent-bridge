@@ -486,6 +486,15 @@ export type CodexRuntimeInfo = {
   model?: string;
   effort?: string;
   provider?: string;
+  collaborationMode?: "default" | "plan";
+};
+
+/** An explicit edit of native thread defaults, never a Gateway override.
+ * Toggle is resolved from the same native thread at the protocol boundary. */
+export type CodexThreadSettingsPatch = {
+  model?: string;
+  effort?: string;
+  collaborationMode?: "default" | "plan" | "toggle";
 };
 
 /** Host and native workspace context for a runtime/model query. */
@@ -577,6 +586,7 @@ export interface CodexBackendControls {
   getHistoryPage(threadId: string, input?: CodexHistoryPageInput): Promise<CodexHistoryPage>;
   readThreadSnapshot(threadId: string): Promise<CodexThreadSnapshot>;
   getRuntimeInfo(cwd: string, threadId?: string): Promise<CodexRuntimeInfo>;
+  updateThreadSettings?(threadId: string, patch: CodexThreadSettingsPatch, assertCurrent?: CodexWriteGuard): Promise<CodexRuntimeInfo>;
   listModels(): Promise<CodexModelOption[]>;
   getAccountRateLimits(model?: string): Promise<CodexAccountBalance>;
   getGoal(threadId: string): Promise<CodexThreadGoal | undefined>;
@@ -663,6 +673,7 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
     hostId?: string
   ): Promise<CodexHistoryPage>;
   getRuntimeInfo(cwd: string, threadId?: string, hostId?: string, observation?: Pick<CodexMetadataObservation, "timeoutMs" | "purpose">): Promise<CodexRuntimeInfo>;
+  updateThreadSettings?(threadId: string, patch: CodexThreadSettingsPatch, hostId?: string, assertCurrent?: CodexWriteGuard): Promise<CodexRuntimeInfo>;
   listModels(hostId?: string): Promise<CodexModelOption[]>;
   getAccountRateLimits(hostId?: string, model?: string): Promise<CodexAccountBalance>;
   getGoal(threadId: string, hostId?: string): Promise<CodexThreadGoal | undefined>;

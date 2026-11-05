@@ -90,10 +90,10 @@ test("Desktop help distinguishes guarded steering from supported native queue ad
 test("an invalid plan argument cannot silently toggle the current mode", async t => {
   const root = temporary(t), store = new RuntimeStateStore(resolveStatePaths(root));
   const project = store.createProject("Project", root), session = store.createSession("actor", root, "Session", project.id);
-  store.setSessionCollaborationMode(session.id, "plan");
+  let writes = 0;
   const replies: string[] = [];
   const service = new BridgeService({ config: { ...defaultConfig(root), allowedSenderIds: ["actor"] }, stateStore: store,
-    weixin: { async sendText(input: any) { replies.push(input.text); return { messageId: "sent" }; } } as never, runner: {} as never });
+    weixin: { async sendText(input: any) { replies.push(input.text); return { messageId: "sent" }; } } as never, runner: { async updateThreadSettings() { writes++; return {}; } } as never });
   await service.handleMessage({ id: "invalid-plan", senderId: "actor", text: "/plan unknown", raw: {} });
-  assert.equal(store.getSession(session.id)?.collaborationMode, "plan"); assert.match(replies.at(-1)!, /用法/);
+  assert.equal(writes, 0); assert.equal(store.getSession(session.id)?.collaborationMode, undefined); assert.match(replies.at(-1)!, /用法/);
 });

@@ -25,10 +25,11 @@ export type ManagedSession = {
   /** Topology generation; human activity has a separate expiry generation. */
   executionGeneration?: string;
   lastPromptPreview?: string;
+  /** Legacy migration input only; normalize removes these native-owned settings. */
   model?: string;
   effort?: string;
-  streamReplies?: boolean;
   collaborationMode?: "default" | "plan";
+  streamReplies?: boolean;
   follow?: boolean;
   /** Detaching suspends delivery without discarding the user's follow preference. */
   followBeforeDetach?: boolean;
@@ -487,32 +488,17 @@ export class RuntimeStateStore {
     return this.getActiveSession(senderId)?.threadId;
   }
 
+  /** Compatibility clearing only; new settings must go through App Server. */
   setModelOverride(senderId: string, model?: string): void {
     const session = this.mutableActiveSession(senderId);
-    if (!session) {
-      throw new Error(`No active session for sender: ${senderId}`);
-    }
-    if (model?.trim()) {
-      session.model = model.trim();
-    } else {
-      delete session.model;
-    }
-    session.updatedAt = new Date().toISOString();
-    this.save();
+    if (!session) throw new Error(`No active session for sender: ${senderId}`);
+    this.updateSessionRuntime(session.id, { model: model ?? null });
   }
 
   setEffortOverride(senderId: string, effort?: string): void {
     const session = this.mutableActiveSession(senderId);
-    if (!session) {
-      throw new Error(`No active session for sender: ${senderId}`);
-    }
-    if (effort?.trim()) {
-      session.effort = effort.trim();
-    } else {
-      delete session.effort;
-    }
-    session.updatedAt = new Date().toISOString();
-    this.save();
+    if (!session) throw new Error(`No active session for sender: ${senderId}`);
+    this.updateSessionRuntime(session.id, { effort: effort ?? null });
   }
 
   setStreamRepliesOverride(senderId: string, streamReplies?: boolean): void {
@@ -531,8 +517,8 @@ export class RuntimeStateStore {
 
   setSessionCollaborationMode(sessionId: string, mode: "default" | "plan"): ManagedSession {
     const session = this.mutableSession(sessionId);
-    if (mode === "plan") session.collaborationMode = mode;
-    else delete session.collaborationMode;
+    if (mode === "plan") throw new Error("Execution settings must be updated through the native App Server");
+    delete session.collaborationMode;
     session.updatedAt = new Date().toISOString();
     this.save();
     return structuredClone(session);
@@ -958,16 +944,8 @@ export class RuntimeStateStore {
 
   updateSessionRuntime(sessionId: string, overrides: SessionRuntimeOverrides): ManagedSession {
     const session = this.mutableSession(sessionId);
-    if (Object.hasOwn(overrides, "model")) {
-      const model = overrides.model?.trim();
-      if (model) session.model = model;
-      else delete session.model;
-    }
-    if (Object.hasOwn(overrides, "effort")) {
-      const effort = overrides.effort?.trim();
-      if (effort) session.effort = effort;
-      else delete session.effort;
-    }
+    if (overrides.model || overrides.effort) throw new Error("Execution settings must be updated through the native App Server");
+    delete session.model; delete session.effort; delete session.collaborationMode;
     if (Object.hasOwn(overrides, "streamReplies")) {
       if (typeof overrides.streamReplies === "boolean") session.streamReplies = overrides.streamReplies;
       else delete session.streamReplies;
@@ -1079,6 +1057,9 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
     .filter(project => !project.sourceProjectId)
     .map(project => [legacyKey(project.workspace, project.hostId), project]));
   for (const session of sessions) {
+    // Retire legacy overrides without replaying them into Codex: the desktop
+    // may already hold a newer choice. Native settings are the only authority.
+    delete session.model; delete session.effort; delete session.collaborationMode;
     if (session.projectBinding === "none" || session.projectBinding === "unknown") {
       delete session.projectId;
       session.mode = "session";
@@ -1105,7 +1086,6 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
     }
     session.projectId = project.id;
     session.mode = session.mode === "qa" ? "qa" : "session";
-    if (session.collaborationMode !== "plan") delete session.collaborationMode;
     if (session.knowledgeBaseId && !knowledgeBases.some((item) => item.id === session.knowledgeBaseId)) {
       delete session.knowledgeBaseId;
     }

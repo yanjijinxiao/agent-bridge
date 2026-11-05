@@ -51,5 +51,5 @@ test("Taskboard enable and full settings serialize one coherent persisted config
   try{await new Promise(resolve=>setTimeout(resolve,30));assert.equal(maxActive,1);}
   finally{gate.resolve();await Promise.all([enable,save]);}
   const results=await Promise.all([enable,save]);for(const response of results)assert.equal(response.status,200,await response.text());
-  assert.deepEqual(flags,[true,false]);assert.equal(loadConfig(paths).taskboardEnabled,false);assert.equal(loadConfig(paths).model,"new-model");
+  assert.deepEqual(flags,[true,false]);assert.equal(loadConfig(paths).taskboardEnabled,false);assert.equal(loadConfig(paths).model,undefined);
 });

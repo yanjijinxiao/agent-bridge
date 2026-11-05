@@ -757,6 +757,8 @@ test("local API redacts credentials and protects mutations", async (t) => {
   });
   assert.deepEqual(await installedUpdate.json(), { ok: true, version: "9.9.0", registry: "npmmirror", restarting: true });
   assert.equal(await restartRequested, "9.9.0");
+  // This fixture records the restart callback without replacing the process.
+  manager.cancelRelease(manager.releaseStatus().id!);
 
   const unauthorizedRename = await fetch(`${server.url}/api/accounts/account-one`, {
     method: "PATCH",
@@ -952,17 +954,17 @@ test("local API redacts credentials and protects mutations", async (t) => {
       "X-Codex-Weixin-Token": bootstrap.requestToken,
       Origin: server.url
     },
-    body: JSON.stringify({ model: "gpt-session", effort: "high", streamReplies: true })
+    body: JSON.stringify({ streamReplies: true })
   });
   assert.equal(runtimeUpdate.status, 200);
   assert.deepEqual(
     await runtimeUpdate.json() as { session: { model: string; effort: string; streamReplies: boolean } },
-    { session: { ...(manager.listSessions()[0]), model: "gpt-session", effort: "high", streamReplies: true } }
+    { session: { ...(manager.listSessions()[0]), streamReplies: true } }
   );
 
   sessions = await (await fetch(`${server.url}/api/sessions`)).json() as typeof sessions;
-  assert.equal(sessions.sessions[0].model, "gpt-session");
-  assert.equal(sessions.sessions[0].effort, "high");
+  assert.equal(sessions.sessions[0].model, undefined);
+  assert.equal(sessions.sessions[0].effort, undefined);
   assert.equal(sessions.sessions[0].streamReplies, true);
 });
 

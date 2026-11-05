@@ -1,5 +1,7 @@
 # 需求与 case 核对表
 
+2026-11-05 执行设置增量 CTRL-06.1–CTRL-06.6：原生生效确认、桌面后改与重连、忙碌轮次、Connector 来源校验、Web 部分字段、旧状态迁移、未知回执。见[检查与验证记录](../audits/2026-11-05-native-execution-settings.md)。
+
 2026-11-05 最新展示增量：DEL-08.8–DEL-08.11 覆盖阶段说明保留、实时窗口、超长切卡、恢复状态、原圆点/图标/缩进，以及精确输入对应附件不被旧回执阻塞。见[阶段架构](phase-progress.md)、[阶段回归](../audits/2026-11-05-phase-progress.md)、[终态与排版回归](../audits/2026-11-05-terminal-progress-regression.md)。
 
 命令展示密度 CAT-02.5 增量见[展示预算与原生目录范围核验](../audits/2026-11-05-command-density.md)：默认会话/项目50项、历史20条、准入/队列50条，权限范围保持原边界。

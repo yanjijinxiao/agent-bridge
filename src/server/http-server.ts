@@ -759,6 +759,10 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
     return;
   }
   const sessionAction = matchPath(url.pathname, "/api/sessions/:accountId/:sessionId/:action");
+  if (method === "GET" && sessionAction?.action === "runtime") {
+    sendJson(response, 200, { runtime: await context.accountManager.getSessionRuntimeInfo(sessionAction.accountId, sessionAction.sessionId) });
+    return;
+  }
   if (method === "POST" && sessionAction?.action === "binding-expiry") {
     const { idleDays, ...expected } = bindingExpirySchema.parse(await readJsonBody(request));
     sendJson(response, 200, { session: context.accountManager.setBindingIdleDays(sessionAction.accountId, sessionAction.sessionId, expected, idleDays) });
@@ -844,7 +848,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
       );
     }
     if (body.model !== undefined || body.effort !== undefined || body.streamReplies !== undefined) {
-      session = context.accountManager.updateSessionRuntime(
+      session = await context.accountManager.updateSessionRuntime(
         sessionMatch.accountId,
         sessionMatch.sessionId,
         {
@@ -927,7 +931,7 @@ function readProductVersion(): string {
 function readCodexRuntime(context: HandlerContext): Promise<CodexRuntimeInfo> {
   const config = loadConfig(context.paths);
   return context.observations.read(metadataKey("runtime", config), context.codexRuntimeCheck ?? (() => context.accountManager.getCodexRuntimeInfo()),
-    { ...(config.model ? { model: config.model } : {}), ...(config.effort ? { effort: config.effort } : {}) });
+    {});
 }
 
 function readCodexModels(context: HandlerContext): Promise<CodexModelOption[]> {
@@ -937,7 +941,7 @@ function readCodexModels(context: HandlerContext): Promise<CodexModelOption[]> {
 
 function metadataKey(kind: string, config: CodexImGatewayConfig): string {
   return JSON.stringify([kind, config.codexBackend, config.codexAppServerTransport, config.codexBin,
-    config.defaultCwd, config.model, config.effort, config.codexExecSandbox]);
+    config.defaultCwd, config.codexExecSandbox]);
 }
 
 function serveStatic(response: ServerResponse, pathname: string): void {

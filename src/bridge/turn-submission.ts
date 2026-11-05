@@ -55,9 +55,8 @@ export async function prepareTurnSubmission(input: {
     projectBinding: session.projectBinding === "none" ? "none" : undefined, threadId: session.threadId || undefined,
     threadTitle: (generic ? buildPromptPreview(input.text, input.items) : session.title) ?? session.title,
     queueKey: session.threadId || session.id,
-    model: session.model ?? (hostId?.startsWith("peer:") ? undefined : config.model),
-    effort: session.effort ?? (hostId?.startsWith("peer:") ? undefined : config.effort),
-    collaborationMode: session.collaborationMode === "plan" ? "plan" : undefined };
+    // Execution settings belong to the native thread, including on Connector aliases.
+  };
 }
 
 /** Tracks native acceptance independently of transport/presentation errors. */

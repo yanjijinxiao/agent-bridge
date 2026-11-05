@@ -191,7 +191,7 @@ function pickState(state: {
 
 test("uses the Codex V2 initialize, thread, and turn lifecycle", async (t) => {
   const runner = new AppServerCodexRunner({
-    codexBin: path.join(fixturesDir, "fake-codex-app-server.mjs"),
+    transport: { command: process.execPath, args: [path.join(fixturesDir, "fake-codex-app-server.mjs")], mode: "remote-daemon" },
     requestTimeoutMs: 2_000
   });
   t.after(() => runner.close());
@@ -856,4 +856,14 @@ test("new native projects receive all selected roots and an unknown explicit ide
   await runner.run({cwd:'/tmp/multi-main',projectName:'Multi roots',projectRoots:['/tmp/multi-main','/tmp/multi-sibling'],prompt:'native multi root'});
   const created=(await runner.listProjects()).projects.find(p=>p.name==='Multi roots');
   assert.deepEqual(created?.roots,['/tmp/multi-main','/tmp/multi-sibling']);
+});
+
+test("a native settings RPC timeout is unconfirmed and never a retryable preflight failure", async t => {
+  const runner = new AppServerCodexRunner({ requestTimeoutMs: 2000, transport: {
+    command: process.execPath, args: [path.join(fixturesDir, "fake-codex-app-server.mjs"), "--settings-timeout"], mode: "remote-daemon"
+  } });
+  t.after(() => runner.close());
+  await runner.getRuntimeInfo("/tmp/project");
+  await assert.rejects((runner as any).request("thread/settings/update", { threadId: "thread-existing", model: "requested" }, 25),
+    (error: unknown) => error instanceof CodexCommunicationError && error.submission === "unconfirmed" && error.operation === "thread/settings/update");
 });
