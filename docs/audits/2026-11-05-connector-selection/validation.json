@@ -1,0 +1,9 @@
+{
+  "tests": 3267,
+  "passed": 3181,
+  "skipped": 86,
+  "featureTests": 18,
+  "typecheck": "passed",
+  "diffCheck": "passed",
+  "scope": "isolated root regression; conditionally skipped tests were not executed"
+}

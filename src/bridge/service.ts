@@ -1,5 +1,6 @@
 import { withChannelWriteLeases } from "./channel-write-leases.js";
 import { peerPrincipal, type PeerBridgePort } from "../peer/context.js";
+import { ConnectorSelection, ConnectorSelectionError } from "./connector-selection.js";
 import { AdmissionService, admissionPrincipal } from "./admission.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
@@ -214,11 +215,41 @@ export class BridgeService {
     rows: SessionCatalogRow[];
     items: SessionCatalogItem[];
     page: number; pageSize: number; createdAt: number; label: string; warnings: string[];
+    selectionRevision?: string;
+    hosts: string[];
   }>();
   private readonly projectLists = new Map<string, { id: string; createdAt: number; codes: Map<string, { projectId?: string; candidate?: CodexProjectCandidate }> }>();
 
   private catalogActorKey(senderId: string): string {
     return JSON.stringify([senderId, this.actor.getStore() ?? senderId]);
+  }
+
+  private catalogPrincipal(senderId: string) {
+    return this.peerIdentity(this.actor.getStore() ?? senderId, senderId);
+  }
+
+  private invalidateCatalogs(senderId: string): void {
+    const key = this.catalogActorKey(senderId);
+    this.sessionLists.delete(key); this.projectLists.delete(key);
+  }
+
+  private catalogHost(senderId: string): string | undefined {
+    const principal = this.catalogPrincipal(senderId);
+    const host = this.connectorSelection.resolve(principal);
+    if (host === "local" && !this.access.requireAccess(principal.actorId, senderId).allowed)
+      throw new ConnectorSelectionError("当前授权不包含 Gateway 本地目录，请通过 /connect 选择已授权设备。");
+    return host;
+  }
+
+  private catalogGuard(senderId: string, sourceGuard: () => void = () => {}, host?: string): () => void {
+    const principal = this.catalogPrincipal(senderId);
+    const selectionGuard = this.connectorSelection.guard(principal);
+    return () => { sourceGuard(); selectionGuard(); if (host) this.connectorSelection.assertAuthorized(principal, host); };
+  }
+
+  private catalogProjects(senderId: string): ManagedProject[] {
+    const host = this.options.stateStore.getConnectorSelection(this.catalogPrincipal(senderId))?.hostId;
+    return this.options.stateStore.listProjects().filter(project => !host || (project.hostId ?? "local") === host);
   }
 
   private readonly actor = new AsyncLocalStorage<string>();
@@ -248,6 +279,7 @@ export class BridgeService {
   }
   private readonly buffers: PromptBuffer;
   private readonly runner: CodexBridgeBackend;
+  private readonly connectorSelection: ConnectorSelection;
   private readonly approvals: ChannelApprovalController;
   private readonly taskboardController: TaskboardChannelController;
   private readonly llmWiki: LlmWikiMcpClientPool;
@@ -256,6 +288,7 @@ export class BridgeService {
   private modeSettings: ChannelModeSettings;
 
   constructor(private readonly options: BridgeServiceOptions) {
+    this.connectorSelection = new ConnectorSelection(options.stateStore, options.peer);
     if (!options.channel && !options.weixin) throw new Error("A channel adapter client is required");
     this.channel = withChannelWriteLeases(options.channel ?? adaptLegacyClient(options.weixin!, {
       inboundDir: options.inboundDir ?? path.join(options.config.defaultCwd, ".codex-im-gateway-inbound"),
@@ -489,11 +522,12 @@ export class BridgeService {
       return;
     }
     if (!access.allowed && shared) {
-      const permitted = new Set(["sessions", "session", "history", "status", "help", "ide", "share", "leave", "unbind", "stop", "approve", "reject", "answer", "skip", "steer", "role"]);
+      const permitted = new Set(["connect", "sessions", "session", "history", "status", "help", "ide", "share", "leave", "unbind", "stop", "approve", "reject", "answer", "skip", "steer", "role"]);
       const bound = this.executionSession(replyTargetId), host = bound && this.sessionHostId(bound);
       const specified = control && /(?:^|\s)--host\s+(\S+)/.exec(control.arg)?.[1];
       if (control && !permitted.has(control.name) || specified && !this.options.peer!.hosts(this.peerIdentity(message.senderId, replyTargetId)).includes(specified)
-        || (!control || !["sessions", "session", "help", "share", "leave", "unbind", "role"].includes(control.name)) && (!host?.startsWith("peer:") || !this.options.peer!.hosts(this.peerIdentity(message.senderId, replyTargetId)).includes(host))) {
+        || control?.name === "connect" && control.arg.trim() !== "" && !/^use\s+C[1-9]\d*(?:@[a-f0-9-]{36})?$/i.test(control.arg.trim())
+        || (!control || !["connect", "sessions", "session", "help", "share", "leave", "unbind", "role"].includes(control.name)) && (!host?.startsWith("peer:") || !this.options.peer!.hosts(this.peerIdentity(message.senderId, replyTargetId)).includes(host))) {
         await this.reply(replyTargetId, "你获得的是指定会话的资源授权。请通过 /sessions 选择已授权会话；此入口不能操作 Gateway 的其他资源。"); return;
       }
     }
@@ -549,7 +583,11 @@ export class BridgeService {
           await this.replyProjectRequired(replyTargetId);
           return;
         }
-        if (await this.handleCommand(scopedMessage, command, channelCapabilities) === false) return;
+        try { if (await this.handleCommand(scopedMessage, command, channelCapabilities) === false) return; }
+        catch (error) {
+          if (!(error instanceof ConnectorSelectionError)) throw error;
+          await this.reply(replyTargetId, error.message); return;
+        }
       }
       return;
     }
@@ -624,23 +662,49 @@ export class BridgeService {
       }
       case "connect": {
         if (!this.options.peer) { await this.reply(message.senderId, "此 Gateway 尚未启用远程设备接入。"); return; }
-        const guard = this.conversationControlGuard(message.senderId, "participant");
+        const guard = this.conversationControlGuard(message.senderId, requiredCommandRole("connect", command.arg), false);
         const principal = peerPrincipal.getStore()!;
         if (!command.arg.trim()) {
-          const hosts = this.options.peer.hosts(principal);
-          await this.reply(message.senderId, copyableChoices(hosts.length ? "你在当前聊天已获授权的设备，选择后查看可绑定的会话。" : "你在当前聊天尚未配对设备。请先启动 Connector，再发送终端显示的完整 /connect 配对命令。",
-            hosts.map(host => ({ label: this.options.peer!.label(host), value: `/sessions --host ${host}` }))));
+          const snapshot = this.connectorSelection.list(principal);
+          const selected = this.options.stateStore.getConnectorSelection(principal)?.hostId;
+          const title = "当前聊天的 Connector";
+          const body = snapshot.hosts.length ? snapshot.hosts.map((host, i) => {
+            const online = this.options.peer!.isOnline?.(host);
+            return `C${i + 1} · ${escapeTableMarkdown(this.options.peer!.label(host))}${selected === host ? " · 当前选择" : ""} · ${online === undefined ? "连接状态未知" : online ? "在线" : "离线"}\n${escapeTableMarkdown(host)}`;
+          }).join("\n\n") : "你在当前聊天尚未配对设备。请先启动 Connector，再发送终端显示的完整 /connect 配对命令。";
+          const note = `${selected && !snapshot.hosts.includes(selected) ? selected === "local" ? "当前选择：Gateway 本地目录。\n" : "原选择已无授权，请重新选择；未自动切换设备。\n" : ""}切换只改变本人在当前聊天的目录范围，不改变会话绑定。`;
+          await this.replyActionCard(message.senderId, createChoiceCard({ title, body, note, fallbackText: [title, body, note].join("\n\n"),
+            choices: snapshot.hosts.map((host, i) => ({ label: `切换 C${i + 1}`, command: "connect", arg: `use C${i + 1}@${snapshot.id}`, copyValue: `/connect use C${i + 1}@${snapshot.id}` })) }));
           return;
         }
+        const use = /^use\s+(\S+)$/i.exec(command.arg.trim());
+        if (use) {
+          guard();
+          const host = use[1].toLowerCase() === "local" ? "local" : this.connectorSelection.select(principal, use[1], !!this.cardInteraction.getStore());
+          if (host === "local") {
+            if (!this.access.requireAccess(principal.actorId, principal.conversationId).allowed) throw new ConnectorSelectionError("当前授权不包含 Gateway 本地目录。");
+            this.options.stateStore.setConnectorSelection(principal, host);
+          }
+          this.invalidateCatalogs(message.senderId);
+          const bound = this.executionSession(message.senderId);
+          const location = host === "local" ? "Gateway 本地目录" : `${this.options.peer.label(host)}（${host}）`;
+          await this.reply(message.senderId, `当前查看：${location}${host !== "local" && this.options.peer.isOnline?.(host) === false ? "（离线，已保留选择）" : ""}。\n\n${bound ? `当前对话仍绑定「${bound.title}」（${this.sessionHostId(bound)}）；选择目标设备的会话后才会换绑。` : "当前对话尚未绑定会话。"}\n\n/sessions 查看该设备的会话，/project 查看项目。`);
+          return;
+        }
+        if (/^use(?:\s|$)/i.test(command.arg.trim())) throw new ConnectorSelectionError("请先发送 /connect，再使用列表中的切换按钮或 /connect use C编号。");
         await this.reply(message.senderId, "正在请求本机确认设备访问，请在本机终端核对聊天与申请人。");
+        const selectionGuard = this.connectorSelection.guard(principal);
         const target = await this.options.peer.connect(command.arg, principal, guard);
-        guard();
+        guard(); selectionGuard();
+        this.options.stateStore.setConnectorSelection(principal, target.hostId);
+        this.invalidateCatalogs(message.senderId);
+        const pairedGuard = this.catalogGuard(message.senderId, guard, target.hostId);
         if (target.threadId) {
           const state = await this.runner.inspectThread(target.threadId, target.hostId);
-          guard();
+          pairedGuard();
           if (state.persistence === "archived") {
             await this.reply(message.senderId, "设备已配对，指定会话已归档。请在原生 Codex 中恢复后，再通过 /sessions 选择。");
-          } else await this.bindCatalogSession(message.senderId, target.threadId, target.hostId, guard);
+          } else await this.bindCatalogSession(message.senderId, target.threadId, target.hostId, pairedGuard);
         }
         else {
           await this.reply(message.senderId, `设备已配对：${target.label}。请选择要绑定的会话。`);
@@ -867,23 +931,16 @@ export class BridgeService {
   }
 
   private async handleNewSessionCommand(senderId: string, arg: string, sourceId?: string): Promise<boolean> {
-    const assertCurrent = this.conversationControlGuard(senderId, "participant");
     const target = parseNewSessionTarget(arg);
     const store = this.options.stateStore;
     if (target.kind === "invalid" || target.kind === "help") {
       await this.reply(senderId, `${target.kind === "invalid" ? "参数无效；指定项目和独立会话不能同时使用。\n\n" : ""}${NEW_SESSION_USAGE}`);
       return false;
     }
+    const selectedHost = this.catalogHost(senderId);
+    const assertCurrent = this.catalogGuard(senderId, this.conversationControlGuard(senderId, "participant"), selectedHost);
     if (target.kind === "standalone") {
-      const current = this.executionSession(senderId);
-      const currentHost = current ? this.sessionHostId(current) : store.getActiveProject(senderId)?.hostId;
-      const principal = peerPrincipal.getStore(), paired = principal ? this.options.peer?.hosts(principal) ?? [] : [];
-      if (!currentHost && paired.length > 1) {
-        await this.reply(senderId, "有多个已配对设备，请先从 /sessions --host 主机ID 选择会话，或通过 /project 选择项目，再新建独立会话。");
-        return false;
-      }
-      const host = currentHost?.startsWith("peer:") ? currentHost : !currentHost && paired.length === 1 ? paired[0] : undefined;
-      if (host) return this.createPeerSession(senderId, host, { standalone: true }, undefined, sourceId);
+      if (selectedHost?.startsWith("peer:")) return this.createPeerSession(senderId, selectedHost, { standalone: true }, undefined, sourceId);
       // Never reuse the current project's cwd, and never allocate on an inferred remote host.
       assertCurrent();
       fs.mkdirSync(store.standaloneWorkspacesDir, { recursive: true, mode: 0o700 });
@@ -911,10 +968,12 @@ export class BridgeService {
       return false;
     }
     if (target.kind === "current" && !await this.validateProjectRoute(senderId, project)) return false;
+    if (selectedHost && (project.hostId ?? "local") !== selectedHost)
+      throw new ConnectorSelectionError("当前项目属于另一台设备，请通过 /project 选择当前 Connector 的项目后再新建；原绑定未改变。");
     assertCurrent();
     if (project.hostId?.startsWith("peer:")) return this.createPeerSession(senderId, project.hostId,
       { cwd: project.workspace, projectId: project.sourceProjectId, projectName: project.name,
-        sourceThreadId: this.executionSession(senderId)?.threadId }, project, sourceId);
+        sourceThreadId: this.sessionHostId(this.executionSession(senderId)) === project.hostId ? this.executionSession(senderId)?.threadId : undefined }, project, sourceId);
     const session = store.createSession(senderId, project.workspace, undefined, project.id);
     store.setInteractionMode(senderId, "session");
     await this.reply(senderId, `已在${target.kind === "current" ? "当前" : "指定"}项目“${project.name}”新建并绑定会话：${session.title}\n\n主机：${project.hostId ?? "local"}\n\n工作目录：${session.workspace}\n\n下一条消息将在这个新会话中开始。`);
@@ -924,7 +983,7 @@ export class BridgeService {
   private async createPeerSession(senderId: string, hostId: string,
     input: import("../codex/backend.js").CodexThreadCreateInput, project?: ManagedProject, sourceId?: string): Promise<boolean> {
     if (!this.runner.createThread) throw new Error("当前后端尚未支持原生会话创建。");
-    const assertCurrent = this.conversationControlGuard(senderId, "participant");
+    const assertCurrent = this.catalogGuard(senderId, this.conversationControlGuard(senderId, "participant"), hostId);
     const state = await this.runner.createThread({ ...input, title: "新会话", clientUserMessageId: sourceId ?? randomUUID(), assertCurrent }, hostId);
     assertCurrent();
     if (!state.cwd || state.persistence !== "active" || state.internal
@@ -964,11 +1023,12 @@ export class BridgeService {
   }
 
   private async resolveSelectedProject(senderId: string, selector: string, catalog?: readonly CodexProjectCandidate[]): Promise<ManagedProject | undefined> {
-    const assertCurrent = this.conversationControlGuard(senderId, "participant");
+    const selectedHost = this.catalogHost(senderId);
+    const assertCurrent = this.catalogGuard(senderId, this.conversationControlGuard(senderId, "participant"), selectedHost);
     const candidates = catalog ?? await this.codexProjectCandidates();
     assertCurrent();
     this.synchronizeManagedProjects(candidates);
-    const projects = this.options.stateStore.listProjects();
+    const projects = this.catalogProjects(senderId);
     const selected = this.selectProject(senderId, selector, candidates, projects);
     if (selected.error) {
       await this.reply(senderId, selected.error);
@@ -1002,7 +1062,8 @@ export class BridgeService {
       await this.reply(senderId, "这张旧项目卡片缺少列表版本，请发送 /project 刷新后重新选择。");
       return false;
     }
-    const assertCurrent = this.conversationControlGuard(senderId, requiredCommandRole("project", arg));
+    const selectedHost = this.catalogHost(senderId);
+    const assertCurrent = this.catalogGuard(senderId, this.conversationControlGuard(senderId, requiredCommandRole("project", arg)), selectedHost);
     const candidates = await this.codexProjectCandidates();
     assertCurrent();
     this.synchronizeManagedProjects(candidates);
@@ -1021,7 +1082,7 @@ export class BridgeService {
       );
       return true;
     }
-    const projects = this.options.stateStore.listProjects();
+    const projects = this.catalogProjects(senderId);
     const detail = /^detail\s+(.+)$/i.exec(input);
     if (detail) {
       const selected = this.selectProject(senderId, detail[1].trim(), candidates, projects);
@@ -1113,11 +1174,11 @@ export class BridgeService {
         ? { id: previous.id, createdAt: previous.createdAt, codes }
         : { id: randomUUID(), createdAt: Date.now(), codes };
       this.projectLists.set(key, snapshot);
-      const title = `${retained ? "历史项目登记" : "Codex 项目"} · ${displayed.length} 个 · ${page}/${pages} 页`;
+      const title = `${retained ? "历史项目登记" : "Codex 项目"}${selectedHost ? ` · ${this.options.peer?.label(selectedHost) ?? sessionHostLabel(selectedHost)}` : ""} · ${displayed.length} 个 · ${page}/${pages} 页`;
       const table: ChannelTable = { columns: ["编号", "项目", "主机", "状态"].map(label => ({ label })),
         rows: pageRows.map(row => [row.code, compactTableCell(row.name, 32), row.host, row.status]) };
       const body = pageRows.length ? "" : "当前没有可选择的项目。";
-      const note = (retained ? "历史登记不会被删除，也不参与当前项目的同名匹配。" : "来自当前 Codex 目录；手工登记及历史项目单独标明。") + "\n查看路径：/project detail 项目编号。";
+      const note = (selectedHost ? `当前目录来源：${selectedHost}\n` : "") + (retained ? "历史登记不会被删除，也不参与当前项目的同名匹配。" : "来自当前 Codex 目录；手工登记及历史项目单独标明。") + "\n查看路径：/project detail 项目编号。";
       const navigation = [
         ...(page > 1 ? [{ label: "上一页", value: `/project ${retained ? "retained " : ""}page ${page - 1}` }] : []),
         ...(page < pages ? [{ label: "下一页", value: `/project ${retained ? "retained " : ""}page ${page + 1}` }] : []),
@@ -1528,12 +1589,10 @@ export class BridgeService {
     const actorId = this.actor.getStore() ?? senderId;
     const key = JSON.stringify([senderId, actorId]);
     let input = arg.trim();
-    const principal = peerPrincipal.getStore();
-    const pairedHosts = principal ? this.options.peer?.hosts(principal) ?? [] : [];
-    const currentHost = this.sessionHostId(this.executionSession(senderId));
-    const hostFilter = /^--host\s+(\S+)$/i.exec(input)?.[1] ?? (!input
-      ? currentHost?.startsWith("peer:") && pairedHosts.includes(currentHost) ? currentHost : pairedHosts.length === 1 ? pairedHosts[0] : undefined
-      : undefined);
+    const principal = this.catalogPrincipal(senderId);
+    const pairedHosts = this.options.peer?.hosts(principal) ?? [];
+    let hostFilter = /^--host\s+(\S+)$/i.exec(input)?.[1];
+    let assertCurrent = this.catalogGuard(senderId, this.conversationControlGuard(senderId, "viewer", false));
     let resized = false;
     let listing = this.sessionLists.get(key);
     if (/^size(?:\s|$)/i.test(input)) {
@@ -1564,9 +1623,11 @@ export class BridgeService {
     const numbered = /^r([1-9]\d*)$/i.exec(input);
     const navigation = /^(more|next|prev|page\s+\d+)$/i.test(input);
     if (numbered || navigation || detail || resized) {
-      if (!listing || Date.now() - listing.createdAt > 15 * 60_000) {
+      if (!listing || Date.now() - listing.createdAt > 15 * 60_000
+        || listing.selectionRevision !== this.options.stateStore.getConnectorSelection(principal)?.revision) {
         await this.reply(senderId, copyableChoices("会话列表已过期，请刷新后重新选择。", [{ label: "刷新会话列表", value: "/sessions" }])); return;
       }
+      for (const host of listing.hosts) this.connectorSelection.assertAuthorized(principal, host);
       if (detail) {
         const row = listing.rows[Number(detail[1]) - 1];
         if (!row) { await this.reply(senderId, copyableChoices("没有这个编号，请查看当前会话列表。", [{ label: "查看会话列表", value: "/sessions" }])); return; }
@@ -1585,7 +1646,7 @@ export class BridgeService {
       if (numbered) {
         const row = listing.rows[Number(numbered[1]) - 1];
         if (!row) { await this.reply(senderId, copyableChoices("没有这个编号，请查看当前会话列表。", [{ label: "查看会话列表", value: "/sessions" }])); return; }
-        await this.bindCatalogSession(senderId, row.state.threadId, row.hostId); return;
+        await this.bindCatalogSession(senderId, row.state.threadId, row.hostId, assertCurrent); return;
       }
       const requested = /(?:^|\s)page\s+(\d+)$/i.exec(input);
       if (!resized) listing.page = requested ? Number(requested[1]) - 1 : listing.page + (/^prev$/i.test(input) ? -1 : 1);
@@ -1593,11 +1654,25 @@ export class BridgeService {
     } else if (input && !hostFilter && !/^(all|unbound|unassigned|project|search\s+.+)$/i.test(input)) {
       const direct = /^(\S+)(?:\s+--host\s+(\S+))?$/.exec(input);
       if (!direct) { await this.reply(senderId, "用法：/sessions [all|unbound|project|search 关键词|more|prev]；/session <会话ID> [--host 主机ID]"); return; }
-      await this.bindCatalogSession(senderId, direct[1], direct[2]); return;
+      // A native button from a retired catalog cannot undo a later device
+      // selection. Explicit typed IDs remain intentional host-qualified binds.
+      if (this.cardInteraction.getStore() && this.options.stateStore.getConnectorSelection(principal)
+        && (!listing || listing.selectionRevision !== this.options.stateStore.getConnectorSelection(principal)?.revision
+          || Date.now() - listing.createdAt > 15 * 60_000
+          || !listing.rows.some(row => row.state.threadId === direct[1] && row.hostId === direct[2])))
+        throw new ConnectorSelectionError("这张会话卡片的目录已失效，请发送 /sessions 刷新后选择。");
+      await this.bindCatalogSession(senderId, direct[1], direct[2], assertCurrent); return;
     } else {
+      // Explicit queries do not change the default. Filters follow the saved
+      // Connector, while pagination continues its exact previous snapshot.
+      if (!hostFilter && input.toLowerCase() !== "all") hostFilter = this.catalogHost(senderId);
+      if (hostFilter) this.connectorSelection.assertAvailable(principal, hostFilter);
+      assertCurrent = this.catalogGuard(senderId, this.conversationControlGuard(senderId, "viewer", false));
       const activeProject = this.options.stateStore.getActiveProject(senderId);
       const projectOnly = input.toLowerCase() === "project";
       if (projectOnly && !activeProject) { await this.reply(senderId, copyableChoices("当前没有选择项目，可以选择已有会话或项目。", [{ label: "查看已有会话", value: "/sessions" }, { label: "选择项目", value: "/project" }])); return; }
+      if (projectOnly && hostFilter && (activeProject?.hostId ?? "local") !== hostFilter)
+        throw new ConnectorSelectionError("当前项目属于另一台设备，请通过 /project 选择当前 Connector 的项目。");
       const query = /^search\s+(.+)$/i.exec(input)?.[1].toLocaleLowerCase();
       const unassigned = /^(unbound|unassigned)$/i.test(input);
       const resourceOnly = !this.access.requireAccess(actorId, senderId).allowed && Boolean(this.options.peer?.sharing?.admitted(this.peerIdentity(actorId, senderId)));
@@ -1617,13 +1692,16 @@ export class BridgeService {
       let projectCatalog: readonly CodexProjectCandidate[] = [];
       try {
         if (hostFilter?.startsWith("peer:")) projectCatalog = projectCandidatesFromBackendCatalog(await this.runner.listProjects(hostFilter), undefined, hostFilter);
-        else if (!hostFilter) projectCatalog = await this.codexProjectCandidates();
+        else if (!hostFilter) projectCatalog = await this.codexProjectCandidates("all");
+        else projectCatalog = (await this.localCodexProjectCandidates()).filter(p => (p.hostId ?? "local") === hostFilter);
       }
       catch { warnings.push("项目目录暂不可用，项目名称及远程主机列表可能不完整；仍保留可读取的会话。"); }
       if (projectOnly) { hosts.clear(); hosts.add(activeProject?.hostId ?? "local"); }
       else if (!hostFilter && this.options.config.codexBackend !== "exec") {
-        for (const p of projectCatalog) if (p.hostId) hosts.add(p.hostId);
-        if (!projectCatalog.length) for (const p of this.options.stateStore.listProjects()) if (p.hostId) hosts.add(p.hostId);
+        for (const p of projectCatalog) if (p.hostId && (!resourceOnly || pairedHosts.includes(p.hostId))
+          && (!p.hostId.startsWith("peer:") || pairedHosts.includes(p.hostId))) hosts.add(p.hostId);
+        if (!projectCatalog.length) for (const p of this.options.stateStore.listProjects()) if (p.hostId && (!resourceOnly || pairedHosts.includes(p.hostId))
+          && (!p.hostId.startsWith("peer:") || pairedHosts.includes(p.hostId))) hosts.add(p.hostId);
       }
       const rows: NonNullable<typeof listing>["rows"] = [];
       const visitedHosts = new Set<string>();
@@ -1640,7 +1718,8 @@ export class BridgeService {
             warnings.push(...catalog.warnings);
             if (!catalog.complete) incompleteHosts.set(hostId, "会话目录尚未同步完整");
             if (!catalog.complete && !catalog.warnings.length) warnings.push(`${hostId} 的会话目录尚未同步完整，请稍后刷新。`);
-            if (!hostFilter && !projectOnly && catalog.backend === "app-server") for (const host of catalog.hostIds) hosts.add(host);
+            if (!hostFilter && !projectOnly && catalog.backend === "app-server") for (const host of catalog.hostIds)
+              if ((!resourceOnly || pairedHosts.includes(host)) && (!host.startsWith("peer:") || pairedHosts.includes(host))) hosts.add(host);
           }
           for (const state of states) {
             if (state.persistence !== "active" || state.internal || (unassigned && state.projectId)) continue;
@@ -1658,13 +1737,15 @@ export class BridgeService {
         }
       }));
       }
+      assertCurrent();
+      for (const host of hosts) this.connectorSelection.assertAuthorized(principal, host);
       if (hiddenProbes.size) warnings.push(`已隐藏 ${hiddenProbes.size} 个已确认的探活会话（未删除、未归档）。`);
       const unique = [...new Map(rows.map(row => [JSON.stringify([row.hostId, row.state.threadId]), row])).values()];
       const ordered = orderSessionCatalog(unique, projectCatalog, this.options.stateStore.listProjects(), activeProject);
       const activeGroupId = activeProject?.sourceProjectId ? JSON.stringify([activeProject.hostId ?? "local", activeProject.sourceProjectId]) : undefined;
       const displayProjects = projectOnly ? projectCatalog.filter(p => JSON.stringify([p.hostId ?? "local", p.projectId]) === activeGroupId) : projectCatalog;
       const items = sessionCatalogItems(ordered, displayProjects, { includeEmpty: !query && !unassigned, incompleteHosts, activeGroupId });
-      listing = { rows: ordered, items, page: 0, pageSize: this.options.stateStore.getSessionPageSize(senderId, actorId), createdAt: Date.now(), label: `${hostFilter ? this.options.peer?.label(hostFilter) ?? sessionHostLabel(hostFilter) : projectOnly ? `项目 ${activeProject!.name}` : unassigned ? "无项目" : query ? `搜索：${query}` : "全部"}`, warnings: [...new Set(warnings)] };
+      listing = { rows: ordered, items, page: 0, pageSize: this.options.stateStore.getSessionPageSize(senderId, actorId), createdAt: Date.now(), label: `${hostFilter ? this.options.peer?.label(hostFilter) ?? sessionHostLabel(hostFilter) : projectOnly ? `项目 ${activeProject!.name}` : unassigned ? "无项目" : query ? `搜索：${query}` : "全部"}`, warnings: [...new Set(warnings)], selectionRevision: this.options.stateStore.getConnectorSelection(principal)?.revision, hosts: [...hosts] };
       for (const [k,v] of this.sessionLists) if (Date.now() - v.createdAt > 15 * 60_000) this.sessionLists.delete(k);
       this.sessionLists.set(key, listing);
     }
@@ -1693,7 +1774,7 @@ export class BridgeService {
       lines.push(`　[R${item.number}] ${current ? "【当前】 " : ""}${escapeTableMarkdown(compactTableCell(name, 48))} · ${shortStatus}${attribution ? ` · ${escapeTableMarkdown(compactTableCell(attribution, 64))}` : ""}`);
     }
     const body = [pageItems.length ? lines.join("\n").trim() : "没有符合条件的未归档会话或项目。", ...listing.warnings.map(escapeTableMarkdown)].join("\n\n");
-    const note = `置顶 → 项目目录顺序 → 其他会话；组内遵循 App 排序。每页 ${listing.pageSize} 项（会话或空项目）。\n查看详情：/sessions detail R编号。`;
+    const note = `当前目录来源：${listing.hosts.join("、")}\n置顶 → 项目目录顺序 → 其他会话；组内遵循 App 排序。每页 ${listing.pageSize} 项（会话或空项目）。\n查看详情：/sessions detail R编号。`;
     const text = [title, body, note].filter(Boolean).join("\n\n");
     await this.replyActionCard(senderId, createChoiceCard({ title, body, note, fallbackText: text,
       copyChoices: [
@@ -1710,7 +1791,11 @@ export class BridgeService {
     const required = shared ? "viewer" : "participant";
     // Keep the initiating operation's generation across pairing/creation and
     // native reads. Capturing a new generation here would bless stale work.
-    const assertCurrent = sourceGuard ?? this.conversationControlGuard(senderId, required);
+    const bindingGuard = this.conversationControlGuard(senderId, required);
+    const assertCurrent = () => {
+      sourceGuard?.(); bindingGuard();
+      if (principal && this.options.peer && hostId?.startsWith("peer:")) this.connectorSelection.assertAuthorized(principal, hostId);
+    };
     if (!await this.requireRole(senderId, required)) return;
     assertCurrent();
     // An unqualified ID already known to this chat must retain its host; IDs
@@ -2948,12 +3033,19 @@ export class BridgeService {
       throw new Error("Result media delivery was not confirmed");
   }
 
-  private async codexProjectCandidates(): Promise<readonly CodexProjectCandidate[]> {
+  private async codexProjectCandidates(scope: "selected" | "all" = "selected"): Promise<readonly CodexProjectCandidate[]> {
     const principal = peerPrincipal.getStore(), paired = principal ? this.options.peer?.hosts(principal) ?? [] : [];
-    const session = principal ? this.executionSession(principal.conversationId) : undefined;
-    const current = session ? this.sessionHostId(session) : undefined;
-    const hosts = current?.startsWith("peer:") ? [current] : !current ? paired : [];
-    if (hosts.length) return (await Promise.all(hosts.map(async host => projectCandidatesFromBackendCatalog(await this.runner.listProjects(host), undefined, host)))).flat();
+    const selected = scope === "selected" && principal ? this.catalogHost(principal.conversationId) : undefined;
+    if (selected?.startsWith("peer:")) return projectCandidatesFromBackendCatalog(await this.runner.listProjects(selected), undefined, selected);
+    const localCandidates = !principal || this.access.requireAccess(principal.actorId, principal.conversationId).allowed
+      ? await this.localCodexProjectCandidates() : [];
+    const local = localCandidates.filter(p => !p.hostId?.startsWith("peer:") || paired.includes(p.hostId));
+    if (scope === "selected") return selected ? local.filter(p => (p.hostId ?? "local") === selected) : local;
+    const remote = await Promise.allSettled(paired.map(async host => projectCandidatesFromBackendCatalog(await this.runner.listProjects(host), undefined, host)));
+    return [...local, ...remote.flatMap(result => result.status === "fulfilled" ? result.value : [])];
+  }
+
+  private async localCodexProjectCandidates(): Promise<readonly CodexProjectCandidate[]> {
     return await this.options.listCodexProjects?.() ?? projectCandidatesFromBackendCatalog(await this.runner.listProjects());
   }
 

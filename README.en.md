@@ -209,7 +209,10 @@ Common commands:
 | `/effort` | Inspect or switch reasoning effort |
 | `/stream` | Configure process progress |
 | `/stop` | Interrupt the current task |
-| `/connect` | Show devices authorized for you in this chat |
+| `/connect` | Show your authorized devices in this chat, selection and connection status |
+| `/connect use C2` | Save the current Connector for /sessions and /project without changing the conversation binding |
+| `/connect use local` | Return to the Gateway local catalog; existing admission is required |
+| `/sessions all` | Explicitly list all accessible sources; `--host ID` is a temporary filter |
 | `/access` | Show personal/current-chat admission |
 | `/ide` | Open the current project IDE if enabled |
 | `/unbind` | Unbind this chat without stopping the task |

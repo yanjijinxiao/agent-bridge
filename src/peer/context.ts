@@ -10,4 +10,5 @@ export type PeerBridgePort = {
   connect(code: string, principal: PeerPrincipal, assertCurrent: () => void): Promise<{ hostId: string; threadId?: string; label: string }>;
   hosts(principal: PeerPrincipal): string[];
   label(hostId: string): string;
+  isOnline?(hostId: string): boolean;
 };

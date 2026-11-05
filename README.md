@@ -227,7 +227,10 @@ node dist/server/index.js
 | `/follow on` | 开启并立即同步；已经开启时也会重新同步 |
 | `/follow sync` | 只同步当前绑定，不新建、介入或停止任务 |
 | `/stop` | 中断当前任务 |
-| `/connect` | 查看自己在当前聊天已授权的设备 |
+| `/connect` | 查看自己在当前聊天已授权的设备、当前选择与在线状态 |
+| `/connect use C2` | 保存当前 Connector；后续 /sessions、/project 使用它，不改变会话绑定 |
+| `/connect use local` | 返回 Gateway 本地目录，需要原有准入 |
+| `/sessions all` | 显式查看所有可访问来源；`--host 主机ID` 只临时筛选，不更改默认设备 |
 | `/access` | 查看本人及当前聊天准入 |
 | `/ide` | 获取已启用的当前项目 IDE 入口 |
 | `/unbind` | 解绑当前聊天，不停止原任务 |

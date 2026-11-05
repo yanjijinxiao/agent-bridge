@@ -84,6 +84,8 @@ export class SessionBindingConflictError extends Error {
 export type RuntimeState = {
   approvalSequence: number;
   sessionPageSizes: Record<string, number>;
+  /** Personal catalog scope only; never used to route ordinary session input. */
+  connectorSelections: Record<string, { hostId: string; revision: string }>;
   conversationRoles: Record<string, Record<string, "viewer" | "participant" | "controller">>;
   pairedSenderIds: string[];
   lastActiveSenderId?: string;
@@ -117,6 +119,7 @@ export function emptyRuntimeState(): RuntimeState {
   return {
     approvalSequence: 0,
     sessionPageSizes: {},
+    connectorSelections: {},
     conversationRoles: {},
     pairedSenderIds: [],
     authorizedConversationsByActor: {},
@@ -188,6 +191,17 @@ export class RuntimeStateStore {
 
   getSessionPageSize(conversationId: string, actorId: string): number {
     return this.state.sessionPageSizes[JSON.stringify([conversationId, actorId])] ?? DEFAULT_SESSION_PAGE_SIZE;
+  }
+
+  getConnectorSelection(principal: { accountId: string; conversationId: string; actorId: string }): { hostId: string; revision: string } | undefined {
+    const value = this.state.connectorSelections[JSON.stringify([principal.accountId, principal.conversationId, principal.actorId])];
+    return value && { ...value };
+  }
+
+  setConnectorSelection(principal: { accountId: string; conversationId: string; actorId: string }, hostId: string): void {
+    if (hostId !== "local" && !/^peer:\S+$/.test(hostId)) throw new Error("Invalid Connector selection");
+    this.state.connectorSelections[JSON.stringify([principal.accountId, principal.conversationId, principal.actorId])] = { hostId, revision: crypto.randomUUID() };
+    this.save();
   }
 
   setSessionPageSize(conversationId: string, actorId: string, size: number): void {
@@ -1113,6 +1127,7 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
       ? value.approvalSequence! : 0,
     sessionPageSizes: value.sessionPageSizes && typeof value.sessionPageSizes === "object" && !Array.isArray(value.sessionPageSizes)
       ? Object.fromEntries(Object.entries(value.sessionPageSizes).filter(([, size]) => isSessionPageSize(size))) : {},
+    connectorSelections: normalizeConnectorSelections(value.connectorSelections),
     pairedSenderIds: Array.isArray(value.pairedSenderIds) ? value.pairedSenderIds : [],
     conversationRoles: Object.fromEntries(Object.entries(value.conversationRoles ?? {}).map(([chat, roles]) => [
       chat, Object.fromEntries(Object.entries(roles ?? {}).filter(([, role]) =>
@@ -1139,10 +1154,24 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
   // Provider ids are opaque data, including names inherited by Object.prototype.
   // Keep the live maps prototype-free; snapshots/JSON remain plain data so this
   // does not create a migration write on every read or change the disk format.
-  for (const key of ["sessionPageSizes", "conversationRoles", "authorizedConversationsByActor", "contextTokens", "activeSessionIds", "activeQaSessionIds", "activeProjectIds", "bindingActivity", "interactionModes"] as const) {
+  for (const key of ["connectorSelections", "sessionPageSizes", "conversationRoles", "authorizedConversationsByActor", "contextTokens", "activeSessionIds", "activeQaSessionIds", "activeProjectIds", "bindingActivity", "interactionModes"] as const) {
     normalized[key] = Object.assign(Object.create(null), normalized[key]);
   }
   return normalized;
+}
+
+/** Corrupt saved selection must not silently reroute a query/create to local. */
+function normalizeConnectorSelections(value: unknown): RuntimeState["connectorSelections"] {
+  if (value === undefined) return {};
+  if (!isJsonObject(value)) throw new Error("Invalid Connector selections; original state preserved");
+  for (const [key, selection] of Object.entries(value)) {
+    const identity: unknown = JSON.parse(key);
+    if (!Array.isArray(identity) || identity.length !== 3 || !identity.every(item => typeof item === "string" && item.length > 0)
+      || !isJsonObject(selection) || typeof selection.hostId !== "string" || !/^(local|peer:\S+)$/.test(selection.hostId)
+      || typeof selection.revision !== "string" || !selection.revision)
+      throw new Error("Invalid Connector selection; original state preserved");
+  }
+  return value as RuntimeState["connectorSelections"];
 }
 
 function normalizeAuthorizedConversations(value: unknown): Record<string, string> {

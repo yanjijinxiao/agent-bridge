@@ -17509,6 +17509,245 @@
           "verifiedBoundary": "12 个真实进程隔离场景；IM 传输为验证文件字节的受控适配器，本机模拟模型，不冒充手机实机或真实钉钉文件下载验收。"
         }
       ]
+    },
+    {
+      "id": "CAT-05",
+      "module": "catalog",
+      "title": "个人当前 Connector 目录选择",
+      "sourceRecords": [],
+      "sourceDescription": "2026-11-05 本 session 用户确认：切换 Connector 并让 /sessions 默认查看它；允许按已说明方案实现。",
+      "contract": "按机器人/当前聊天/当前用户保存目录主机，与 conversation→session→host 执行绑定独立；临时查询不改默认，离线撤权不回退，创建不得跨设备复用目录。",
+      "implementationReview": "changed paths reviewed; new feature cases verified, not a claim of a new full repository review",
+      "cases": [
+        {
+          "id": "CAT-05.1",
+          "scenario": "持久目录选择、唯一设备默认、显式临时/all及分页不改变选择",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector selection persists separately from binding and all ordinary input keeps its original host"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector first use auto-selects the sole grant and explicit pairing records its catalog without extra approval"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector temporary host, all, search and pagination preserve the saved default"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/connector-selection.ts",
+              "sha256": "98fc0c289ea3a9fbdf551a19ecae707a4dd99c725353bc85adb39654be04f3d2"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "fd5dac4029ffb68c8d5655516340440df1b083997be7a7edec2f72d3c8927bd9"
+            },
+            {
+              "file": "src/bridge/access.ts",
+              "sha256": "0f40c1c8affaecc52fecaf30e3487b3278673707de6774a176fd58aaf289c357"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "f285125bd1a4b0a22274e1b1d7a15893e9f1ebb4bc3bcf99627cd24a4d946788"
+            },
+            {
+              "file": "src/peer/context.ts",
+              "sha256": "517f14a47d9297cb6404cf461338f20c497275acb30a64bfd43166fb3c21c0bc"
+            },
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "3672aef04799adb44c861d1e91360e06ca2dacaa04d1df4b28a105148342c0c5"
+            },
+            {
+              "file": "src/channels/action-card.ts",
+              "sha256": "84a301a5480ebe7491f46ab3a0b7e6c810a9a7ae109fd9184bf9b74878c6999d"
+            }
+          ],
+          "verifiedBoundary": "实际 Bridge、状态存储、命令/卡片 DTO 与可控原生后端夹具，临时数据验证路由、写入次数和异步边界；已有真实 Peer 连接用例随全量回归执行。",
+          "remainingBoundary": "不把条件跳过的原生模型/实机场景、钉钉手机 UI 或线上用户实际点击算作已验证。"
+        },
+        {
+          "id": "CAT-05.2",
+          "scenario": "三元身份隔离、同名/旧编号、离线撤权、共享权限和状态迁移",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector preference is isolated by actor, chat and bot even in one state store"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector cards retain stable same-name identities and reject foreign, refreshed, unversioned or expired choices"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector offline and revoked choices never fall back or reveal cached session details"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector shared-resource viewers can select their devices without gaining pairing, local or creation access"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector state migration preserves binding and rejects corrupt saved preferences instead of selecting local"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/connector-selection.ts",
+              "sha256": "98fc0c289ea3a9fbdf551a19ecae707a4dd99c725353bc85adb39654be04f3d2"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "fd5dac4029ffb68c8d5655516340440df1b083997be7a7edec2f72d3c8927bd9"
+            },
+            {
+              "file": "src/bridge/access.ts",
+              "sha256": "0f40c1c8affaecc52fecaf30e3487b3278673707de6774a176fd58aaf289c357"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "f285125bd1a4b0a22274e1b1d7a15893e9f1ebb4bc3bcf99627cd24a4d946788"
+            },
+            {
+              "file": "src/peer/context.ts",
+              "sha256": "517f14a47d9297cb6404cf461338f20c497275acb30a64bfd43166fb3c21c0bc"
+            },
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "3672aef04799adb44c861d1e91360e06ca2dacaa04d1df4b28a105148342c0c5"
+            },
+            {
+              "file": "src/channels/action-card.ts",
+              "sha256": "84a301a5480ebe7491f46ab3a0b7e6c810a9a7ae109fd9184bf9b74878c6999d"
+            }
+          ],
+          "verifiedBoundary": "实际 Bridge、状态存储、命令/卡片 DTO 与可控原生后端夹具，临时数据验证路由、写入次数和异步边界；已有真实 Peer 连接用例随全量回归执行。",
+          "remainingBoundary": "不把条件跳过的原生模型/实机场景、钉钉手机 UI 或线上用户实际点击算作已验证。"
+        },
+        {
+          "id": "CAT-05.3",
+          "scenario": "项目与新建采用选中主机，不复用旧设备目录或来源线程",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector project and create scopes cannot reuse another device's cwd or source thread"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector switching invalidates old session and project numbers without changing bindings"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/connector-selection.ts",
+              "sha256": "98fc0c289ea3a9fbdf551a19ecae707a4dd99c725353bc85adb39654be04f3d2"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "fd5dac4029ffb68c8d5655516340440df1b083997be7a7edec2f72d3c8927bd9"
+            },
+            {
+              "file": "src/bridge/access.ts",
+              "sha256": "0f40c1c8affaecc52fecaf30e3487b3278673707de6774a176fd58aaf289c357"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "f285125bd1a4b0a22274e1b1d7a15893e9f1ebb4bc3bcf99627cd24a4d946788"
+            },
+            {
+              "file": "src/peer/context.ts",
+              "sha256": "517f14a47d9297cb6404cf461338f20c497275acb30a64bfd43166fb3c21c0bc"
+            },
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "3672aef04799adb44c861d1e91360e06ca2dacaa04d1df4b28a105148342c0c5"
+            },
+            {
+              "file": "src/channels/action-card.ts",
+              "sha256": "84a301a5480ebe7491f46ab3a0b7e6c810a9a7ae109fd9184bf9b74878c6999d"
+            }
+          ],
+          "verifiedBoundary": "实际 Bridge、状态存储、命令/卡片 DTO 与可控原生后端夹具，临时数据验证路由、写入次数和异步边界；已有真实 Peer 连接用例随全量回归执行。",
+          "remainingBoundary": "不把条件跳过的原生模型/实机场景、钉钉手机 UI 或线上用户实际点击算作已验证。"
+        },
+        {
+          "id": "CAT-05.4",
+          "scenario": "异步撤权、A→B→A 与原生绑定后的角色/权限重新核验",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector revocation during sessions blocks stale results and writes"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector revocation during project blocks stale results and writes"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector revocation during create blocks stale results and writes"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector generation rejects delayed sessions after A to B to A"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector generation rejects delayed project after A to B to A"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector generation rejects delayed create after A to B to A"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector session selection rechecks role after native inspection"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "Connector session selection rechecks grant after native inspection"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/connector-selection.ts",
+              "sha256": "98fc0c289ea3a9fbdf551a19ecae707a4dd99c725353bc85adb39654be04f3d2"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "fd5dac4029ffb68c8d5655516340440df1b083997be7a7edec2f72d3c8927bd9"
+            },
+            {
+              "file": "src/bridge/access.ts",
+              "sha256": "0f40c1c8affaecc52fecaf30e3487b3278673707de6774a176fd58aaf289c357"
+            },
+            {
+              "file": "src/state/runtime-state.ts",
+              "sha256": "f285125bd1a4b0a22274e1b1d7a15893e9f1ebb4bc3bcf99627cd24a4d946788"
+            },
+            {
+              "file": "src/peer/context.ts",
+              "sha256": "517f14a47d9297cb6404cf461338f20c497275acb30a64bfd43166fb3c21c0bc"
+            },
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "3672aef04799adb44c861d1e91360e06ca2dacaa04d1df4b28a105148342c0c5"
+            },
+            {
+              "file": "src/channels/action-card.ts",
+              "sha256": "84a301a5480ebe7491f46ab3a0b7e6c810a9a7ae109fd9184bf9b74878c6999d"
+            }
+          ],
+          "verifiedBoundary": "实际 Bridge、状态存储、命令/卡片 DTO 与可控原生后端夹具，临时数据验证路由、写入次数和异步边界；已有真实 Peer 连接用例随全量回归执行。",
+          "remainingBoundary": "不把条件跳过的原生模型/实机场景、钉钉手机 UI 或线上用户实际点击算作已验证。"
+        }
+      ]
     }
   ],
   "reviewPass": "2026-11-03 full-four-layer: source, comments, documentation, tests, static/configuration reviewed; isolated regressions passed; deployment separately recorded",
@@ -17671,5 +17910,16 @@
       "KB-02.4"
     ],
     "boundary": "四层增量审查记忆移除及其跨模块调用，不声称重审全部仓库。"
+  },
+  "connectorSelectionUpdate": {
+    "date": "2026-11-05",
+    "document": "docs/architecture/modules/connector-selection.md",
+    "audit": "docs/audits/2026-11-05-connector-selection/README.md",
+    "cases": [
+      "CAT-05.1",
+      "CAT-05.2",
+      "CAT-05.3",
+      "CAT-05.4"
+    ]
   }
 }

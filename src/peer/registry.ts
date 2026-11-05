@@ -163,6 +163,7 @@ export class PeerRegistry implements PeerBridgePort {
     } };
   }
   label(hostId: string): string { const host = this.entries.get(hostId); return host?.description.label ?? host?.nodeId ?? hostId; }
+  isOnline(hostId: string): boolean { return this.entries.get(hostId)?.connection?.open === true; }
   isPeer(hostId?: string): boolean { return hostId?.startsWith("peer:") === true; }
   description(hostId: string): PeerDescription {
     const host = this.entries.get(hostId);

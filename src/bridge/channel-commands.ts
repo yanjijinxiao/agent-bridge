@@ -54,6 +54,9 @@ const COMMAND_ALIASES: Readonly<Record<string, string>> = Object.fromEntries(
 const SESSION_HELP_LINES = [
   "会话介入与跟随",
   "/connect 配对码 - 连接设备选会话",
+  "/connect - 查看当前聊天已授权 Connector；/connect use C2 切换并保存目录来源（不换绑会话）",
+  "/connect use local - 返回 Gateway 本地目录（需要原有准入）",
+  "/sessions all - 显式查看全部来源；/sessions --host 主机ID 仅临时查看指定来源",
   "/sessions（/ss）- 置顶 → 项目及其会话 → 其他会话；保留空项目，默认每页 10 项",
   "/sessions size 50 - 每页项数设为 50（5-50，自动保存）",
   "/sessions detail R编号 - 查看完整标题、主机、目录和 ID，不切换会话",

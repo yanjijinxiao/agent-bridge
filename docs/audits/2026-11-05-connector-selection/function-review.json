@@ -1,0 +1,377 @@
+{
+  "baseline": "7a88359",
+  "scope": "Changed directory-selection paths and existing recorded functions only; not a new full-repository line review",
+  "updates": [
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleCommand",
+      "bodyUnchanged": false
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleSteerCommand",
+      "bodyUnchanged": true
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "enqueueNativeMessage",
+      "bodyUnchanged": true
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleGoalCommand",
+      "bodyUnchanged": true
+    },
+    {
+      "file": "src/state/runtime-state.ts",
+      "symbol": "save",
+      "bodyUnchanged": true
+    },
+    {
+      "file": "src/state/runtime-state.ts",
+      "symbol": "normalizeRuntimeState",
+      "bodyUnchanged": false
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleSessionCatalog",
+      "bodyUnchanged": false
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "sendLocalMedia",
+      "bodyUnchanged": true
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "applyRecoveredAction",
+      "bodyUnchanged": true
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "recoverNativeQueue",
+      "bodyUnchanged": true
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "runCodexTurn",
+      "bodyUnchanged": true
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "requestApproval",
+      "bodyUnchanged": true
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "suspendUserInputs",
+      "bodyUnchanged": true
+    }
+  ],
+  "contracts": [
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleCommand",
+      "lines": [
+        623,
+        888
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleSteerCommand",
+      "lines": [
+        1907,
+        1975
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "enqueueNativeMessage",
+      "lines": [
+        2251,
+        2307
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleGoalCommand",
+      "lines": [
+        1407,
+        1469
+      ]
+    },
+    {
+      "file": "src/state/runtime-state.ts",
+      "symbol": "save",
+      "lines": [
+        363,
+        375
+      ]
+    },
+    {
+      "file": "src/state/runtime-state.ts",
+      "symbol": "normalizeRuntimeState",
+      "lines": [
+        1054,
+        1161
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleSessionCatalog",
+      "lines": [
+        1588,
+        1787
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "sendLocalMedia",
+      "lines": [
+        3152,
+        3202
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "applyRecoveredAction",
+      "lines": [
+        3025,
+        3034
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "recoverNativeQueue",
+      "lines": [
+        2310,
+        2355
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "runCodexTurn",
+      "lines": [
+        2692,
+        3007
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "requestApproval",
+      "lines": [
+        3469,
+        3485
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "suspendUserInputs",
+      "lines": [
+        3561,
+        3561
+      ]
+    },
+    {
+      "file": "src/bridge/connector-selection.ts",
+      "symbol": "ConnectorSelection.constructor",
+      "lines": [
+        12,
+        12
+      ]
+    },
+    {
+      "file": "src/bridge/connector-selection.ts",
+      "symbol": "ConnectorSelection.key",
+      "lines": [
+        14,
+        14
+      ]
+    },
+    {
+      "file": "src/bridge/connector-selection.ts",
+      "symbol": "ConnectorSelection.list",
+      "lines": [
+        16,
+        21
+      ]
+    },
+    {
+      "file": "src/bridge/connector-selection.ts",
+      "symbol": "ConnectorSelection.select",
+      "lines": [
+        23,
+        35
+      ]
+    },
+    {
+      "file": "src/bridge/connector-selection.ts",
+      "symbol": "ConnectorSelection.assertAuthorized",
+      "lines": [
+        37,
+        40
+      ]
+    },
+    {
+      "file": "src/bridge/connector-selection.ts",
+      "symbol": "ConnectorSelection.assertAvailable",
+      "lines": [
+        42,
+        46
+      ]
+    },
+    {
+      "file": "src/bridge/connector-selection.ts",
+      "symbol": "ConnectorSelection.resolve",
+      "lines": [
+        48,
+        57
+      ]
+    },
+    {
+      "file": "src/bridge/connector-selection.ts",
+      "symbol": "ConnectorSelection.guard",
+      "lines": [
+        60,
+        66
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "catalogPrincipal",
+      "lines": [
+        227,
+        229
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "invalidateCatalogs",
+      "lines": [
+        231,
+        234
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "catalogHost",
+      "lines": [
+        236,
+        242
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "catalogGuard",
+      "lines": [
+        244,
+        248
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "catalogProjects",
+      "lines": [
+        250,
+        253
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleNewSessionCommand",
+      "lines": [
+        933,
+        981
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "createPeerSession",
+      "lines": [
+        983,
+        994
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "resolveSelectedProject",
+      "lines": [
+        1025,
+        1046
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleProjectCommand",
+      "lines": [
+        1060,
+        1213
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "bindCatalogSession",
+      "lines": [
+        1789,
+        1850
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "codexProjectCandidates",
+      "lines": [
+        3036,
+        3046
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "localCodexProjectCandidates",
+      "lines": [
+        3048,
+        3050
+      ]
+    },
+    {
+      "file": "src/state/runtime-state.ts",
+      "symbol": "getConnectorSelection",
+      "lines": [
+        196,
+        199
+      ]
+    },
+    {
+      "file": "src/state/runtime-state.ts",
+      "symbol": "setConnectorSelection",
+      "lines": [
+        201,
+        205
+      ]
+    },
+    {
+      "file": "src/state/runtime-state.ts",
+      "symbol": "normalizeConnectorSelections",
+      "lines": [
+        1164,
+        1175
+      ]
+    },
+    {
+      "file": "src/peer/registry.ts",
+      "symbol": "isOnline",
+      "lines": [
+        166,
+        166
+      ]
+    },
+    {
+      "file": "src/bridge/access.ts",
+      "symbol": "requiredCommandRole",
+      "lines": [
+        11,
+        24
+      ]
+    }
+  ]
+}

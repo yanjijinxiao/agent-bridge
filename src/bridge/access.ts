@@ -9,6 +9,7 @@ export function roleAllows(actual: SessionRole, required: SessionRole): boolean 
 }
 
 export function requiredCommandRole(name: string, arg = ""): SessionRole {
+  if (name === "connect" && (!arg.trim() || /^use(?:\s|$)/i.test(arg.trim()))) return "viewer";
   if (["share", "join"].includes(name)) return "viewer"; // Ownership is checked on the Connector.
   if (name === "inbox") return /^(?:retry|cancel)(?:\s|$)/.test(arg.trim()) ? "participant" : "viewer";
   if (name === "follow" && arg.trim() === "primary") return "controller";

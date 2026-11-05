@@ -1,5 +1,7 @@
 # 绑定、主入口与个人准入
 
+当前 Connector 的个人目录偏好与群绑定独立，命令、持久化和验证合同见 [connector-selection.md](connector-selection.md)。保存设备选择不构成资源授权。
+
 绑定是一条 account/conversation → session → host/thread 的关系。项目名称、cwd、个人 actor ID 都不能替代该关系。session-execution、session-follow、interaction-routing、RuntimeStateStore 和 AccountManager 共同使用这条明确边，交互主入口只是仍有效绑定的引用。
 
 ## 两类身份与授权
