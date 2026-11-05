@@ -13,7 +13,8 @@ export class ConnectorSelection {
     private readonly managedAccess?: (principal: PeerPrincipal) => boolean) {}
 
   private hosts(principal: PeerPrincipal): string[] {
-    return [...new Set([...(this.managedAccess?.(principal) ? this.peer?.managedHosts?.() ?? [] : []), ...this.peer?.hosts(principal) ?? []])];
+    const hosts = [...(this.managedAccess?.(principal) ? this.peer?.managedHosts?.() ?? [] : []), ...this.peer?.hosts(principal) ?? []];
+    return [...new Set(hosts.map(h => { const root = this.peer?.connectorRoot?.(h) ?? h; return hosts.includes(root) ? root : h; }))];
   }
 
   private key(principal: PeerPrincipal): string { return JSON.stringify([principal.accountId, principal.conversationId, principal.actorId]); }
@@ -55,6 +56,7 @@ export class ConnectorSelection {
 
   resolve(principal: PeerPrincipal): string | undefined {
     let selected = this.store.getConnectorSelection(principal)?.hostId;
+    if (selected) { const root = this.peer?.connectorRoot?.(selected); if (root && this.hosts(principal).includes(root)) selected = root; }
     if (!selected) {
       const hosts = this.hosts(principal);
       if (hosts.length > 1) throw new ConnectorSelectionError("有多个已授权 Connector，请发送 /connect 选择当前设备；查看全部可用 /sessions all。");

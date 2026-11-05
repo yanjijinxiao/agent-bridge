@@ -76,7 +76,7 @@ export class PeerSharingGateway implements PeerSharingPort {
   }
   async ide(principal: PeerPrincipal, target: SharedTarget, guard: () => void): Promise<string> {
     if (!this.portal) throw new PeerError("unsupported", "共享 Web 编辑器入口尚未配置，请在 Peer 服务端配置 resources 监听地址与 publicOrigin。");
-    const candidates = this.registry.grantsFor(principal).filter(g => g.hostId === target.hostId && (!g.threadId || g.threadId === target.threadId));
+    const candidates = this.registry.grantsForTarget(principal, target.hostId).filter(g => !g.threadId || g.threadId === target.threadId);
     const grant = candidates.find(g => g.delegation && g.threadId === target.threadId) ?? candidates[0];
     if (!grant) throw new PeerError("access", "没有此会话的授权。");
     let resourceId: string;

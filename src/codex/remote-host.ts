@@ -81,6 +81,14 @@ export function resolveRemoteSshConnection(hostId: string, options: RemoteCodexT
   return { command: options.sshBin ?? "/usr/bin/ssh", args, target };
 }
 
+/** Discovery only: existing registration chooses targets; callers cannot turn
+ * an arbitrary incoming hostname into a new exported execution endpoint. */
+export function registeredRemoteHosts(codexHome = path.join(os.homedir(), ".codex")): string[] {
+  return [...new Set(readRemoteConnections(codexHome).flatMap(c => {
+    const id = stringValue(c.hostId); return id && id !== "local" ? [id] : [];
+  }))];
+}
+
 function readRemoteConnections(codexHome: string): DesktopRemoteConnection[] {
   for (const name of [".codex-global-state.json", ".codex-global-state.json.bak"]) {
     try {

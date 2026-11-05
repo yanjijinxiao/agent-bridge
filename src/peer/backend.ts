@@ -258,7 +258,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       const description = describe(host!);
       if (!description.thread) {
         const catalog = await invoke<import("../codex/backend.js").CodexSessionCatalog>("listSessionCatalog", [input ?? {}], host!);
-        return { ...catalog, hostIds: registry.managedRoute(host) ? registry.managedHosts() : [host!] };
+        return { ...catalog, hostIds: registry.catalogHosts(host ?? "local") };
       }
       const state = await invoke("inspectThread", [description.thread.threadId], host!) as CodexThreadState;
       const visible = (!input?.cwd || input.cwd === state.cwd) && (!input?.projectId || input.projectId === state.projectId)

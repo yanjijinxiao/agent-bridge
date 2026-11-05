@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { PeerError } from "./rpc.js";
+import { spawn } from "node:child_process";
+import { ideHostCommand, runIDEHost } from "../ide/host-command.js";
 
 export type SharedDirectory = { path: string; dev: number; ino: number };
 const maxBytes = 128 * 1024;
@@ -61,4 +63,48 @@ export function sharedWorkspace(root: SharedDirectory, method: string, input: { 
     fs.ftruncateSync(fd, replacement.length); fs.fsyncSync(fd);
     return { hash: sha(replacement) };
   } finally { fs.closeSync(fd); }
+}
+
+// Reuse the exact same boundary checks on the selected host. No second remote
+// text-editor implementation, and no caller-controlled executable or script.
+function hostHelper(): string {
+  return `const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const __name=(fn)=>fn;class PeerError extends Error{};const maxBytes=${maxBytes};
+const fail=${fail.toString()},sha=${sha.toString()};
+${sharedDirectory.toString()}\n${target.toString()}\n${read.toString()}\n${sharedWorkspace.toString()}`;
+}
+export class SharedWorkspaceHost {
+  constructor(private readonly hostId = "local", private readonly codexHome?: string) {}
+  directory(cwd: string): Promise<SharedDirectory> {
+    return this.hostId === "local" ? Promise.resolve(sharedDirectory(cwd)) : runIDEHost(this.hostId,
+      `${hostHelper()}\nconst input=JSON.parse(Buffer.from(process.argv[1],'base64').toString());process.stdout.write(JSON.stringify(sharedDirectory(input.cwd)));`, { cwd }, undefined, 30000, { codexHome: this.codexHome });
+  }
+  async workspace(root: SharedDirectory, method: string, input: { path: string; text?: string; hash?: string }, guard: () => void): Promise<unknown> {
+    if (this.hostId === "local") return sharedWorkspace(root, method, input, guard);
+    guard();
+    const script = `${hostHelper()}
+const input=JSON.parse(Buffer.from(process.argv[1],'base64').toString());
+const result=sharedWorkspace(input.root,input.method,input.input,()=>{
+ process.stdout.write('READY\\n');const b=Buffer.alloc(1);if(fs.readSync(0,b,0,1,null)!==1||b[0]!==49)throw fail();
+});process.stdout.write(JSON.stringify(result));`;
+    const call = ideHostCommand(this.hostId, script, { root, method, input }, { codexHome: this.codexHome });
+    return new Promise((resolve, reject) => {
+      const child = spawn(call.command, call.args, { stdio: ["pipe", "pipe", "pipe"] });
+      child.stderr.resume(); child.stdin.on("error", () => {});
+      let output = "", ready = false, failure: unknown;
+      const timer = setTimeout(() => { failure = fail(); child.kill("SIGKILL"); }, 30000);
+      child.stdout.on("data", bytes => {
+        output += String(bytes);
+        if (Buffer.byteLength(output) > 1_000_000) { failure = fail(); child.kill("SIGKILL"); return; }
+        while (output.startsWith("READY\n")) {
+          ready = true; output = output.slice(6);
+          try { guard(); child.stdin.write("1"); } catch (error) { failure = error; child.stdin.end(); }
+        }
+      });
+      child.once("error", error => { clearTimeout(timer); reject(error); });
+      child.once("close", code => { clearTimeout(timer); try {
+        if (failure) throw failure; if (code !== 0 || !ready) throw fail(); guard(); resolve(JSON.parse(output));
+      } catch (error) { reject(error); } });
+    });
+  }
 }

@@ -30,6 +30,7 @@ export class PeerConnection {
   private readonly closed = new Set<() => void>();
   private readonly heartbeat: NodeJS.Timeout;
   private alive = true;
+  private readonly channels = new Map<string, PeerConnection>();
   constructor(private readonly socket: WebSocket) {
     socket.on("error", () => {}); // close rejects waiters without echoing credentials/URLs.
     socket.on("message", data => { void this.receive(data.toString()).catch(() => this.close()); });
@@ -49,6 +50,23 @@ export class PeerConnection {
     this.heartbeat.unref();
   }
   get open(): boolean { return this.socket.readyState === WebSocket.OPEN; }
+  /** Multiplex a fixed exported host over this socket. The hash is a namespace,
+   * not authority: only the locally registered channel receives handlers. */
+  channel(hostId: string): PeerConnection {
+    if (hostId === "local") return this;
+    let channel = this.channels.get(hostId);
+    if (!channel) {
+      const prefix = `h${crypto.createHash("sha256").update(hostId).digest("hex").slice(0, 32)}.`;
+      channel = new Proxy(this, { get: (target, key) => {
+        if (key === "handle") return (method: string, handler: PeerHandler) => target.handle(prefix + method, handler);
+        if (key === "request") return (method: string, ...args: [unknown?, number?, AbortSignal?]) => target.request(prefix + method, ...args);
+        const value = Reflect.get(target, key, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      } });
+      this.channels.set(hostId, channel);
+    }
+    return channel;
+  }
   onClose(listener: () => void): () => void { this.closed.add(listener); return () => this.closed.delete(listener); }
   handle(method: string, handler: PeerHandler): () => void {
     if (this.handlers.has(method)) throw new Error(`Duplicate peer handler: ${method}`);

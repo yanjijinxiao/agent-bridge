@@ -14,6 +14,8 @@ import { acquireServiceProcessLock } from "../server/process-lock.js";
 import { peerIDEConfigSchema } from "./ide-service.js";
 import { deviceIdSchema, loadPeerIdentity } from "./credentials.js";
 import { managedExportSchema } from "./managed-route.js";
+import { hostScopedBackend } from "../codex/host-scoped-backend.js";
+import { registeredRemoteHosts } from "../codex/remote-host.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -28,6 +30,7 @@ async function main(): Promise<void> {
     appServerTransport: z.enum(["daemon", "stdio"]).default("daemon"),
     webIDE: peerIDEConfigSchema.optional(),
     managedRoute: managedExportSchema.optional(),
+    managedHosts: z.array(managedExportSchema.extend({ webIDE: peerIDEConfigSchema.optional() }).strict()).max(100).optional(),
     stateDir: z.string().optional() }).strict().refine(value => Boolean(value.nodeId) === Boolean(value.tokenFile),
       "旧凭据必须同时保留 nodeId 和 tokenFile；新设备请同时省略，由 Connector 自动生成身份")
     .refine(value => !value.managedRoute || !!value.tokenFile && !value.threadId, "托管迁移必须预配置设备身份且导出完整主机").parse(readJsonFile(file, null));
@@ -41,6 +44,7 @@ async function main(): Promise<void> {
   const terminal = readline.createInterface({ input: process.stdin, output: process.stdout });
   let client: GatewayPeerClient | undefined;
   let service: PeerExecutionService | undefined;
+  const hostServices = new Map<string, PeerExecutionService>();
   try {
     const identity = config.tokenFile ? { nodeId: config.nodeId!, token: fs.readFileSync(resolve(config.tokenFile), "utf8").trim() }
       : loadPeerIdentity(stateDir, config.url);
@@ -66,11 +70,30 @@ async function main(): Promise<void> {
         });
         questions = answer.catch(() => {}); return answer;
       } });
+    const exports = config.managedRoute ? (config.managedHosts ?? []).map(route => ({ nativeHostId: route.nativeHostId!, route }))
+      : config.threadId ? [] : registeredRemoteHosts(config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME).map(nativeHostId => ({ nativeHostId, route: undefined }));
+    if (exports.some(e => !e.nativeHostId || e.nativeHostId === "local") || new Set(exports.map(e => e.nativeHostId)).size !== exports.length)
+      throw new Error("Connector native host exports must be distinct remote hosts");
+    for (const exported of exports) {
+      // Per-host journals and leases isolate identical thread IDs. All host
+      // operations still call the same native backend through one binding.
+      const hostStateDir = path.join(stateDir, "hosts", crypto.createHash("sha256").update(exported.nativeHostId).digest("hex"));
+      fs.mkdirSync(hostStateDir, { recursive: true, mode: 0o700 });
+      const child = await PeerExecutionService.create({ backend: hostScopedBackend(backend, exported.nativeHostId),
+        profileId: config.profileId, label, stateDir: hostStateDir,
+        codexHome: config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME,
+        nativeHostId: exported.nativeHostId, managedRoute: exported.route,
+        webIDE: exported.route?.webIDE ?? (config.webIDE ? { ...config.webIDE, dataRoot: undefined, binary: "code-server" } : undefined),
+        independent: true, approve: async () => false, approveOwner: confirmation => service!.confirmOwner(confirmation), inheritedDeviceGrant: grant => service!.authorizesDevice(grant) });
+      hostServices.set(exported.nativeHostId, child);
+    }
+    service.description.hosts = exports.map(e => ({ nativeHostId: e.nativeHostId, ...(e.route ? { managedHost: e.route.hostId } : {}) }));
     client = new GatewayPeerClient({ ...config, ...identity, enroll: !config.tokenFile,
       ca: config.caFile ? fs.readFileSync(resolve(config.caFile)) : undefined,
       status: state => console.log(`Gateway peer: ${state}`),
       connected: async connection => {
         service!.attach(connection);
+        for (const [host, child] of hostServices) child.attach(connection.channel(host));
         const ticket = await connection.request<{ code: string; hostId: string; managed?: boolean; enrollment?: boolean; paired?: boolean }>("peer.register", service!.description);
         if (ticket.managed) { console.log(`托管 Connector 已连接：${label}；保留原 Gateway 准入和会话绑定。`); return; }
         console.log(`${ticket.enrollment ? "设备待登记；完成配对前不能访问会话。" : ticket.paired ? "已连接，正在恢复已有授权，无需重复配对。" : "已连接。"}\n${ticket.paired ? "如需授权新的聊天，" : ""}请在钉钉私聊发送 /connect ${ticket.code}，或在群聊 @机器人 后发送。\n设备：${label}\n配对码有效期 5 分钟；本机确认后，在钉钉选择要绑定的会话。设备凭据由程序保存，无需分发。`);
@@ -79,6 +102,7 @@ async function main(): Promise<void> {
     const stop = () => stopping ??= (async () => {
       client?.close(); terminal.close(); backend.detachIndependentObservations();
       await service!.close();
+      await Promise.all([...hostServices.values()].map(child => child.close()));
       try { await backend.close(); } finally { lock.release(); }
     })();
     const shutdown = () => void stop().then(() => { process.exitCode = 0; }, () => { process.exitCode = 1; });
@@ -86,6 +110,6 @@ async function main(): Promise<void> {
     process.once("SIGINT", shutdown);
     process.once("SIGTERM", shutdown);
     client.start();
-  } catch (error) { client?.close(); terminal.close(); await service?.close(); try { await backend.close(); } finally { lock.release(); } throw error; }
+  } catch (error) { client?.close(); terminal.close(); await service?.close(); await Promise.all([...hostServices.values()].map(child => child.close())); try { await backend.close(); } finally { lock.release(); } throw error; }
 }
 main().catch(() => { console.error("Gateway peer client failed. Check the local configuration, exported session, and device logs. Credentials are not printed."); process.exitCode = 1; });

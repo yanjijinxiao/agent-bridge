@@ -7,6 +7,8 @@ import type { PeerGrant } from "./registry.js";
 import { PeerConnection, PeerError } from "./rpc.js";
 import type { CodexInboundFile } from "../codex/inbound-files.js";
 import type { OutputFileLease } from "../codex/output-files.js";
+import { readJsonFile, writeJsonFile } from "../state/json-store.js";
+import type { CodexBridgeBackend } from "../codex/backend.js";
 
 export const FILE_METHODS = ["fileUploadBegin", "fileUploadChunk", "fileUploadFinish", "fileDownloadBegin", "fileDownloadChunk", "fileClose"] as const;
 export const FILE_CHUNK_BYTES = 256 * 1024;
@@ -54,6 +56,8 @@ type Lease = {
   kind: "upload" | "download"; owner: PeerConnection; grantId: string; threadId: string;
   fd: number; size: number; offset: number; expected: string; timer: NodeJS.Timeout;
   temporary?: string; target?: string; sum?: crypto.Hash; stat?: fs.Stats;
+  dispose?: () => Promise<void>;
+  label?: string;
 };
 
 /** Private upload storage and bounded descriptor leases. No caller chooses an upload path. */
@@ -65,7 +69,19 @@ export class PeerFiles {
     // output scope (including temporary exports). Personal grants stay confined
     // to the selected workspace and received attachments. This never grants an
     // upload destination or bypasses thread, connection or descriptor checks.
-    private readonly hostOutputAllowed: (grant: PeerGrant) => boolean = () => false) {}
+    private readonly hostOutputAllowed: (grant: PeerGrant) => boolean = () => false,
+    private readonly remote?: CodexBridgeBackend) {}
+  private async uploaded(file: string, grant: PeerGrant, threadId: string, size: number, label: string): Promise<{ path: string }> {
+    if (!this.remote) return { path: file };
+    if (!this.remote.stageAttachments) throw new PeerError("unsupported", "Host attachment transport unavailable");
+    const [result] = await this.remote.stageAttachments([{ path: file, label, kind: "file" }],
+      { scope: JSON.stringify([grant.id, threadId]), threadId, maxBytes: size });
+    const indexFile = path.join(this.stateDir, "file-host-paths.json");
+    const index = readJsonFile<Record<string, string[]>>(indexFile, {}), key = JSON.stringify([grant.id, threadId]);
+    index[key] = [...new Set([...(index[key] ?? []), path.dirname(result.path)])];
+    writeJsonFile(indexFile, index, { durable: true });
+    return { path: result.path };
+  }
   private directory(grant: PeerGrant, threadId: string, scope?: string): string {
     let dir = fs.realpathSync(this.stateDir);
     for (const part of ["files", "inbound", grant.id, hash(threadId), ...(scope ? [hash(scope)] : [])]) {
@@ -86,6 +102,7 @@ export class PeerFiles {
     const lease = this.leases.get(id); if (!lease) return;
     this.leases.delete(id); clearTimeout(lease.timer);
     try { fs.closeSync(lease.fd); } catch { /* Already closed on completion. */ }
+    void lease.dispose?.().catch(() => {});
     if (lease.temporary) {
       try { fs.rmSync(lease.temporary, { force: true }); }
       catch { console.warn("[codex-im-gateway] incomplete peer attachment cleanup deferred"); }
@@ -104,10 +121,12 @@ export class PeerFiles {
         const prior = open(target, p.size);
         try { if (prior.stat.size !== p.size || digest(prior.fd, p.size) !== p.hash) throw new PeerError("changed", "Stored attachment does not match"); }
         finally { fs.closeSync(prior.fd); }
-        return { complete: true, path: target };
+        const result = await this.uploaded(target, grant, p.threadId, p.size, p.name);
+        authorize?.(p.threadId); if (!owner.open) throw new PeerError("offline", "File transfer connection closed");
+        return { complete: true, ...result };
       }
       const temporary = path.join(dir, `.${crypto.randomUUID()}.part`), fd = fs.openSync(temporary, "wx", 0o600);
-      try { return { id: this.add({ kind: "upload", owner, grantId: grant.id, threadId: p.threadId, fd, size: p.size, offset: 0, expected: p.hash, temporary, target, sum: crypto.createHash("sha256") }) }; }
+      try { return { id: this.add({ kind: "upload", owner, grantId: grant.id, threadId: p.threadId, fd, size: p.size, offset: 0, expected: p.hash, temporary, target, label: p.name, sum: crypto.createHash("sha256") }) }; }
       catch (error) { fs.closeSync(fd); fs.rmSync(temporary, { force: true }); throw error; }
     }
     if (method === "fileDownloadBegin") {
@@ -117,18 +136,30 @@ export class PeerFiles {
       authorize?.(p.threadId);
       if (!owner.open) throw new PeerError("offline", "File transfer connection closed");
       if (!path.isAbsolute(p.path)) throw new PeerError("path", "An absolute output file path is required");
-      const file = fs.realpathSync(p.path), inbound = this.directory(grant, p.threadId);
-      if (!this.hostOutputAllowed(grant) && !inside(fs.realpathSync(state.cwd), file) && !inside(inbound, file))
+      const inbound = this.directory(grant, p.threadId);
+      let remoteLease: OutputFileLease | undefined;
+      if (this.remote) {
+        if (!this.remote.fetchOutputFile) throw new PeerError("unsupported", "Host output transport unavailable");
+        const index = readJsonFile<Record<string, string[]>>(path.join(this.stateDir, "file-host-paths.json"), {});
+        remoteLease = await this.remote.fetchOutputFile(p.path, { hostId: "local", maxBytes: p.maxBytes,
+          allowedRoots: this.hostOutputAllowed(grant) ? undefined : [state.cwd, ...(index[JSON.stringify([grant.id, p.threadId])] ?? [])] });
+        try { authorize?.(p.threadId); if (!owner.open) throw new PeerError("offline", "File transfer connection closed"); }
+        catch (error) { await remoteLease.dispose(); throw error; }
+      }
+      const file = fs.realpathSync(remoteLease?.path ?? p.path);
+      if (!this.remote && !this.hostOutputAllowed(grant) && !inside(fs.realpathSync(state.cwd), file) && !inside(inbound, file))
         throw new PeerError("path", "Output file must belong to the selected session workspace or its received attachments");
-      if (fs.lstatSync(p.path).isSymbolicLink()) throw new PeerError("path", "Output file must not be a symbolic link");
-      const { fd, stat } = open(file, p.maxBytes);
+      if (fs.lstatSync(remoteLease?.path ?? p.path).isSymbolicLink()) throw new PeerError("path", "Output file must not be a symbolic link");
+      let opened: ReturnType<typeof open>;
+      try { opened = open(file, p.maxBytes); } catch (error) { await remoteLease?.dispose(); throw error; }
+      const { fd, stat } = opened;
       try {
         const expected = digest(fd, stat.size), current = fs.statSync(file);
-        if (current.dev !== stat.dev || current.ino !== stat.ino || current.size !== stat.size || current.mtimeMs !== stat.mtimeMs || fs.realpathSync(p.path) !== file)
+        if (current.dev !== stat.dev || current.ino !== stat.ino || current.size !== stat.size || current.mtimeMs !== stat.mtimeMs || fs.realpathSync(remoteLease?.path ?? p.path) !== file)
           throw new PeerError("changed", "Output file changed before transfer");
-        return { id: this.add({ kind: "download", owner, grantId: grant.id, threadId: p.threadId, fd, size: stat.size, offset: 0, expected, stat }),
+        return { id: this.add({ kind: "download", owner, grantId: grant.id, threadId: p.threadId, fd, size: stat.size, offset: 0, expected, stat, dispose: remoteLease?.dispose }),
           size: stat.size, hash: expected, name: name(inside(inbound, file) ? path.basename(file).replace(/^[a-f0-9]{64}-/, "") : p.path) };
-      } catch (error) { fs.closeSync(fd); throw error; }
+      } catch (error) { fs.closeSync(fd); await remoteLease?.dispose(); throw error; }
     }
     const p = z.object({ id: z.string().uuid(), offset: sizeSchema.optional(), data: z.string().max(Math.ceil(FILE_CHUNK_BYTES / 3) * 4).optional() }).strict().parse(payload);
     const lease = this.leases.get(p.id);
@@ -159,7 +190,10 @@ export class PeerFiles {
           try { if (prior.stat.size !== lease.size || digest(prior.fd, lease.size) !== lease.expected) throw new PeerError("hash", "Stored attachment does not match"); }
           finally { fs.closeSync(prior.fd); }
         }
-        const result = { path: lease.target }; this.remove(p.id); return result;
+        const result = await this.uploaded(lease.target!, grant, lease.threadId, lease.size, lease.label!);
+        authorize?.(lease.threadId);
+        if (!owner.open || this.leases.get(p.id) !== lease) throw new PeerError("scope", "File transfer expired or connection closed");
+        this.remove(p.id); return result;
       }
       if (method === "fileDownloadChunk" && lease.kind === "download") {
         const stat = regular(lease.fd, lease.size);
@@ -196,7 +230,9 @@ export async function uploadPeerFiles(files: CodexInboundFile[], scope: string, 
         }
         const result = await call<{ path: string }>("fileUploadFinish", { id }); remotePath = result.path;
       }
-      if (typeof remotePath !== "string" || !path.isAbsolute(remotePath) || path.basename(remotePath) !== `${expected}-${name(file.label)}`)
+      const basename = typeof remotePath === "string" ? path.basename(remotePath) : "";
+      if (typeof remotePath !== "string" || !path.isAbsolute(remotePath)
+        || ![`${expected}-${name(file.label)}`, `${expected}-${file.label.replace(/[^\w.-]/g, "_").replace(/^\W+/, "").slice(0, 150) || "attachment"}`].includes(basename))
         throw new PeerError("protocol", "Device did not acknowledge attachment path");
       output.push({ ...file, path: remotePath });
     } finally {

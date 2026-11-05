@@ -1,6 +1,5 @@
 import { peerWriteGuard } from "./write-guard.js";
 import crypto from "node:crypto";
-import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import type { CodexBridgeBackend, CodexThreadCreateInput } from "../codex/backend.js";
@@ -9,6 +8,7 @@ import { PeerConnection, PeerError } from "./rpc.js";
 import type { PeerGrant } from "./registry.js";
 import type { PeerReceipts } from "./receipts.js";
 import { SessionControlQueue } from "../bridge/session-control.js";
+import { PeerHostDirectories } from "./host-directories.js";
 
 export const MANAGEMENT_METHODS = ["createThread", "renameThread", "archiveThread", "unarchiveThread", "deleteThread"] as const;
 const identity = z.string().min(1).max(512);
@@ -23,7 +23,8 @@ const lifecycleSchema = z.object({ threadId: identity, title: z.string().trim().
  * unassigned directory; fixed-thread/delegated grants cannot create sessions. */
 export class PeerManagement {
   private readonly queue = new SessionControlQueue();
-  constructor(private readonly backend: CodexBridgeBackend, private readonly stateDir: string, private readonly receipts: PeerReceipts) {}
+  constructor(private readonly backend: CodexBridgeBackend, private readonly stateDir: string, private readonly receipts: PeerReceipts,
+    private readonly directories = new PeerHostDirectories()) {}
   async call(grant: PeerGrant, connection: PeerConnection, method: string, raw: unknown, operationId?: string, assertAccess?: () => void): Promise<unknown> {
     if (!operationId) throw new PeerError("identity", "Management writes require a durable source identity");
     const data = method === "createThread" ? createSchema.parse(raw) : lifecycleSchema.parse(raw);
@@ -107,21 +108,14 @@ export class PeerManagement {
   private async creationInput(data: z.infer<typeof createSchema>, operationId: string): Promise<CodexThreadCreateInput & { cwd: string }> {
     if (data.standalone) {
       if (data.projectId || data.cwd || data.projectName) throw new PeerError("scope", "Standalone creation cannot select a project or path");
-      let cwd = fs.realpathSync(this.stateDir);
-      for (const part of ["workspaces", operationId]) {
-        cwd = path.join(cwd, part);
-        try { fs.mkdirSync(cwd, { mode: 0o700 }); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
-        if (fs.lstatSync(cwd).isSymbolicLink() || !fs.statSync(cwd).isDirectory() || fs.realpathSync(cwd) !== cwd)
-          throw new PeerError("scope", "The device workspace is unavailable");
-      }
+      const cwd = await this.directories.standalone(this.stateDir, operationId);
       return { cwd, title: data.title, projectBinding: "none" };
     }
     // Whole-device approval permits the same explicit unassigned workspace as
     // the native facade. Fixed-thread and delegated grants were rejected above.
     if (!data.projectId && data.cwd && !data.projectName) {
       if (!path.isAbsolute(data.cwd)) throw new PeerError("scope", "Workspace must be absolute");
-      const cwd = fs.realpathSync(data.cwd);
-      if (!fs.statSync(cwd).isDirectory()) throw new PeerError("scope", "Workspace is unavailable");
+      const cwd = await this.directories.canonical(data.cwd);
       return { cwd, title: data.title, projectBinding: data.projectBinding };
     }
     if (!data.projectId || data.projectBinding === "none") throw new PeerError("scope", "Select a device project or request a standalone session");
@@ -129,17 +123,16 @@ export class PeerManagement {
     if (!project) throw new PeerError("scope", "The selected project is no longer in the device catalog");
     const requested = data.cwd ?? project.roots[0];
     if (!requested || !path.isAbsolute(requested)) throw new PeerError("scope", "The project workspace is unavailable");
-    const cwd = fs.realpathSync(requested);
-    const rootMatches = project.roots.some(root => {
-      try { return path.isAbsolute(root) && fs.realpathSync(root) === cwd; } catch { return false; }
-    });
+    const cwd = await this.directories.canonical(requested);
+    const roots = await Promise.all(project.roots.map(root => this.directories.canonical(root).catch(() => undefined)));
+    const rootMatches = roots.includes(cwd);
     let sameWorktree = false;
     if (!rootMatches && data.sourceThreadId) {
       const source = await this.backend.inspectThread(data.sourceThreadId);
       sameWorktree = source.threadId === data.sourceThreadId && source.persistence === "active" && !source.internal
-        && source.projectId === project.id && Boolean(source.cwd && fs.realpathSync(source.cwd) === cwd);
+        && source.projectId === project.id && Boolean(source.cwd && await this.directories.canonical(source.cwd) === cwd);
     }
-    if (!fs.statSync(cwd).isDirectory() || !rootMatches && !sameWorktree)
+    if (!rootMatches && !sameWorktree)
       throw new PeerError("scope", "New sessions must use a selected project root or its confirmed existing worktree");
     return { cwd, projectId: project.id, projectName: project.name, title: data.title };
   }

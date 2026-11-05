@@ -2,7 +2,7 @@
 
 Gateway 的生产执行入口已统一到 Connector，同机部署也运行独立 Connector。Gateway 不再直接执行本机或 SSH Codex；断连不改路由。个人设备继续使用下述配对流程；保留已有本机/SSH 绑定的管理员迁移见 [Connector 唯一执行入口](architecture/connector-only-execution.md)。
 
-目录选择：`/connect` 展示本人当前聊天的设备，点击切换或 `/connect use C2` 保存当前 Connector，后续 `/sessions` 和 `/project` 默认只查它，重启后仍保留。切换目录不换绑、不停止原任务；选中会话才换绑。`/sessions all` 显式聚合，`/sessions --host ...` 为临时查询。离线/撤权不自动回退；新建不能沿用其他设备目录。接口和状态边界见 [当前 Connector](architecture/modules/connector-selection.md)。
+目录选择：`/connect` 展示本人当前聊天的设备，点击切换或 `/connect use C2` 保存当前 Connector，后续 `/sessions` 和 `/project` 默认查询它承载的已授权本机和远程主机，重启后仍保留。切换目录不换绑、不停止原任务；选中会话才换绑。`/sessions all` 显式聚合，`/sessions --host ...` 为临时查询。离线/撤权不自动回退；新建不能沿用其他设备目录。接口和状态边界见 [当前 Connector](architecture/modules/connector-selection.md)。
 
 本功能由管理员显式启用：未设置 `CODEX_IM_GATEWAY_PEER_CONFIG` 时不启动 Peer 监听，也不改变原有机器人后端。多人共享与共享工作区仍需按实际部署完成独立验收。第一次使用探探可先阅读 [Connector 与使用教程](tantan-connector-guide.md)；本文主要说明通用部署和接口。
 
@@ -84,7 +84,7 @@ B 按 `examples/peer-client.json` 创建配置：
 
 Gateway 使用统一 Connector facade；Connector 使用唯一的原生 App Server 适配器。Connector 的 `backend` 只接受 `app-server`；旧的 `exec` 配置需迁移。`appServerTransport` 默认 `daemon`，连接本机原生 daemon，不隐式回退到另一执行器。显式选择 `stdio` 可运行 CLI 私有 App Server，但任务属于该 Connector 进程，不能获得独立执行的重启豁免。
 
-默认开放该本地 Codex profile 的普通会话供获准的聊天用户选择。若只想开放某一个会话，可显式添加 `threadId`；这种受限配置仍按原流程直接绑定指定会话。
+默认开放该 Codex profile 的普通会话及其已登记的远程主机，复用已有的原生后端与 SSH 连接配置，无需在每台远端安装 Connector。一个配对设备在 /connect 中只占一个选项；/sessions 按项目展示各目标主机的会话，执行、附件和 IDE 跟随原目标。远端不可达时保留部分目录并提示，不能切换到另一执行器。若只想开放某一个会话，可显式添加 `threadId`；这种受限配置仍按原流程直接绑定指定会话。
 
 ```sh
 npm run peer -- --config /absolute/path/peer-client.json

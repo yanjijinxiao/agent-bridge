@@ -236,3 +236,25 @@ for (const change of ["role", "grant"] as const) test(`Connector session selecti
   else assert.match(f.texts.at(-1)!, /授权已失效/);
   assert.equal(f.store.getBoundSession("room"), undefined);
 });
+
+test("one selected Connector expands native hosts, preserves empty projects and creates on the selected remote project", async t => {
+  const f = fixture(t);
+  f.peer.isRouted = host => [A, B].includes(host ?? "");
+  f.peer.connectorRoot = host => host === B ? A : host;
+  f.peer.catalogHosts = host => host === A ? [A, B] : [host];
+  await f.send("/connect");
+  assert.equal(new ConnectorSelection(f.store, f.peer).list(who()).hosts.length, 1);
+  await f.send("/sessions");
+  assert.deepEqual(new Set(f.reads), new Set([A, B]));
+  assert.match(f.cards.at(-1)!.body, /machine-a.*empty/);
+  assert.match(f.cards.at(-1)!.body, /machine-b.*empty/);
+  await f.send("/project");
+  assert.deepEqual(new Set(f.projectReads), new Set([A, B]));
+  // Select through its native project action so creation uses the same host.
+  const action = f.cards.at(-1)!.actionGroups.flat().find(a => a.label.includes('machine-b:work-project'));
+  assert.ok(action);
+  const parsed = parseChannelActionValue(action.value); assert.ok(parsed);
+  await f.send(`/${parsed.command} ${parsed.arg ?? ""}`);
+  await f.send("/new");
+  assert.equal(f.creates.at(-1)?.host, B); assert.equal(f.stops.length, 0);
+});

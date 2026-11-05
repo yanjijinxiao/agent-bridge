@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { z } from "zod";
@@ -42,10 +41,10 @@ export class PeerIDEService {
   private readonly cleanups = new Set<() => Promise<void>>();
   private closed = false;
   constructor(private readonly options: { config: PeerIDEConfig; backend: CodexBridgeBackend; stateDir: string;
-    managedRoute?: ManagedConnectorExport;
+    managedRoute?: ManagedConnectorExport; nativeHostId?: string; codexHome?: string;
     authorize(grant: SharedPeerGrant, threadId: string): void; transport?: IDEHostTransport }) {
-    this.transport = options.transport ?? new ProcessIDEHostTransport({ localDataRoot: options.config.dataRoot ?? path.join(options.stateDir, "ide", "instances") });
-    this.installer = new CodeServerInstaller(path.join(options.stateDir, "ide"), { allowed: host => host === "local" && options.config.enabled && options.config.autoInstall });
+    this.transport = options.transport ?? new ProcessIDEHostTransport({ codexHome: options.codexHome, localDataRoot: options.config.dataRoot ?? path.join(options.stateDir, "ide", "instances") });
+    this.installer = new CodeServerInstaller(path.join(options.stateDir, "ide"), { codexHome: options.codexHome, allowed: host => host === (options.nativeHostId ?? "local") && options.config.enabled && options.config.autoInstall });
   }
   private guard(grant: SharedPeerGrant, threadId: string): void {
     if (this.closed || !this.options.config.enabled || grant.delegation || grant.threadId && grant.threadId !== threadId)
@@ -67,14 +66,14 @@ export class PeerIDEService {
     const catalog = await this.options.backend.listProjects(undefined, { timeoutMs: 5000 });
     this.guard(grant, target.threadId);
     const project = catalog.projects.find(p => p.id === state.projectId);
-    const canonical = (p: string) => { const result = fs.realpathSync(p); if (!fs.statSync(result).isDirectory()) throw new Error("Not a directory"); return result; };
+    const canonical = (p: string) => this.transport.canonicalDirectory(this.options.nativeHostId ?? "local", p);
     if (!project?.roots.length) throw new PeerError("scope", "原生项目目录不可用。");
-    const cwd = canonical(state.cwd), roots = [...new Set(project.roots.map(canonical))];
+    const cwd = await canonical(state.cwd), roots = [...new Set(await Promise.all(project.roots.map(canonical)))];
     // Worktree replaces the native project's primary root; siblings stay in
     // the explicit root set. No ancestor or guessed nearby folder is included.
     const expected = roots.includes(cwd) ? roots : [cwd, ...roots.slice(1)];
-    const requested = (target.rootPaths ?? [target.workspace]).map(canonical);
-    if (canonical(target.workspace) !== cwd || !requested.includes(cwd) || new Set(requested).size !== requested.length
+    const requested = await Promise.all((target.rootPaths ?? [target.workspace]).map(canonical));
+    if (await canonical(target.workspace) !== cwd || !requested.includes(cwd) || new Set(requested).size !== requested.length
       || JSON.stringify([...expected].sort()) !== JSON.stringify([...requested].sort()))
       throw new PeerError("scope", "IDE 目录与当前原生项目不一致。");
   }
@@ -118,17 +117,17 @@ export class PeerIDEService {
       await this.validate(call.grant, call.target);
       if (!connection.open) throw new PeerError("stale", "IDE connection ended");
       if (call.method === "status") {
-        const status = this.installer.list().find(s => s.hostId === "local");
+        const status = this.installer.list().find(s => s.hostId === (this.options.nativeHostId ?? "local"));
         return status ? { phase: status.phase, bytes: status.bytes, total: status.total } : null;
       }
       if (call.method === "resolve") {
         if (![call.target.workspace, ...(call.target.rootPaths ?? [])].includes(call.workspace)) throw new PeerError("scope", "Directory is not an IDE root");
-        return { workspace: await this.transport.canonicalDirectory("local", call.workspace) };
+        return { workspace: await this.transport.canonicalDirectory(this.options.nativeHostId ?? "local", call.workspace) };
       }
       if (this.leases.size >= 8) throw new PeerError("busy", "Device IDE limit reached");
       let binary = this.options.config.binary;
       if (this.options.config.autoInstall && binary === "code-server") {
-        try { binary = await this.installer.binary("local"); }
+        try { binary = await this.installer.binary(this.options.nativeHostId ?? "local"); }
         catch (error) { if (error instanceof IDEInstallPendingError) throw new PeerError("install-pending", "设备正在安装官方 code-server，请稍后重试。"); throw error; }
       }
       this.guard(call.grant, call.target.threadId);
@@ -137,8 +136,8 @@ export class PeerIDEService {
       leases.set(id, lease); this.leases.add(lease);
       let profile: IDEProfileStatus | undefined;
       try {
-        lease.launch = await this.transport.launch({ hostId: "local", workspace: fs.realpathSync(call.target.workspace),
-          rootPaths: call.target.rootPaths?.map(p => fs.realpathSync(p)),
+        lease.launch = await this.transport.launch({ hostId: this.options.nativeHostId ?? "local", workspace: await this.transport.canonicalDirectory(this.options.nativeHostId ?? "local", call.target.workspace),
+          rootPaths: call.target.rootPaths ? await Promise.all(call.target.rootPaths.map(p => this.transport.canonicalDirectory(this.options.nativeHostId ?? "local", p))) : undefined,
           // Migrated Gateway workspaces already have a stable instance ID and
           // user profile. Personal devices still isolate profiles by principal.
           id: matchesManagedGrant(this.options.managedRoute, call.grant) ? call.id

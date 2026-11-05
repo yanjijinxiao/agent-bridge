@@ -44,9 +44,9 @@ export class CodeServerInstaller {
   private readonly jobs = new Map<string, { promise: Promise<void>; controller: AbortController }>();
   private readonly io: IDEInstallerIO;
   private readonly file: string;
-  constructor(root: string, private readonly options: { allowed: (hostId: string) => boolean; io?: IDEInstallerIO }) {
+  constructor(root: string, private readonly options: { allowed: (hostId: string) => boolean; io?: IDEInstallerIO; codexHome?: string }) {
     this.file = path.join(root, "ide", "installations.json");
-    this.io = options.io ?? new ProcessIDEInstallerIO(path.join(root, "ide", "downloads"));
+    this.io = options.io ?? new ProcessIDEInstallerIO(path.join(root, "ide", "downloads"), options.codexHome);
     try {
       for (const state of readJsonFile<IDEInstallStatus[]>(this.file, [])) {
         if (!state || typeof state.hostId !== "string") continue;
@@ -164,11 +164,11 @@ const sha=async file=>{const h=crypto.createHash('sha256');for await(const data 
 `;
 const assetDownloads = new Map<string, Promise<string>>();
 export class ProcessIDEInstallerIO implements IDEInstallerIO {
-  constructor(private readonly cache: string) {}
+  constructor(private readonly cache: string, private readonly codexHome?: string) {}
   private input(value: object) { return { ...value, version: CODE_SERVER_VERSION, pins: ASSET_PINS }; }
-  probe(hostId: string, binary: string, signal: AbortSignal) { return runIDEHost<Probe>(hostId, HOST, this.input({ op: "probe", binary }), signal, 50_000); }
-  prepare(hostId: string, signal: AbortSignal) { return runIDEHost<string>(hostId, HOST, this.input({ op: "prepare" }), signal); }
-  async remoteDownload(hostId: string, stage: string, asset: IDEAsset, signal: AbortSignal) { await runIDEHost(hostId, HOST, this.input({ op: "download", stage, asset }), signal, 60_000); }
+  probe(hostId: string, binary: string, signal: AbortSignal) { return runIDEHost<Probe>(hostId, HOST, this.input({ op: "probe", binary }), signal, 50_000, { codexHome: this.codexHome }); }
+  prepare(hostId: string, signal: AbortSignal) { return runIDEHost<string>(hostId, HOST, this.input({ op: "prepare" }), signal, 30_000, { codexHome: this.codexHome }); }
+  async remoteDownload(hostId: string, stage: string, asset: IDEAsset, signal: AbortSignal) { await runIDEHost(hostId, HOST, this.input({ op: "download", stage, asset }), signal, 60_000, { codexHome: this.codexHome }); }
   async download(asset: IDEAsset, progress: (bytes: number) => void, signal: AbortSignal): Promise<string> {
     fs.mkdirSync(this.cache, { recursive: true, mode: 0o700 }); fs.chmodSync(this.cache, 0o700);
     const key = path.join(fs.realpathSync(this.cache), asset.name);
@@ -194,8 +194,8 @@ export class ProcessIDEInstallerIO implements IDEInstallerIO {
       if (!await verified(file, asset)) throw new Error("官方制品校验失败"); return file;
     } finally { clearInterval(timer); }
   }
-  upload(hostId: string, stage: string, file: string, signal: AbortSignal) { return uploadIDEHost(hostId, HOST, this.input({ op: "upload", stage }), file, signal); }
-  activate(hostId: string, stage: string, asset: IDEAsset, signal: AbortSignal) { return runIDEHost<string>(hostId, HOST, this.input({ op: "activate", stage, asset }), signal, 180_000); }
+  upload(hostId: string, stage: string, file: string, signal: AbortSignal) { return uploadIDEHost(hostId, HOST, this.input({ op: "upload", stage }), file, signal, { codexHome: this.codexHome }); }
+  activate(hostId: string, stage: string, asset: IDEAsset, signal: AbortSignal) { return runIDEHost<string>(hostId, HOST, this.input({ op: "activate", stage, asset }), signal, 180_000, { codexHome: this.codexHome }); }
 }
 async function verified(file: string, asset: IDEAsset): Promise<boolean> {
   try { if (fs.statSync(file).size !== asset.size) return false;

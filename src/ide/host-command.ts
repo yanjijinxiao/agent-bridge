@@ -9,20 +9,20 @@ export function ideSshConnection(hostId: string, options: RemoteCodexTransportOp
   const ssh = resolveRemoteSshConnection(hostId, options);
   return { ...ssh, args: [...ssh.args, "-o", "ControlMaster=no", "-o", "ControlPath=none"] };
 }
-export function ideHostCommand(hostId: string, script: string, input: object) {
+export function ideHostCommand(hostId: string, script: string, input: object, options: RemoteCodexTransportOptions = {}) {
   const data = Buffer.from(JSON.stringify(input)).toString("base64");
   if (hostId === "local") return { command: process.execPath, args: ["-e", script, data] };
-  const ssh = ideSshConnection(hostId), code = Buffer.from(script).toString("base64");
+  const ssh = ideSshConnection(hostId, options), code = Buffer.from(script).toString("base64");
   return { command: ssh.command, args: [...ssh.args, ssh.target,
     `exec node -e "eval(Buffer.from('${code}','base64').toString())" '${data}'`] };
 }
-export async function runIDEHost<T>(hostId: string, script: string, input: object, signal?: AbortSignal, timeout = 30_000): Promise<T> {
-  const call = ideHostCommand(hostId, script, input);
+export async function runIDEHost<T>(hostId: string, script: string, input: object, signal?: AbortSignal, timeout = 30_000, options: RemoteCodexTransportOptions = {}): Promise<T> {
+  const call = ideHostCommand(hostId, script, input, options);
   const { stdout } = await exec(call.command, call.args, { timeout, signal, maxBuffer: 1_000_000, windowsHide: true });
   return JSON.parse(stdout) as T;
 }
-export async function uploadIDEHost(hostId: string, script: string, input: object, file: string, signal: AbortSignal): Promise<void> {
-  const call = ideHostCommand(hostId, script, input);
+export async function uploadIDEHost(hostId: string, script: string, input: object, file: string, signal: AbortSignal, options: RemoteCodexTransportOptions = {}): Promise<void> {
+  const call = ideHostCommand(hostId, script, input, options);
   await new Promise<void>((resolve, reject) => {
     const child = spawn(call.command, call.args, { signal, stdio: ["pipe", "ignore", "pipe"], windowsHide: true });
     const source = fs.createReadStream(file); child.stderr.resume();

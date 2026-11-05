@@ -10,18 +10,23 @@ export type FetchOutputFile = (remotePath: string, options: {
   readonly hostId: string; readonly maxBytes: number; readonly directory?: string;
   /** Required by delegated device transports; ignored by SSH transports. */
   readonly accountId?: string; readonly conversationId?: string; readonly threadId?: string;
+  readonly allowedRoots?: readonly string[];
 }) => Promise<OutputFileLease>;
 
 /** A read-only port on the selected execution host. Paths arrive over stdin,
  * never in a shell command. Refuse symlinks, devices and changing/oversized files. */
 export const OUTPUT_FILE_SENDER = String.raw`
-const fs=require('node:fs'),crypto=require('node:crypto');let input='';
+const fs=require('node:fs'),crypto=require('node:crypto'),path=require('node:path');let input='';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data',chunk=>{input+=chunk;if(Buffer.byteLength(input)>16384)process.exit(2)});
 process.stdin.on('end',()=>{try{
  const h=JSON.parse(input);
  if(typeof h.path!=='string'||!h.path.startsWith('/')||h.path.includes('\0')||h.path.length>4096
  ||!Number.isSafeInteger(h.maxBytes)||h.maxBytes<1||h.maxBytes>100*1024*1024)throw Error();
+ if(h.allowedRoots){const actual=fs.realpathSync(h.path);if(!h.allowedRoots.some(root=>{try{
+   const base=fs.realpathSync(root),relative=path.relative(base,actual);
+   return relative===''||relative!=='..'&&!relative.startsWith('../')&&!path.isAbsolute(relative);
+ }catch{return false;}}))throw Error('Outside selected workspace');}
  const fd=fs.openSync(h.path,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK);
  let body;
  try{
@@ -38,7 +43,7 @@ process.stdin.on('end',()=>{try{
 `;
 
 export async function fetchRemoteOutputFile(remotePath: string, options: {
-  readonly maxBytes: number; readonly directory?: string; readonly timeoutMs?: number;
+  readonly maxBytes: number; readonly directory?: string; readonly timeoutMs?: number; readonly allowedRoots?: readonly string[];
 }, transport: AppServerTransport): Promise<OutputFileLease> {
   if (transport.mode !== "remote-daemon" || !transport.args?.length || !/(?:^|\/)ssh$/.test(transport.command)) {
     throw new Error("远程执行器没有文件回传端口");
@@ -65,7 +70,7 @@ export async function fetchRemoteOutputFile(remotePath: string, options: {
       if (code !== 0 || excessive || timedOut) reject(new Error(timedOut ? "远程文件回传超时" : "远程文件读取失败或超过大小限制"));
       else resolve(Buffer.concat(chunks));
     });
-    child.stdin.end(JSON.stringify({ path: remotePath, maxBytes }));
+    child.stdin.end(JSON.stringify({ path: remotePath, maxBytes, allowedRoots: options.allowedRoots }));
   });
   const newline = output.indexOf(10);
   if (newline < 0 || newline > 8192) throw new Error("远程文件回传头无效");

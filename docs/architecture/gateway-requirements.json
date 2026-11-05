@@ -18039,6 +18039,57 @@
           ],
           "verifiedBoundary": "30 个活跃绑定的配置读取次数有界；换绑后立即更新，读取异常后释放快照；78 项模块回归通过。",
           "remainingBoundary": "线上响应时间与最终制品切换另行验证。"
+        },
+        {
+          "id": "NAT-07.10",
+          "scenario": "一个 Connector 复用原后端访问多原生主机，连接分组不丢失执行身份或放大权限",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/connector-host-routing.test.ts",
+              "name": "one Connector keeps native host identity through catalogs, history, execution and reconnect (managed)"
+            },
+            {
+              "file": "test/connector-selection.test.ts",
+              "name": "one selected Connector expands native hosts, preserves empty projects and creates on the selected remote project"
+            },
+            {
+              "file": "test/output-files.test.ts",
+              "name": "remote personal outputs enforce canonical workspace roots on the target host"
+            },
+            {
+              "file": "test/ide-host-command.test.ts",
+              "name": "host filesystem commands keep the selected Codex profile SSH registration"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/host-scoped-backend.ts",
+              "sha256": "7a4f449ccc970917f2c96109f8a9f918eef114ce0fb9cb8ed85c6f5d230ac897"
+            },
+            {
+              "file": "src/peer/rpc.ts",
+              "sha256": "f69dcf5b57dff6a5ac9d2bca02aead7c3d39b899b211140277e4bb4cd365d807"
+            },
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "cfbfe8129562e08344c465619c1e51a2d8d2f1e5fb3195942483198109cbded2"
+            },
+            {
+              "file": "src/peer/host-directories.ts",
+              "sha256": "a97b531529f037344d8e9e73334383a2fc3b7bbe987e87ab1192a0b3bc0a1ecf"
+            },
+            {
+              "file": "src/peer/files.ts",
+              "sha256": "dc9c550940fa9ab26b97b6e15c542c780047deb68c5fd353192e66d1be728736"
+            },
+            {
+              "file": "src/peer/ide-service.ts",
+              "sha256": "33e260c27523ab4b4af413e9972b02dc9bed296fde836240f017dd9029c874be"
+            }
+          ],
+          "verifiedBoundary": "真实单 WebSocket 隔离回归；单 Mac Connector 实连本机和远端，历史、目录、附件字节往返、共享目录及两端 IDE HTTP 200。",
+          "remainingBoundary": "手机视觉未实测；Desktop 注册与原生 project/list 的历史身份差异未按名称或 cwd 猜测合并。"
         }
       ]
     }

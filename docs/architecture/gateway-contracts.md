@@ -1157,3 +1157,5 @@ peer: host 显式路由；51个公共端口分类穷尽，非 peer host 复用�
 | KB-02.4 | 12 个真实崩溃恢复场景核对附件字节和一次发送 | native-input-crash-recovery、native-queue-crash-recovery |
 
 测试全名与内容散列以 gateway-requirements.json 为准；过程及验证边界见[移除记录](../audits/2026-11-04-remove-gateway-memory.md)。
+
+NAT-07.10：连接身份与目标 hostId 分开；一个 Connector 可以承载多个登记主机，目录分组不改会话身份和授权。参见 [多主机合同](connector-host-routing.md)。

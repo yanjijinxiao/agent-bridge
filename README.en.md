@@ -334,3 +334,5 @@ XavierJiezou/codex-weixin → lsiten/codex-channel-bridge → yanjijinxiao/codex
 Existing copyright notices and the [MIT License](./LICENSE) are preserved. See [NOTICE](./NOTICE) for attribution. The WeChat iLink integration shape references the MIT-licensed `Tencent/openclaw-weixin`; no AGPL source code was copied.
 
 This is an unofficial community project and is not affiliated with or endorsed by OpenAI, Tencent, WeCom, ByteDance, Feishu, Alibaba, DingTalk, or the upstream maintainers.
+
+A single Connector profile can route to its local and registered remote native hosts through the existing Codex backend. `/connect` selects the device; `/sessions` and `/project` include its authorized hosts. Session bindings, files and IDE keep their exact target host. See [host routing](docs/architecture/connector-host-routing.md).

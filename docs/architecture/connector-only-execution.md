@@ -4,7 +4,7 @@
 
 ## 职责
 
-Gateway 只持有渠道、准入、聊天角色、绑定、投递和原生回执；所有 Codex 调用、目录查询、附件和 IDE 后端均通过 Connector。Gateway 不创建 App Server 客户端，不启动 Codex，不在断连时退回直连、SSH 或其他设备。Connector 在工作目录所在机器连接既有 App Server；桌面和 CLI 继续使用同一套原生接口。
+Gateway 只持有渠道、准入、聊天角色、绑定、投递和原生回执；所有 Codex 调用、目录查询、附件和 IDE 后端均通过 Connector。Gateway 不创建 App Server 客户端，不启动 Codex，不在断连时退回直连、SSH 或其他设备。Connector 连接既有 App Server，并复用同一个原生后端访问其登记的远程主机；不要求每台远端再安装 Connector。桌面和 CLI 继续使用同一套原生接口。连接身份与目标主机身份分离，见 [多主机路由](connector-host-routing.md)。
 
 Gateway 重启只断开观察连接。Connector 和已接收任务独立存活，重连后核对原生状态和回执。已接收或接收不明的输入不能自动重发。Connector 重启同样不拥有独立 Codex daemon 的生命周期。
 
@@ -44,7 +44,7 @@ Gateway 的 `CODEX_IM_GATEWAY_PEER_CONFIG` 指向监听配置。原有 `listen`�
 - `nodeId` / `profileId`：唯一的设备及 profile，必须与 Connector 配置一致。
 - `grantId`：部署时生成的 UUID，双方匹配；它是授权关联标识，设备认证仍使用私密凭据。
 
-Connector 新增 `managedRoute: { hostId, grantId }`，必须使用管理员预配置的 nodeId/tokenFile，不允许 threadId 限定或自助登记冒充托管主机。个人 Connector 配置完全兼容，不需要加入 managedRoute。
+Connector 使用 `managedRoute: { hostId, grantId }` 保留主入口；可用 `managedHosts` 声明同一连接承载的既有远程目标（每项含 hostId、nativeHostId、grantId，可选主机专用 webIDE 配置）。Gateway 相应 managedRoutes 保留原 hostId/grantId，将 nodeId/profileId 指向同一个 Connector，并填入 nativeHostId。一个物理连接可承载多个不同目标，重复逻辑主机或重复目标均拒绝。必须使用管理员预配置的 nodeId/tokenFile，不允许 threadId 限定或自助登记冒充托管主机。个人 Connector 配置完全兼容，不需要加入 managedRoute。
 
 `webIDE.dataRoot` 可指向旧 IDE 实例目录，保留设置、扩展与数据；执行文件选择仍在设备本地，不能由 RPC 任意指定。已有 IDE 外部 HTTPS 入口和浏览器准入不迁移。SSH 如用于加密网络隧道或旧 HTTPS 入口转发，只承担传输，不再承担 Codex/IDE 执行。
 
@@ -77,3 +77,6 @@ IDE 实际启动：本机双根工作区、远端单根工作区均为 running�
 授权验收边界：探探原浏览器授权完整保留；头头基线 20 条中 17 条逐条哈希一致，3 条旧记录不再存在，因此不能写成“所有浏览器授权保留”。同时发现 3 个历史 IDE 引用锁定的旧项目 ID 与当前原生归属不一致，其中一个会话在预切换快照中已归档；旧验收快照只有授权指纹与过期时间，无法逐条反推出已消失记录。当前项目固定入口已实测，浏览器授权有效期仍为 90 天、无授权文件读取错误；没有根据名称/相同目录将旧授权强行移到新项目，也没有恢复不明授权。手机端视觉与这些旧 cookie 的再次访问未实测。
 
 本次按变更范围核对四层：Gateway 无执行核心和生命周期解耦；路由/授权/回执/项目/IDE/文件模块；最终守卫、来源 ID、实例 ID、分块文件与展示快照函数；配置、launchd、独立远端服务、静态 UI、README 和迁移案例。该记录不声称重新逐行审查未变更的全仓库，也不把条件跳过或历史 cookie 缺失算作通过。部署证据保存在本机 gateway-connector-projection-20261105 目录中，包含版本、接口延迟、IDE 状态及授权差异；凭据不进入仓库。
+
+
+2026-11-05 后续修正：Linux Connector 已按用户要求关闭。新的单 Mac Connector 路由复用既有远端 App Server，不恢复 Linux Connector 或其旧隧道；旧上线记录是历史证据，不代表当前仍需两个 Connector。当前修正的验证记录见 [多主机审查](../audits/2026-11-05-connector-host-routing.md)。

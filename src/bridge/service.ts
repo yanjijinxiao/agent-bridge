@@ -251,7 +251,10 @@ export class BridgeService {
 
   private catalogProjects(senderId: string): ManagedProject[] {
     const host = this.options.stateStore.getConnectorSelection(this.catalogPrincipal(senderId))?.hostId;
-    return this.options.stateStore.listProjects().filter(project => !host || (project.hostId ?? "local") === host);
+    const root = host && (this.options.peer?.connectorRoot?.(host) ?? host);
+    const authorized = this.options.peer?.hosts(this.catalogPrincipal(senderId)) ?? [];
+    const hosts = root ? (this.options.peer?.catalogHosts?.(root) ?? [root]).filter(h => !h.startsWith("peer:") || authorized.includes(h)) : undefined;
+    return this.options.stateStore.listProjects().filter(project => !hosts || hosts.includes(project.hostId ?? "local"));
   }
 
   private readonly actor = new AsyncLocalStorage<string>();
@@ -972,7 +975,7 @@ export class BridgeService {
       return false;
     }
     if (target.kind === "current" && !await this.validateProjectRoute(senderId, project)) return false;
-    if (selectedHost && (project.hostId ?? "local") !== selectedHost)
+    if (selectedHost && !(this.options.peer?.catalogHosts?.(selectedHost) ?? [selectedHost]).includes(project.hostId ?? "local"))
       throw new ConnectorSelectionError("当前项目属于另一台设备，请通过 /project 选择当前 Connector 的项目后再新建；原绑定未改变。");
     assertCurrent();
     if (project.hostId?.startsWith("peer:") || this.options.peer?.isRouted?.(project.hostId ?? "local")) return this.createPeerSession(senderId, project.hostId ?? "local",
@@ -1675,12 +1678,13 @@ export class BridgeService {
       const activeProject = this.options.stateStore.getActiveProject(senderId);
       const projectOnly = input.toLowerCase() === "project";
       if (projectOnly && !activeProject) { await this.reply(senderId, copyableChoices("当前没有选择项目，可以选择已有会话或项目。", [{ label: "查看已有会话", value: "/sessions" }, { label: "选择项目", value: "/project" }])); return; }
-      if (projectOnly && hostFilter && (activeProject?.hostId ?? "local") !== hostFilter)
+      const selectedHosts = hostFilter ? this.options.peer?.catalogHosts?.(hostFilter) ?? [hostFilter] : undefined;
+      if (projectOnly && selectedHosts && !selectedHosts.includes(activeProject?.hostId ?? "local"))
         throw new ConnectorSelectionError("当前项目属于另一台设备，请通过 /project 选择当前 Connector 的项目。");
       const query = /^search\s+(.+)$/i.exec(input)?.[1].toLocaleLowerCase();
       const unassigned = /^(unbound|unassigned)$/i.test(input);
       const resourceOnly = !this.access.requireAccess(actorId, senderId).allowed && Boolean(this.options.peer?.sharing?.admitted(this.peerIdentity(actorId, senderId)));
-      const hosts = new Set(hostFilter ? [hostFilter] : resourceOnly ? pairedHosts : ["local", ...pairedHosts]);
+      const hosts = new Set(selectedHosts ? selectedHosts.filter(h => !h.startsWith("peer:") || pairedHosts.includes(h)) : resourceOnly ? pairedHosts : ["local", ...pairedHosts]);
       const warnings: string[] = [];
       const incompleteHosts = new Map<string, string>();
       let purposes = new SessionPurposeIndex();
@@ -1695,7 +1699,7 @@ export class BridgeService {
       if (firstCatalog) await firstCatalog.catch(() => undefined); // Report once in the host loop below.
       let projectCatalog: readonly CodexProjectCandidate[] = [];
       try {
-        if (hostFilter && this.options.peer?.isRouted?.(hostFilter)) projectCatalog = projectCandidatesFromConnectorCatalog(await this.runner.listProjects(hostFilter), hostFilter);
+        if (hostFilter && this.options.peer?.isRouted?.(hostFilter)) projectCatalog = await this.connectorProjectCandidates([...hosts]);
         else if (hostFilter?.startsWith("peer:")) projectCatalog = projectCandidatesFromBackendCatalog(await this.runner.listProjects(hostFilter), undefined, hostFilter);
         else if (!hostFilter) projectCatalog = await this.codexProjectCandidates("all");
         else projectCatalog = (await this.localCodexProjectCandidates()).filter(p => (p.hostId ?? "local") === hostFilter);
@@ -3043,7 +3047,7 @@ export class BridgeService {
   private async codexProjectCandidates(scope: "selected" | "all" = "selected"): Promise<readonly CodexProjectCandidate[]> {
     const principal = peerPrincipal.getStore(), paired = principal ? this.options.peer?.hosts(principal) ?? [] : [];
     const selected = scope === "selected" && principal ? this.catalogHost(principal.conversationId) : undefined;
-    if (selected && this.options.peer?.isRouted?.(selected)) return projectCandidatesFromConnectorCatalog(await this.runner.listProjects(selected), selected);
+    if (selected && this.options.peer?.isRouted?.(selected)) return this.connectorProjectCandidates((this.options.peer.catalogHosts?.(selected) ?? [selected]).filter(h => !h.startsWith("peer:") || paired.includes(h)));
     if (selected?.startsWith("peer:")) return projectCandidatesFromBackendCatalog(await this.runner.listProjects(selected), undefined, selected);
     const localCandidates = !principal || this.access.requireAccess(principal.actorId, principal.conversationId).allowed
       ? await this.localCodexProjectCandidates() : [];
@@ -3051,6 +3055,12 @@ export class BridgeService {
     if (scope === "selected") return selected ? local.filter(p => (p.hostId ?? "local") === selected) : local;
     const remote = await Promise.allSettled(paired.map(async host => projectCandidatesFromBackendCatalog(await this.runner.listProjects(host), undefined, host)));
     return [...local, ...remote.flatMap(result => result.status === "fulfilled" ? result.value : [])];
+  }
+
+  private async connectorProjectCandidates(hosts: readonly string[]): Promise<readonly CodexProjectCandidate[]> {
+    const results = await Promise.allSettled(hosts.map(async host => projectCandidatesFromConnectorCatalog(await this.runner.listProjects(host), host)));
+    if (results.length && results.every(r => r.status === "rejected")) throw (results[0] as PromiseRejectedResult).reason;
+    return results.flatMap(result => result.status === "fulfilled" ? result.value : []);
   }
 
   private async localCodexProjectCandidates(): Promise<readonly CodexProjectCandidate[]> {

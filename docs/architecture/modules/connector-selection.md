@@ -8,7 +8,7 @@
 - `/connect use C2` 使用最新设备列表的稳定身份。按钮附带列表版本；过期、旧版本或已失效授权拒绝，不能按变化后的数组位置选另一台。
 - `/connect use local` 返回 Gateway 本地目录，仅原有 Gateway 准入用户可用；不获得其他权限。
 - `/connect 配对码` 保持原有设备确认过程，成功后记录该设备为当前目录来源。
-- `/sessions`、搜索、无项目筛选和 `/project` 使用当前 Connector；`/sessions all` 显式聚合可访问来源；`/sessions --host ...` 仅临时查询，翻页沿用快照，不改变默认选择。
+- `/sessions`、搜索、无项目筛选和 `/project` 使用当前 Connector 的所有已授权目标主机；一个 Connector 只显示一个设备选项，展开后的会话/项目继续保留各自 hostId。`/sessions all` 显式聚合可访问来源；`/sessions --host ...` 仅临时查询，翻页沿用快照，不改变默认选择。
 - 没有偏好时，唯一已授权设备自动选中并持久化；多设备要求 `/connect` 选择；没有设备保持原有本地目录行为。已保存设备离线或撤权时保留偏好并明确报错，不回退到其他设备。
 - `/new --standalone` 在当前 Connector 创建；`/new` 不得在切换设备后沿用旧设备的项目；显式项目选择也限当前目录范围。原生创建、审批、回执仍走同一后端接口。
 
@@ -21,3 +21,5 @@ RuntimeStateStore 保存偏好且不改 activeSessionIds/activeProjectIds。Brid
 ## 验证范围
 
 补充 test/connector-selection.test.ts：首次使用、唯一/多设备、切换与持久恢复、临时查询/聚合/分页、同名身份、旧卡和过期编号、离线/撤权、多人跨群跨机器人、项目范围与新建跨主机保护、选择代次及既有绑定/执行不变。另跑现有配对、共享、项目、session 和状态迁移回归。真实 IM 渲染与部署结果单独记录，不以单元测试代替。
+
+多主机连接的合同和文件/IDE 边界见 [Connector 主机路由](../connector-host-routing.md)。旧目标主机偏好可归到原连接入口，既有执行绑定不变；显式 --host 查询仍只查指定目标。个人共享授权只能看到获准的目标，不能因为分组获得父入口或相邻主机权限。

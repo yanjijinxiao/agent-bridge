@@ -5,7 +5,7 @@ import type { PeerGrant } from "./registry.js";
 /** Deployment-owned identity, never learned from a remote registration. Logical
  * host IDs remain stable so old receipts, bindings and IDE scopes keep meaning. */
 export const managedHostSchema = z.string().min(1).max(512).refine(v => v.trim() === v && !v.startsWith("peer:") && !/[\r\n\0]/.test(v));
-export const managedExportSchema = z.object({ hostId: managedHostSchema, grantId: z.string().uuid() }).strict();
+export const managedExportSchema = z.object({ hostId: managedHostSchema, grantId: z.string().uuid(), nativeHostId: managedHostSchema.optional() }).strict();
 export const managedRouteSchema = managedExportSchema.extend({ nodeId: z.string().regex(/^[\w-]{1,80}$/), profileId: z.string().regex(/^[\w-]{1,80}$/) }).strict();
 export type ManagedConnectorRoute = z.infer<typeof managedRouteSchema>;
 export type ManagedConnectorExport = z.infer<typeof managedExportSchema>;
@@ -28,7 +28,8 @@ export function validateManagedRoutes(routes: readonly ManagedConnectorRoute[]):
   const hosts = new Set<string>(), targets = new Set<string>();
   for (const route of routes) {
     managedRouteSchema.parse(route);
-    if (hosts.has(route.hostId) || targets.has(managedTarget(route))) throw new Error("Managed Connector routes must have unique hosts and targets");
-    hosts.add(route.hostId); targets.add(managedTarget(route));
+    const target = JSON.stringify([managedTarget(route), route.nativeHostId ?? "local"]);
+    if (hosts.has(route.hostId) || targets.has(target)) throw new Error("Managed Connector routes must have unique hosts and native targets");
+    hosts.add(route.hostId); targets.add(target);
   }
 }

@@ -5,7 +5,7 @@ import path from "node:path";
 import { PassThrough } from "node:stream";
 import { setTimeout as delay } from "node:timers/promises";
 import test from "node:test";
-import { uploadIDEHost } from "../src/ide/host-command.js";
+import { uploadIDEHost, ideHostCommand } from "../src/ide/host-command.js";
 
 async function until(check: () => boolean, ms = 2000): Promise<void> {
   const deadline = Date.now() + ms;
@@ -50,4 +50,14 @@ test("IDE upload cancellation closes its source and transfer process without an 
     fs.writeFileSync(input.marker,String(process.pid));process.stdin.resume();`, { marker }, "fixture", abort.signal), /abort/i);
   await until(() => fs.existsSync(marker)); pid = Number(fs.readFileSync(marker, "utf8")); abort.abort();
   await rejected; await until(() => !alive(pid!)); assert.equal(source.destroyed, true);
+});
+
+
+test("host filesystem commands keep the selected Codex profile SSH registration", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "host-profile-")); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, ".codex-global-state.json"), JSON.stringify({ "codex-managed-remote-connections": [{ hostId: "remote-ssh-discovered:wrong-default", alias: "configured-target", user: "profile-owner", sshPort: 2345 }] }));
+  const command = ideHostCommand("remote-ssh-discovered:wrong-default", "process.stdout.write('null')", {}, { codexHome: root });
+  assert.ok(command.args.includes("profile-owner@configured-target"));
+  assert.ok(command.args.includes("2345"));
+  assert.ok(!command.args.includes("wrong-default"));
 });

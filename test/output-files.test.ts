@@ -40,6 +40,16 @@ test("remote output sender rejects symlinks, non-files, oversize and invalid pat
   }
 });
 
+test("remote personal outputs enforce canonical workspace roots on the target host", t => {
+  const { root } = fixture(t), workspace = path.join(root, "work"), other = path.join(root, "work-other");
+  fs.mkdirSync(workspace); fs.mkdirSync(other); fs.writeFileSync(path.join(workspace, "ok"), "safe"); fs.writeFileSync(path.join(other, "no"), "private");
+  fs.symlinkSync(other, path.join(workspace, "escape"));
+  const run = (file: string) => spawnSync(process.execPath, ["-e", OUTPUT_FILE_SENDER], { input: JSON.stringify({ path: file, maxBytes: 1024, allowedRoots: [path.join(root, "old-missing-root"), workspace] }) });
+  assert.equal(run(path.join(workspace, "ok")).status, 0);
+  assert.equal(run(path.join(other, "no")).status, 1);
+  assert.equal(run(path.join(workspace, "escape", "no")).status, 1);
+});
+
 test("remote output receiver rejects another transport, corrupt bytes, excessive output and timeout", async t => {
   const { root, transport } = fixture(t), file = path.join(root, "source"); fs.writeFileSync(file, "data");
   await assert.rejects(fetchRemoteOutputFile(file, { maxBytes: 4096 }, { ...transport, command: "other" }), /回传端口/);

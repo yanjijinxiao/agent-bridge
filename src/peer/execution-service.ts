@@ -20,6 +20,8 @@ import { PeerSharingAuthority, type OwnerConfirmation } from "./sharing-authorit
 import { PeerIDEService, type PeerIDEConfig } from "./ide-service.js";
 import { matchesManagedGrant, type ManagedConnectorExport } from "./managed-route.js";
 import { CodexSessionCompletionMonitor } from "../server/codex-session-monitor.js";
+import { PeerHostDirectories } from "./host-directories.js";
+import { SharedWorkspaceHost } from "./shared-workspace.js";
 
 const callSchema = z.object({ grant: grantSchema, method: z.enum(["monitorSessionEvents", "unmonitorSessionEvents", "listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "readTurnActivities", "getHistory", "getHistoryPage",
   "getRuntimeInfo", "warmUp", "listSkills", "listMcpServers", "serverIdentity", "readThreadProvenance", "listQueuedSubmissions", "addQueuedSubmission", "deleteQueuedSubmission", "runQueuedSubmission", "resumeAfterCapacity", "recoverSystemError", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "interruptTurn", "getGoal", "setGoal", "clearGoal", "receipt", "observeThreadInteractions", "unobserveThreadInteractions", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
@@ -53,6 +55,8 @@ export type PeerExecutionOptions = {
   webIDE?: PeerIDEConfig;
   managedRoute?: ManagedConnectorExport;
   codexHome?: string;
+  nativeHostId?: string;
+  inheritedDeviceGrant?: (grant: PeerGrant) => boolean;
 };
 
 /** Pair a local Codex profile with a chat, then choose sessions in the chat.
@@ -76,14 +80,15 @@ export class PeerExecutionService {
     if (Array.isArray(stored)) this.grants = z.array(grantSchema).parse(stored);
     else { this.grants = z.object({ version: z.literal(2), grants: z.array(grantSchema) }).strict().parse(stored).grants; this.privatePolicy = true; }
     this.receipts = new PeerReceipts(path.join(options.stateDir, "receipts.json"));
-    this.files = new PeerFiles(options.stateDir, (id, write) => this.readState(id, write), grant => matchesManagedGrant(options.managedRoute, grant));
+    this.files = new PeerFiles(options.stateDir, (id, write) => this.readState(id, write), grant => matchesManagedGrant(options.managedRoute, grant),
+      options.nativeHostId && options.nativeHostId !== "local" ? options.backend : undefined);
     this.interactions = new PeerInteractionService(options.backend);
-    this.management = new PeerManagement(options.backend, options.stateDir, this.receipts);
-    this.sharing = new PeerSharingAuthority(path.join(options.stateDir, "sharing.json"), options.backend, options.approveOwner ?? (async () => false));
-    if (options.webIDE?.enabled) this.ide = new PeerIDEService({ config: options.webIDE, backend: options.backend, stateDir: options.stateDir, managedRoute: options.managedRoute,
+    this.management = new PeerManagement(options.backend, options.stateDir, this.receipts, new PeerHostDirectories(options.nativeHostId, options.codexHome));
+    this.sharing = new PeerSharingAuthority(path.join(options.stateDir, "sharing.json"), options.backend, options.approveOwner ?? (async () => false), Date.now, new SharedWorkspaceHost(options.nativeHostId, options.codexHome));
+    if (options.webIDE?.enabled) this.ide = new PeerIDEService({ config: options.webIDE, backend: options.backend, stateDir: options.stateDir, managedRoute: options.managedRoute, nativeHostId: options.nativeHostId, codexHome: options.codexHome,
       authorize: (grant, threadId) => {
         this.assertThread(threadId);
-        if (grant.delegation || !(matchesManagedGrant(options.managedRoute, grant) || this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant)))) throw new PeerError("access", "设备授权已失效。");
+        if (grant.delegation || !(matchesManagedGrant(options.managedRoute, grant) || options.inheritedDeviceGrant?.(grant) || this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant)))) throw new PeerError("access", "设备授权已失效。");
         this.sharing.assert(grant, "inspectThread", [threadId]);
       } });
     if (this.sharing.hasResources() && !this.privatePolicy) this.saveGrants(this.grants, true);
@@ -94,6 +99,13 @@ export class PeerExecutionService {
     writeJsonFile(path.join(this.options.stateDir, "grants.json"), privatePolicy ? { version: 2, grants } : grants, { durable: true });
     this.grants = grants; this.privatePolicy = privatePolicy;
   }
+  /** A full-profile pairing covers its exported hosts; fixed thread and shared
+   * grants cannot inherit authority to another host, even for an identical ID. */
+  authorizesDevice(grant: PeerGrant): boolean {
+    return grant.scope === "device" && !grant.threadId && !grant.delegation && this.grants.some(g =>
+      g.scope === "device" && !g.delegation && JSON.stringify({ ...grant, hostId: g.hostId }) === JSON.stringify(g));
+  }
+  confirmOwner(confirmation: OwnerConfirmation): Promise<boolean> { return this.options.approveOwner?.(confirmation) ?? Promise.resolve(false); }
   static async create(options: PeerExecutionOptions): Promise<PeerExecutionService> {
     if (options.managedRoute && options.threadId) throw new Error("Managed Connector exports a host, not a single thread");
     if (!/^[\w-]{1,80}$/.test(options.profileId)) throw new Error("Invalid peer profile ID");
@@ -128,7 +140,7 @@ export class PeerExecutionService {
     this.ide?.attach(connection);
     const queues = new Map<string, () => void>(); this.queueLeases.set(connection, queues);
     connection.onClose(() => { this.files.close(connection); for (const retire of queues.values()) retire(); });
-    const approved = (grant: PeerGrant) => matchesManagedGrant(this.options.managedRoute, grant)
+    const approved = (grant: PeerGrant) => matchesManagedGrant(this.options.managedRoute, grant) || this.options.inheritedDeviceGrant?.(grant) === true
       || (!this.options.managedRoute && (grant.delegation ? this.sharing.valid(grant) : this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant))));
     connection.handle("sharing.call", async value => {
       const call = z.object({ method: z.enum(["claim", "status", "invite", "request", "approve", "deny", "revoke", "workspace.list", "workspace.read", "workspace.write"]), input: z.unknown(), grant: grantSchema.optional() }).strict().parse(value);
@@ -168,8 +180,12 @@ export class PeerExecutionService {
           return null;
         }
         await this.sharing.verify(call.grant, call.method, call.args);
-        if ((FILE_METHODS as readonly string[]).includes(call.method)) return await this.files.call(call.grant, connection, call.method, call.args[0], threadId => this.sharing.assert(call.grant, call.method, [{ threadId }]));
-        if ((MANAGEMENT_METHODS as readonly string[]).includes(call.method)) return await this.management.call(call.grant, connection, call.method, call.args[0], call.operationId, () => this.sharing.assert(call.grant, call.method, call.args));
+        const assertAccess = (args = call.args) => {
+          if (!approved(call.grant) || !connection.open) throw new PeerError("access", "连接或设备授权已失效。");
+          this.sharing.assert(call.grant, call.method, args);
+        };
+        if ((FILE_METHODS as readonly string[]).includes(call.method)) return await this.files.call(call.grant, connection, call.method, call.args[0], threadId => assertAccess([{ threadId }]));
+        if ((MANAGEMENT_METHODS as readonly string[]).includes(call.method)) return await this.management.call(call.grant, connection, call.method, call.args[0], call.operationId, () => assertAccess());
         if (["observeThreadInteractions", "unobserveThreadInteractions"].includes(call.method)) {
           await this.readState(call.args[0]); this.assertThread(call.args[0]);
           const id = z.string().regex(/^[a-f0-9]{64}$/).parse(call.method === "observeThreadInteractions" ? call.operationId : call.args[1]);
@@ -241,6 +257,7 @@ export class PeerExecutionService {
           if (call.grant.delegation) return { backend: backend.backendInfo().id, projects: [] };
           if (call.grant.scope !== "device") throw new PeerError("access", "Project catalog requires a device grant");
           const catalog = await backend.listProjects(undefined, metadataObservation.parse(args[0] ?? undefined));
+          if ((this.options.nativeHostId ?? "local") !== "local") return catalog;
           return { ...catalog, projects: catalog.projects.flatMap(project => {
             const roots = [...new Set(project.roots.flatMap(root => {
               if (!path.isAbsolute(root) || /[\r\n\0]/.test(root)) return [];
@@ -330,7 +347,8 @@ export class PeerExecutionService {
     if (fresh && (call.grant.scope !== "device" || call.grant.delegation || this.description.thread))
       throw new PeerError("scope", "Starting a new native thread requires a device grant");
     const cwd = fresh ? z.string().min(1).parse((nativeInput as any)?.cwd) : undefined;
-    if (cwd && (!path.isAbsolute(cwd) || !fs.statSync(cwd).isDirectory())) throw new PeerError("scope", "Native workspace must be an existing device directory");
+    const directories = new PeerHostDirectories(this.options.nativeHostId, this.options.codexHome);
+    if (cwd) { if (!path.isAbsolute(cwd)) throw new PeerError("scope", "Native workspace must be an existing device directory"); await directories.canonical(cwd); }
     const state = fresh ? { threadId: "new", cwd: cwd! } : await this.readState(nativeInput?.threadId ?? args[0],
       !["recoverSystemError", "resumeAfterCapacity"].includes(method) && !(method === "runQueuedSubmission" && (nativeInput as any)?.observeOnly));
     let threadId = state.threadId;
@@ -338,11 +356,8 @@ export class PeerExecutionService {
     if (nativeInput && "nativeSettings" in nativeInput && nativeInput.nativeSettings && call.grant.delegation)
       throw new PeerError("access", "Delegated sessions inherit native permissions; only a device owner can choose settings");
     if (nativeInput && "imagePaths" in nativeInput && nativeInput.imagePaths?.length) {
-      const root = fs.realpathSync(state.cwd);
-      for (const image of nativeInput.imagePaths) {
-        const actual = fs.realpathSync(image), relative = path.relative(root, actual);
-        if (relative === ".." || relative.startsWith(".." + path.sep) || path.isAbsolute(relative)) throw new PeerError("scope", "Image is outside the granted workspace");
-      }
+      try { await directories.assertImages(state.cwd, nativeInput.imagePaths); }
+      catch { throw new PeerError("scope", "Image is outside the granted workspace"); }
     }
     // Every native write asks the origin to recheck its live binding and ACL.
     // Failure here is known not-submitted, before the write intent is recorded.
