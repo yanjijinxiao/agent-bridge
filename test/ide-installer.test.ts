@@ -33,6 +33,15 @@ test("an existing compatible managed binary is reused without downloads", async 
   assert.deepEqual(f.calls, []);
 });
 
+test("remote existing binary discovery works with installation disabled and never replays jobs", async t => {
+  const hosts: string[] = [];
+  const f = fixture(t, { probe: async host => { hosts.push(host); return { platform: "linux", arch: "x64", binary: "/remote/managed/code-server" }; } });
+  f.revoke();
+  assert.equal(await f.installer.existingBinary("remote-profile"), "/remote/managed/code-server");
+  assert.deepEqual(hosts, ["remote-profile"]); assert.deepEqual(f.calls, []); assert.deepEqual(f.installer.list(), []);
+  assert.throws(() => f.installer.begin("remote-profile"), /授权/);
+});
+
 for (const arch of ["x64", "arm64"]) test(`macOS ${arch} selects the pinned native package without a Linux libc requirement`, async t => {
   const asset = codeServerAsset("darwin", arch);
   assert.equal(asset.directory, `code-server-4.141.1-macos-${arch === "x64" ? "amd64" : "arm64"}`);

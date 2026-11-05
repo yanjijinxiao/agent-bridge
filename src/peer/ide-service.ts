@@ -129,6 +129,11 @@ export class PeerIDEService {
       if (this.options.config.autoInstall && binary === "code-server") {
         try { binary = await this.installer.binary(this.options.nativeHostId ?? "local"); }
         catch (error) { if (error instanceof IDEInstallPendingError) throw new PeerError("install-pending", "设备正在安装官方 code-server，请稍后重试。"); throw error; }
+      } else if (binary === "code-server" && this.options.nativeHostId && this.options.nativeHostId !== "local") {
+        // An absolute executable configured on the Connector machine cannot
+        // be carried to a different OS. Reuse the target's installed tool;
+        // discovery does not grant auto-install or replace PATH executables.
+        binary = await this.installer.existingBinary(this.options.nativeHostId) ?? binary;
       }
       this.guard(call.grant, call.target.threadId);
       if (!connection.open || this.leases.size >= 8) throw new PeerError("busy", "Device IDE limit reached or disconnected");

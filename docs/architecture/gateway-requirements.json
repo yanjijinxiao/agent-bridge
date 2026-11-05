@@ -18060,6 +18060,10 @@
             {
               "file": "test/ide-host-command.test.ts",
               "name": "host filesystem commands keep the selected Codex profile SSH registration"
+            },
+            {
+              "file": "test/ide-installer.test.ts",
+              "name": "remote existing binary discovery works with installation disabled and never replays jobs"
             }
           ],
           "implementation": [
@@ -18085,7 +18089,11 @@
             },
             {
               "file": "src/peer/ide-service.ts",
-              "sha256": "33e260c27523ab4b4af413e9972b02dc9bed296fde836240f017dd9029c874be"
+              "sha256": "06b3780e270bcfa0cc663a17386648d6ad9ea39e2e3a2f5180f88b7081bdbd7b"
+            },
+            {
+              "file": "src/ide/installer.ts",
+              "sha256": "c39abde5a94ecfd6dd80a0774e1115f200a60bb2ebfb39f67303fd710d30aacd"
             }
           ],
           "verifiedBoundary": "真实单 WebSocket 隔离回归；单 Mac Connector 实连本机和远端，历史、目录、附件字节往返、共享目录及两端 IDE HTTP 200。",

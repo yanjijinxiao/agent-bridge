@@ -38,3 +38,5 @@ The deployment test keeps the Linux Connector disabled and existing native Codex
 processes alive. Binding IDs, grants and fixed IDE workspace identities must be
 compared before and after deployment. Test evidence is recorded separately;
 this design document alone is not evidence of completed validation.
+
+远端 IDE 不继承 Mac 的绝对可执行文件路径。未开启自动安装时，复用已有安装的只读探测，再保留 PATH 解析；不以“发现安装”开启下载或修改安装授权。

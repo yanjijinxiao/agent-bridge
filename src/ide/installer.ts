@@ -68,6 +68,13 @@ export class CodeServerInstaller {
     this.jobs.set(hostId, { controller, promise }); return { ...this.states.get(hostId)! };
   }
   async wait(hostId: string): Promise<IDEInstallStatus | undefined> { await this.jobs.get(hostId)?.promise; return this.states.get(hostId); }
+  /** Discover the host's existing managed installation without requesting an
+   * install, changing authorization, or replaying an interrupted install job. */
+  async existingBinary(hostId: string): Promise<string | undefined> {
+    const state = this.states.get(hostId);
+    const probe = await this.io.probe(hostId, state?.phase === "ready" && state.binary ? state.binary : "code-server", new AbortController().signal);
+    return probe.binary;
+  }
   async binary(hostId: string): Promise<string> {
     const state = this.states.get(hostId);
     if (state?.phase === "ready" && state.binary) {
