@@ -19167,8 +19167,8 @@
               "file": "test/taskboard-release-package.test.ts"
             }
           ],
-          "remainingBoundary": "registry 发布被 npm 403 的 2FA 要求拒绝，未宣称发布成功；Windows 未实机验证。",
-          "verifiedBoundary": "实际 tarball 在独立全局 prefix 安装 131 项依赖；两条 CLI help/version、Gateway /api/build、管理网页、嵌入 Taskboard /health 与其 JS 资源均通过；没有开发工作区符号链接。"
+          "remainingBoundary": "Windows 未实机验证；npm 发布不等于线上进程已经升级。",
+          "verifiedBoundary": "实际 tarball 在独立全局 prefix 安装 131 项依赖；两条 CLI help/version、Gateway /api/build、管理网页、嵌入 Taskboard /health 与其 JS 资源均通过；没有开发工作区符号链接。 用户完成 2FA 后，官方 registry 版本、latest、SHA-512 及重新独立安装启动均已验证，GitHub Release 同步公开。"
         }
       ]
     }

@@ -24,5 +24,14 @@
 - 代码提交：9faaf9a3c3bcabc691f479745917323c1c6436e3。
 - npm integrity：sha512-MQ3Y2tuV9e8SP/Q6E7uHoY4JGnj6syZd2XjOZfV6kfvDGf+j4xvm+sI48SnMRK0Vm3qPW56eWzRICTCfhwPW5A==。
 - GitHub 仓库已改名为 yanjijinxiao/agent-bridge，并已推送 main 和标签；origin 已同步。
-- registry 发布尝试返回 403，明确要求账号双因素认证；npm 登录已成功，不能把登录成功当作发布成功。待用户完成 2FA 后发布同一已验证 tarball，随后核对 registry integrity。
+- 首次 registry 发布因缺少 2FA 返回 403。用户开启并完成本次浏览器验证后，npm publish 返回成功；2026-11-06 12:33 UTC 官方元数据确认 name/version/integrity 与上述制品一致，访问级别 public，latest=0.5.0。
+- 发布后短暂出现 404；通过维护者状态接口核对 published 后，继续等待公开元数据及 tarball 可用，没有重复发布。GitHub v0.5.0 已从草稿转为正式发布。
 - 本轮没有切换生产 Gateway/Connector；npm 包的安装版本与在运行的旧进程版本必须分别核对。
+
+## 官方 registry 安装验收
+
+用户已完成本次发布的浏览器 2FA。维护者状态接口确认 published，npm access 确认为 public，latest 指向 0.5.0。公开元数据于 12:33 UTC 可读，tarball 于 12:36 UTC 下载成功，2,289,912 字节的 SHA-512 与原验证制品完全一致。
+
+随后从官方 registry（不是本地 tarball）安装到独立临时 prefix，共安装 131 项依赖。两条 CLI 的 help/version、Gateway 真实启动和 /api/build、管理页、Taskboard /health 及构建静态资源全部通过。产品版本 0.5.0、代码提交 9faaf9a3c3bcabc691f479745917323c1c6436e3 一致。没有重启线上服务。
+
+正式入口：[npm 包](https://www.npmjs.com/package/@yanjijinxiao/agent-bridge)、[GitHub v0.5.0](https://github.com/yanjijinxiao/agent-bridge/releases/tag/v0.5.0)。首次发布扫描造成的暂时不可下载已结束，不再属于待完成事项。

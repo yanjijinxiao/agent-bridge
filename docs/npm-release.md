@@ -27,7 +27,7 @@ npm run package:npm -- --out /absolute/new/release-directory
 npm publish /absolute/release/package.tgz --access public --registry=https://registry.npmjs.org/
 ```
 
-6. npm 可能要求账号的浏览器/双因素确认，凭据和验证码不能发到群聊。发布后从官方 registry 核对 name/version/dist.integrity，并用实际安装验证；发布成功不等于线上实例已经重启。
+6. npm 可能要求账号的浏览器/双因素确认，凭据和验证码不能发到群聊。发布后从官方 registry 核对 name/version/dist.integrity、latest 标签，并用实际安装验证；发布成功不等于线上实例已经重启。
 7. 部署时核对每个 Gateway/Connector 的 productVersion、commit、instanceId 和实际连接。状态、授权和原生执行器不随程序版本重置。
 
 ## 统一版本的含义
@@ -35,3 +35,7 @@ npm publish /absolute/release/package.tgz --access public --registry=https://reg
 npm version = package.json version = CLI --version = build-info.productVersion = runtime.productVersion。Git 标签为 v 加相同版本，源码 commit 另行记录。HTTP、Peer、执行适配和日志 schema 的兼容版本独立演进；包发布不自动修改它们。
 
 更新检查使用 scoped registry 路径，安装到隔离 prefix，再原位替换已退出实例的程序目录。路径识别同时支持 scoped 和旧 codex-im-gateway 安装目录，已有发布计划仍能恢复；旧状态目录、环境变量和 /api/build.product 的兼容标识保留。源码安装仍要求源码更新，不把目录名相似当作 npm 安装。
+
+## 发布后暂时 404
+
+npm 会在新版本可安装前进行发布扫描，因此发布命令成功和公开下载可用可能相隔数分钟。遇到 404 时先核对包的访问级别及维护者可见的版本状态，等待官方元数据与 tarball 可读，再核对完整性并安装；不要重复发布同一版本，也不要为绕过扫描随意增加版本号。状态显示 published 本身不能替代实际下载验收。参见 [npm 发布扫描说明](https://github.blog/changelog/2026-07-28-npm-publish-time-malware-scanning-and-dual-use-metadata/)。
