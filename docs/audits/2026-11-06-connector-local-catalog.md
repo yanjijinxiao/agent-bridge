@@ -22,3 +22,11 @@
 - 新版本直接连接本机真实服务，配置一个不存在的 CLI 路径，仍返回 31 条；serverIdentity 前后均为 PID 23722。这验证复用连接，不证明报告设备已恢复。
 - 原始测试日志在 /private/tmp/gateway-catalog-regression-20261106.log，精确结果在本审计同名目录 test-results.jsonl；旧版反例在 /private/tmp/gateway-catalog-before-20261106/results.log。
 - 知游 Mac：尚无远程管理通道或本机具体错误，需更新该设备 Connector 后复验。本次不能报告该设备的本地会话已经恢复，也不把 Gateway 侧更新当作客户端生效。
+
+## 发布与现场核对
+
+代码 4b36d3b 已推送 main，头头及探探 Gateway 均返回相同版本。头头 PID 18208、探探 PID 120704，账号运行中；绑定和准入摘要、既有浏览器 IDE 授权均保留，头头本地及远端 IDE ready。本人 Mac 上两个分别连接头头/探探的 Connector 已更新至独立 runtime-catalog-20261106 目录，原配置及设备授权保持；没有启动已停用的 Linux Connector，也未操作知游设备。
+
+更新 Connector 后再次使用相同生产适配器只读核验：原生 PID 仍为 23722，本地目录 31 条；Gateway 的项目接口返回 7 项，包含本机和原远端主机。探探的知游 Mac 连接在线，只能证明通道存在，不能证明其旧客户端本地目录已恢复。
+
+首次发布的人工打包清单错误地将 sourceHash 写成 40 位 Git tree ID，build-info 校验要求 64 位 SHA-256，因此版本核验失败。两边先回滚旧制品；头头回滚 bootstrap 遇到旧服务尚未退出的时序问题，随后正常启动恢复。修正清单并用生产 readBuildInfo 离线校验后再发布成功。此失误与用户本机会话故障分开记录，不计入原始故障根因。成功制品与核验文件位于 /private/tmp/gateway-catalog-release2-20261106，首次失败证据保留在相邻的 gateway-catalog-release-20261106 目录。
