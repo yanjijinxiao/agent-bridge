@@ -31,7 +31,7 @@ const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/
   independent: z.boolean() }).strict();
 export type PeerDescription = { profileId: string; label?: string; managedHost?: string; hosts?: { nativeHostId: string; managedHost?: string }[]; writeGuard?: 1; interactions?: 1; nativeContract?: 1; fullIDE?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
   info: { id: CodexBackendId; capabilities: CodexBackendCapabilities }; independent: boolean };
-type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection; parent?: string };
+type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection; parent?: string; nativeHostId?: string };
 export const peerNativeHost = (root: string, native: string) => `${root}:host:${crypto.createHash("sha256").update(native).digest("hex").slice(0, 24)}`;
 const samePrincipal = (a: PeerPrincipal, b: PeerPrincipal) => a.accountId === b.accountId && a.conversationId === b.conversationId && a.actorId === b.actorId;
 
@@ -142,7 +142,7 @@ export class PeerRegistry implements PeerBridgePort {
         this.entries.set(hostId, host);
         for (const exported of exports) {
           const id = peerNativeHost(hostId, exported.nativeHostId), child = connection.channel(exported.nativeHostId);
-          const entry: Host = { nodeId, parent: hostId, connection: child, description: { ...description, hosts: undefined, managedHost: exported.managedHost } };
+          const entry: Host = { nodeId, parent: hostId, nativeHostId: exported.nativeHostId, connection: child, description: { ...description, hosts: undefined, managedHost: exported.managedHost } };
           this.entries.set(id, entry); this.callbacks.set(child, callbacks);
           child.handle("execution.callback", async params => {
             const { operationId, name, args } = z.object({ operationId: z.string(), name: z.string(), args: z.array(z.unknown()) }).strict().parse(params);
@@ -233,7 +233,12 @@ export class PeerRegistry implements PeerBridgePort {
         throw new PeerError("access", "Connector IDE 连接或授权已改变。");
     } };
   }
-  label(hostId: string): string { const host = this.host(hostId); return host?.description.label ?? host?.nodeId ?? hostId; }
+  label(hostId: string): string {
+    const host = this.host(hostId), device = host?.description.label ?? host?.nodeId ?? hostId;
+    // A remote execution host travels through this device; it is not the Mac
+    // itself. Derive display only from the authenticated exported host identity.
+    return host?.nativeHostId ? `${host.nativeHostId.replace(/^remote-ssh-discovered:/, "")}（经 ${device}）` : device;
+  }
   isOnline(hostId: string): boolean { return this.host(hostId)?.connection?.open === true; }
   isPeer(hostId?: string): boolean { return hostId?.startsWith("peer:") === true; }
   description(hostId: string): PeerDescription {

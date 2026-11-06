@@ -12,6 +12,8 @@ Bridge 的渠道规则与原生执行权限也分开。新线程通过 thread/st
 
 ## 调用边界
 
+本机 daemon 连接先探测配置中同一个 codexHome 的原生控制 socket。已有服务可连接时直接完成原生握手，不要求 PATH 中另一个 CLI 先执行 daemon start；仅 socket 不存在或连接被拒绝时才启动同一服务。权限错误、无效路径及探测超时明确失败，不删除 socket/锁、不自动改走 stdio。连接准备失败与原生 RPC 拒绝用不同错误类型表示；Connector 只回传安全阶段、方法及数字错误码，原始 stderr/provider 报文不进入聊天。
+
 新输入在最终写前调用 assertCurrent；续聊身份必须与 thread/read/resume 相同。onTurnStarted 持久接收身份以后，公共 item 才可更新该运行。停止必须使用精确 thread/turn；本地 close 只退休观察。runQueuedSubmission 用已保存原生回执核对，不带 prompt 重放。metadataOnly/historyOnly 连接有方法白名单，不能借只读身份写入。
 
 队列历史和已加载持有者是两个时刻的视图。summary 已标 completed/interrupted，但当前订阅仍持有同一 active turn 时，adoptQueuedTurn 继续等待该精确轮次的最终通知，不能转入只读恢复并误报 queue/observe 断连。只凭“有订阅”或其他活动轮次不适用；没有本地同轮次持有事实时仍走原恢复路径。CTRL-03.5 用两个确定性 JSONL 反例覆盖早到终态，再用真实原生重复运行验证；不因此重发输入、强制 queue/start 或 interrupt。

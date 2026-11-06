@@ -154,7 +154,7 @@ test("daemon app-server transport exposes a proxy and fails preflight clearly", 
   assert.equal(transport?.args.at(-1), path.join(codexHome, "app-server-control", "app-server-control.sock"));
   await assert.rejects(
     transport?.prepare?.(),
-    /managed standalone Codex install.*codexAppServerTransport to stdio/i
+    /找不到可用的启动命令/
   );
 });
 

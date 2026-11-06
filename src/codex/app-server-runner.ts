@@ -17,6 +17,7 @@ import { parseMcpForm, mcpFormResponse, safeElicitationUrl, type McpForm } from 
 import type { CodexUserInputResultHandler, CodexUserInputResult } from "./backend.js";
 import type { CodexApprovalRequest, CodexApprovalResult, CodexApprovalResultHandler } from "./approval.js";
 import { desktopProjectHint, desktopSessionMembership, nativeSessionPresentation } from "./desktop-session-membership.js";
+import { CodexNativeRequestError } from "./connection-errors.js";
 import type { NativeInteractionObserver, NativeApproval, NativeUserInput } from "./interactions.js";
 import { NativeAsyncQuestions } from "./native-async-questions.js";
 import { codexFailureCode, lastCodexTurnFailure, type CodexFailureCode } from "./turn-failure.js";
@@ -783,7 +784,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         sortKey: "updated_at",
         sortDirection: "desc",
         sourceKinds: ["cli", "vscode", "exec", "appServer", "unknown"],
-        ...(desktopCatalogOnly ? { modelProviders: [], useStateDbOnly: true } : {}),
+        // Discovery is not scoped to the currently configured model provider.
+        // Old CLI/Desktop sessions remain selectable after changing providers.
+        modelProviders: [],
+        ...(desktopCatalogOnly ? { useStateDbOnly: true } : {}),
         archived,
         // Explicit project membership can span worktrees with different cwd.
         cwd: input.projectId ? undefined : input.cwd
@@ -831,6 +835,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           cursor,
           limit: 100,
           sourceKinds: ["cli", "vscode", "exec", "appServer", "unknown"],
+          modelProviders: [],
           archived
         })), "thread/list", cursor);
         for (const value of response.data) {
@@ -1954,8 +1959,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     this.pending.delete(message.id);
     clearTimeout(pending.timer);
     if (message.error) {
-      const code = message.error.code === undefined ? "" : ` (${message.error.code})`;
-      pending.reject(new Error(`app-server ${pending.method} failed${code}: ${message.error.message ?? "unknown error"}`));
+      const code = typeof message.error.code === "number" && Number.isSafeInteger(message.error.code) ? message.error.code : undefined;
+      pending.reject(new CodexNativeRequestError(pending.method, code, message.error.message ?? "unknown error"));
     } else {
       pending.resolve(message.result);
     }

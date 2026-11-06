@@ -4387,6 +4387,69 @@
             "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
             "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
+        },
+        {
+          "id": "CAT-01.7",
+          "scenario": "复用已有原生服务、识别连接准备与 RPC 失败、完整列出各 provider 会话并准确显示远端身份。",
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/connector-local-catalog.test.ts",
+              "name": "CAT-01.7: existing native socket stays usable when the configured CLI cannot start a daemon"
+            },
+            {
+              "file": "test/connector-local-catalog.test.ts",
+              "name": "CAT-01.7: unavailable local daemon reports safe setup stage (missing-command)"
+            },
+            {
+              "file": "test/connector-local-catalog.test.ts",
+              "name": "CAT-01.7: unavailable local daemon reports safe setup stage (rejected-start)"
+            },
+            {
+              "file": "test/connector-local-catalog.test.ts",
+              "name": "CAT-01.7: stale socket permits same-home startup but permission failure never starts another service"
+            },
+            {
+              "file": "test/connector-local-catalog.test.ts",
+              "name": "CAT-01.7: native catalogs keep earlier model providers across every active and archived page"
+            },
+            {
+              "file": "test/connector-local-catalog.test.ts",
+              "name": "CAT-01.7: local RPC failure crosses Connector with safe stage while remote catalog and host identity survive"
+            },
+            {
+              "file": "test/session-catalog-tree.test.ts",
+              "name": "CAT-01.7: partial catalog names the failed local branch and keeps remote sessions selectable"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/app-server-daemon.ts",
+              "sha256": "b295e6f1ba2087a13b1011544f4581cfe250e11c5320d7aebdf1bd5b25f41f4f"
+            },
+            {
+              "file": "src/codex/connection-errors.ts",
+              "sha256": "3765132b1095e06c9899cc69b34f2475931f010375458c9c2e2fe729468c2a0c"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "cb4811aacbdfcaaca7b09d6d3d52f3260e4d37998ac4efb6ef71a521789abc40"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "5d761ca3ac131f7f4fb3508c931824f5e7d374052a5b094f96b73318ebc4902e"
+            },
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "849de2cbe758cf65af967be9f47d824dd024fc3b52e98dbbfabb53aef18792cc"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "510e16e2700641feffdd6cb8a4698607ebaecc053ebd825cb6e064b39bd736d4"
+            }
+          ],
+          "verifiedBoundary": "197 项隔离回归通过；旧版首批 5 个反例失败；本机真实服务仅只读复用。知游 Mac 的 Connector 更新与现场目录恢复尚待确认。",
+          "report": "docs/audits/2026-11-06-connector-local-catalog.md"
         }
       ]
     },

@@ -18,6 +18,7 @@ import { ChannelPartialDeliveryError } from "../src/channels/errors.js";
 import { defaultConfig } from "../src/state/config.js";
 import { RuntimeStateStore } from "../src/state/runtime-state.js";
 import { resolveStatePaths } from "../src/state/paths.js";
+import { PeerError } from "../src/peer/rpc.js";
 
 const project = (projectId: string, name = projectId, hostId = "local"): CodexProjectCandidate => ({
   projectId, name, hostId, workspace: "/same", sessionCount: 0, lastUsedAt: ""
@@ -29,13 +30,13 @@ function fixture(t: { after(fn: () => void): void }, projects: CodexProjectCandi
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-session-tree-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new RuntimeStateStore(resolveStatePaths(root)), cards: ChannelActionCard[] = [], texts: string[] = [], inspections: string[] = [];
-  const failed = new Set<string>(), partial = new Set<string>(); let sequence = 0, reads = 0;
+  const failed = new Set<string>(), partial = new Set<string>(), errors = new Map<string, Error>(); let sequence = 0, reads = 0;
   const service = new BridgeService({ stateStore: store,
     config: { ...defaultConfig(root), allowedSenderIds: ["alice"], codexBackend: "app-server", streamReplies: false },
     listCodexProjects: () => projects,
     runner: {
       async listSessionCatalog(input, hostId = "local"): Promise<CodexSessionCatalog> {
-        reads++; if (failed.has(hostId)) throw new Error("offline fixture");
+        reads++; if (errors.has(hostId)) throw errors.get(hostId)!; if (failed.has(hostId)) throw new Error("offline fixture");
         return { backend: "app-server", source: "desktop-catalog", hostIds: [], warnings: [], complete: !partial.has(hostId),
           threads: (byHost[hostId] ?? []).filter(row => !input?.projectId || row.projectId === input.projectId) };
       },
@@ -44,9 +45,21 @@ function fixture(t: { after(fn: () => void): void }, projects: CodexProjectCandi
     } as never,
     weixin: { async sendActionCard(x) { cards.push(x.card); return { messageId: "card" }; }, async sendText(x) { texts.push(x.text); return { messageId: "text" }; } }
   });
-  return { cards, texts, store, failed, partial, inspections, reads: () => reads,
+  return { cards, texts, store, failed, partial, errors, inspections, reads: () => reads,
     send: (text: string) => service.handleMessage({ id: String(sequence++), senderId: "alice", text, raw: {} }) };
 }
+
+test("CAT-01.7: partial catalog names the failed local branch and keeps remote sessions selectable", async t => {
+  const f = fixture(t, [project("local-project"), project("remote-project", "Remote", "remote")], { remote: [thread("remote-task", "remote-project")] });
+  f.errors.set("local", new PeerError("native-setup", "本机 Codex 原生服务启动失败，请检查 daemon start。"));
+  await f.send("/sessions");
+  const card = f.cards[0];
+  assert.match(card.body, /会话列表读取失败；当前仅显示其他可读取主机的结果/);
+  assert.match(card.body, /本机 Codex 原生服务启动失败/);
+  assert.match(card.body, /\[R1\] remote-task/);
+  assert.doesNotMatch(card.body, /暂无未归档会话/);
+  assert.deepEqual(card.actionGroups.flat().map(x => x.value.arg), ["remote-task --host remote"]);
+});
 
 test("sessions tree retains empty and archived-only projects, renders pinned once and never makes folders selectable", async t => {
   const projects = [project("empty", "Empty"), project("archived", "Archived only"), project("pin", "Pinned project"), project("work", "Work")];

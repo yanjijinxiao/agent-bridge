@@ -123,7 +123,7 @@ test("native project membership, remote host isolation, and unavailable-host war
   await send("/sessions unbound");
   assert.match(texts.at(-1)!, /2 个/);
   assert.doesNotMatch(texts.at(-1)!, /项目任务/);
-  assert.match(texts.at(-1)!, /offline.*暂不可用/);
+  assert.match(texts.at(-1)!, /offline.*会话列表读取失败.*仅显示其他可读取主机/);
   await send("/session same --host remote");
   assert.equal(store.getActiveSession("alice")?.hostId, "remote");
   assert.equal(store.getActiveSession("alice")?.projectId, undefined);

@@ -9,6 +9,8 @@ reach local and registered remote native hosts through the existing backend.
 - The connection identity (device/profile) and execution identity (native host)
   are different. Selection lists devices; catalogs expand the selected device's
   explicitly exported hosts. Session bindings retain the exact host and thread.
+  Remote rows name the exported native host and the carrying Connector; child
+  hosts must not inherit a device label as if they executed on its local machine.
 - Every backend method uses the same host binding adapter. New facade methods
   must declare how they carry host identity; a compile-time exhaustive contract
   prevents an accidentally local default.

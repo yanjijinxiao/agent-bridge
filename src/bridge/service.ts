@@ -1,6 +1,7 @@
 import { withChannelWriteLeases } from "./channel-write-leases.js";
 import { peerPrincipal, type PeerBridgePort } from "../peer/context.js";
 import { ConnectorSelection, ConnectorSelectionError } from "./connector-selection.js";
+import { PeerError } from "../peer/rpc.js";
 import { DEFAULT_COMMAND_LIST_SIZE, DEFAULT_HISTORY_SIZE } from "../channels/command-display.js";
 import { AdmissionService, admissionPrincipal } from "./admission.js";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -1772,7 +1773,9 @@ export class BridgeService {
         } catch (error) {
           incompleteHosts.set(hostId, "会话列表暂不可用");
           console.warn(`[codex-im-gateway] session catalog unavailable for ${hostId}: ${String(error)}`);
-          warnings.push(`${hostId} 的会话列表暂不可用，请稍后刷新；未切换到其他后端。`);
+          const hostLabel = this.options.peer?.label(hostId) ?? sessionHostLabel(hostId);
+          const detail = error instanceof PeerError && ["native-setup", "native-request"].includes(error.code) ? error.message : "请检查该设备的 Connector 和 Codex 服务后刷新。";
+          warnings.push(`${hostLabel} 的会话列表读取失败；当前仅显示其他可读取主机的结果。${detail}`);
         }
       }));
       }
