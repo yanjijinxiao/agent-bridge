@@ -1330,7 +1330,13 @@ function activeDingTalkLayout(input: DingTalkCardActivity & { contentKey: string
   // Put the growing body in staticMsgContent, and initialize the small, stable
   // footer through streaming once. Body refreshes cannot rewrite copy widgets.
   const body = dingTalkProgressContent(input.progressLayout.body);
-  const footer = normalizeDingTalkCardContent(input.progressLayout.footer) || "正在处理…";
+  // The template appends its native cursor to the streaming component's last
+  // paragraph. Give it an explicit task-state row: a link or copy widget at
+  // the end would make the cursor look like IDE navigation or command output.
+  // This row is adapter-only and stable between running updates; it must not
+  // enter copied commands, stored task facts, waiting cards or final results.
+  const loading = input.activity === "recovering" ? "正在恢复原任务" : "任务仍在执行";
+  const footer = normalizeDingTalkCardContent([input.progressLayout.footer.trimEnd(), loading].filter(Boolean).join("\n\n"));
   if (Buffer.byteLength(footer) > 1024) throw new Error("DingTalk progress controls exceed the streaming frame budget");
   if (body.length + footer.length > 50_000) throw new Error("DingTalk card payload requires pagination");
   return { body, footer };

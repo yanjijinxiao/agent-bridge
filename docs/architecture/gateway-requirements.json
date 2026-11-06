@@ -9717,7 +9717,7 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "6a37947bf033dd7702212bc65ef50141b96c1117141f5ce944310c476564dbe6"
+              "sha256": "d26f34d4d5fad326e0ee084bae63e779af6346b0a9fa159c1b47d2a57a8349f7"
             },
             {
               "file": "src/channels/turn-progress-card.ts",
@@ -9749,12 +9749,36 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "6a37947bf033dd7702212bc65ef50141b96c1117141f5ce944310c476564dbe6"
+              "sha256": "d26f34d4d5fad326e0ee084bae63e779af6346b0a9fa159c1b47d2a57a8349f7"
             }
           ],
           "verifiedBoundary": "HTTPS/SDK请求及流式组件模型、24阶段换卡、回执失败重试、重连与终态；桌面钉钉同一卡确认完整正文结束标记、二次正文更新、唯一复制框和链接。",
           "testGap": "手机端连续更新、首次加载与网络重连后的像素验收尚未完成。",
           "reviewReport": "docs/audits/2026-11-06-stable-progress-controls.md"
+        },
+        {
+          "id": "DEL-09.7",
+          "scenario": "原生加载光标附着独立任务状态段落，不贴 IDE 链接或复制命令；保留双区域稳定更新及流式预算。",
+          "status": "partial",
+          "tests": [
+            {
+              "file": "test/dingtalk-progress-controls.test.ts",
+              "name": "DEL-09.7: https native cursor has its own task row for link, code and empty footers"
+            },
+            {
+              "file": "test/dingtalk-progress-controls.test.ts",
+              "name": "DEL-09.7: sdk native cursor has its own task row for link, code and empty footers"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/dingtalk.ts",
+              "sha256": "d26f34d4d5fad326e0ee084bae63e779af6346b0a9fa159c1b47d2a57a8349f7"
+            }
+          ],
+          "verifiedBoundary": "旧实现两例失败；运行、恢复、等待、终态、链接/代码/空页脚及包含状态行的 UTF-8 预算通过。",
+          "testGap": "本次独立底部状态行的真实客户端像素验收；未迁移到顶部第三模板组件。",
+          "reviewReport": "docs/audits/2026-11-06-loading-position.md"
         }
       ]
     },

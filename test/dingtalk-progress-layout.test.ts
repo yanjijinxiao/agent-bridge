@@ -57,7 +57,8 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.3: ${mode} repeated t
     assert.deepEqual(Lexer.lex(values.msgContent).filter(token => token.type === "code").map(token => ({ lang: token.lang, text: token.text })), [{ lang: "text", text: "/stop" }]);
     assert.equal(view().split("/stop").length - 1, 1);
     assert.equal(view().split("[打开项目 Web IDE]").length - 1, expected ? 1 : 0);
-    if (expected) assert.ok(values.msgContent.endsWith(`(${expected})`));
+    if (expected) assert.ok(values.msgContent.includes(`(${expected})\n\n`), "IDE link ends before the native task cursor row");
+    assert.equal(Lexer.lex(values.msgContent).at(-1)?.raw.trim(), "任务仍在执行");
   };
   await stream.progress("正在检查选项定义"); running(first);
   for (let i = 0; i < 30; i++) {

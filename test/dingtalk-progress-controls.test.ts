@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Lexer } from "marked";
 import { DingTalkHttpsAICardClient, DingTalkSdkAICardClient } from "../src/channels/dingtalk.js";
 
 for (const mode of ["https", "sdk"] as const) test(`DEL-09.6: ${mode} changing progress never rewrites unchanged copy controls`, async () => {
@@ -40,6 +41,9 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.6: ${mode} changing p
     assert.equal(visible().split("复制不会发送").length - 1, 1);
     assert.equal(visible().split("[打开项目 Web IDE]").length - 1, 1);
     assert.ok(frames.every(frame => Buffer.byteLength(frame.content) <= 1024));
+    const cursorAnchor = Lexer.lex(values.msgContent).filter(token => token.type !== "space").at(-1);
+    assert.equal(cursorAnchor?.type, "paragraph");
+    assert.equal(cursorAnchor?.raw.trim(), "任务仍在执行", "native cursor is attached to task state, never the IDE link");
   };
   await transport.create({ ...input, cardTemplateId: "template", robotCode: "fixture", target: { type: "group", conversationId: "room" } });
   const afterCreate = writes.length;
@@ -82,4 +86,43 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.6: ${mode} changing p
   assert.ok(writes.slice(beforeRestore).every(write => !JSON.stringify(write.cardData.cardParamMap).includes("/stop")));
   await transport.update({ ...input, text: "已结束", finalize: true });
   assert.doesNotMatch(visible(), /\/stop|阶段成果/);
+});
+
+for (const mode of ["https", "sdk"] as const) test(`DEL-09.7: ${mode} native cursor has its own task row for link, code and empty footers`, async () => {
+  const frames: any[] = [], states: any[] = [];
+  const ok = { statusCode: 200, body: { success: true, result: true } };
+  const transport = mode === "https" ? new DingTalkHttpsAICardClient(async (url, init) => {
+    (String(url).endsWith("/streaming") ? frames : states).push(JSON.parse(String(init?.body)));
+    return new Response(JSON.stringify(ok.body));
+  }, [0], async () => {}) : new DingTalkSdkAICardClient({
+    async updateCardWithOptions(body) { states.push(body); return ok; },
+    async streamingUpdateWithOptions(body) { frames.push(body); return ok; }
+  } as never, [0], async () => {});
+  for (const [index, footer] of ["[打开项目 Web IDE](https://example.test/workspace/one)", "```text\n/stop\n```", ""].entries()) {
+    const input = { accessToken: "fixture", contentKey: "msgContent", outTrackId: `cursor-${index}`, error: false, finalize: false,
+      activity: "running" as const, text: "", progressLayout: { body: "进行中 · 已核对阶段成果", footer } };
+    await transport.update(input);
+    for (const activity of ["running", "recovering"] as const) {
+      await transport.update({ ...input, activity });
+      const tokens = Lexer.lex(frames.at(-1).content).filter(token => token.type !== "space");
+      const anchor = tokens.at(-1)!;
+      assert.equal(anchor.type, "paragraph");
+      assert.equal(anchor.raw.trim(), activity === "recovering" ? "正在恢复原任务" : "任务仍在执行");
+      assert.deepEqual(Lexer.lex(anchor.raw).flatMap(token => "tokens" in token ? token.tokens?.map(t => t.type) ?? [] : []), ["text"],
+        "the native cursor's paragraph cannot contain a link, command or widget");
+      assert.deepEqual(tokens.filter(token => token.type === "code").map(token => token.text), footer.includes("/stop") ? ["/stop"] : []);
+      assert.ok(Buffer.byteLength(frames.at(-1).content) <= 1024);
+    }
+    const count = frames.length;
+    await transport.update({ ...input, activity: "waiting-input", text: "等待你的回答" });
+    assert.equal(frames.length, count, "waiting stops native loading without finalizing execution");
+    assert.doesNotMatch(states.at(-1).cardData.cardParamMap.staticMsgContent, /任务仍在执行|正在恢复原任务/);
+    await transport.update({ ...input, finalize: true, text: "已完成" });
+    assert.doesNotMatch(frames.at(-1).content, /任务仍在执行|正在恢复原任务/);
+    assert.doesNotMatch(states.at(-1).cardData.cardParamMap.staticMsgContent, /任务仍在执行|正在恢复原任务|\/stop/);
+  }
+  const before = { frames: frames.length, states: states.length };
+  await assert.rejects(transport.update({ accessToken: "fixture", contentKey: "msgContent", outTrackId: "budget", error: false,
+    finalize: false, activity: "running", text: "", progressLayout: { body: "进行中", footer: "文".repeat(336) } }), /streaming frame budget/);
+  assert.deepEqual({ frames: frames.length, states: states.length }, before, "the cursor row counts toward UTF-8 budget before any mutation");
 });

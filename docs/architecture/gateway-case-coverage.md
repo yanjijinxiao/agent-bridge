@@ -1,5 +1,7 @@
 # 需求与 case 核对表
 
+2026-11-06 加载位置增量 DEL-09.7：HTTPS/SDK 覆盖 IDE 链接、复制框及空页脚的独立任务加载段落，运行/恢复/等待/结束转换及包含段落的 UTF-8 预算；旧实现反例失败。详见[检查记录](../audits/2026-11-06-loading-position.md)。历史汇总不代表本次新增的实机验收。
+
 2026-11-05 执行设置增量 CTRL-06.1–CTRL-06.6：原生生效确认、桌面后改与重连、忙碌轮次、Connector 来源校验、Web 部分字段、旧状态迁移、未知回执。见[检查与验证记录](../audits/2026-11-05-native-execution-settings.md)。
 
 2026-11-05 最新展示增量：DEL-08.8–DEL-08.11 覆盖阶段说明保留、实时窗口、超长切卡、恢复状态、原圆点/图标/缩进，以及精确输入对应附件不被旧回执阻塞。见[阶段架构](phase-progress.md)、[阶段回归](../audits/2026-11-05-phase-progress.md)、[终态与排版回归](../audits/2026-11-05-terminal-progress-regression.md)。

@@ -73,3 +73,5 @@ AccountManager.nativeResultAuthority 按账号/绑定/session/host/thread/turn/�
 ChannelProgressLayout 保留正文与操作区边界。activeDingTalkLayout 为 HTTPS/SDK/初始创建共享的两区投影：完整状态、阶段与实时活动以普通更新写 staticMsgContent；停止/IDE 页脚以短流式帧写 contentKey。前者为静态组件，后者为流式组件，字段读回不能证明后者已经显示。changedDingTalkCardFields 比较已确认静态字段，progressControlFrames 独立记录流式页脚回执；正文更新不重发页脚或布局元数据。创建后首帧必须初始化页脚；失败、重连、等待恢复不能错误跳过。终态关闭流式再写静态全文。模板与持久化格式不变。
 
 DEL-09.6 补齐停止控件重复的更新过程约束、链接真实变更、失败重试及适配器重建，见[回归记录](../../audits/2026-11-06-stable-progress-controls.md)。
+
+DEL-09.7：activeDingTalkLayout 在流式页脚的独立末段显示可信的运行/恢复状态，使原生加载光标与 IDE 链接、复制框分离；该段不随工具活动变化，不进入复制值或等待/终态正文。预算检查包含新增段落且先于任何 API 写入。沿用双组件，不把长正文迁回流式接口。见[位置回归记录](../../audits/2026-11-06-loading-position.md)。
