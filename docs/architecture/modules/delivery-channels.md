@@ -70,6 +70,6 @@ AccountManager.nativeResultAuthority 按账号/绑定/session/host/thread/turn/�
 
 ## 钉钉短流式状态与完整快照
 
-ChannelProgressLayout 保留正文与操作区边界。activeDingTalkLayout 为 HTTPS/SDK/初始创建共享的两区投影：完整状态、阶段与实时活动更新原 contentKey；停止/IDE 页脚仅由 staticMsgContent 持有。changedDingTalkCardFields 比较已确认字段，普通正文更新不重写控件或布局元数据。任务快照使用普通卡片按 key 更新，避免长文走有单次预算的流式接口，也不假设模板支持新变量。创建回执初始化缓存，失败不推进；重连复用原卡；终态关闭流式并写静态全文。既有模板与持久化格式不变。
+ChannelProgressLayout 保留正文与操作区边界。activeDingTalkLayout 为 HTTPS/SDK/初始创建共享的两区投影：完整状态、阶段与实时活动以普通更新写 staticMsgContent；停止/IDE 页脚以短流式帧写 contentKey。前者为静态组件，后者为流式组件，字段读回不能证明后者已经显示。changedDingTalkCardFields 比较已确认静态字段，progressControlFrames 独立记录流式页脚回执；正文更新不重发页脚或布局元数据。创建后首帧必须初始化页脚；失败、重连、等待恢复不能错误跳过。终态关闭流式再写静态全文。模板与持久化格式不变。
 
 DEL-09.6 补齐停止控件重复的更新过程约束、链接真实变更、失败重试及适配器重建，见[回归记录](../../audits/2026-11-06-stable-progress-controls.md)。

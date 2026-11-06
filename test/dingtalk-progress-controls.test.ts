@@ -5,17 +5,18 @@ import { DingTalkHttpsAICardClient, DingTalkSdkAICardClient } from "../src/chann
 for (const mode of ["https", "sdk"] as const) test(`DEL-09.6: ${mode} changing progress never rewrites unchanged copy controls`, async () => {
   const writes: any[] = [], frames: any[] = [];
   const values: Record<string, string> = {};
-  let reject = false;
+  let reject = false, rejectStream = false;
   const state = (body: any) => {
     if (!body.cardData) return { statusCode: 200, body: { success: true, result: true } };
     writes.push(body);
-    if (!reject) Object.assign(values, body.cardData.cardParamMap);
+    if (!reject) { const { msgContent: _unrendered, ...rendered } = body.cardData.cardParamMap; Object.assign(values, rendered); }
     return { statusCode: 200, body: { success: !reject, result: !reject } };
   };
-  const stream = (body: any) => { frames.push(body); values[body.key] = body.content; return { statusCode: 200, body: { success: true, result: true } }; };
+  const stream = (body: any) => { frames.push(body); if (!rejectStream) values[body.key] = body.content; return { statusCode: 200, body: { success: !rejectStream, result: !rejectStream } }; };
   const make = () => mode === "https" ? new DingTalkHttpsAICardClient(async (url, init) => {
     const body = JSON.parse(String(init?.body));
     const response = String(url).endsWith("/streaming") ? stream(body) : state(body);
+    if (String(url).endsWith("/streaming")) return new Response(JSON.stringify(response.body));
     if (init?.method === "POST") return new Response(JSON.stringify({ success: true,
       result: String(url).endsWith("/deliver") ? [{ success: true }] : "instance" }));
     return new Response(JSON.stringify(response.body));
@@ -54,15 +55,23 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.6: ${mode} changing p
     assert.ok(changed.every(map => !("sys_full_json_obj" in map)), "body refresh must not remount region ordering");
     assert.match(visible(), new RegExp(`阶段成果${i + 2}：`));
   }
-  assert.equal(frames.length, 0, "long body updates never use the limited streaming API");
+  assert.equal(frames.length, 1, "only the unchanged footer is streamed once; long body updates are static");
   const beforeHeartbeat = writes.length; await transport.update(input);
   assert.equal(writes.length, beforeHeartbeat, "heartbeat changes no static fields");
   input.progressLayout.footer = input.progressLayout.footer.replace("workspace/one", "workspace/two");
   const beforeLink = writes.length; await transport.update(input); unique();
-  assert.equal(writes.length, beforeLink + 1);
-  assert.deepEqual(Object.keys(writes.at(-1).cardData.cardParamMap), ["staticMsgContent"]);
+  assert.equal(writes.length, beforeLink);
+  assert.equal(frames.length, 2, "only a changed footer gets a new stream frame");
   assert.match(visible(), /workspace\/two/);
   assert.doesNotMatch(visible(), /workspace\/one/);
+  input.progressLayout.footer = input.progressLayout.footer.replace("workspace/two", "workspace/three");
+  rejectStream = true;
+  const bodyWrites = writes.length;
+  await assert.rejects(transport.update(input));
+  assert.match(visible(), /workspace\/two/, "failed stream does not commit the new controls");
+  rejectStream = false; await transport.update(input);
+  assert.match(visible(), /workspace\/three/);
+  assert.equal(writes.length, bodyWrites, "retrying controls cannot repaint the phase document");
   input.progressLayout.body += "\n\n失败后重试的阶段成果"; reject = true;
   const beforeRejected = frames.length;
   await assert.rejects(transport.update(input)); assert.equal(frames.length, beforeRejected);

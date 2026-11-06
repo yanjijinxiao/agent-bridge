@@ -1113,7 +1113,7 @@ test("DingTalk HTTPS allowlist recovery reuses its delivered card without multip
   const warnings: string[] = [];
   t.mock.method(console, "warn", (...parts: unknown[]) => { warnings.push(parts.join(" ")); });
   const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
-  let rejected = true;
+  let rejected = false;
   const cardClient = new DingTalkHttpsAICardClient(async (url, init) => {
     calls.push({ url: String(url), body: JSON.parse(String(init?.body)) });
     return init?.method === "PUT" && rejected
@@ -1130,6 +1130,7 @@ test("DingTalk HTTPS allowlist recovery reuses its delivered card without multip
   await stream.progress("开始检查");
   const originalCard = stream.checkpoint().messageId;
   assert.ok(originalCard);
+  rejected = true;
   await stream.progress("检查下一步"); await stream.flush();
   const snapshots = () => calls.filter(call => call.url.endsWith("/instances") && call.body.cardUpdateOptions);
   assert.equal(snapshots().length, 1);
@@ -1143,8 +1144,8 @@ test("DingTalk HTTPS allowlist recovery reuses its delivered card without multip
   assert.equal(snapshots().length, 2);
   assert.ok(calls.every((call) => call.body.outTrackId === originalCard));
   const snapshot = calls.findLast(call => call.body.cardData)!.body.cardData as { cardParamMap: Record<string, string> };
-  assert.match(snapshot.cardParamMap.content, /最新状态/);
-  assert.equal(calls.filter(call => call.url.endsWith("/streaming")).length, 0);
+  assert.match(snapshot.cardParamMap.staticMsgContent, /最新状态/);
+  assert.equal(calls.filter(call => call.url.endsWith("/streaming")).length, 1);
   assert.equal(await stream.finalize("最终结果"), true);
 });
 

@@ -9694,7 +9694,7 @@
         },
         {
           "id": "DEL-09.5",
-          "scenario": "钉钉完整阶段/滚动正文通过原正文区域按 key 更新，停止/IDE独立；长文不进入流式接口，换卡、重连、失败、终态不丢内容。",
+          "scenario": "完整阶段正文写静态组件，短小复制/IDE页脚仅初始化或真实改变时流式更新；两类回执分别缓存，重连与终态不丢阶段或重复控件。",
           "status": "partial",
           "tests": [
             {
@@ -9717,7 +9717,7 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "55bc038c6a4ff2278b486c58278e832b14d8a49015b0bfd9b93a502cc05c8fce"
+              "sha256": "6a37947bf033dd7702212bc65ef50141b96c1117141f5ce944310c476564dbe6"
             },
             {
               "file": "src/channels/turn-progress-card.ts",
@@ -9728,13 +9728,13 @@
               "sha256": "53381c1eb4dfecd681bcf37c288591a93df0720633279f6285d4312ec3e6d63b"
             }
           ],
-          "verifiedBoundary": "HTTPS/SDK请求、24阶段中文/emoji、完整卡预算换卡、静态失败恢复和终态；现有模板精确消息读取确认2566字节正文及二次更新。",
-          "testGap": "手机首帧后不刷新的全部原因尚未复现；协议成功及服务端消息正确不等于手机像素验收。",
+          "verifiedBoundary": "HTTPS/SDK请求及流式组件模型、24阶段换卡、回执失败重试、重连与终态；桌面钉钉同一卡确认完整正文结束标记、二次正文更新、唯一复制框和链接。",
+          "testGap": "手机端连续更新、首次加载与网络重连后的像素验收尚未完成。",
           "reviewReport": "docs/audits/2026-11-06-stable-progress-controls.md"
         },
         {
           "id": "DEL-09.6",
-          "scenario": "阶段正文更新不重写停止复制框、IDE或布局元数据；初始化、操作区真正变化、重连、状态切换及终态保持唯一控件。",
+          "scenario": "完整阶段正文写静态组件，短小复制/IDE页脚仅初始化或真实改变时流式更新；两类回执分别缓存，重连与终态不丢阶段或重复控件。",
           "status": "partial",
           "tests": [
             {
@@ -9749,11 +9749,11 @@
           "implementation": [
             {
               "file": "src/channels/dingtalk.ts",
-              "sha256": "55bc038c6a4ff2278b486c58278e832b14d8a49015b0bfd9b93a502cc05c8fce"
+              "sha256": "6a37947bf033dd7702212bc65ef50141b96c1117141f5ce944310c476564dbe6"
             }
           ],
-          "verifiedBoundary": "HTTPS/SDK实际请求字段集合：首次创建后不重写、连续20段正文变化、心跳、仅IDE变更、写失败后重试、适配器重建和终态。原实现两项反例失败。",
-          "testGap": "现有模板两区真实消息已核对；手机连续刷新的视觉验收仍未完成。",
+          "verifiedBoundary": "HTTPS/SDK请求及流式组件模型、24阶段换卡、回执失败重试、重连与终态；桌面钉钉同一卡确认完整正文结束标记、二次正文更新、唯一复制框和链接。",
+          "testGap": "手机端连续更新、首次加载与网络重连后的像素验收尚未完成。",
           "reviewReport": "docs/audits/2026-11-06-stable-progress-controls.md"
         }
       ]
@@ -17421,12 +17421,20 @@
             {
               "file": "test/ide.test.ts",
               "name": "IDE upstream failure recovers through authorized POST and ignores late old-endpoint errors"
+            },
+            {
+              "file": "test/ide.test.ts",
+              "name": "IDE readiness admits a slow Connector handshake and reuses its healthy instance"
+            },
+            {
+              "file": "test/ide.test.ts",
+              "name": "IDE readiness still expires within its total budget when the upstream never responds"
             }
           ],
           "implementation": [
             {
               "file": "src/ide/manager.ts",
-              "sha256": "36b7ccf9284fa19323a8cf3419dd3abcea385a212bfbe0f2cd3b70a0d2945c04"
+              "sha256": "d4b6a5b3193c69918f41cd15bbaaf459088a4d31d142c7c84f84bd1472de8735"
             },
             {
               "file": "src/ide/access-server.ts",
@@ -17437,7 +17445,7 @@
               "sha256": "9dbbb6e9e6aa5d52eb654eca6e5994c20a01eb6bdd869c09483007a273479efe"
             }
           ],
-          "verifiedBoundary": "真实本机HTTP/socket隔离测试：失效导航、授权保留、GET不启动、POST重建、代次竞态、写请求不重放。",
+          "verifiedBoundary": "真实本机HTTP/socket隔离测试：失效导航、授权保留、GET不启动、POST重建、代次竞态、写请求不重放。慢通道超过1秒仍可启动及复用；无响应按总时限失败。",
           "testGap": "线上远端链路恢复与浏览器重新进入仍需实测。",
           "reviewReport": "docs/audits/2026-11-06-stable-progress-controls.md"
         }

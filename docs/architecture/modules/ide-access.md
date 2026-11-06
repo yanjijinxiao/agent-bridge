@@ -61,3 +61,5 @@ native-profile.ts 统一解析 settings.json/JSONC、extensions.json 和导出�
 ## 上游失效与原授权恢复（2026-11-06）
 
 Connector 在线、代理 socket 仍存在，不等于后端 IDE lease 可用。HTTP 代理失败时，按实例 ID 和 socket 路径废止当前 endpoint 的可复用状态；晚到的旧 socket 错误不得废止新实例。编辑器根路径的 GET 转回既有 workspace 页，由原浏览器授权和 CSRF POST 重新核对目录并启动；资源请求及写请求返回失败，绝不自动重放写入。IDEEndpointManager 的按主机包装层必须转发 invalidateEndpoint。该恢复不启动、停止或重发 Codex 任务。IDE-12.3 覆盖此边界；线上远端与手机是否恢复仍需单独核验。
+
+健康检查使用剩余的完整启动时限，包含 Connector 的原生项目归属校验和远端握手；不得用每次 1 秒的探测反复掐断正常慢响应。复用实例同样等待完整探测预算，真正无响应仍按配置时限结束，不因此跳过鉴权或扩大授权范围。

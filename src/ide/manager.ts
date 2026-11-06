@@ -231,7 +231,7 @@ export class WorkspaceIDEManager {
     const promise = (async (): Promise<Instance> => {
       if (previous?.status === "running" && previous.launch?.alive()) {
         if (prepare) throw new Error("请先停止 IDE 再准备扩展，以免并发写入扩展目录");
-        if (await healthy(previous.launch.socketPath)) {
+        if (await healthy(previous.launch.socketPath, this.options.readyTimeoutMs ?? 20_000)) {
           check();
           previous.lastUsedAt = Date.now(); return previous;
         }
@@ -251,7 +251,10 @@ export class WorkspaceIDEManager {
         if (instance.launch.workspaceFile) instance.workspaceFile = instance.launch.workspaceFile;
         if (prepare) { await instance.launch.stop(); instance.launch = undefined; instance.status = "stopped"; return instance; }
         const deadline = Date.now() + (this.options.readyTimeoutMs ?? 20_000);
-        while (!await healthy(instance.launch.socketPath)) {
+        // A Connector socket includes its authenticated remote handshake. A
+        // one-second per-request cutoff can starve every valid slow response;
+        // spend the remaining startup budget on the request instead.
+        while (!await healthy(instance.launch.socketPath, Math.max(1, deadline - Date.now()))) {
           check();
           if (!instance.launch.alive() || Date.now() >= deadline) throw new Error("IDE 健康检查未通过，请检查主机安装、目录权限和 SSH 转发");
           await delay(150);
@@ -350,9 +353,9 @@ export class WorkspaceIDEManager {
 }
 function digest(value: unknown): string { return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 32); }
 function publicInstance({ launch: _, ...instance }: Instance): IDEInstanceStatus { return instance; }
-function healthy(socketPath: string): Promise<boolean> {
+function healthy(socketPath: string, timeoutMs: number): Promise<boolean> {
   return new Promise(resolve => {
-    const timer = setTimeout(() => { request.destroy(); resolve(false); }, 1000);
+    const timer = setTimeout(() => { request.destroy(); resolve(false); }, timeoutMs);
     const request = http.get({ socketPath, path: "/healthz", agent: false }, response => {
       clearTimeout(timer); response.resume(); resolve(response.statusCode === 200);
     });

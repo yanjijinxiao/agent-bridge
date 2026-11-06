@@ -189,9 +189,9 @@ test("DingTalk production REST lifecycle keeps input state through body snapshot
   await stream.progress("正在执行真实步骤"); await stream.progress("最新公开进展"); await stream.flush();
   assert.ok(calls.filter(call => call.url.endsWith("/streaming")).every(call => call.body.isFinalize === false));
   const active = calls.filter(call => call.body.cardData).map(call => call.body.cardData.cardParamMap);
-  assert.ok(active.some(map => map.msgContent?.startsWith(turnStatusHeading("running"))));
+  assert.ok(active.some(map => map.staticMsgContent?.startsWith(turnStatusHeading("running"))));
   assert.equal(active[0].flowStatus, "2");
-  assert.equal(calls.filter(call => call.url.endsWith("/streaming")).length, 0);
+  assert.equal(calls.filter(call => call.url.endsWith("/streaming")).length, 1);
   await stream.fail("具体错误", "interrupted");
   const last = calls.filter(call => call.url.endsWith("/streaming")).at(-1)!;
   assert.equal(last.body.isFinalize, true); assert.equal(last.body.isError, false); // Keep supplied error body visible.

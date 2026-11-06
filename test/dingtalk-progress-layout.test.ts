@@ -47,17 +47,17 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.3: ${mode} repeated t
   const view = () => JSON.parse(values.sys_full_json_obj).order.map((key: string) => values[key]).join("\n\n");
   const running = (expected?: string) => {
     assert.equal(values.flowStatus, "2");
-    assert.deepEqual(JSON.parse(values.sys_full_json_obj).order, ["msgContent", "staticMsgContent"]);
-    assert.doesNotMatch(values.msgContent, /当前进展|公开摘要|任务仍在执行/);
-    assert.deepEqual(Lexer.lex(values.msgContent).map(token => token.type), ["paragraph"], "rewrites never replace native block widgets");
-    assert.doesNotMatch(values.msgContent, /(?:<br>\s*){2,}|\n/, "active snapshots have no empty display rows");
-    assert.match(values.msgContent, /正在检查选项定义/);
+    assert.deepEqual(JSON.parse(values.sys_full_json_obj).order, ["staticMsgContent", "msgContent"]);
+    assert.doesNotMatch(values.staticMsgContent, /当前进展|公开摘要|任务仍在执行/);
+    assert.deepEqual(Lexer.lex(values.staticMsgContent).map(token => token.type), ["paragraph"], "rewrites never replace native block widgets");
+    assert.doesNotMatch(values.staticMsgContent, /(?:<br>\s*){2,}|\n/, "active snapshots have no empty display rows");
+    assert.match(values.staticMsgContent, /正在检查选项定义/);
     assert.ok(calls.filter(call => call.kind === "stream").every(call => Buffer.byteLength(call.body.content) <= 1024));
-    assert.doesNotMatch(values.msgContent, /\/stop|打开项目 Web IDE|203\.0\.113/);
-    assert.deepEqual(Lexer.lex(values.staticMsgContent).filter(token => token.type === "code").map(token => ({ lang: token.lang, text: token.text })), [{ lang: "text", text: "/stop" }]);
+    assert.doesNotMatch(values.staticMsgContent, /\/stop|打开项目 Web IDE|203\.0\.113/);
+    assert.deepEqual(Lexer.lex(values.msgContent).filter(token => token.type === "code").map(token => ({ lang: token.lang, text: token.text })), [{ lang: "text", text: "/stop" }]);
     assert.equal(view().split("/stop").length - 1, 1);
     assert.equal(view().split("[打开项目 Web IDE]").length - 1, expected ? 1 : 0);
-    if (expected) assert.ok(values.staticMsgContent.endsWith(`(${expected})`));
+    if (expected) assert.ok(values.msgContent.endsWith(`(${expected})`));
   };
   await stream.progress("正在检查选项定义"); running(first);
   for (let i = 0; i < 30; i++) {
@@ -69,11 +69,11 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.3: ${mode} repeated t
   // and both transports, not just a manually assembled Markdown string.
   await stream.progress("🤔 **Locating work item ID**\n\n**Setting up isolated worktree**");
   await stream.progress("🔎 正在执行命令：git status"); await stream.flush(); running(first);
-  assert.match(values.msgContent, /Locating work item ID/);
-  assert.match(values.msgContent, /Setting up isolated worktree/);
-  assert.match(values.msgContent, /正在执行Git 操作/);
+  assert.match(values.staticMsgContent, /Locating work item ID/);
+  assert.match(values.staticMsgContent, /Setting up isolated worktree/);
+  assert.match(values.staticMsgContent, /正在执行Git 操作/);
   await stream.progress("🤔 正在核对三类 property 规则"); await stream.flush();
-  assert.match(values.msgContent, /💭.*核对三类/);
+  assert.match(values.staticMsgContent, /💭.*核对三类/);
   const id = stream.checkpoint().messageId;
   const states = calls.filter(call => call.kind === "state").length;
   // The screenshot's failing transition: partial table + unclosed inline code,
@@ -81,12 +81,12 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.3: ${mode} repeated t
   for (const preview of ["新增 **SnapshotTableOptionsConfig**。\n\n| Option | 值 |\n|---|---|\n| `expiration",
     "新增 **SnapshotTableOptionsConfig**。\n\n| Option | 值 |\n|---|---|\n| `expiration_timestamp` | Timestamp |\n\n```java\nclass Config {"]) {
     await stream.answer(preview); await stream.flush(); running(first);
-    assert.match(values.msgContent, /核对三类 property 规则/);
-    assert.doesNotMatch(values.msgContent, /正在组织最终回复/);
-    assert.equal(Lexer.lex(values.msgContent).filter(token => ["code", "table"].includes(token.type)).length, 0);
-    assert.match(values.msgContent, /Option.*expiration/);
-    assert.match(values.msgContent, /\*\*SnapshotTableOptionsConfig\*\*/);
-    assert.doesNotMatch(values.msgContent, /表格将在最终答复中完整显示/);
+    assert.match(values.staticMsgContent, /核对三类 property 规则/);
+    assert.doesNotMatch(values.staticMsgContent, /正在组织最终回复/);
+    assert.equal(Lexer.lex(values.staticMsgContent).filter(token => ["code", "table"].includes(token.type)).length, 0);
+    assert.match(values.staticMsgContent, /Option.*expiration/);
+    assert.match(values.staticMsgContent, /\*\*SnapshotTableOptionsConfig\*\*/);
+    assert.doesNotMatch(values.staticMsgContent, /表格将在最终答复中完整显示/);
   }
   assert.equal(calls.filter(call => call.kind === "state").length, states + 2, "changed previews publish one complete static snapshot each");
   const beforeHeartbeat = calls.filter(call => call.kind === "state").length;
@@ -112,6 +112,6 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.3: ${mode} repeated t
   assert.equal(Lexer.lex(view()).filter(token => token.type === "code")[0].text, "class Config {}");
   assert.equal(view().split("[打开项目 Web IDE]").length - 1, 1); assert.doesNotMatch(view(), /\/stop/);
   assert.equal(calls.filter(call => call.kind === "stream").at(-1)!.body.content, "回复已整理。");
-  assert.ok(calls.filter(call => call.kind === "stream").every(call => !call.body.content.includes("/stop") && !call.body.content.includes("打开项目 Web IDE")));
+  assert.ok(calls.filter(call => call.kind === "stream").every(call => !call.body.content.includes("正在检查选项定义")), "phase body never enters the streaming widget");
   assert.equal(calls.filter(call => call.kind === "deliver").length, 1);
 });

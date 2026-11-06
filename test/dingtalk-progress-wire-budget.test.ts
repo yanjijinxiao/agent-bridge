@@ -17,7 +17,7 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.5: ${mode} long phase
     if (kind === "stream") {
       assert.ok(Buffer.byteLength(body.content) <= 1024, "measure UTF-8 after DingTalk Markdown conversion");
       assert.equal(body.isFull, true);
-      assert.doesNotMatch(body.content, /阶段成果|\/stop|打开项目 Web IDE/);
+      assert.doesNotMatch(body.content, /阶段成果/);
       card[body.key] = body.content;
     }
   };
@@ -53,7 +53,7 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.5: ${mode} long phase
     for (let j = 0; j < 3; j++) await stream.progress(`🤔 当前检查 ${i}-${j} ${"🔎核对".repeat(40)}`);
     await stream.flush();
     const card = cards.get(stream.checkpoint().messageId!)!;
-    assert.deepEqual(Lexer.lex(card.staticMsgContent).filter(token => token.type === "code").map(token => token.text), ["/stop"]);
+    assert.deepEqual(Lexer.lex(card.msgContent).filter(token => token.type === "code").map(token => token.text), ["/stop"]);
     assert.equal(view(card).split("[打开项目 Web IDE]").length - 1, 1);
   }
   for (let i = 0; i < 100 && stream.checkpoint().segments?.previous.length; i++) await new Promise(resolve => setTimeout(resolve, 2));
@@ -99,8 +99,8 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.5: ${mode} rejected s
   await assert.rejects(transport.update(input));
   assert.equal(frames.length, count, "failed snapshot cannot be acknowledged by a successful status-only stream");
   reject = false; transport = make(); await transport.update(input);
-  assert.match(states.at(-1).cardData.cardParamMap.msgContent, /阶段成果一.*阶段成果二/s);
-  assert.equal(frames.length, 0, "complete task snapshots never use the size-limited streaming API");
+  assert.match(states.at(-1).cardData.cardParamMap.staticMsgContent, /阶段成果一.*阶段成果二/s);
+  assert.equal(frames.length, 2, "initial and reconstructed transports each initialize the footer; body stays static");
   assert.ok([...states, ...frames].every(frame => frame.outTrackId === "original-card"));
   const beforeFinal = states.length;
   await transport.update({ ...input, text: "阶段已结束", finalize: true });

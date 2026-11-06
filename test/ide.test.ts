@@ -29,6 +29,7 @@ function config(store: IDEConfigStore, port = 8790) {
     hosts: [{ hostId: "local", enabled: true, binary: "code-server" }, { hostId: "remote:test", enabled: true, binary: "/tools/code-server" }] };
 }
 class FakeTransport implements IDEHostTransport {
+  healthDelayMs = 0;
   launches: IDELaunchInput[] = [];
   servers: http.Server[] = [];
   failedServers = new Set<http.Server>();
@@ -40,7 +41,11 @@ class FakeTransport implements IDEHostTransport {
     let alive = true;
     const server = http.createServer((req, res) => {
       if (this.failedServers.has(server)) { res.destroy(); return; }
-      if (req.url === "/healthz") { res.writeHead(200).end("{}"); return; }
+      if (req.url === "/healthz") {
+        if (this.healthDelayMs) { const timer = setTimeout(() => res.writeHead(200).end("{}"), this.healthDelayMs); res.once("close", () => clearTimeout(timer)); }
+        else res.writeHead(200).end("{}");
+        return;
+      }
       res.setHeader("Set-Cookie", "cig_ide_session=evil; Path=/");
       res.end(JSON.stringify({ headers: req.headers, url: req.url }));
     });
@@ -88,6 +93,32 @@ test("canonical host/owner/profile instance reuse, concurrent opens and fresh ta
   targets.a = { ...targets.a, workspace: "/different/project" }; assert.equal(manager.endpoint(a.id), undefined);
   delete targets.b; assert.throws(() => manager.endpoint(b.id), /失效/);
   assert.equal(manager.entry("account", "none"), undefined);
+});
+
+test("IDE readiness admits a slow Connector handshake and reuses its healthy instance", async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cig-ide-slow-handshake-")), transport = new FakeTransport();
+  transport.healthDelayMs = 1200;
+  const manager = new WorkspaceIDEManager({ root, transport, readyTimeoutMs: 3000,
+    resolve: () => ({ owner: "owner", sessionId: "s", hostId: "local", workspace: "/project", projectName: "project" }) });
+  t.after(async () => { await manager.close(); fs.rmSync(root, { recursive: true, force: true }); });
+  manager.configStore.save(config(manager.configStore));
+  const entry = manager.entry("account", "s")!;
+  assert.equal((await manager.open(entry.id)).status, "running");
+  assert.equal((await manager.open(entry.id)).status, "running");
+  assert.equal(transport.launches.length, 1, "latency must not restart a healthy editor");
+});
+
+test("IDE readiness still expires within its total budget when the upstream never responds", async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cig-ide-health-deadline-")), transport = new FakeTransport();
+  transport.healthDelayMs = 60_000;
+  const manager = new WorkspaceIDEManager({ root, transport, readyTimeoutMs: 200,
+    resolve: () => ({ owner: "owner", sessionId: "s", hostId: "local", workspace: "/project", projectName: "project" }) });
+  t.after(async () => { await manager.close(); fs.rmSync(root, { recursive: true, force: true }); });
+  manager.configStore.save(config(manager.configStore));
+  const entry = manager.entry("account", "s")!, started = Date.now();
+  await assert.rejects(manager.open(entry.id), /健康检查未通过/);
+  assert.ok(Date.now() - started < 900, "a short configured deadline must not inherit a longer per-request timeout");
+  assert.equal(manager.endpoint(entry.id), undefined);
 });
 
 test("external first hop silently rechecks Strict cookies without approval UI, grants or IDE startup", async t => {
