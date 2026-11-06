@@ -11967,11 +11967,11 @@
           ],
           "implementation": [],
           "verifiedBoundary": "Mac ARM64 真实 code-server 4.141.1、官方 GitHub GitLens 19.5.0 VSIX、隔离 Chrome 与已提交临时 Git 仓库；作者、标题、正文、对应短哈希与变更实际显示，自动化用例通过。",
-          "verificationLimit": "不代表手机、其他操作系统、生产扩展配置或各主机 Open VSX CDN 可达；不验证第三方服务账号集成及付费功能。",
+          "verificationLimit": "原自动化仅验证隔离环境。2026-11-06 另在三个现有生产实例补装并核对清单，本机项目实际浏览器显示作者与提交浮窗；远程两个项目浏览器、手机、其他项目、各主机 Open VSX CDN、第三方账号集成及付费功能未验。",
           "implementationRecheck": {
-            "date": "2026-11-04",
-            "scope": "原生配置增量后的真实扩展验收",
-            "report": "docs/audits/2026-11-04-verification-boundaries/README.md"
+            "date": "2026-11-06",
+            "scope": "区分隔离兼容性测试与实际项目安装，补齐三个现有实例并核对本机浏览器",
+            "report": "docs/audits/2026-11-06-gitlens-production/README.md"
           }
         }
       ]

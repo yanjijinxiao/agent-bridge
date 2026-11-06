@@ -58,6 +58,8 @@ native-profile.ts 统一解析 settings.json/JSONC、extensions.json 和导出�
 
 内部 settings/extensions 结构未变，不因代码升级重建实例。首次准备查询安装结果，全部核验后保存 extensions-initialized.json；后续重开只报告真实安装状态，保留原生 IDE 卸载操作。显式准备才重新应用基线。失败不写成功回执，安装失败的旧实例下次仍可重试。不扫描项目推荐列表自动安装，不复制桌面登录态；初始基线修改影响所有启用主机，管理页须明确说明。
 
+扩展功能验收必须明确对应的实例与主机。IDE-08.5 的隔离 GitLens 测试仅证明兼容性，不能当作线上各项目已安装的证据。线上补装应使用原实例的 user-data-dir、extensions-dir 和 config；保留现有扩展、JSONC 设置、浏览器授权和 IDE 进程。分别记录安装清单与实际作者/提交浮窗，不能把 CLI 安装成功等同于浏览器已激活。2026-11-06 的配置补齐及验证范围见 `docs/audits/2026-11-06-gitlens-production/README.md`。
+
 ## 上游失效与原授权恢复（2026-11-06）
 
 Connector 在线、代理 socket 仍存在，不等于后端 IDE lease 可用。HTTP 代理失败时，按实例 ID 和 socket 路径废止当前 endpoint 的可复用状态；晚到的旧 socket 错误不得废止新实例。编辑器根路径的 GET 转回既有 workspace 页，由原浏览器授权和 CSRF POST 重新核对目录并启动；资源请求及写请求返回失败，绝不自动重放写入。IDEEndpointManager 的按主机包装层必须转发 invalidateEndpoint。该恢复不启动、停止或重发 Codex 任务。IDE-12.3 覆盖此边界；线上远端与手机是否恢复仍需单独核验。

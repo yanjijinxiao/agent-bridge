@@ -1,0 +1,59 @@
+{
+  "recordedAt": "2026-11-06T06:25:26.666Z",
+  "extension": "eamodio.gitlens",
+  "extensionVersion": "19.5.0",
+  "source": "https://github.com/gitkraken/vscode-gitlens/releases/tag/v19.5.0",
+  "sha256": "ac512e366b9e3a372edf9a6493d61bb0c916b5f9f7c4170f99bb03ed25a58a8a",
+  "bytes": 4903661,
+  "existingProfiles": [
+    {
+      "host": "Mac local",
+      "project": "codex-channel-bridge + farming",
+      "codeServer": "4.141.0",
+      "installed": [
+        "eamodio.gitlens@19.5.0",
+        "tuttieee.emacs-mcx@0.111.6"
+      ],
+      "browserVerified": true
+    },
+    {
+      "host": "remote Linux",
+      "project": "odps_src_-_1",
+      "codeServer": "4.141.1",
+      "installed": [
+        "eamodio.gitlens@19.5.0",
+        "tuttieee.emacs-mcx@0.111.6"
+      ],
+      "browserVerified": false
+    },
+    {
+      "host": "remote Linux",
+      "project": "odps_src_-_2",
+      "codeServer": "4.141.1",
+      "installed": [
+        "eamodio.gitlens@19.5.0",
+        "tuttieee.emacs-mcx@0.111.6"
+      ],
+      "browserVerified": false
+    }
+  ],
+  "localBrowserEvidence": {
+    "method": "CUA native Chrome, existing Gateway maintenance entrance, actual project",
+    "file": "README.md",
+    "line": 1,
+    "inlineAuthorAndTime": true,
+    "hoverSubject": "feat: rename project to codex-im-gateway",
+    "hoverShortHash": "71f407d",
+    "gitBlameCommit": "71f407d91ce04b7b7e46ec6bed881b319ee833b5",
+    "beforeAfterDiffVisible": true
+  },
+  "baselineChanged": false,
+  "processesRestarted": false,
+  "automatedSuiteRerun": false,
+  "limitations": [
+    "remote browser not verified in this increment",
+    "mobile not verified",
+    "other profiles not installed",
+    "third-party account integrations and paid features not verified"
+  ]
+}
