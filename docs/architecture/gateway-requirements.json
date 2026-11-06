@@ -19121,6 +19121,55 @@
           "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
         }
       ]
+    },
+    {
+      "id": "VER-02",
+      "module": "release",
+      "title": "Agent Bridge 改名与 scoped npm 统一产品版本",
+      "source": "2026-11-06 用户要求改 GitHub 项目名、README 和探探教程，版本管理与 npm 同步。",
+      "contract": "同一 npm 包提供 Gateway/Connector 两个命令，产品版本单源；旧状态、协议和凭据保留。",
+      "implementationReview": "reviewed-listed-scenarios-only",
+      "cases": [
+        {
+          "id": "VER-02.1",
+          "scenario": "发布清单单源版本及去除工作区/安装脚本",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/npm-package.test.ts",
+              "name": "npm publication keeps one product version and drops source-only workspace/install hooks"
+            }
+          ]
+        },
+        {
+          "id": "VER-02.2",
+          "scenario": "scoped 和旧 npm 安装识别、升级回退",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/npm-package.test.ts",
+              "name": "scoped package update activates and rolls back inside its scope without touching a sibling package"
+            },
+            {
+              "file": "test/update-manager.test.ts"
+            },
+            {
+              "file": "test/npm-release.test.ts"
+            }
+          ]
+        },
+        {
+          "id": "VER-02.3",
+          "scenario": "npm 安装后完整启动及 Taskboard 静态资源",
+          "status": "pending-real-package-validation",
+          "tests": [
+            {
+              "file": "test/taskboard-release-package.test.ts"
+            }
+          ],
+          "remainingBoundary": "等待实际生成 tarball 并在独立目录安装验收；Windows 未实机验证。"
+        }
+      ]
     }
   ],
   "reviewPass": "2026-11-03 full-four-layer: source, comments, documentation, tests, static/configuration reviewed; isolated regressions passed; deployment separately recorded",

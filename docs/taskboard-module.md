@@ -1,6 +1,6 @@
 # 内置 Taskboard 模块：安装、迁移与回滚
 
-Taskboard 已作为独立 workspace 模块放在 `taskboard/`。内置模式由 `codex-im-gateway` 进程启动和关闭；外部服务模式只连接配置的服务，不接管其进程。管理后台默认 `http://127.0.0.1:8787`，内置看板与 CLI API 默认 `http://127.0.0.1:47823`；实际地址以当前安装配置和 `/api/taskboard` 返回为准，不能拿示例端口判断已部署实例。
+Taskboard 已作为独立 workspace 模块放在 `taskboard/`。内置模式由 Agent Bridge 进程启动和关闭；外部服务模式只连接配置的服务，不接管其进程。管理后台默认 `http://127.0.0.1:8787`，内置看板与 CLI API 默认 `http://127.0.0.1:47823`；实际地址以当前安装配置和 `/api/taskboard` 返回为准，不能拿示例端口判断已部署实例。
 
 本文件主要说明安装、数据及生命周期，不是完整模块设计。功能与 case 见 [架构文档入口](architecture/README.md) 中的 TB 系列；编辑、上传、工作流和独立 AI 执行链的未完成核对继续保留在审查记录中。
 
@@ -8,7 +8,7 @@ Taskboard 已作为独立 workspace 模块放在 `taskboard/`。内置模式由 
 
 ## 一键安装或核验
 
-在 `codex-im-gateway` 仓库根目录执行：
+在 Agent Bridge 仓库根目录执行：
 
 ```bash
 npm run install:local

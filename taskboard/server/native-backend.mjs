@@ -2,9 +2,9 @@
  * Deployment chooses the endpoint; catalog/execution never spawn CLI helpers.
  * Standalone distributions must include the root build beside this package. */
 export function gatewayAdapterUrl(moduleUrl = import.meta.url) {
-  // The release embeds this package in dist/node_modules. Development keeps it
+  // The release embeds this package in dist/vendor. Development keeps it
   // in the workspace. These are code locations, not alternative executors.
-  return new URL(new URL("../../", moduleUrl).pathname.endsWith("/node_modules/")
+  return new URL(/\/(?:vendor|node_modules)\/$/.test(new URL("../../", moduleUrl).pathname)
     ? "../../../codex/app-server-gateway.js" : "../../dist/codex/app-server-gateway.js", moduleUrl);
 }
 

@@ -146,3 +146,7 @@ NAT-07.10：单 Connector 多主机路由、权限与文件/IDE 检查见 [记�
 ## 2026-11-06 统一版本增量
 
 VER-01.1–VER-01.13 已建立精确测试映射，覆盖进程快照、远端独立报告、新旧混用、两个契约主版本拒绝、次版本兼容、HTTP 拒绝写入、并发关联与脱敏、失败协商、重连与实例替换、日志输出故障。多参数用例合计 16 项测试。构建清单和真实 Gateway 启停另由 release-local / server-shutdown 回归覆盖。详见 [四层记录](../audits/2026-11-06-version-contracts.md)，不据此提升历史 partial 场景。
+
+## VER-02 Agent Bridge npm 发行
+
+版本及清单、scoped 路径、旧路径兼容和候选包回退见 npm-package/update-manager/npm-release 用例。Taskboard 改随 dist/vendor 发布，源码与制品互不回退。真实 tarball 干净安装与 registry 发布回执独立记录，不以 fixture 冒充发布。Windows 仅路径逻辑覆盖，未实机验收。

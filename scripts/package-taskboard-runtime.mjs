@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-/** Pin the embedded package beside the compiled Gateway. Node resolves this
- * package before the development workspace symlink, so deploy and rollback
+/** Pin the embedded package beside the compiled Gateway. Compiled Gateway imports this
+ * package without consulting the development workspace, so deploy and rollback
  * move the server modules, shared contracts and web assets together. */
 export function packageTaskboardRuntime({ source, web, destination }) {
   if (!fs.existsSync(path.join(web, 'index.html'))) throw Error('Taskboard web build is missing');
@@ -35,5 +35,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     options[args[i]] = args[i + 1];
   }
   packageTaskboardRuntime({ source: path.join(repo, 'taskboard'), web: path.resolve(options['--web'] ?? path.join(repo, 'taskboard/dist/web')),
-    destination: path.resolve(options['--out'] ?? path.join(repo, 'dist/node_modules/codex-taskboard')) });
+    destination: path.resolve(options['--out'] ?? path.join(repo, 'dist/vendor/codex-taskboard')) });
 }

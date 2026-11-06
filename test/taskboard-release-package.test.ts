@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
 // @ts-ignore Packaging is an independent JavaScript build entry point.
@@ -13,15 +12,14 @@ import { gatewayAdapterUrl } from "../taskboard/server/native-backend.mjs";
 test("compiled Gateway resolves its pinned Taskboard server, skill CLI and web from one artifact", t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "taskboard-package-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const source = path.join(root, "source"), web = path.join(root, "web"), destination = path.join(root, "dist/node_modules/codex-taskboard");
+  const source = path.join(root, "source"), web = path.join(root, "web"), destination = path.join(root, "dist/vendor/codex-taskboard");
   for (const name of ["server", "shared", "skills", "cli", "scripts"]) {
     fs.mkdirSync(path.join(source, name), { recursive: true }); fs.writeFileSync(path.join(source, name, "proof.mjs"), name);
   }
   fs.mkdirSync(web); fs.writeFileSync(path.join(web, "index.html"), "version one");
   fs.writeFileSync(path.join(source, "package.json"), JSON.stringify({ name: "codex-taskboard", exports: { "./server": "./server/proof.mjs" } }));
   packageTaskboardRuntime({ source, web, destination });
-  const require = createRequire(path.join(root, "dist/taskboard/embedded-server.js"));
-  assert.equal(require.resolve("codex-taskboard/server"), fs.realpathSync(path.join(destination, "server/proof.mjs")));
+  assert.ok(fs.existsSync(path.join(destination, "server/proof.mjs")));
   assert.equal(gatewayAdapterUrl(pathToFileURL(path.join(destination, "server/native-backend.mjs"))).href,
     pathToFileURL(path.join(root, "dist/codex/app-server-gateway.js")).href);
   assert.equal(gatewayAdapterUrl(pathToFileURL(path.join(root, "taskboard/server/native-backend.mjs"))).href,
@@ -39,7 +37,7 @@ test("compiled Gateway resolves its pinned Taskboard server, skill CLI and web f
 test("the actual packaged Taskboard imports all runtime dependencies without the workspace source", async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "actual-taskboard-package-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const web = path.join(root, "web"), destination = path.join(root, "dist/node_modules/codex-taskboard");
+  const web = path.join(root, "web"), destination = path.join(root, "dist/vendor/codex-taskboard");
   fs.mkdirSync(web); fs.writeFileSync(path.join(web, "index.html"), "<div id=\"root\"></div>");
   packageTaskboardRuntime({ source: path.resolve("taskboard"), web, destination });
   const packaged = await import(pathToFileURL(path.join(destination, "server/index.mjs")).href);

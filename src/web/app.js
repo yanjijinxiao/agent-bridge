@@ -258,7 +258,7 @@ async function bootstrap() {
     void refreshTaskboardIssues(false, { background: true, loadDetail: false });
   } catch (error) {
     toast(error.message, true);
-    els.accountsList.innerHTML = emptyState("server-off", "无法连接本机服务", "请重新启动 codex-im-gateway");
+    els.accountsList.innerHTML = emptyState("server-off", "无法连接本机服务", "请重新启动 Agent Bridge");
   }
 }
 

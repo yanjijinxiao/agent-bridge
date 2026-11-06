@@ -5,13 +5,13 @@ import type { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { fetchWithBudget } from "../channels/network-request.js";
 import { createNpmReleaseDirectory, npmCandidateRoot, sealNpmRelease } from "./npm-release.js";
+import { NPM_PACKAGE_NAME as PACKAGE_NAME, LEGACY_NPM_PACKAGE_NAME } from "../runtime/product.js";
 
 const UPDATE_REGISTRY_URLS = {
   official: "https://registry.npmjs.org",
   npmmirror: "https://registry.npmmirror.com"
 } as const;
 const UPDATE_REGISTRY_IDS = Object.keys(UPDATE_REGISTRY_URLS) as UpdateRegistryId[];
-const PACKAGE_NAME = "codex-im-gateway";
 const MAX_REGISTRY_RESPONSE_BYTES = 64 * 1024;
 const MAX_INSTALL_OUTPUT_BYTES = 20 * 1024;
 const STABLE_VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
@@ -181,7 +181,7 @@ export class UpdateManager implements UpdateService {
     registry: UpdateRegistryId,
     signal: AbortSignal
   ): Promise<{ latestVersion: string; registry: UpdateRegistryId }> {
-    const response = await fetchWithBudget(this.fetchImpl, `${UPDATE_REGISTRY_URLS[registry]}/${PACKAGE_NAME}/latest`, {
+    const response = await fetchWithBudget(this.fetchImpl, `${UPDATE_REGISTRY_URLS[registry]}/${encodeURIComponent(PACKAGE_NAME)}/latest`, {
       headers: { Accept: "application/json" },
       signal, timeoutMs: this.checkTimeoutMs, maxResponseBytes: MAX_REGISTRY_RESPONSE_BYTES
     });
@@ -308,8 +308,10 @@ export function resolveNpmInstallTarget(
   const pathApi = platform === "win32" ? path.win32 : path.posix;
   if (!pathApi.isAbsolute(packageRoot)) return undefined;
   const normalizedRoot = pathApi.resolve(packageRoot);
-  if (pathApi.basename(normalizedRoot).toLowerCase() !== PACKAGE_NAME) return undefined;
-  const nodeModulesDir = pathApi.dirname(normalizedRoot);
+  const [scope, name] = PACKAGE_NAME.split("/");
+  const scoped = pathApi.basename(normalizedRoot) === name && pathApi.basename(pathApi.dirname(normalizedRoot)) === scope;
+  if (!scoped && pathApi.basename(normalizedRoot) !== LEGACY_NPM_PACKAGE_NAME) return undefined;
+  const nodeModulesDir = scoped ? pathApi.dirname(pathApi.dirname(normalizedRoot)) : pathApi.dirname(normalizedRoot);
   if (pathApi.basename(nodeModulesDir).toLowerCase() !== "node_modules") return undefined;
   const packagePrefix = pathApi.dirname(nodeModulesDir);
   const global = platform === "win32" || pathApi.basename(packagePrefix).toLowerCase() === "lib";

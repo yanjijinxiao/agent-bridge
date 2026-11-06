@@ -39,7 +39,7 @@ Connector 入口：wss://11.158.199.29:49186/gateway/v1/peer
 ### 准备自己的设备
 
 - 已安装且能正常使用 Codex，完成自己的登录或模型配置。
-- 已安装 Git、Node.js 和 npm，Node.js 满足项目 package.json 中的运行要求。
+- 已安装 Node.js 和 npm（Git 用于项目的版本控制），Node.js 满足项目 package.json 中的运行要求。
 - 设备能够访问上面的探探内网入口；不在相应网络时，需要已获准的内网或 VPN 连接。
 - 首次启动使用交互式终端，方便核对并确认配对申请。
 
@@ -60,35 +60,25 @@ Connector 入口：wss://11.158.199.29:49186/gateway/v1/peer
 
 如果只是使用别人分享的某个会话，请按第 8 节由提供者审批，不需要设备连接配置，也不必先申请机器人全部功能的准入。
 
-### 下载和构建
+### 安装 Connector
 
-如果管理员已提供构建好的 Connector 目录，直接使用该目录，跳到“放好配置”。从源码安装时，依次执行以下命令。
-
-下载项目：
+探探使用 Agent Bridge。推荐通过 npm 安装已经编译好的程序，不需要下载源码或自行构建：
 
 ```sh
-git clone https://github.com/yanjijinxiao/codex-im-gateway.git
+npm install -g @yanjijinxiao/agent-bridge
 ```
 
-进入项目目录：
+安装会提供 agent-bridge 和 agent-bridge-connector 两个命令。接入探探只运行后者，不需要启动自己的 Gateway，也无需机器人 AppKey 或 AppSecret。
+
+查看本机 Connector 的产品版本：
 
 ```sh
-cd codex-im-gateway
+agent-bridge-connector --version
 ```
 
-安装依赖：
+教程不固定某个 Git 提交或版本号。升级时停止自己的 Connector，重新运行上面的 npm 安装命令，再使用原配置启动；保留配置和 stateDir，不删除设备身份、授权或消息回执。安装本身不会自动重启服务，也不会升级 Codex 或 code-server。
 
-```sh
-npm ci
-```
-
-构建程序：
-
-```sh
-npm run build:bridge
-```
-
-安装完成后，后面的启动命令都在这个项目目录执行。无需启动另一套 Gateway，也无需配置机器人 AppKey 或 AppSecret。
+源码开发入口为 https://github.com/yanjijinxiao/agent-bridge；从源码运行仍可使用 npm run peer。普通使用者按 npm 方式即可。
 
 ### 放好配置
 
@@ -122,10 +112,10 @@ codex app-server daemon --help
 
 ## 3. 启动设备连接，完成第一次配对
 
-在 Connector 的项目目录执行：
+在任意目录的交互式终端执行：
 
 ```sh
-npm run peer -- --config "$HOME/.config/tantan-connector/peer-client.json"
+agent-bridge-connector --config "$HOME/.config/tantan-connector/peer-client.json"
 ```
 
 连接成功后，终端会显示设备名称和一条带配对码的完整命令。

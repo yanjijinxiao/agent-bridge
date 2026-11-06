@@ -1,50 +1,61 @@
 # 本地运行指南 / Local Run Guide
 
-Codex IM Gateway 只通过 GitHub 分发源码，不发布 npm 包。`package.json` 设置了 `private: true`，仓库不包含 npm 发布工作流。
+Agent Bridge 提供 npm 发行包和源码两种安装方式。包名是 @yanjijinxiao/agent-bridge，包含 Gateway 和 Connector 两个独立启动入口；安装不会自动启动服务。
 
-## 首次运行
+## npm 安装
 
-Node.js 需为 22.x 的 22.13+，或 23.4+。服务直接导入 `node:sqlite`，这些版本才无需额外实验开关；也满足锁定 Vite 的构建要求。依据：[Node.js SQLite 版本记录](https://nodejs.org/api/sqlite.html)、[Vite 安装要求](https://vite.dev/guide/)。不为旧 Node 自动增加实验开关。
+Node.js 需为 22.x 的 22.13+，或 23.4+。安装与启动：
 
 ```bash
-git clone https://github.com/yanjijinxiao/codex-im-gateway.git
-cd codex-im-gateway
+npm install -g @yanjijinxiao/agent-bridge
+```
+
+```bash
+agent-bridge
+```
+
+只接入已有 Gateway 时无需启动自己的 Gateway；准备私有的 Connector 配置后执行以下模板：
+
+```bash
+agent-bridge-connector --config /absolute/private/path/peer-client.json
+```
+
+安装包已包含编译程序、管理网页和内嵌 Taskboard。Codex、code-server 是独立工具，按需要在执行设备安装，不由 npm 安装本包时自动启动或升级。
+
+## 源码开发
+
+```bash
+git clone https://github.com/yanjijinxiao/agent-bridge.git
+cd agent-bridge
 npm ci
 npm run build
 node dist/server/index.js
 ```
 
-npm 仅用于安装锁定依赖和构建 TypeScript/Web 资源。服务启动不使用 `npm start`、全局 npm 安装或 npx。
+管理页默认位于 http://127.0.0.1:8787，只监听本机。Gateway 不直接启动本机 Codex；通过 CODEX_IM_GATEWAY_PEER_CONFIG 配置设备监听，执行设备另行运行 Connector。
 
-管理页默认位于 `http://127.0.0.1:8787`。服务只监听本机地址。
+## 更新与后台运行
 
-## 更新
+npm 手动更新：先停止自己运行的 Gateway 或 Connector，再运行 npm install -g @yanjijinxiao/agent-bridge，使用原配置启动。服务管理器必须继续使用原状态目录。Gateway 中已经由独立执行器接收的任务不因停止消息转发进程而被主动中断；不要停止 Codex daemon。
 
-以下步骤适用于手动前台运行。正在提供服务的 macOS LaunchAgent 使用[隔离发布流程](release-local.md)，在停服前完成构建和测试，不在其 live dist 上运行 build。
+源码手动前台更新：先停止自己的进程，再执行 git pull --ff-only、npm ci、npm run build，然后启动。正在提供服务的 macOS LaunchAgent 使用[隔离发布流程](release-local.md)，不要在其 live dist 上运行 build。源码部署不开放管理页的 npm 自更新；npm 安装的实例使用候选目录准备及程序回退流程。
 
-手动前台运行时，先停止当前 Node.js 进程，再执行：
+系统服务可运行 npm 安装后对应的 agent-bridge / agent-bridge-connector 可执行文件，或源码的 node /absolute/path/dist/server/index.js。全局 npm 更新后核对服务管理器仍指向当前安装入口。
 
-```bash
-git pull --ff-only
-npm ci
-npm run build
-node dist/server/index.js
-```
+以下配置保持兼容，不因品牌改名搬迁数据：
 
-新安装默认使用 `~/.codex-im-gateway/`。若该目录不存在，服务会按顺序复用已有的 `~/.codex-channel-bridge/` 或 `~/.codex-weixin/`；更新源码或重新构建不会删除账号、授权、项目、会话和知识库。不要提交或分享状态目录。
+- CODEX_IM_GATEWAY_PORT：管理端口，默认 8787。
+- CODEX_IM_GATEWAY_STATE_DIR：Gateway 私有状态目录。
+- CODEX_IM_GATEWAY_OPEN=0：后台运行时不自动打开浏览器。
+- CODEX_IM_GATEWAY_PEER_CONFIG：Connector 监听配置文件。
+- 旧 CODEX_CHANNEL_BRIDGE_* 和 CODEX_WEIXIN_* 变量继续可用。
 
-## 后台运行
+新 Gateway 默认使用 ~/.codex-im-gateway；若不存在，则复用已有 ~/.codex-channel-bridge 或 ~/.codex-weixin。不要删除或分享这些目录。Connector 始终保留原配置和 stateDir，以保留设备身份、授权和回执。
 
-macOS 或 Linux 可以使用系统自带的服务管理器运行 `node /absolute/path/to/dist/server/index.js`。服务管理器的工作目录应设置为仓库根目录，并按需设置：
+## 版本
 
-```text
-CODEX_IM_GATEWAY_PORT=8787
-CODEX_IM_GATEWAY_STATE_DIR=/absolute/private/path
-CODEX_IM_GATEWAY_OPEN=0
-```
-
-旧 `CODEX_CHANNEL_BRIDGE_*` 和 `CODEX_WEIXIN_*` 环境变量仍可读取，用于兼容已有部署。
+agent-bridge --version 和 agent-bridge-connector --version 输出该安装包的产品版本，和 npm 版本一致；管理 /api/versions 可核对正在运行的各端，不把新下载的版本当成旧进程已更新。接口和日志兼容号独立管理。发布者参阅 [npm 发布流程](npm-release.md)。
 
 ## English
 
-Codex IM Gateway is distributed only as GitHub source and is protected with `private: true`. npm installs locked dependencies and builds assets, but does not install, publish, or start the service. Run it directly with `node dist/server/index.js`. For a manually started foreground process, stop it before pulling, rebuilding, and restarting. A running macOS LaunchAgent uses the [isolated release workflow](release-local.md): prepare and test before stopping the service, and never rebuild its live dist. New installs default to `~/.codex-im-gateway/`; existing `~/.codex-channel-bridge/` or `~/.codex-weixin/` data is reused automatically. `CODEX_IM_GATEWAY_STATE_DIR` selects an explicit private path.
+Install @yanjijinxiao/agent-bridge globally and run agent-bridge for Gateway, or agent-bridge-connector --config PATH to join an existing Gateway. The artifact includes compiled Web and embedded Taskboard assets. No service starts during installation. Preserve existing configuration, environment variables, state directories and device identities when upgrading. Source deployments use npm ci, npm run build and node dist/server/index.js; never rebuild the dist of a running managed service. Both CLI version commands and runtime productVersion match the npm package version.

@@ -79,8 +79,8 @@ test("uses the first valid registry and installs from that same registry", async
   assert.deepEqual(await manager.installLatest(), { version: "1.2.4", registry: "npmmirror" });
   assert.deepEqual(installed, [{ version: "1.2.4", registry: "npmmirror" }]);
   assert.deepEqual(requested.sort(), [
-    "https://registry.npmjs.org/codex-im-gateway/latest",
-    "https://registry.npmmirror.com/codex-im-gateway/latest"
+    "https://registry.npmjs.org/%40yanjijinxiao%2Fagent-bridge/latest",
+    "https://registry.npmmirror.com/%40yanjijinxiao%2Fagent-bridge/latest"
   ].sort());
 });
 
@@ -161,7 +161,7 @@ test("builds fixed cross-platform npm install commands", () => {
     nodePath: "/node"
   }), {
     command: "npm",
-    args: ["install", "--global", "--prefix", "/opt/homebrew", "--no-save", "--package-lock=false", "codex-im-gateway@1.2.4", "--registry=https://registry.npmmirror.com", "--no-audit", "--no-fund"]
+    args: ["install", "--global", "--prefix", "/opt/homebrew", "--no-save", "--package-lock=false", "@yanjijinxiao/agent-bridge@1.2.4", "--registry=https://registry.npmmirror.com", "--no-audit", "--no-fund"]
   });
   assert.deepEqual(buildNpmInstallCommand("1.2.4", "official", {
     installPrefix: "/Users/tester/codex-im-gateway-runtime",
@@ -171,7 +171,7 @@ test("builds fixed cross-platform npm install commands", () => {
     nodePath: "/node"
   }), {
     command: "npm",
-    args: ["install", "--prefix", "/Users/tester/codex-im-gateway-runtime", "--no-save", "--package-lock=false", "codex-im-gateway@1.2.4", "--registry=https://registry.npmjs.org", "--no-audit", "--no-fund"]
+    args: ["install", "--prefix", "/Users/tester/codex-im-gateway-runtime", "--no-save", "--package-lock=false", "@yanjijinxiao/agent-bridge@1.2.4", "--registry=https://registry.npmjs.org", "--no-audit", "--no-fund"]
   });
   assert.deepEqual(buildNpmInstallCommand("1.2.4", "official", {
     installPrefix: "/opt/homebrew",
@@ -182,7 +182,7 @@ test("builds fixed cross-platform npm install commands", () => {
     npmPath: "/opt/homebrew/lib/node_modules/npm/bin/npm-cli.js"
   }), {
     command: "/opt/homebrew/bin/node",
-    args: ["/opt/homebrew/lib/node_modules/npm/bin/npm-cli.js", "install", "--global", "--prefix", "/opt/homebrew", "--no-save", "--package-lock=false", "codex-im-gateway@1.2.4", "--registry=https://registry.npmjs.org", "--no-audit", "--no-fund"]
+    args: ["/opt/homebrew/lib/node_modules/npm/bin/npm-cli.js", "install", "--global", "--prefix", "/opt/homebrew", "--no-save", "--package-lock=false", "@yanjijinxiao/agent-bridge@1.2.4", "--registry=https://registry.npmjs.org", "--no-audit", "--no-fund"]
   });
   assert.deepEqual(buildNpmInstallCommand("1.2.4", "official", {
     installPrefix: "C:\\Users\\THU\\codex-im-gateway-runtime",
@@ -192,7 +192,7 @@ test("builds fixed cross-platform npm install commands", () => {
     nodePath: "C:\\node.exe"
   }), {
     command: "C:\\Windows\\cmd.exe",
-    args: ["/d", "/s", "/c", "npm", "install", "--global", "--prefix", "C:\\Users\\THU\\codex-im-gateway-runtime", "--no-save", "--package-lock=false", "codex-im-gateway@1.2.4", "--registry=https://registry.npmjs.org", "--no-audit", "--no-fund"]
+    args: ["/d", "/s", "/c", "npm", "install", "--global", "--prefix", "C:\\Users\\THU\\codex-im-gateway-runtime", "--no-save", "--package-lock=false", "@yanjijinxiao/agent-bridge@1.2.4", "--registry=https://registry.npmjs.org", "--no-audit", "--no-fund"]
   });
   assert.deepEqual(buildNpmInstallCommand("1.2.4", "official", {
     installPrefix: "C:\\Users\\THU\\codex-im-gateway-runtime",
@@ -202,7 +202,7 @@ test("builds fixed cross-platform npm install commands", () => {
     nodePath: "C:\\node.exe"
   }), {
     command: "C:\\node.exe",
-    args: ["C:\\npm\\npm-cli.js", "install", "--global", "--prefix", "C:\\Users\\THU\\codex-im-gateway-runtime", "--no-save", "--package-lock=false", "codex-im-gateway@1.2.4", "--registry=https://registry.npmjs.org", "--no-audit", "--no-fund"]
+    args: ["C:\\npm\\npm-cli.js", "install", "--global", "--prefix", "C:\\Users\\THU\\codex-im-gateway-runtime", "--no-save", "--package-lock=false", "@yanjijinxiao/agent-bridge@1.2.4", "--registry=https://registry.npmjs.org", "--no-audit", "--no-fund"]
   });
   assert.throws(
     () => buildNpmInstallCommand("latest", "official", { installPrefix: "/runtime" }),
@@ -265,9 +265,9 @@ test("installs through an absolute npm CLI when PATH has no npm", async (t) => {
     'import path from "node:path";',
     'const args = process.argv.slice(2);',
     'const prefix = args[args.indexOf("--prefix") + 1];',
-    'const spec = args.find((arg) => arg.startsWith("codex-im-gateway@"));',
-    'const version = spec.slice("codex-im-gateway@".length);',
-    'const root = path.join(prefix, "lib", "node_modules", "codex-im-gateway");',
+    'const spec = args.find((arg) => arg.startsWith("@yanjijinxiao/agent-bridge@"));',
+    'const version = spec.slice("@yanjijinxiao/agent-bridge@".length);',
+    'const root = path.join(prefix, "lib", "node_modules", "@yanjijinxiao", "agent-bridge");',
     'fs.mkdirSync(path.join(root, "dist", "server"), { recursive: true });',
     'fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ version }));',
     'fs.writeFileSync(path.join(root, "dist", "server", "index.js"), "export {};\\n");'
@@ -330,6 +330,7 @@ test("resolves global and isolated npm install targets on macOS and Windows", ()
 test("releases a Windows cwd lock only when the service runs inside its package", () => {
   const changedDirectories: string[] = [];
   assert.equal(releaseRuntimeDirectoryLock("C:\\Users\\THU\\work\\codex-im-gateway-runtime", {
+    packageRoot: "C:\\Users\\THU\\work\\codex-im-gateway-runtime\\node_modules\\codex-im-gateway",
     currentWorkingDirectory: "C:\\Users\\THU\\work\\codex-im-gateway-runtime\\node_modules\\codex-im-gateway\\dist\\server",
     platform: "win32",
     chdir: (directory) => changedDirectories.push(directory)

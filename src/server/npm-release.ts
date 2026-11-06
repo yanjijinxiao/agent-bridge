@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { writeJsonFile } from "../state/json-store.js";
+import { NPM_PACKAGE_NAME, LEGACY_NPM_PACKAGE_NAME } from "../runtime/product.js";
 
 export type NpmReleasePlan = {
   format: 1; version: string; target: string; candidate: string; backup: string;
@@ -11,7 +12,7 @@ export type NpmReleasePlan = {
 const entry = (root: string) => path.join(root, "dist", "server", "index.js");
 const hash = (file: string) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 export const npmCandidateRoot = (directory: string, platform: NodeJS.Platform = process.platform) =>
-  path.join(directory, ...(platform === "win32" ? [] : ["lib"]), "node_modules", "codex-im-gateway");
+  path.join(directory, ...(platform === "win32" ? [] : ["lib"]), "node_modules", ...NPM_PACKAGE_NAME.split("/"));
 
 /** npm installs into a fresh prefix, with global layout to keep dependencies
  * inside the package. The existing prefix and bin links are never npm's target. */
@@ -59,9 +60,15 @@ export function sealNpmRelease(directory: string, target: string, version: strin
 export function readNpmRelease(file: string): NpmReleasePlan {
   if (!path.isAbsolute(file) || path.basename(file) !== "release.json") throw new Error("Invalid npm release plan");
   const directory = path.dirname(file), parent = path.dirname(directory), plan = JSON.parse(fs.readFileSync(file, "utf8")) as NpmReleasePlan;
+  const [scope, name] = NPM_PACKAGE_NAME.split("/");
+  const expectedTarget = path.basename(parent) === scope ? path.join(parent, name) : path.join(parent, LEGACY_NPM_PACKAGE_NAME);
+  // Accept already prepared legacy plans while newly prepared releases use
+  // the scoped npm package. Neither format may point outside its own prefix.
+  const candidates = [npmCandidateRoot(directory, "win32"), npmCandidateRoot(directory, "linux"),
+    path.join(directory, "node_modules", LEGACY_NPM_PACKAGE_NAME), path.join(directory, "lib", "node_modules", LEGACY_NPM_PACKAGE_NAME)];
   if (fs.lstatSync(directory).isSymbolicLink() || !path.basename(directory).startsWith(".codex-im-gateway-update-")
-    || plan.format !== 1 || plan.target !== path.join(parent, "codex-im-gateway")
-    || ![npmCandidateRoot(directory, "win32"), npmCandidateRoot(directory, "linux")].includes(plan.candidate)
+    || plan.format !== 1 || plan.target !== expectedTarget
+    || !candidates.includes(plan.candidate)
     || plan.backup !== path.join(directory, "previous-package") || !/^[a-f0-9]{64}$/.test(plan.candidateHash)
     || !/^[a-f0-9]{64}$/.test(plan.previousEntryHash)
     || !["prepared", "backing-up", "activating", "active", "verified", "rolling-back", "rolled-back"].includes(plan.phase))

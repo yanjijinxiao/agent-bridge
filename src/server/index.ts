@@ -16,6 +16,7 @@ import { acquireServiceProcessLock } from "./process-lock.js";
 import { launchRestartHelper } from "./restart.js";
 import { cleanupResources } from "./cleanup.js";
 import { diagnostic, installDiagnostics, terminalMessage } from "../runtime/diagnostics.js";
+import { productVersion } from "../runtime/versions.js";
 
 async function main(): Promise<void> {
   const stateDir = process.env.CODEX_IM_GATEWAY_STATE_DIR
@@ -84,7 +85,7 @@ async function main(): Promise<void> {
   // Supervisors consume the structured event, never prose or a credential-
   // bearing URL. A foreground operator still gets the clickable local entry.
   diagnostic("runtime.ready", { surface: "management", port: Number(new URL(server.url).port) });
-  if (process.stdout.isTTY) terminalMessage(`codex-im-gateway is running at ${server.url}`);
+  if (process.stdout.isTTY) terminalMessage(`Agent Bridge is running at ${server.url}`);
   if ((process.env.CODEX_IM_GATEWAY_OPEN
     ?? process.env.CODEX_CHANNEL_BRIDGE_OPEN
     ?? process.env.CODEX_WEIXIN_OPEN) !== "0") {
@@ -108,6 +109,7 @@ function parsePort(value: string | undefined): number {
 
 async function run(): Promise<void> {
   const command = parseServerCommand(process.argv.slice(2));
+  if (command === "version") { console.log(productVersion()); return; }
   if (command === "help") {
     console.log(serverHelpText());
     return;

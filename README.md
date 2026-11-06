@@ -1,7 +1,7 @@
-<h1 align="center">Codex IM Gateway</h1>
+<h1 align="center">Agent Bridge</h1>
 
 <p align="center">
-  <img src="src/web/favicon.svg" alt="Codex IM Gateway logo" width="128" height="128" />
+  <img src="src/web/favicon.svg" alt="Agent Bridge logo" width="128" height="128" />
 </p>
 
 <p align="center">
@@ -9,10 +9,10 @@
 </p>
 
 <p align="center">
-  <strong>通过个人微信、企业微信、飞书和钉钉使用本机或远程 OpenAI Codex。</strong>
+  <strong>通过个人微信、企业微信、飞书和钉钉连接你的 Agent。</strong>
 </p>
 
-`codex-im-gateway` 把即时通信消息转发给选定设备上的 Codex，并将进展、审批和结果送回原聊天。桌面和纯 CLI 环境统一使用标准 Codex App Server 接口；Gateway 统一通过主动拨号的 Connector 接入；Connector 复用已有本机和远程主机连接。
+`@yanjijinxiao/agent-bridge` 把即时通信消息转发给选定设备上的 Codex，并将进展、审批和结果送回原聊天。目前支持 Codex；其他 Agent 适配尚未提供。桌面和纯 CLI 环境统一使用标准 Codex App Server 接口；Gateway 统一通过主动拨号的 Connector 接入；Connector 复用已有本机和远程主机连接。
 
 | 执行位置 | 接入方式 |
 | --- | --- |
@@ -72,7 +72,7 @@ Gateway 本机管理页监听 `127.0.0.1`，不作为多人登录门户。Connec
 ## Web 管理页
 
 <p align="center">
-  <img src="docs/images/screenshots/web-session-management.png" alt="Codex IM Gateway Web 会话管理" width="100%" />
+  <img src="docs/images/screenshots/web-session-management.png" alt="Agent Bridge Web 会话管理" width="100%" />
 </p>
 
 上图为旧版界面示意，不代表当前组件布局或能力验收。
@@ -90,7 +90,7 @@ Gateway 本机管理页监听 `127.0.0.1`，不作为多人登录门户。Connec
 使用别人提供的机器人时，不需要重新部署 Gateway 或申请机器人应用凭据。先由管理员开通本人的 IM 准入及设备自助登记，再填写 Gateway 地址启动 Connector。设备身份自动保存，通过一次 /connect 和本机确认完成配对，不用领取或群发 device.token；已有旧凭据继续兼容。
 
 1. 设备上先准备好能正常工作的 Codex、Node.js 和 Git。纯 CLI 服务器不需要桌面 GUI。
-2. 下载项目源码，在仓库目录执行下方安装、构建命令；管理员已提供构建好的 Connector 时可直接使用。
+2. 从 npm 安装下方的软件包，内含 Gateway 和 Connector；连接别人的 Gateway 时只启动 Connector。
 3. 参考 [Connector 配置模板](./examples/peer-client.json)，填写管理员提供的 Gateway 地址，把配置放在仓库外的私有目录。新设备省略 nodeId、tokenFile，程序会自动生成并保存设备身份。配置使用同一个明确的原生服务；推荐的 `daemon` 方式不在断连时自动换执行器。
 4. 在交互式终端启动 Connector，复制终端显示的完整 `/connect 配对码` 到机器人私聊；群里需先真正 @机器人。
 5. 在设备终端核对申请人、聊天和范围，确认后输入 `yes`。配对码有效期 5 分钟，一次使用后失效。
@@ -98,22 +98,16 @@ Gateway 本机管理页监听 `127.0.0.1`，不作为多人登录门户。Connec
 
 一个 Connector 在 `/connect` 中显示为一个设备，其 `/sessions`、`/project` 目录可以同时包含本机和已登记远端的项目。选择会话后，执行、附件和 IDE 都使用该会话的实际主机。远端主机登记与 SSH 配置来自 Connector 使用的 Codex 数据目录；新增主机登记后需重启 Connector 更新导出清单。只有 CLI 的服务器也可直接运行 Connector，使用同一套 App Server 接口。
 
-安装依赖：
+安装（同时提供两个命令，无需本地编译）：
 
 ```bash
-npm ci
+npm install -g @yanjijinxiao/agent-bridge
 ```
 
-只构建 Gateway / Connector 程序：
+启动 Connector 的命令模板，需把配置路径替换为实际文件：
 
 ```bash
-npm run build:bridge
-```
-
-启动命令模板，需把配置路径替换为实际文件：
-
-```bash
-npm run peer -- --config /absolute/path/peer-client.json
+agent-bridge-connector --config /absolute/path/peer-client.json
 ```
 
 设备凭据由 Connector 在本机生成并保存；配对码在受限连接建立后产生，首次配对通过后才正式登记设备，后续重连无需重复审批。`/connect` 只列当前用户在当前机器人、当前聊天有权使用的设备。完整配置、后台运行边界和故障排查见 [连接指南](./docs/gateway-peers.md)；首次接入探探可直接使用 [逐步教程](./docs/tantan-connector-guide.md)。
@@ -144,14 +138,24 @@ codex --version
 
 ### 安装与启动
 
-项目只通过 GitHub 分发源码，不发布 npm 包。
+推荐使用 npm 安装已编译的发行包：
 
 ```bash
-git clone https://github.com/yanjijinxiao/codex-im-gateway.git
+npm install -g @yanjijinxiao/agent-bridge
 ```
 
 ```bash
-cd codex-im-gateway
+agent-bridge
+```
+
+如需参与开发，可从源码构建：
+
+```bash
+git clone https://github.com/yanjijinxiao/agent-bridge.git
+```
+
+```bash
+cd agent-bridge
 ```
 
 ```bash
@@ -168,7 +172,7 @@ node dist/server/index.js
 
 启动前通过 `CODEX_IM_GATEWAY_PEER_CONFIG` 指向 Connector 监听配置，并在执行设备（同机也一样）启动 Connector。未配置设备时管理面仍可运行，执行明确提示未连接，不自动启动本机 Codex。已有本机/SSH 绑定使用[保留身份的迁移方式](./docs/architecture/connector-only-execution.md)。
 
-服务默认打开 [http://127.0.0.1:8787](http://127.0.0.1:8787)。`npm` 只负责安装锁定依赖和构建，不会全局安装或发布本服务。
+服务默认打开 [http://127.0.0.1:8787](http://127.0.0.1:8787)。npm 安装包含完整网页和内嵌 Taskboard，不会自动启动 Gateway、Connector 或 Codex。源码开发者仍可运行下列安装器。
 
 需要同时准备内置 Taskboard、`taskctl` 和内置 Skill 时，可以运行：
 
@@ -374,3 +378,9 @@ XavierJiezou/codex-weixin → lsiten/codex-channel-bridge → yanjijinxiao/codex
 原作者版权声明与 [MIT License](./LICENSE) 均完整保留，更多说明见 [NOTICE](./NOTICE)。微信 iLink 接入形态参考 MIT 许可的 `Tencent/openclaw-weixin`；项目未复制 AGPL 项目源码。
 
 本项目是非官方社区项目，与 OpenAI、腾讯、企业微信、字节跳动、飞书、阿里巴巴、钉钉及上述上游维护者不存在隶属或背书关系。
+
+## 产品版本与发布
+
+同一发行包内 Gateway、Connector、`--version`、管理页和日志的 productVersion 均来自根 package.json 的版本；Git 标签使用对应 v 版本。各设备可以独立升级，在线不等于已更新。接口和日志的兼容版本按契约独立演进，不跟着 npm 发布号机械递增。发布步骤与干净安装验证见 [npm 发布说明](./docs/npm-release.md)。
+
+改名保留已有 CODEX_IM_GATEWAY_* 环境变量、状态目录和设备身份；无需重新配对。包名变更不代表已新增其他 Agent 的适配。

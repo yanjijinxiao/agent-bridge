@@ -4,7 +4,7 @@
 
 ## 中文
 
-所有渠道都在 Codex IM Gateway 本机管理页 `http://127.0.0.1:8787` 的“账号”页面添加。凭据只保存在私有状态目录（新安装默认 `~/.codex-im-gateway/`），管理 API 不会把 Secret 或 Token 返回给浏览器。
+所有渠道都在 Agent Bridge 本机管理页 `http://127.0.0.1:8787` 的“账号”页面添加。凭据只保存在私有状态目录（新安装默认 `~/.codex-im-gateway/`），管理 API 不会把 Secret 或 Token 返回给浏览器。
 
 ### 个人微信
 
@@ -122,7 +122,7 @@ AI 任务卡首屏使用紧凑、普通字号的状态行，结合模板原生�
 
 ## English
 
-Add all channels from the Codex IM Gateway **Accounts** page at `http://127.0.0.1:8787`. Credentials stay in the private state directory (new installations default to `~/.codex-im-gateway/`); the management API never returns secrets or tokens to the browser.
+Add all channels from the Agent Bridge **Accounts** page at `http://127.0.0.1:8787`. Credentials stay in the private state directory (new installations default to `~/.codex-im-gateway/`); the management API never returns secrets or tokens to the browser.
 
 ### Personal WeChat
 

@@ -43,3 +43,11 @@ HTTP 响应附 X-Gateway-API-Version、X-Gateway-Instance、X-Gateway-Request-ID
 每次接口或日志改动都先判断兼容性，更新本清单、模块说明和 case；代码与文档一起审查。发布验收分别核对 Gateway、Connector、上游服务，保留旧新混合版本、缺失版本、不兼容、重连、并发关联和脱敏的反例。版本不一致本身不是停止既有 Codex 任务的理由。
 
 本次增量只验证明确列出的边界；没有登录知游的开发机，不能据此宣称其会话漏项已修复。实际上线与各设备升级需要独立记录。
+
+## VER-02 npm 与产品名称
+
+产品为 Agent Bridge，发行包为 @yanjijinxiao/agent-bridge；仓库名为 agent-bridge。Gateway 和 Connector 使用同包的两个 bin，共用根 package.json 的 version。CLI --version、构建清单 productVersion、运行身份和 npm tarball 必须一致，Git 标签为 v 加该版本。工作区保持 private，scripts/package-npm.mjs 生成去除开发工作区和构建脚本的发布清单；只在独立新目录构建，不接触 live dist。
+
+Taskboard 随 dist/vendor 一起移动与回滚，避免 npm 丢弃嵌套 node_modules。源码模式仍使用工作区模块，编译模式只使用内嵌版本。更新器支持 scoped 安装路径以及旧路径，registry URL 正确编码包名；源码部署不误入 npm 更新。旧协议 product 标识、环境变量、目录和设备凭据保留，不因改名失去现有连接。
+
+参见 [发布流程](../npm-release.md)、test/npm-package.test.ts、test/update-manager.test.ts、test/npm-release.test.ts、test/taskboard-release-package.test.ts。安装后的真实启动另留制品回执，纯 fixture 不代替 registry 发布验收。

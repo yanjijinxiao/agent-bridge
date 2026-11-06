@@ -17,11 +17,13 @@ import { managedExportSchema } from "./managed-route.js";
 import { hostScopedBackend } from "../codex/host-scoped-backend.js";
 import { registeredRemoteHosts } from "../codex/remote-host.js";
 import { diagnostic, installDiagnostics, terminalMessage } from "../runtime/diagnostics.js";
+import { productVersion } from "../runtime/versions.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+  if (args.length === 1 && ["--version", "-v"].includes(args[0])) { terminalMessage(productVersion()); return; }
   if (args.length === 1 && ["--help", "-h"].includes(args[0])) {
-    terminalMessage("Usage: npm run peer -- --config /absolute/path/peer-client.json\n\nConnects this device to Gateway. Pair the device once, then list and select Codex sessions in chat.\nOptional threadId restricts access to one existing session; otherwise no session ID is needed locally."); return;
+    terminalMessage("Usage: agent-bridge-connector --config /absolute/path/peer-client.json\n\nConnects this device to Gateway. Pair the device once, then list and select Codex sessions in chat.\nOptional threadId restricts access to one existing session; otherwise no session ID is needed locally.\n--version prints the installed npm product version."); return;
   }
   installDiagnostics("connector");
   if (args.length !== 2 || args[0] !== "--config") throw new Error("Use --config /absolute/path/peer-client.json (or --help)");

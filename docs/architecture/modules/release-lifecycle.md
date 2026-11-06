@@ -14,7 +14,7 @@ Taskboard 借用同一个根原生端口并参与同一 release participant；fr
 
 端点就绪状态与切换前比较：原本ready的入口必须保持ready；原本已在reconnecting的远程中继允许同一精确host/origin继续connecting/reconnecting或恢复ready。既有远端网络故障不能单独锁住Gateway重启。新增error、端点/地址变化、本机入口退化仍拒绝验收；原授权、ACL和绑定不变的检查独立执行，不能通过改变状态文案代替。
 
-核对编译 commit/sourceHash、实际新 PID、平台连接、原生 daemon PID、原 grant/ACL/endpoint、任务板服务监听 PID 与静态 index/assets 字节。新版嵌入式 Taskboard 固定打包到 Gateway dist/node_modules/codex-taskboard，包含服务端、共享模块、技能及CLI、运行依赖脚本和 web；同一 dist 的切换/回滚包含它们。独立 Taskboard 仍需核对其自身监听进程，不能以 Gateway 重启代替。普通 Taskboard build 会触发 Desktop 注入，不用于隔离发布；准备阶段使用 build:web 或显式 outDir，不注入或重启 Codex App。
+核对编译 commit/sourceHash、实际新 PID、平台连接、原生 daemon PID、原 grant/ACL/endpoint、任务板服务监听 PID 与静态 index/assets 字节。新版嵌入式 Taskboard 固定打包到 Gateway dist/vendor/codex-taskboard，包含服务端、共享模块、技能及CLI、运行依赖脚本和 web；同一 dist 的切换/回滚包含它们。独立 Taskboard 仍需核对其自身监听进程，不能以 Gateway 重启代替。普通 Taskboard build 会触发 Desktop 注入，不用于隔离发布；准备阶段使用 build:web 或显式 outDir，不注入或重启 Codex App。
 
 release-local、release-rollback-recovery、intent-review-release、taskboard-restart-participant、restart-handoff-boundaries 与 channel-write-leases 覆盖直接规则。安装器/Windows/真实断电和手机连通限制继续记录，不用这套脚本的通过冒充全部平台已验证。
 
@@ -48,3 +48,7 @@ REL-02.11 使用真实 TCP 和 Gateway 子进程覆盖上述边界。HTTP 连接
 新封存清单增加 productVersion；旧清单没有该字段时保留兼容读取。程序加载时缓存清单和产品版本，进程身份固定，不能因目录替换把旧进程标成新版本。管理 /api/versions 同时列 Gateway 和各 Connector 的自报告；sealed/unsealed、legacy、离线必须明确区分。产品版本相同不保证构建相同，连接在线也不保证新版已生效。
 
 运行日志改为有 schemaVersion 的 JSONL，启动观察读取 runtime.ready 的 port/surface。旧的启动文案解析必须迁移；SIGTERM 实际进程用例同时验证新事件和独立执行器存活。版本兼容检查不新增等待 Codex 任务完成的发布门禁。详见 [版本架构](../version-contracts.md)。
+
+## VER-02 npm 制品
+
+根 package.json 管理 Agent Bridge 产品版本。scripts/package-npm.mjs 在仓库外从已提交源码生成发行包，保留两条 CLI，编译资源、内嵌 Taskboard 与 build-info 同包。source workspace 的 private 标记避免误发布旧 live dist。注册表查询、候选包路径、启动版本确认和回退共同使用 scoped 包身份，兼容旧安装路径和已保存计划；状态目录不参与品牌迁移。详细步骤见 [npm 发布](../../npm-release.md)。

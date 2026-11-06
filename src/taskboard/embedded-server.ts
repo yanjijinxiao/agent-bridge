@@ -1,10 +1,18 @@
 import type { AddressInfo } from "node:net";
 
-import { createTaskboardServer } from "codex-taskboard/server";
+import type { createTaskboardServer as TaskboardFactory } from "codex-taskboard/server";
 import { TaskboardClient } from "./client.js";
 import { managedTaskboardOrigin } from "./config.js";
 import { CodexAppServerGateway } from "../codex/app-server-gateway.js";
 import type { AppServerConnectionMode } from "../codex/app-server-daemon.js";
+
+// Source runs use the workspace; compiled runs always use their own embedded
+// artifact. A missing artifact must fail, never silently use mutable source.
+// The vendor path survives npm pack (nested node_modules is excluded by npm).
+const { createTaskboardServer } = await import(new URL(import.meta.url.endsWith(".ts")
+  ? "../../taskboard/server/index.mjs" : "../vendor/codex-taskboard/server/index.mjs", import.meta.url).href) as {
+  createTaskboardServer: typeof TaskboardFactory;
+};
 
 export type EmbeddedTaskboard = {
   url: string;

@@ -1,7 +1,7 @@
-<h1 align="center">Codex IM Gateway</h1>
+<h1 align="center">Agent Bridge</h1>
 
 <p align="center">
-  <img src="src/web/favicon.svg" alt="Codex IM Gateway logo" width="128" height="128" />
+  <img src="src/web/favicon.svg" alt="Agent Bridge logo" width="128" height="128" />
 </p>
 
 <p align="center">
@@ -9,10 +9,10 @@
 </p>
 
 <p align="center">
-  <strong>Use local or remote OpenAI Codex from WeChat, Enterprise WeChat, Feishu, and DingTalk.</strong>
+  <strong>Connect your agents to WeChat, Enterprise WeChat, Feishu, and DingTalk.</strong>
 </p>
 
-`codex-im-gateway` forwards messages to Codex on the selected device and returns progress, approvals, and results to the originating chat. Desktop and CLI-only environments use one standard Codex App Server interface. Every Gateway execution path uses an outbound Connector, which reuses the existing local and remote host connections.
+`@yanjijinxiao/agent-bridge` forwards messages to Codex on the selected device and returns progress, approvals, and results to the originating chat. Codex is currently supported; other agent adapters are not yet implemented. Desktop and CLI-only environments use one standard Codex App Server interface. Every Gateway execution path uses an outbound Connector, which reuses the existing local and remote host connections.
 
 | Execution location | Connection |
 | --- | --- |
@@ -59,7 +59,7 @@ Platform capabilities and setup requirements may change with official APIs. See 
 ## Web management
 
 <p align="center">
-  <img src="docs/images/screenshots/web-session-management.png" alt="Codex IM Gateway Web session management" width="100%" />
+  <img src="docs/images/screenshots/web-session-management.png" alt="Agent Bridge Web session management" width="100%" />
 </p>
 
 The screenshot is a historical UI example, not current layout or capability verification.
@@ -77,7 +77,7 @@ Default browser access reuses personal admission: confirm the browser once, then
 You do not need to deploy another Gateway or register a bot application. Ask its administrator for personal IM admission and enabled device enrollment. Configure the Gateway URL; Connector creates and stores its own identity. Pair once through /connect and local confirmation. No manually distributed device.token is required; existing tokenFile configurations remain compatible.
 
 1. Prepare a working Codex installation, Node.js, and Git on your device. A CLI-only server does not need a desktop GUI.
-2. Download the project source and run the install/build commands below in its repository directory, or use a prebuilt Connector supplied by the administrator.
+2. Install the npm package below. It contains both commands; only run Connector when joining someone else’s Gateway.
 3. Start from the [Connector example](./examples/peer-client.json), fill in the administrator's Gateway URL, and save it outside the repository. New devices omit nodeId and tokenFile: Connector creates and stores its identity. Select one native service explicitly; daemon mode does not switch executors after a disconnect.
 4. Start Connector in an interactive terminal. Send its complete `/connect PAIRING_CODE` command to the bot; mention the bot when using a group.
 5. Verify the requesting person, chat, and scope in the device terminal, then enter `yes`. Pairing codes last five minutes and are single-use.
@@ -85,22 +85,16 @@ You do not need to deploy another Gateway or register a bot application. Ask its
 
 A Connector appears once in `/connect`; its `/sessions` and `/project` catalogs can include local and registered remote projects. Execution, attachments, and IDE use the selected session's actual host. Remote registrations and SSH settings come from Connector's Codex data directory. Restart Connector after adding a remote host registration to refresh its exported hosts. A CLI-only server can also run Connector directly using the same App Server interface.
 
-Install dependencies:
+Install the prebuilt package:
 
 ```bash
-npm ci
+npm install -g @yanjijinxiao/agent-bridge
 ```
 
-Build the Gateway / Connector programs:
+Start Connector (replace the configuration path):
 
 ```bash
-npm run build:bridge
-```
-
-Start command template; replace the configuration path with your actual file:
-
-```bash
-npm run peer -- --config /absolute/path/peer-client.json
+agent-bridge-connector --config /absolute/path/peer-client.json
 ```
 
 Connector generates and privately stores its device credential. The first restricted connection offers a pairing code; enrollment completes only after the admitted chat user and local device confirm. Reconnects reuse saved grants. `/connect` lists only devices granted to the current person in the current bot account and chat. See [connection setup](./docs/gateway-peers.md) for configuration and lifecycle details, or the [step-by-step Tantan tutorial (Chinese)](./docs/tantan-connector-guide.md).
@@ -131,14 +125,24 @@ codex --version
 
 ### Install and run
 
-The project is distributed as GitHub source and is not published as an npm package.
+Install and start the prebuilt npm distribution:
 
 ```bash
-git clone https://github.com/yanjijinxiao/codex-im-gateway.git
+npm install -g @yanjijinxiao/agent-bridge
 ```
 
 ```bash
-cd codex-im-gateway
+agent-bridge
+```
+
+For source development:
+
+```bash
+git clone https://github.com/yanjijinxiao/agent-bridge.git
+```
+
+```bash
+cd agent-bridge
 ```
 
 ```bash
@@ -155,7 +159,7 @@ node dist/server/index.js
 
 Before starting Gateway, point `CODEX_IM_GATEWAY_PEER_CONFIG` to the Connector listener configuration and start Connector on the execution device, even for same-machine deployments. Without a configured device the management console remains available, but execution reports no connection; Gateway does not start local Codex. See [migration with preserved identities](./docs/architecture/connector-only-execution.md) for existing local/SSH bindings.
 
-The service opens [http://127.0.0.1:8787](http://127.0.0.1:8787) by default. npm only installs locked dependencies and builds the project; it does not globally install or publish the service.
+The service opens [http://127.0.0.1:8787](http://127.0.0.1:8787) by default. The npm artifact includes Web assets and embedded Taskboard. Installing never starts services or Codex.
 
 To prepare the embedded Taskboard, `taskctl`, and bundled Skills as well:
 
@@ -344,3 +348,7 @@ XavierJiezou/codex-weixin → lsiten/codex-channel-bridge → yanjijinxiao/codex
 Existing copyright notices and the [MIT License](./LICENSE) are preserved. See [NOTICE](./NOTICE) for attribution. The WeChat iLink integration shape references the MIT-licensed `Tencent/openclaw-weixin`; no AGPL source code was copied.
 
 This is an unofficial community project and is not affiliated with or endorsed by OpenAI, Tencent, WeCom, ByteDance, Feishu, Alibaba, DingTalk, or the upstream maintainers.
+
+## Versions and releases
+
+Gateway, Connector, `--version`, and runtime productVersion use the root package.json version. The Git tag is v plus that same version. Protocol and log compatibility versions remain independent. Devices can upgrade separately: an online Connector is not proof of an updated build. See [npm release instructions](./docs/npm-release.md). Existing CODEX_IM_GATEWAY_* variables, private state paths, and device identities remain compatible; renaming does not require pairing again.
