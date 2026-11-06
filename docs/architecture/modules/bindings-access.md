@@ -10,6 +10,8 @@ ChannelMessage.senderId 是平台确认的操作者，replyTargetId 是当前对
 
 管理 UI 的新建 session 只能选择实际观察到的会话边或已验证的最近回复路线。DingTalk/Feishu/Wecom 的 pairedSenderIds 是个人准入清单，不补成群候选；只有 Weixin 直接聊天传输可以把联系人作为对话。两个候选不自动暗选，选项展示完整账号/对话身份。
 
+探探的组织准入范围现为 MaxCompute 及下属部门，取代仅 SQL 引擎的部署名单。通讯录按正式父部门及逐层子部门展开，按 userId 字符串原值去重，保留前导零和字母前缀；搜索结果或部门概览人数不能代替成员 ID。通过既有 allowSender 管理入口增加个人准入，不新增第二套部门 ACL，不改管理员、群授权、会话角色或 Connector grants。当前是人工同步的名单快照，人员变动不自动生效；撤销沿用 removeSender 及原浏览器撤权机制。组织范围是探探的部署策略，不推广为头头或其他部署的默认权限。
+
 ## 状态转换
 
 明确 unbind/leave 持久退休选择并停止跟随，不删除原生任务。项目切换只保留兼容边；不能让旧选择复活。已接收的原生写入属于旧线程事实；之后来源变化仅退休旧展示，不能伪称未提交或反向改动原生状态。原生 projectMembership 的 assigned、none、unknown 分开，unknown 不扩大访问权。新绑定把它保存为 projectBinding=unknown，重载不自动补项目；继续原线程省略项目提示，也不传显式移除 none。后续权威 assigned/none 才更新关联。
