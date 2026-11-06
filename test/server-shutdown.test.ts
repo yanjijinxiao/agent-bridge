@@ -60,9 +60,13 @@ test("SIGTERM exits the real Gateway with an unfinished HTTP request without sto
     fs.rmSync(root, { recursive: true, force: true });
   });
   const deadline = Date.now() + 7000;
-  while (!/is running at http/.test(output) && Date.now() < deadline && child.exitCode === null) await new Promise(resolve => setTimeout(resolve, 25));
-  const url = output.match(/is running at (http:\/\/[^\s]+)/)?.[1]; assert.ok(url, output);
-  socket = net.createConnection(Number(new URL(url).port), "127.0.0.1");
+  const ready = () => output.split("\n").flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } })
+    .find(record => record.event === "runtime.ready" && record.surface === "management");
+  while (!ready() && Date.now() < deadline && child.exitCode === null) await new Promise(resolve => setTimeout(resolve, 25));
+  const record = ready(); assert.ok(record, output);
+  assert.equal(record.schemaVersion, 1); assert.equal(record.runtime.component, "gateway");
+  assert.equal(record.runtime.pid, child.pid); assert.ok(record.port > 0);
+  socket = net.createConnection(record.port, "127.0.0.1");
   await new Promise<void>((resolve, reject) => { socket!.once("connect", resolve); socket!.once("error", reject); });
   // An incomplete header is an accepted connection but has no request callback
   // yet. server.closeIdleConnections() alone cannot retire it.

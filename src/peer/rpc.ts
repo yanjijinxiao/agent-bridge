@@ -1,10 +1,12 @@
 import crypto from "node:crypto";
 import { z } from "zod";
 import WebSocket from "ws";
+import { CONTRACTS, incompatibleContract, runtimeIdentitySchema, type RuntimeIdentity } from "../runtime/versions.js";
+import { diagnostic, withDiagnosticContext } from "../runtime/diagnostics.js";
 
 const envelope = z.discriminatedUnion("type", [
-  z.object({ version: z.literal(1), type: z.literal("request"), id: z.string().uuid(), method: z.string().regex(/^[a-zA-Z][\w.]{0,100}$/), params: z.unknown() }).strict(),
-  z.object({ version: z.literal(1), type: z.literal("response"), id: z.string().uuid(), result: z.unknown().optional(),
+  z.object({ version: z.literal(CONTRACTS.peer.major), type: z.literal("request"), id: z.string().uuid(), method: z.string().regex(/^[a-zA-Z][\w.]{0,100}$/), params: z.unknown() }).strict(),
+  z.object({ version: z.literal(CONTRACTS.peer.major), type: z.literal("response"), id: z.string().uuid(), result: z.unknown().optional(),
     error: z.object({ code: z.string(), message: z.string(), data: z.unknown().optional() }).strict().optional() }).strict()
 ]);
 
@@ -24,6 +26,11 @@ type Pending = { resolve: (value: unknown) => void; reject: (error: unknown) => 
 /** Identical application protocol on dialled and accepted connections. All
  * events are acknowledged requests; neither role is a one-way message sink. */
 export class PeerConnection {
+  readonly connectionId = crypto.randomUUID();
+  private remoteRuntime?: RuntimeIdentity;
+  private readonly runtime?: RuntimeIdentity;
+  private compatibility: "legacy" | "compatible" | "incompatible" = "legacy";
+  private negotiated = false;
   private readonly handlers = new Map<string, PeerHandler>();
   private readonly pending = new Map<string, Pending>();
   private readonly incoming = new Set<string>();
@@ -31,7 +38,23 @@ export class PeerConnection {
   private readonly heartbeat: NodeJS.Timeout;
   private alive = true;
   private readonly channels = new Map<string, PeerConnection>();
-  constructor(private readonly socket: WebSocket) {
+  constructor(private readonly socket: WebSocket, identity?: RuntimeIdentity) {
+    const runtime = this.runtime = identity ? runtimeIdentitySchema.parse(identity) : undefined;
+    if (runtime) this.handle("protocol.negotiate", params => {
+      if (this.negotiated) throw new PeerError("protocol-duplicate", "Version negotiation already completed");
+      this.negotiated = true;
+      const parsed = runtimeIdentitySchema.safeParse(params);
+      const mismatch = parsed.success ? incompatibleContract(runtime, parsed.data) : "identity";
+      if (!parsed.success || mismatch || parsed.data.component === runtime.component) {
+        this.compatibility = "incompatible";
+        diagnostic("peer.protocol.rejected", { connectionId: this.connectionId, code: mismatch ?? "component" }, "warn");
+        throw new PeerError("protocol-incompatible", `Incompatible peer contract: ${mismatch ?? "component"}`);
+      }
+      this.remoteRuntime = parsed.data; this.compatibility = "compatible";
+      diagnostic("peer.protocol.accepted", { connectionId: this.connectionId, compatibility: this.compatibility,
+        remoteInstanceId: parsed.data.instanceId, remoteVersion: parsed.data.productVersion, remoteCommit: parsed.data.build?.commit });
+      return runtime;
+    });
     socket.on("error", () => {}); // close rejects waiters without echoing credentials/URLs.
     socket.on("message", data => { void this.receive(data.toString()).catch(() => this.close()); });
     socket.once("close", () => {
@@ -50,6 +73,26 @@ export class PeerConnection {
     this.heartbeat.unref();
   }
   get open(): boolean { return this.socket.readyState === WebSocket.OPEN; }
+  versionStatus() { return { compatibility: this.compatibility, runtime: this.remoteRuntime ? structuredClone(this.remoteRuntime) : null }; }
+  /** Only an explicit old-endpoint unsupported response permits legacy v1.
+   * Ambiguous negotiation never proceeds to registration or execution. */
+  async negotiate(): Promise<void> {
+    if (!this.runtime) return;
+    try {
+      const raw = await this.request("protocol.negotiate", this.runtime, 10_000);
+      const parsed = runtimeIdentitySchema.safeParse(raw);
+      if (!parsed.success || parsed.data.component === this.runtime.component || incompatibleContract(this.runtime, parsed.data)) {
+        this.compatibility = "incompatible";
+        throw new PeerError("protocol-incompatible", "Gateway returned an incompatible version contract");
+      }
+      this.remoteRuntime = parsed.data; this.compatibility = "compatible";
+    } catch (error) {
+      if (!(error instanceof PeerError) || error.code !== "unsupported") throw error;
+      this.compatibility = "legacy";
+    }
+    diagnostic("peer.protocol.connected", { connectionId: this.connectionId, compatibility: this.compatibility,
+      remoteVersion: this.remoteRuntime?.productVersion, remoteCommit: this.remoteRuntime?.build?.commit });
+  }
   /** Multiplex a fixed exported host over this socket. The hash is a namespace,
    * not authority: only the locally registered channel receives handlers. */
   channel(hostId: string): PeerConnection {
@@ -58,7 +101,8 @@ export class PeerConnection {
     if (!channel) {
       const prefix = `h${crypto.createHash("sha256").update(hostId).digest("hex").slice(0, 32)}.`;
       channel = new Proxy(this, { get: (target, key) => {
-        if (key === "handle") return (method: string, handler: PeerHandler) => target.handle(prefix + method, handler);
+        if (key === "handle") return (method: string, handler: PeerHandler) => target.handle(prefix + method,
+          (params, requestId) => withDiagnosticContext({ hostId }, () => handler(params, requestId)));
         if (key === "request") return (method: string, ...args: [unknown?, number?, AbortSignal?]) => target.request(prefix + method, ...args);
         const value = Reflect.get(target, key, target);
         return typeof value === "function" ? value.bind(target) : value;
@@ -77,8 +121,11 @@ export class PeerConnection {
     if (!this.open || signal?.aborted) return Promise.reject(new PeerConnectionError(false));
     if (this.pending.size >= 256) return Promise.reject(new PeerError("busy", "Too many pending peer requests"));
     const id = crypto.randomUUID();
-    const body = JSON.stringify({ version: 1, type: "request", id, method, params });
+    const body = JSON.stringify({ version: CONTRACTS.peer.major, type: "request", id, method, params });
     if (Buffer.byteLength(body) > 1024 * 1024) return Promise.reject(new PeerError("size", "Peer message exceeds 1 MiB"));
+    const start = Date.now();
+    const details = { requestId: id, connectionId: this.connectionId, method, phase: "outbound" };
+    diagnostic("peer.request.started", details);
     return new Promise<T>((resolve, reject) => {
       const finish = (error: PeerConnectionError) => {
         const pending = this.pending.get(id); if (!pending) return;
@@ -92,6 +139,10 @@ export class PeerConnection {
       signal?.addEventListener("abort", abort, { once: true });
       try { this.socket.send(body, error => { if (error) finish(new PeerConnectionError(true)); }); }
       catch { finish(new PeerConnectionError(true)); }
+    }).then(result => { diagnostic("peer.request.finished", { ...details, status: "ok", durationMs: Date.now() - start }); return result; }, error => {
+      diagnostic("peer.request.finished", { ...details, status: "error", code: error instanceof PeerError ? error.code
+        : error instanceof PeerConnectionError ? error.timeout ? "timeout" : "disconnected" : "unknown", durationMs: Date.now() - start }, "warn");
+      throw error;
     });
   }
   private async receive(body: string): Promise<void> {
@@ -107,18 +158,23 @@ export class PeerConnection {
     }
     if (this.incoming.size >= 256 || this.incoming.has(value.id)) { this.socket.close(1008, "Duplicate or excessive requests"); return; }
     this.incoming.add(value.id);
-    const response: Record<string, unknown> = { version: 1, type: "response", id: value.id };
+    const response: Record<string, unknown> = { version: CONTRACTS.peer.major, type: "response", id: value.id };
+    const start = Date.now(), details = { requestId: value.id, connectionId: this.connectionId, method: value.method, phase: "inbound" };
+    diagnostic("peer.request.started", details);
     try {
+      if (this.compatibility === "incompatible") throw new PeerError("protocol-incompatible", "Peer contract negotiation failed");
       const handler = this.handlers.get(value.method);
       if (!handler) throw new PeerError("unsupported", "Peer operation is unavailable");
-      response.result = await handler(value.params, value.id) ?? null;
+      response.result = await withDiagnosticContext({ requestId: value.id, connectionId: this.connectionId }, () => handler(value.params, value.id)) ?? null;
+      diagnostic("peer.request.finished", { ...details, status: "ok", durationMs: Date.now() - start });
     } catch (error) {
+      diagnostic("peer.request.finished", { ...details, status: "error", code: error instanceof PeerError ? error.code : "failed", durationMs: Date.now() - start }, "warn");
       response.error = error instanceof PeerError ? { code: error.code, message: error.message, data: error.data }
         : { code: "failed", message: "Peer operation failed; inspect the originating device" };
     } finally { this.incoming.delete(value.id); }
     if (this.open) {
       const output = JSON.stringify(response);
-      if (Buffer.byteLength(output) > 1024 * 1024) this.socket.send(JSON.stringify({ version: 1, type: "response", id: value.id,
+      if (Buffer.byteLength(output) > 1024 * 1024) this.socket.send(JSON.stringify({ version: CONTRACTS.peer.major, type: "response", id: value.id,
         error: { code: "size", message: "Peer response exceeds 1 MiB; request a smaller history page" } }));
       else this.socket.send(output);
     }

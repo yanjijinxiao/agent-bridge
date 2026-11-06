@@ -1,3 +1,4 @@
+import { withHttpContract } from "../runtime/http-contract.js";
 import crypto from "node:crypto";
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import https from "node:https";
@@ -75,7 +76,7 @@ export class IDEAccessServer {
     await this.shutdown(revoke); this.error = this.authorizationError;
     const config = this.manager.config(); if (!config.enabled) return;
     if (!this.authorizationError) this.authorization.setAudience(new URL(config.publicOrigin).origin);
-    const handler = (req: IncomingMessage, res: ServerResponse) => void this.handle(req, res).catch(() => {
+    const handler = (req: IncomingMessage, res: ServerResponse) => void withHttpContract(req, res, "ide-entry", () => this.handle(req, res)).catch(() => {
       if (!res.headersSent && req.headers.accept === "application/json") this.json(res, 503, { error: "IDE 准备或连接失败。浏览器授权已保留，请稍后重试；管理员可在主机安装状态中查看失败步骤。" });
       else if (!res.headersSent) this.page(res, 503, "IDE 暂不可用", "主机准备或连接未完成，浏览器授权已保留。请重新打开项目入口重试，或在 Gateway 管理台查看该主机的安装状态。"); else res.destroy();
     });

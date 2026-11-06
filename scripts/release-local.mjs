@@ -246,7 +246,8 @@ export async function main(argv) {
     fs.mkdirSync(path.join(staged, 'web/vendor'), { recursive: true });
     for (const [file, target] of [['lucide/dist/umd/lucide.min.js', 'lucide.min.js'], ['marked/lib/marked.umd.js', 'marked.umd.js'], ['dompurify/dist/purify.min.js', 'purify.min.js']]) fs.copyFileSync(path.join(repo, 'node_modules', file), path.join(staged, 'web/vendor', target));
     fs.chmodSync(path.join(staged, 'server/index.js'), 0o755);
-    save(path.join(staged, 'build-info.json'), { commit, sourceHash: source, builtAt: new Date().toISOString() });
+    save(path.join(staged, 'build-info.json'), { commit, sourceHash: source, builtAt: new Date().toISOString(),
+      productVersion: JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8')).version });
     if (!fs.existsSync(path.join(dir, 'node_modules'))) fs.symlinkSync(path.join(repo, 'node_modules'), path.join(dir, 'node_modules'));
     save(path.join(dir, 'package.json'), { type: 'module', private: true });
     clean(); if (sourceHash() !== source) throw Error('Source changed during preparation');

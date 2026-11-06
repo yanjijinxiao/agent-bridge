@@ -1,3 +1,5 @@
+import { PEER_CAPABILITIES } from "../runtime/versions.js";
+import { diagnostic, withDiagnosticContext } from "../runtime/diagnostics.js";
 import { PeerRecoveryJournal } from "./recovery-journal.js";
 import { peerOperationId } from "./identity.js";
 import { PeerInteractionService } from "./interaction-service.js";
@@ -124,12 +126,12 @@ export class PeerExecutionService {
       projects: !options.threadId && info.capabilities.projects };
     const service = new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
       ...(options.managedRoute ? { managedHost: options.managedRoute.hostId } : {}),
-      writeGuard: 1, nativeContract: 1,
-      ...(options.webIDE?.enabled ? { fullIDE: 1 as const } : {}),
-      ...(options.backend.observeThreadInteractions ? { interactions: 1 as const } : {}),
-      files: { version: 1 },
-      management: { version: 1 },
-      sharing: { version: 2 },
+      writeGuard: PEER_CAPABILITIES.writeGuard, nativeContract: PEER_CAPABILITIES.nativeContract,
+      ...(options.webIDE?.enabled ? { fullIDE: PEER_CAPABILITIES.fullIDE } : {}),
+      ...(options.backend.observeThreadInteractions ? { interactions: PEER_CAPABILITIES.interactions } : {}),
+      files: { version: PEER_CAPABILITIES.files },
+      management: { version: PEER_CAPABILITIES.management },
+      sharing: { version: PEER_CAPABILITIES.sharing },
       thread: state ? { ...state, cwd: state.cwd! } : undefined,
       info: { id: info.id, capabilities }, independent: options.independent === true });
     await service.recovery.restorePending(options.backend);
@@ -195,7 +197,7 @@ export class PeerExecutionService {
             this.sharing.assert(call.grant, call.method, call.args);
           });
         }
-        const result = await this.execute(connection, call);
+        const result = await withDiagnosticContext({ hostId: this.options.nativeHostId ?? "local", operationId: call.operationId }, () => this.execute(connection, call));
         this.sharing.assert(call.grant, call.method, call.args);
         return result;
       }
@@ -212,6 +214,7 @@ export class PeerExecutionService {
         if (error instanceof CodexRunAdmissionError) throw new PeerError("run-admission", "Native admission rejected this input before submission", { reason: error.reason });
         if (error instanceof CodexTurnExecutionError) throw new PeerError("turn-failed", "The native turn ended without success", { status: error.status, failureCode: error.failureCode });
         if (error instanceof CodexInterventionError) throw new PeerError("intervention", error.message);
+        diagnostic("peer.execution.failed", { hostId: this.options.nativeHostId ?? "local", code: "native-failed", phase: "execution", status: error instanceof Error ? error.name : "unknown" }, "warn");
         throw new PeerError("native-failed", "The device rejected the operation; inspect Codex on the device");
       }
     });

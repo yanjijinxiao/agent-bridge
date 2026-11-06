@@ -50,5 +50,9 @@ test("build identity is whitelisted, unavailable in dev, and invalid metadata ne
   const file = pathToFileURL(path.join(root, "build-info.json")); assert.equal(readBuildInfo(file), undefined);
   const valid = { commit: "a".repeat(40), sourceHash: "b".repeat(64), builtAt: "2026-10-27T00:00:00.000Z" };
   fs.writeFileSync(file, JSON.stringify({ ...valid, ignored: "not published" })); assert.deepEqual(readBuildInfo(file), valid);
+  fs.writeFileSync(file, JSON.stringify({ ...valid, productVersion: "1.2.3", ignored: "not published" }));
+  assert.deepEqual(readBuildInfo(file), { ...valid, productVersion: "1.2.3" });
+  fs.writeFileSync(file, JSON.stringify({ ...valid, productVersion: { secret: "never serialize" } }));
+  assert.throws(() => readBuildInfo(file), /Invalid product version/);
   fs.writeFileSync(file, JSON.stringify({ ...valid, commit: "unknown" })); assert.throws(() => readBuildInfo(file), /Invalid build/);
 });

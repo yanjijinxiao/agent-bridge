@@ -5,6 +5,8 @@ import WebSocket, { WebSocketServer } from "ws";
 import { PeerConnection } from "./rpc.js";
 import { peerCertificateAuthority } from "./gateway-trust.js";
 import { type PeerCredentialStore, type PeerEnrollment } from "./credentials.js";
+import { PEER_PATH, runtimeIdentity, type RuntimeIdentity } from "../runtime/versions.js";
+import { diagnostic } from "../runtime/diagnostics.js";
 
 export type PeerServerOptions = {
   host: string; port: number; credentials: Readonly<Record<string, string>>;
@@ -12,6 +14,7 @@ export type PeerServerOptions = {
   allowInsecureLan?: boolean;
   deviceStore?: PeerCredentialStore;
   enrollment?: boolean;
+  runtime?: RuntimeIdentity;
   accept: (nodeId: string, connection: PeerConnection, enrollment?: PeerEnrollment) => void;
 };
 export type PeerClientOptions = {
@@ -20,6 +23,7 @@ export type PeerClientOptions = {
   status?: (state: "connecting" | "connected" | "disconnected") => void;
   reconnectMs?: number;
   enroll?: boolean;
+  runtime?: RuntimeIdentity;
 };
 const loopback = (host: string) => ["127.0.0.1", "localhost", "::1", "[::1]"].includes(host);
 function checkIdentity(id: string, token: string): void {
@@ -52,7 +56,7 @@ export class GatewayPeerServer {
       // Never downgrade a known ID with an invalid secret into enrollment.
       const enrolling = valid && !authenticated && expected === undefined && !options.deviceStore?.has(id)
         && options.enrollment && request.headers["x-gateway-peer-enroll"] === "1";
-      if (request.url !== "/gateway/v1/peer" || request.headers.origin || !(authenticated || enrolling)) {
+      if (request.url !== PEER_PATH || request.headers.origin || !(authenticated || enrolling)) {
         socket.end("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"); return;
       }
       if (enrolling) {
@@ -62,7 +66,7 @@ export class GatewayPeerServer {
         }
       }
       sockets.handleUpgrade(request, socket, head, websocket => {
-        const connection = new PeerConnection(websocket);
+        const connection = new PeerConnection(websocket, options.runtime ?? runtimeIdentity("gateway"));
         let enrollment: PeerEnrollment | undefined;
         if (enrolling) {
           pending.add(connection);
@@ -86,7 +90,7 @@ export class GatewayPeerServer {
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("Peer ingress did not bind a TCP port");
     const host = address.address.includes(":") ? `[${address.address}]` : address.address;
-    return new GatewayPeerServer(server, sockets, `${options.tls ? "wss" : "ws"}://${host}:${address.port}/gateway/v1/peer`);
+    return new GatewayPeerServer(server, sockets, `${options.tls ? "wss" : "ws"}://${host}:${address.port}${PEER_PATH}`);
   }
   async close(): Promise<void> {
     for (const client of this.sockets.clients) client.terminate();
@@ -104,7 +108,7 @@ export class GatewayPeerClient {
     checkIdentity(options.nodeId, options.token);
     const url = new URL(options.url);
     if (!["ws:", "wss:"].includes(url.protocol) || url.username || url.password || url.search || url.hash
-      || url.pathname !== "/gateway/v1/peer") throw new Error("Invalid peer URL");
+      || url.pathname !== PEER_PATH) throw new Error("Invalid peer URL");
     if (url.protocol !== "wss:" && !loopback(url.hostname) && !options.allowInsecureLan) throw new Error("Peer LAN connection requires wss or explicit allowInsecureLan");
   }
   start(): void { if (this.stopped) { this.stopped = false; this.dial(); } }
@@ -119,10 +123,11 @@ export class GatewayPeerClient {
     socket.on("error", () => {});
     socket.once("open", () => {
       if (this.stopped || this.socket !== socket) { socket.terminate(); return; }
-      const connection = this.connection = new PeerConnection(socket);
-      void Promise.resolve().then(() => this.options.connected(connection)).then(() => {
+      const connection = this.connection = new PeerConnection(socket, this.options.runtime ?? runtimeIdentity("connector"));
+      void connection.negotiate().then(() => this.options.connected(connection)).then(() => {
         if (connection.open) this.options.status?.("connected");
-      }, () => connection.close());
+      }, error => { diagnostic("peer.connection.failed", { connectionId: connection.connectionId,
+        code: typeof error?.code === "string" ? error.code : "connection-failed" }, "warn"); connection.close(); });
     });
     socket.once("close", () => {
       if (this.socket !== socket) return;

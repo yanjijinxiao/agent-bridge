@@ -8,6 +8,8 @@
 
 ## 阅读顺序
 
+新增统一版本制度见[版本、兼容和日志架构](version-contracts.md)，本轮增量与验证边界见[四层检查记录](../audits/2026-11-06-version-contracts.md)。Gateway、Connector、接口契约、日志结构分别核对；旧清单计数是历史检查点，不代表本轮全库重新验收。
+
 1. [功能契约](gateway-contracts.md)：从公开会话提炼的行为要求，保留历史来源与被后续要求取代的决定。
 2. [实现职责图](gateway-implementation-map.md)：18 个模块的真实入口、状态写入者、原生与 Gateway 的边界。
 3. [需求与 case 清单](gateway-requirements.json)：每个功能的反例、正常对照、精确测试名、源码散列及验证边界。

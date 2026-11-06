@@ -15,6 +15,7 @@ import { startLocalHttpServer } from "./http-server.js";
 import { acquireServiceProcessLock } from "./process-lock.js";
 import { launchRestartHelper } from "./restart.js";
 import { cleanupResources } from "./cleanup.js";
+import { diagnostic, installDiagnostics, terminalMessage } from "../runtime/diagnostics.js";
 
 async function main(): Promise<void> {
   const stateDir = process.env.CODEX_IM_GATEWAY_STATE_DIR
@@ -80,10 +81,10 @@ async function main(): Promise<void> {
     throw error;
   }
 
-  console.log(`codex-im-gateway is running at ${server.url}`);
-  console.log(`State directory: ${paths.root}`);
-  if (peerServer) console.log(`Gateway peer ingress: ${peerServer.url}`);
-  if (config.taskboardEnabled) console.log(`Taskboard is available at ${config.taskboardUrl}`);
+  // Supervisors consume the structured event, never prose or a credential-
+  // bearing URL. A foreground operator still gets the clickable local entry.
+  diagnostic("runtime.ready", { surface: "management", port: Number(new URL(server.url).port) });
+  if (process.stdout.isTTY) terminalMessage(`codex-im-gateway is running at ${server.url}`);
   if ((process.env.CODEX_IM_GATEWAY_OPEN
     ?? process.env.CODEX_CHANNEL_BRIDGE_OPEN
     ?? process.env.CODEX_WEIXIN_OPEN) !== "0") {
@@ -111,6 +112,7 @@ async function run(): Promise<void> {
     console.log(serverHelpText());
     return;
   }
+  installDiagnostics("gateway");
   await main();
 }
 

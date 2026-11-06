@@ -102,3 +102,9 @@ PEER-01.3：Connector 在没有显式 CA 时，仅为 wss://11.158.199.29:49186/
 主机通道与身份约束见 [Connector 多主机路由](../connector-host-routing.md)。host-scoped-backend 对所有 facade 方法穷尽声明 host 位置；rpc.channel 只复用连接，业务仍由同一个原生后端处理。
 
 输入附件也遵守这一边界：Bridge 的 stageTurnAttachments 必须对所有主机名传递账号、聊天、线程，不能以 `peer:` 前缀决定是否传递授权范围，也不能把逻辑 `local` 当成 Gateway 文件系统。后端端口自行决定直读还是转存；纯文字不调用文件端口。TurnAttachmentError 只表示提交前附件准备失败，保留原始 cause，用户文案明确尚未提交；不会更改原生任务结果或触发重发。NAT-07.11 从真实 BridgeService 经 Connector WebSocket 验证，而非在测试中手工补齐文件 RPC 参数。
+
+## VER-01 版本协商与实例诊断
+
+统一规则见 [版本契约](../version-contracts.md)。设备认证之后，Connector 先以独立 protocol.negotiate RPC 报告本进程版本，再发送原样 peer.register。只有旧端明确 unsupported 才继续 legacy；不兼容、超时或断线均不能进入新注册。原生执行能力、资源 grants 和实际版本是独立信息，不从版本推导授权。
+
+Registry 保存已发布连接的版本快照，根设备和导出的 nativeHost 路由共享同一 Connector 身份；重连更新实例，离线保留本进程最后一次快照。新旧混用、拒绝后继续请求、超时与重连均由 runtime-versions.test.ts 覆盖。协商失败不重发任何业务输入、不换执行器。

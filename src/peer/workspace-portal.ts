@@ -1,3 +1,4 @@
+import { withHttpContract } from "../runtime/http-contract.js";
 import { IDEAuthorization, IDE_SESSION_TTL_MS } from "../ide/authorization.js";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import crypto from "node:crypto";
@@ -62,7 +63,7 @@ export class SharedWorkspacePortal {
   }
   async listen(): Promise<void> {
     if (this.server) throw Error("Shared workspace server already running");
-    const handler: http.RequestListener = (req, res) => { void this.handle(req, res).catch(() => { if (!res.headersSent) this.json(res, 403, { error: "访问被拒绝或资源暂不可用，请核对授权并刷新。" }); else res.destroy(); }); };
+    const handler: http.RequestListener = (req, res) => { void withHttpContract(req, res, "workspace-portal", () => this.handle(req, res)).catch(() => { if (!res.headersSent) this.json(res, 403, { error: "访问被拒绝或资源暂不可用，请核对授权并刷新。" }); else res.destroy(); }); };
     const server = this.options.tls ? https.createServer(this.options.tls, handler) : http.createServer(handler);
     server.on("connection", socket => { this.sockets.add(socket); socket.once("close", () => this.sockets.delete(socket)); });
     server.requestTimeout = 30_000; server.headersTimeout = 15_000; server.maxConnections = 100; server.maxHeadersCount = 50;

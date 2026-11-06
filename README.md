@@ -344,6 +344,7 @@ npm run taskboard:codex
 - [渠道项目、模式与 Taskboard 工作台](./docs/channel-project-modes.md)
 - [内置 Taskboard 安装、迁移与回滚](./docs/taskboard-module.md)
 - [本地运行与更新](./docs/local-run.md)
+- [版本、接口兼容与日志架构](./docs/architecture/version-contracts.md)
 - [版本变更](./CHANGELOG.md)
 
 ## 开发与验证

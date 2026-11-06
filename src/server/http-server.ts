@@ -1,7 +1,8 @@
 import { channelPrincipalSchema } from "../channels/principal.js";
 import { AdmissionConflictError, admissionId, admissionVersion } from "../bridge/admission.js";
 import { TurnDeliveryError, TurnApplicationError } from "../bridge/turn-submission.js";
-import { readBuildInfo } from "./build-info.js";
+import { productVersion as runtimeProductVersion, runtimeIdentity } from "../runtime/versions.js";
+import { withHttpContract } from "../runtime/http-contract.js";
 import { cleanupResources } from "./cleanup.js";
 import { trackHTTPShutdown } from "./http-shutdown.js";
 import { RuntimeConfigurationBusyError } from "./account-manager.js";
@@ -213,6 +214,7 @@ export type LocalHttpServer = {
 };
 
 export async function startLocalHttpServer(options: LocalHttpServerOptions): Promise<LocalHttpServer> {
+  runtimeIdentity("gateway");
   const ideAccess = options.accountManager.ide ? new IDEEndpointManager(options.accountManager.ide) : undefined;
   const detachApprovals = ideAccess && options.accountManager.ideApprovals?.attach(ideAccess);
   ideAccess?.setApprovalCopies(options.accountManager.ideApprovals);
@@ -234,7 +236,7 @@ export async function startLocalHttpServer(options: LocalHttpServerOptions): Pro
   };
   let actualPort = options.port ?? 8787;
   const server = http.createServer((request, response) => {
-    void handleRequest(request, response, {
+    void withHttpContract(request, response, "management", () => handleRequest(request, response, {
       ...options,
       loginManager,
       productVersion,
@@ -244,7 +246,7 @@ export async function startLocalHttpServer(options: LocalHttpServerOptions): Pro
       configure,
       observations,
       port: actualPort
-    }).catch((error: unknown) => {
+    })).catch((error: unknown) => {
       const message = requestErrorMessage(error);
       sendJson(response, errorStatus(error, message), { error: message });
     });
@@ -430,10 +432,15 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
     sendJson(response, 404, { error: "Not found" }); return;
   }
   if (method === "GET" && url.pathname === "/api/build") {
-    sendJson(response, 200, { product: "codex-im-gateway", version: context.productVersion, pid: process.pid, build: readBuildInfo() }); return;
+    const runtime = runtimeIdentity("gateway");
+    sendJson(response, 200, { product: "codex-im-gateway", version: context.productVersion, pid: process.pid,
+      build: runtime.build ?? undefined, runtime }); return;
   }
   if (method === "GET" && url.pathname === "/api/connectors") {
     sendJson(response, 200, context.accountManager.connectorStatus()); return;
+  }
+  if (method === "GET" && url.pathname === "/api/versions") {
+    sendJson(response, 200, { gateway: runtimeIdentity("gateway"), connectors: context.accountManager.connectorStatus() }); return;
   }
   if (method === "GET" && url.pathname === "/api/bootstrap") {
     const config = loadConfig(context.paths);
@@ -446,7 +453,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
     sendJson(response, 200, {
       product: "codex-im-gateway",
       version: context.productVersion,
-      build: readBuildInfo(),
+      build: runtimeIdentity("gateway").build ?? undefined,
       requestToken: context.requestToken,
       config,
       codex,
@@ -920,12 +927,7 @@ async function readCodexProjects(context: HandlerContext): Promise<readonly Code
 }
 
 function readProductVersion(): string {
-  try {
-    const packageJson = JSON.parse(fs.readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version?: unknown };
-    return typeof packageJson.version === "string" ? packageJson.version : "unknown";
-  } catch {
-    return "unknown";
-  }
+  return runtimeProductVersion();
 }
 
 function readCodexRuntime(context: HandlerContext): Promise<CodexRuntimeInfo> {

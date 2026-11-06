@@ -18852,6 +18852,275 @@
           "verifiedBoundary": "命名隔离测试与真实 App Server 测试，具体运行结果见本次审计；不涵盖所有旧 Codex 版本及手机客户端。"
         }
       ]
+    },
+    {
+      "id": "VER-01",
+      "module": "release",
+      "title": "接口、运行日志及制品统一版本管理",
+      "source": "2026-11-06 本 session 用户要求：以后，接口，日志等一律有统一的版本管理。",
+      "contract": "单一清单管理产品身份、接口兼容与日志格式；各端报告自身版本，不兼容写前拒绝；保留旧端显式兼容，不改授权、执行入口或重放语义。",
+      "implementationReview": "reviewed-listed-scenarios-only",
+      "cases": [
+        {
+          "id": "VER-01.1",
+          "scenario": "运行身份不可变且 Gateway/Connector 不混用",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-01: identities are process snapshots, independent per component and not mutable by callers"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/runtime/versions.ts",
+              "sha256": "2e54785d4e3f7c01bc73fdaf1e7f248b1b2abc6087fe9d98fe2f22c64a9c4beb"
+            }
+          ],
+          "verifiedBoundary": "进程缓存、返回对象修改隔离；sealed/unsealed 可区分。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.2",
+          "scenario": "设备上报、导出 nativeHost 与离线快照",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-02: new peers report their own runtime, exported hosts and retained offline version"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "edd773bf3c846cdca7e9800adfca4b0458459380eaa5e9a2649280eb18a465ee"
+            }
+          ],
+          "verifiedBoundary": "真实本机 WebSocket 协商；离线仍显示当前 Gateway 进程最后一次报告。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.3",
+          "scenario": "旧 Connector 向新版 Gateway 原样注册",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-03: old connectors register unchanged and remain explicitly version-unreported"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/rpc.ts",
+              "sha256": "58995edaa8a779717f5dfb1631b1ab865cf9b68e0863e85f50a1fa278fde5e09"
+            }
+          ],
+          "verifiedBoundary": "省略协商的 v1 客户端仍使用严格注册结构，报告 legacy/null。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.4",
+          "scenario": "新 Connector 连接旧严格端点",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-04: explicit unsupported is the only negotiation fallback; old strict registration gets no new fields"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/transport.ts",
+              "sha256": "4782479510466c30954dfded76c9f6b44f326e3e9ad40d351082b287a0b3c827"
+            }
+          ],
+          "verifiedBoundary": "只有显式 unsupported 允许 legacy，原 peer.register 不新增字段。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.5",
+          "scenario": "不同 Peer/执行主版本拒绝业务调用",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-05: incompatible peer major cannot register or execute even if caller ignores refusal"
+            },
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-05: incompatible execution major cannot register or execute even if caller ignores refusal"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/rpc.ts",
+              "sha256": "58995edaa8a779717f5dfb1631b1ab865cf9b68e0863e85f50a1fa278fde5e09"
+            }
+          ],
+          "verifiedBoundary": "两个主版本各一项反例，拒绝后继续请求也不执行。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.6",
+          "scenario": "不同产品版本及较新次版本仍可兼容",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-06: compatible newer minor and different artifact release negotiate without changing authorization"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/rpc.ts",
+              "sha256": "58995edaa8a779717f5dfb1631b1ab865cf9b68e0863e85f50a1fa278fde5e09"
+            }
+          ],
+          "verifiedBoundary": "same-major 协商成功；未注册方法仍被拒绝，不因版本授予权限。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.7",
+          "scenario": "HTTP 版本拒绝发生在写入前且兼容旧返回",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-07: versioned HTTP rejects incompatible requests before writes and keeps legacy bodies"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/runtime/http-contract.ts",
+              "sha256": "f8f1ecf950fb44fc7c0db5795e991cf2db4fddf7b7e138ded936f3e879b6e6e7"
+            }
+          ],
+          "verifiedBoundary": "真实本机 HTTP，错误 major 返回426，写入次数为0；/api/versions 与 /api/build 同实例。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.8",
+          "scenario": "并发请求关联与日志白名单",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-08: concurrent request/native logs retain correlation and exclude payloads and credentials"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/runtime/diagnostics.ts",
+              "sha256": "17f6971f581713bf9fbffab87d4cd0fd829f9900e41cbc1c4347be861de1da00"
+            }
+          ],
+          "verifiedBoundary": "并发原生夹具和 Peer 请求、parentRequestId、URL/Bearer/具名凭据脱敏；不保证识别任意秘密字符串。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.9",
+          "scenario": "异常协商不能误降级",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-09: malformed negotiation never proceeds to registration"
+            },
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-09: rejected negotiation never proceeds to registration"
+            },
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-09: disconnected negotiation never proceeds to registration"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/transport.ts",
+              "sha256": "4782479510466c30954dfded76c9f6b44f326e3e9ad40d351082b287a0b3c827"
+            }
+          ],
+          "verifiedBoundary": "畸形响应、明确拒绝、断连均不执行注册回调。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.10",
+          "scenario": "超时拒绝与同进程重连身份稳定",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-10: timed-out negotiation is not downgraded to legacy and same-process reconnect preserves identity"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/rpc.ts",
+              "sha256": "58995edaa8a779717f5dfb1631b1ab865cf9b68e0863e85f50a1fa278fde5e09"
+            }
+          ],
+          "verifiedBoundary": "传输超时故障注入不能降级；真实同进程重连保留实例。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.11",
+          "scenario": "新进程报告替换旧实例",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-11: a restarted device replaces its reported instance without inheriting stale build metadata"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/registry.ts",
+              "sha256": "edd773bf3c846cdca7e9800adfca4b0458459380eaa5e9a2649280eb18a465ee"
+            }
+          ],
+          "verifiedBoundary": "相同认证设备使用新实例注册，在线路由显示新版本，无 run/stop。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.12",
+          "scenario": "诊断输出失败不影响执行结果",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-12: failed log sinks never change request execution or receipt results"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/runtime/diagnostics.ts",
+              "sha256": "17f6971f581713bf9fbffab87d4cd0fd829f9900e41cbc1c4347be861de1da00"
+            }
+          ],
+          "verifiedBoundary": "同步日志 sink 故障时请求仍恰好执行一次并返回原结果。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        },
+        {
+          "id": "VER-01.13",
+          "scenario": "封存制品不受运行时磁盘替换影响",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-versions.test.ts",
+              "name": "VER-13: sealed artifact version survives metadata replacement until a new process loads it"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/runtime/versions.ts",
+              "sha256": "2e54785d4e3f7c01bc73fdaf1e7f248b1b2abc6087fe9d98fe2f22c64a9c4beb"
+            }
+          ],
+          "verifiedBoundary": "真实两个 Node 子进程；无 package.version 的制品使用 manifest 产品版本，磁盘替换仅新进程生效。",
+          "remainingBoundary": "本机隔离验证；没有证明知游开发机的实际已安装版本、目录漏项修复、所有未来协议版本或手机显示。"
+        }
+      ]
     }
   ],
   "reviewPass": "2026-11-03 full-four-layer: source, comments, documentation, tests, static/configuration reviewed; isolated regressions passed; deployment separately recorded",
@@ -19040,5 +19309,16 @@
       "NAT-07.8",
       "NAT-07.9"
     ]
+  },
+  "versionManagementUpdate": {
+    "date": "2026-11-06",
+    "report": "docs/audits/2026-11-06-version-contracts.md",
+    "requirements": [
+      "VER-01"
+    ],
+    "caseCount": 13,
+    "testCount": 16,
+    "deployment": "not-deployed-at-review; verify release receipts separately",
+    "remaining": "知游开发机实际版本与会话漏项未验；现有历史 partial 不提升。"
   }
 }

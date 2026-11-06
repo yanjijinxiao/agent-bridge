@@ -25,3 +25,7 @@ WEB-01.3用生产HTML/JS、真实本机HTTP服务关闭并在原端口重开，�
 ## 会话执行设置（CTRL-06）
 
 会话工具栏从 `/api/sessions/:accountId/:sessionId/runtime` 有界读取所选 native thread 的模型和推理强度，不取管理器全局值。PATCH 仅发送本次选择的字段，过程显示开关不得携带过时的模型/effort。选择“Codex 当前设置”只重读，不发空 PATCH。AccountManager 在异步准备后、原生最终写前核对原 session/thread、执行代次和项目主机/根；本地 state 只保存 streamReplies 等展示偏好。全局页改为原生默认值只读展示，不再保存另一套模型默认值。
+
+## 版本诊断接口
+
+GET /api/versions 汇总 Gateway runtime 和 connectors；GET /api/build 保留旧返回字段并补 runtime，GET /api/connectors 在现有 routes 中补版本、兼容性和导出主机映射。仍沿用管理端的原访问校验，不供普通聊天跨用户枚举。此次增加的是管理诊断 API，未新增管理页面版本面板。HTTP 响应头统一报告接口版本、实例和请求 ID；旧客户端省略版本头继续使用 v1。

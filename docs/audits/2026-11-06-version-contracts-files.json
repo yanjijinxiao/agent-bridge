@@ -1,0 +1,439 @@
+[
+  {
+    "file": "scripts/release-local.mjs",
+    "sha256": "feb7856ad63983c5e712dd9592d796957f94ba38ba9308746f2779d6286c79bf",
+    "changedRanges": [
+      [
+        249,
+        250
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/codex/app-server-runner.ts",
+    "sha256": "b58ef60a57ae3bd108f88c66da8406cc9ba7eae64fb4212ed93f08c07624ff0a",
+    "changedRanges": [
+      [
+        1,
+        2
+      ],
+      [
+        176,
+        176
+      ],
+      [
+        1814,
+        1814
+      ],
+      [
+        1854,
+        1854
+      ],
+      [
+        1858,
+        1858
+      ],
+      [
+        1866,
+        1867
+      ],
+      [
+        1882,
+        1885
+      ],
+      [
+        1906,
+        1909
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/ide/access-server.ts",
+    "sha256": "233272ca3c7434754719b1d1fd563622f7476b594b63f0862afc23586f858d42",
+    "changedRanges": [
+      [
+        1,
+        1
+      ],
+      [
+        79,
+        79
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/peer/execution-service.ts",
+    "sha256": "cc01879272a7c14e15b012dfd29fd2431fde93c73fb5c9e47aa3b42eedbd3c99",
+    "changedRanges": [
+      [
+        1,
+        2
+      ],
+      [
+        129,
+        134
+      ],
+      [
+        200,
+        200
+      ],
+      [
+        217,
+        217
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/peer/index.ts",
+    "sha256": "e00701d7f344587cd0243355301f39d11e09540131a2c573228417c4c2c8012d",
+    "changedRanges": [
+      [
+        19,
+        19
+      ],
+      [
+        24,
+        24
+      ],
+      [
+        26,
+        26
+      ],
+      [
+        61,
+        61
+      ],
+      [
+        69,
+        70
+      ],
+      [
+        95,
+        95
+      ],
+      [
+        100,
+        101
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/peer/registry.ts",
+    "sha256": "edd773bf3c846cdca7e9800adfca4b0458459380eaa5e9a2649280eb18a465ee",
+    "changedRanges": [
+      [
+        1,
+        1
+      ],
+      [
+        14,
+        14
+      ],
+      [
+        23,
+        26
+      ],
+      [
+        29,
+        31
+      ],
+      [
+        36,
+        37
+      ],
+      [
+        72,
+        74
+      ],
+      [
+        76,
+        77
+      ],
+      [
+        142,
+        142
+      ],
+      [
+        149,
+        151
+      ],
+      [
+        154,
+        155
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/peer/rpc.ts",
+    "sha256": "58995edaa8a779717f5dfb1631b1ab865cf9b68e0863e85f50a1fa278fde5e09",
+    "changedRanges": [
+      [
+        4,
+        5
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        29,
+        33
+      ],
+      [
+        41,
+        57
+      ],
+      [
+        76,
+        95
+      ],
+      [
+        104,
+        105
+      ],
+      [
+        124,
+        124
+      ],
+      [
+        126,
+        128
+      ],
+      [
+        142,
+        145
+      ],
+      [
+        161,
+        163
+      ],
+      [
+        165,
+        165
+      ],
+      [
+        168,
+        169
+      ],
+      [
+        171,
+        171
+      ],
+      [
+        177,
+        177
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/peer/transport.ts",
+    "sha256": "4782479510466c30954dfded76c9f6b44f326e3e9ad40d351082b287a0b3c827",
+    "changedRanges": [
+      [
+        8,
+        9
+      ],
+      [
+        17,
+        17
+      ],
+      [
+        26,
+        26
+      ],
+      [
+        59,
+        59
+      ],
+      [
+        69,
+        69
+      ],
+      [
+        93,
+        93
+      ],
+      [
+        111,
+        111
+      ],
+      [
+        126,
+        127
+      ],
+      [
+        129,
+        130
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/peer/workspace-portal.ts",
+    "sha256": "565a25d706b1d34e140b148d607cb76d1a6810b6cdc99b217e9352d67d6fb330",
+    "changedRanges": [
+      [
+        1,
+        1
+      ],
+      [
+        66,
+        66
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/server/build-info.ts",
+    "sha256": "4b84120d09d43cb93f4aad5f6f4d7072f8d7901eb6bac77bcddf9c1de2bd5442",
+    "changedRanges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/server/http-server.ts",
+    "sha256": "063b91ca294597458f693885d88bd5ca565a7e25d16304c89f1a38eceb0462d8",
+    "changedRanges": [
+      [
+        4,
+        5
+      ],
+      [
+        217,
+        217
+      ],
+      [
+        239,
+        239
+      ],
+      [
+        249,
+        249
+      ],
+      [
+        435,
+        437
+      ],
+      [
+        442,
+        444
+      ],
+      [
+        456,
+        456
+      ],
+      [
+        930,
+        930
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/server/index.ts",
+    "sha256": "086f2fd65609e579b3f4e61c21819f1303da4052c6df7dba441e23efd6cab2bc",
+    "changedRanges": [
+      [
+        18,
+        18
+      ],
+      [
+        84,
+        87
+      ],
+      [
+        115,
+        115
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "test/release-local.test.ts",
+    "sha256": "a99532663e193992a6e48849892679607b6e490199ee859d703d67e16e90b1e3",
+    "changedRanges": [
+      [
+        53,
+        56
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "test/server-shutdown.test.ts",
+    "sha256": "13302976af81d9527b1c293e62407a5c7452590c4b4f4467436731e2d6efdfc2",
+    "changedRanges": [
+      [
+        63,
+        69
+      ]
+    ],
+    "scope": "changed-hunks-and-call-boundaries"
+  },
+  {
+    "file": "src/runtime/versions.ts",
+    "sha256": "2e54785d4e3f7c01bc73fdaf1e7f248b1b2abc6087fe9d98fe2f22c64a9c4beb",
+    "changedRanges": [
+      [
+        1,
+        52
+      ]
+    ],
+    "scope": "entire-new-file"
+  },
+  {
+    "file": "src/runtime/build-info.ts",
+    "sha256": "f058d8751bb2efee76ed8f962972e8a31c819fb1460fa705a1fd58b5b65592dc",
+    "changedRanges": [
+      [
+        1,
+        16
+      ]
+    ],
+    "scope": "entire-new-file"
+  },
+  {
+    "file": "src/runtime/diagnostics.ts",
+    "sha256": "17f6971f581713bf9fbffab87d4cd0fd829f9900e41cbc1c4347be861de1da00",
+    "changedRanges": [
+      [
+        1,
+        52
+      ]
+    ],
+    "scope": "entire-new-file"
+  },
+  {
+    "file": "src/runtime/http-contract.ts",
+    "sha256": "f8f1ecf950fb44fc7c0db5795e991cf2db4fddf7b7e138ded936f3e879b6e6e7",
+    "changedRanges": [
+      [
+        1,
+        27
+      ]
+    ],
+    "scope": "entire-new-file"
+  },
+  {
+    "file": "test/runtime-versions.test.ts",
+    "sha256": "4148024481389451dfb33186b4dd3138d8ae1b70ad12242846cc54681c66300c",
+    "changedRanges": [
+      [
+        1,
+        214
+      ]
+    ],
+    "scope": "entire-new-file"
+  }
+]

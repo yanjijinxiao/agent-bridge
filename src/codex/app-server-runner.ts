@@ -1,3 +1,5 @@
+import { productVersion } from "../runtime/versions.js";
+import { diagnostic } from "../runtime/diagnostics.js";
 import { guardNativeWrite, inheritWriteCheck } from "./write-guard.js";
 import { nativePublicActivity, sensitiveCommand, type CodexPublicActivity } from "./public-item.js";
 import { assertQueueAdmissionCurrent, CodexQueueAdmissionError, CodexRunAdmissionError, CodexInterventionError } from "./backend.js";
@@ -171,6 +173,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private child?: ChildProcessWithoutNullStreams;
   private lines?: readline.Interface;
   private connectPromise?: Promise<void>;
+  private diagnosticId = crypto.randomUUID();
   private initialized = false;
   private readonly approvalResults = new Map<string, CodexApprovalResultHandler>();
   private readonly approvalRequests = new Map<string, { request: CodexApprovalRequest; submitted: boolean; notify?: CodexApprovalResultHandler;
@@ -1808,6 +1811,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private async startAppServer(): Promise<void> {
     await this.options.transport?.prepare?.();
     if (this.closed) throw new Error("Codex app-server runner closed during initialization");
+    this.diagnosticId = crypto.randomUUID();
     const localCommand = resolveCodexCommand(this.options.codexBin ?? "codex");
     const command = this.options.transport?.command ?? localCommand.command;
     const args = this.options.transport?.args
@@ -1847,11 +1851,11 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     });
 
     try {
-      await this.request("initialize", {
+      const hello = await this.request("initialize", {
         clientInfo: {
           name: this.options.metadataOnly ? "codex-im-gateway-metadata" : this.options.historyOnly ? "codex-im-gateway-history" : "codex-im-gateway",
           title: "Codex IM Gateway",
-          version: "0.4.0"
+          version: productVersion()
         },
         capabilities: {
           experimentalApi: true,
@@ -1859,6 +1863,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           requestAttestation: false
         }
       }, Math.min(Math.max(this.options.requestTimeoutMs ?? 600_000, 5_000), 60_000));
+      const userAgent = isRecord(hello) && typeof hello.userAgent === "string" ? hello.userAgent : undefined;
+      diagnostic("native.connected", { nativeConnectionId: this.diagnosticId, hostId: this.options.hostId ?? "local", upstreamAgent: userAgent, phase: this.options.transport?.mode ?? "stdio" });
       this.notify("initialized", {});
       this.initialized = true;
     } catch (error) {
@@ -1873,8 +1879,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     timeoutMs = this.options.requestTimeoutMs ?? 600_000,
     readOnly = false
   ): Promise<unknown> {
-    const id = this.nextId++;
-    return new Promise((resolve, reject) => {
+    const id = this.nextId++, started = Date.now();
+    const details = { nativeConnectionId: this.diagnosticId, nativeRequestId: id, method, hostId: this.options.hostId ?? "local" };
+    diagnostic("native.request.started", details);
+    return new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(() => {
         const error = new Error(`app-server request ${method} timed out after ${timeoutMs}ms`);
         this.pending.delete(id);
@@ -1895,6 +1903,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         reject(communicationError(normalizedError, { phase: "preflight", operation: method,
           threadId: typeof params.threadId === "string" ? params.threadId : undefined }));
       }
+    }).then(result => { diagnostic("native.request.finished", { ...details, status: "ok", durationMs: Date.now() - started }); return result; }, error => {
+      diagnostic("native.request.finished", { ...details, status: "error", durationMs: Date.now() - started,
+        code: error instanceof Error ? error.name : "unknown", ...(error instanceof CodexNativeRequestError ? { rpcCode: error.rpcCode } : {}) }, "warn");
+      throw error;
     });
   }
 

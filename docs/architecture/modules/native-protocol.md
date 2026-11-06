@@ -43,3 +43,9 @@ NATIVE-02.7历史缺陷已修复：原生queue/add/start没有独立application 
 `thread/settings/update` 修改会话后续轮次的模型、推理强度或 Plan 模式。RPC 的空成功响应只表示接收；Runner 先订阅同一 thread，再等待匹配的 `thread/settings/updated` 确认应用。Plan 切换从 `thread/resume` 的完整 collaborationMode 计算，不用本地标志猜测。首次创建空线程的 rollout 索引可能稍晚可用，仅对明确的 no-rollout 读/附着拒绝做有界重读；不重试设置写入，不创建占位轮次。
 
 `thread/read` 用于当前模型/effort 查询，普通 `turn/start` 省略执行设置以继承原生值。设置期间正在执行的轮次自然完成；更新影响下一轮。未知设置回执保留为 unconfirmed，不降成可重试的 preflight。旧版本缺接口明确报错，不能用 Gateway 数据或新任务模拟成功。能力验证和部署版本见 [CTRL-06 检查记录](../../audits/2026-11-05-native-execution-settings.md)。
+
+## 适配版本和原生握手诊断
+
+本项目 nativeAdapter 契约在 runtime/versions.ts 登记。initialize.clientInfo.version 来自当前制品产品版本；原生返回的 userAgent 单独写入 native.connected，不能当作 Connector 构建号。request 日志只写方法、请求/连接 ID、hostId、耗时和安全错误类别，继承上层 Peer 请求上下文；不序列化原始参数、结果、审批内容或 provider 文本。
+
+日志不改变发送、超时、接收和异常传播。重新建立原生连接使用新 nativeConnectionId；旧原生任务仍由其原生执行器持有。VER-01.8 验证并发上下文不混用，VER-01.12 验证日志输出失败不改变返回结果。

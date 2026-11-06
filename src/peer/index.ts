@@ -16,12 +16,14 @@ import { deviceIdSchema, loadPeerIdentity } from "./credentials.js";
 import { managedExportSchema } from "./managed-route.js";
 import { hostScopedBackend } from "../codex/host-scoped-backend.js";
 import { registeredRemoteHosts } from "../codex/remote-host.js";
+import { diagnostic, installDiagnostics, terminalMessage } from "../runtime/diagnostics.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.length === 1 && ["--help", "-h"].includes(args[0])) {
-    console.log("Usage: npm run peer -- --config /absolute/path/peer-client.json\n\nConnects this device to Gateway. Pair the device once, then list and select Codex sessions in chat.\nOptional threadId restricts access to one existing session; otherwise no session ID is needed locally."); return;
+    terminalMessage("Usage: npm run peer -- --config /absolute/path/peer-client.json\n\nConnects this device to Gateway. Pair the device once, then list and select Codex sessions in chat.\nOptional threadId restricts access to one existing session; otherwise no session ID is needed locally."); return;
   }
+  installDiagnostics("connector");
   if (args.length !== 2 || args[0] !== "--config") throw new Error("Use --config /absolute/path/peer-client.json (or --help)");
   const file = path.resolve(args[1]);
   const config = z.object({ url: z.string().url(), nodeId: deviceIdSchema.optional(), tokenFile: z.string().min(1).optional(), caFile: z.string().optional(),
@@ -56,7 +58,7 @@ async function main(): Promise<void> {
       approveOwner: confirmation => {
         const answer = questions.then(async () => {
           if (!process.stdin.isTTY) return false;
-          console.log(`\n所有权确认：${JSON.stringify(confirmation.principal)}\n会话：${confirmation.threadId}\n${confirmation.workspace ? `目录：${confirmation.workspace}\n此人可授权他人在浏览器读取或编辑该目录已有文本文件，不开放终端。` : "仅会话所有权；未开放工作目录。"}\n所有者可批准、限时开放和撤销他人的会话访问。已有 owner 改变时撤销原共享。`);
+          terminalMessage(`\n所有权确认：${JSON.stringify(confirmation.principal)}\n会话：${confirmation.threadId}\n${confirmation.workspace ? `目录：${confirmation.workspace}\n此人可授权他人在浏览器读取或编辑该目录已有文本文件，不开放终端。` : "仅会话所有权；未开放工作目录。"}\n所有者可批准、限时开放和撤销他人的会话访问。已有 owner 改变时撤销原共享。`);
           return (await terminal.question("确认这个账号拥有上述资源并可授权别人？输入 yes：")).trim() === "yes";
         });
         questions = answer.catch(() => {}); return answer;
@@ -64,8 +66,8 @@ async function main(): Promise<void> {
       approve: grant => {
         const answer = questions.then(async () => {
           if (!process.stdin.isTTY) return false;
-          if (config.webIDE?.enabled) console.log("完整 Web IDE 已在本机启用：本人浏览器可使用文件、Git 和终端，权限等同于运行 Connector 的系统用户；目录列表不是系统沙箱。文本共享访客不会获得终端。");
-          console.log(`\n设备访问申请：${JSON.stringify(grant.principal)}\n范围：${config.threadId ? `仅会话 ${JSON.stringify(config.threadId)}（历史、执行、重命名及生命周期管理）` : "此 Codex profile 的普通会话（列出、选择、查看历史、执行、新建、重命名及生命周期管理）"}\n文件：接收聊天附件；回传所选会话工作目录或其附件目录中的文件。`);
+          if (config.webIDE?.enabled) terminalMessage("完整 Web IDE 已在本机启用：本人浏览器可使用文件、Git 和终端，权限等同于运行 Connector 的系统用户；目录列表不是系统沙箱。文本共享访客不会获得终端。");
+          terminalMessage(`\n设备访问申请：${JSON.stringify(grant.principal)}\n范围：${config.threadId ? `仅会话 ${JSON.stringify(config.threadId)}（历史、执行、重命名及生命周期管理）` : "此 Codex profile 的普通会话（列出、选择、查看历史、执行、新建、重命名及生命周期管理）"}\n文件：接收聊天附件；回传所选会话工作目录或其附件目录中的文件。`);
           return (await terminal.question("允许这个用户在此聊天中访问上述本机会话？输入 yes 确认：")).trim() === "yes";
         });
         questions = answer.catch(() => {}); return answer;
@@ -90,13 +92,13 @@ async function main(): Promise<void> {
     service.description.hosts = exports.map(e => ({ nativeHostId: e.nativeHostId, ...(e.route ? { managedHost: e.route.hostId } : {}) }));
     client = new GatewayPeerClient({ ...config, ...identity, enroll: !config.tokenFile,
       ca: config.caFile ? fs.readFileSync(resolve(config.caFile)) : undefined,
-      status: state => console.log(`Gateway peer: ${state}`),
+      status: state => diagnostic("peer.transport.state", { status: state }),
       connected: async connection => {
         service!.attach(connection);
         for (const [host, child] of hostServices) child.attach(connection.channel(host));
         const ticket = await connection.request<{ code: string; hostId: string; managed?: boolean; enrollment?: boolean; paired?: boolean }>("peer.register", service!.description);
-        if (ticket.managed) { console.log(`托管 Connector 已连接：${label}；保留原 Gateway 准入和会话绑定。`); return; }
-        console.log(`${ticket.enrollment ? "设备待登记；完成配对前不能访问会话。" : ticket.paired ? "已连接，正在恢复已有授权，无需重复配对。" : "已连接。"}\n${ticket.paired ? "如需授权新的聊天，" : ""}请在钉钉私聊发送 /connect ${ticket.code}，或在群聊 @机器人 后发送。\n设备：${label}\n配对码有效期 5 分钟；本机确认后，在钉钉选择要绑定的会话。设备凭据由程序保存，无需分发。`);
+        if (ticket.managed) { terminalMessage(`托管 Connector 已连接：${label}；保留原 Gateway 准入和会话绑定。`); return; }
+        terminalMessage(`${ticket.enrollment ? "设备待登记；完成配对前不能访问会话。" : ticket.paired ? "已连接，正在恢复已有授权，无需重复配对。" : "已连接。"}\n${ticket.paired ? "如需授权新的聊天，" : ""}请在钉钉私聊发送 /connect ${ticket.code}，或在群聊 @机器人 后发送。\n设备：${label}\n配对码有效期 5 分钟；本机确认后，在钉钉选择要绑定的会话。设备凭据由程序保存，无需分发。`);
       } });
     let stopping: Promise<void> | undefined;
     const stop = () => stopping ??= (async () => {

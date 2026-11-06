@@ -1,3 +1,4 @@
+import { PEER_CAPABILITIES } from "../runtime/versions.js";
 import crypto from "node:crypto";
 import { z } from "zod";
 import type { CodexBackendCapabilities, CodexThreadState, CodexBackendId } from "../codex/backend.js";
@@ -10,6 +11,7 @@ import { PeerSharingGateway } from "./sharing-gateway.js";
 import type { IDEHostContext } from "../ide/transport.js";
 import type { PeerEnrollment } from "./credentials.js";
 import { managedGrant, managedTarget, validateManagedRoutes, type ManagedConnectorRoute } from "./managed-route.js";
+import { diagnostic } from "../runtime/diagnostics.js";
 
 const principalSchema = z.object({ accountId: z.string().min(1).max(512), conversationId: z.string().min(1).max(512), actorId: z.string().min(1).max(512) }).strict();
 export const grantSchema = peerGrantSchema;
@@ -18,20 +20,21 @@ const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/
   thread: z.object({ threadId: z.string().min(1), cwd: z.string().min(1), title: z.string().optional(),
     persistence: z.enum(["active", "archived"]), internal: z.literal(false).optional() }).passthrough().optional(),
   label: z.string().min(1).max(80).optional(),
-  writeGuard: z.literal(1).optional(),
-  interactions: z.literal(1).optional(),
-  nativeContract: z.literal(1).optional(),
-  fullIDE: z.literal(1).optional(),
+  writeGuard: z.literal(PEER_CAPABILITIES.writeGuard).optional(),
+  interactions: z.literal(PEER_CAPABILITIES.interactions).optional(),
+  nativeContract: z.literal(PEER_CAPABILITIES.nativeContract).optional(),
+  fullIDE: z.literal(PEER_CAPABILITIES.fullIDE).optional(),
   managedHost: z.string().optional(),
   hosts: z.array(z.object({ nativeHostId: z.string().min(1).max(512), managedHost: z.string().optional() }).strict()).max(100).optional(),
-  files: z.object({ version: z.literal(1) }).strict().optional(),
-  management: z.object({ version: z.literal(1) }).strict().optional(),
-  sharing: z.object({ version: z.union([z.literal(1), z.literal(2)]) }).strict().optional(),
+  files: z.object({ version: z.literal(PEER_CAPABILITIES.files) }).strict().optional(),
+  management: z.object({ version: z.literal(PEER_CAPABILITIES.management) }).strict().optional(),
+  sharing: z.object({ version: z.union([z.literal(1), z.literal(PEER_CAPABILITIES.sharing)]) }).strict().optional(),
   info: z.object({ id: z.enum(["exec", "app-server"]), capabilities: z.record(z.string(), z.boolean()) }),
   independent: z.boolean() }).strict();
 export type PeerDescription = { profileId: string; label?: string; managedHost?: string; hosts?: { nativeHostId: string; managedHost?: string }[]; writeGuard?: 1; interactions?: 1; nativeContract?: 1; fullIDE?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
   info: { id: CodexBackendId; capabilities: CodexBackendCapabilities }; independent: boolean };
-type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection; parent?: string; nativeHostId?: string };
+type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection; parent?: string; nativeHostId?: string;
+  versions: ReturnType<PeerConnection["versionStatus"]> };
 export const peerNativeHost = (root: string, native: string) => `${root}:host:${crypto.createHash("sha256").update(native).digest("hex").slice(0, 24)}`;
 const samePrincipal = (a: PeerPrincipal, b: PeerPrincipal) => a.accountId === b.accountId && a.conversationId === b.conversationId && a.actorId === b.actorId;
 
@@ -66,9 +69,12 @@ export class PeerRegistry implements PeerBridgePort {
       : parent && g.hostId === parent && g.scope === "device" && !g.delegation ? [{ ...g, hostId }] : []);
   }
   status() {
+    const versions = (id: string) => { const host = this.host(id); return { ...structuredClone(host?.versions ?? { compatibility: "legacy", runtime: null }),
+      nativeHosts: (host?.description.hosts ?? []).map(item => ({ nativeHostId: item.nativeHostId,
+        hostId: item.managedHost ?? peerNativeHost(this.connectorRoot(id), item.nativeHostId) })) }; };
     return { mode: "connector-only" as const, routes: [
-      ...this.managedRoutes.map(r => ({ hostId: r.hostId, connectorId: managedTarget(r), label: this.label(r.hostId), online: this.isOnline(r.hostId), managed: true })),
-      ...[...this.entries].filter(([, host]) => !host.description.managedHost && !host.parent).map(([id, host]) => ({ hostId: id, connectorId: id, label: this.label(id), online: host.connection?.open === true, managed: false }))
+      ...this.managedRoutes.map(r => ({ hostId: r.hostId, connectorId: managedTarget(r), label: this.label(r.hostId), online: this.isOnline(r.hostId), managed: true, ...versions(r.hostId) })),
+      ...[...this.entries].filter(([, host]) => !host.description.managedHost && !host.parent).map(([id, host]) => ({ hostId: id, connectorId: id, label: this.label(id), online: host.connection?.open === true, managed: false, ...versions(id) }))
     ] };
   }
   /** Routing is separate from user-device pairing. Existing host ACLs remain
@@ -133,16 +139,20 @@ export class PeerRegistry implements PeerBridgePort {
         || exports.some(h => h.nativeHostId === "local")
         || (managed ? exports.some(h => !this.managedRoutes.some(r => managedTarget(r) === hostId && r.nativeHostId === h.nativeHostId && r.hostId === h.managedHost)) : exports.some(h => h.managedHost)))
         throw new PeerError("scope", "Connector native host exports do not match deployment routes");
-      const host: Host = { nodeId, description, connection };
+      const host: Host = { nodeId, description, connection, versions: connection.versionStatus() };
       // Pending devices live only in the pairing ticket. They cannot publish
       // IDE/session hosts, displace a healthy connection or use old grants.
       const publish = () => {
         this.entries.get(hostId)?.connection?.close();
         for (const [id, old] of this.entries) if (old.parent === hostId) this.entries.delete(id);
         this.entries.set(hostId, host);
+        const version = connection.versionStatus();
+        diagnostic("peer.registered", { hostId, connectionId: connection.connectionId, compatibility: version.compatibility,
+          remoteInstanceId: version.runtime?.instanceId, remoteVersion: version.runtime?.productVersion, remoteCommit: version.runtime?.build?.commit });
         for (const exported of exports) {
           const id = peerNativeHost(hostId, exported.nativeHostId), child = connection.channel(exported.nativeHostId);
-          const entry: Host = { nodeId, parent: hostId, nativeHostId: exported.nativeHostId, connection: child, description: { ...description, hosts: undefined, managedHost: exported.managedHost } };
+          const entry: Host = { nodeId, parent: hostId, nativeHostId: exported.nativeHostId, connection: child,
+            versions: host.versions, description: { ...description, hosts: undefined, managedHost: exported.managedHost } };
           this.entries.set(id, entry); this.callbacks.set(child, callbacks);
           child.handle("execution.callback", async params => {
             const { operationId, name, args } = z.object({ operationId: z.string(), name: z.string(), args: z.array(z.unknown()) }).strict().parse(params);
