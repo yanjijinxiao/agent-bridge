@@ -287,6 +287,15 @@ export class WorkspaceIDEManager {
         ...(instance.workspaceFile ? { workspaceFile: instance.workspaceFile } : {}) };
     }
   }
+  /** A live Connector does not prove its remote IDE lease is still usable.
+   * Invalidate only the failed endpoint generation; a late socket error must
+   * never retire a replacement. The next authorized POST performs recovery. */
+  invalidateEndpoint(endpoint: { instanceId: string; socketPath: string }): void {
+    const instance = this.instances.get(endpoint.instanceId);
+    if (instance?.status !== "running" || instance.launch?.socketPath !== endpoint.socketPath) return;
+    instance.status = "error";
+    instance.error = "IDE 连接已断开；重新打开项目将重建连接，原浏览器授权保留。";
+  }
   private readonly opened = new Map<string, { instanceId: string; target: string }>();
   async open(id: string, trustWorkspace = false, trustedDirectory?: string, trustedRootPaths?: readonly string[], subject?: IDEAccessSubject): Promise<IDEInstanceStatus> {
     const base = this.resolve(id), target = digest(base), generation = this.generation, hostGeneration = this.hostGenerations.get(base.hostId) ?? 0;

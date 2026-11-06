@@ -99,8 +99,8 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.5: ${mode} rejected s
   await assert.rejects(transport.update(input));
   assert.equal(frames.length, count, "failed snapshot cannot be acknowledged by a successful status-only stream");
   reject = false; transport = make(); await transport.update(input);
-  assert.match(states.at(-1).cardData.cardParamMap.staticMsgContent, /阶段成果一.*阶段成果二/s);
-  assert.equal(frames.at(-1).content, "进行中 · 1 分钟");
+  assert.match(states.at(-1).cardData.cardParamMap.msgContent, /阶段成果一.*阶段成果二/s);
+  assert.equal(frames.length, 0, "complete task snapshots never use the size-limited streaming API");
   assert.ok([...states, ...frames].every(frame => frame.outTrackId === "original-card"));
   const beforeFinal = states.length;
   await transport.update({ ...input, text: "阶段已结束", finalize: true });

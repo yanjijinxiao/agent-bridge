@@ -57,3 +57,7 @@ IDE-03.5：官方 code-server 在处理 `--version` 前仍读取并可能创建 
 native-profile.ts 统一解析 settings.json/JSONC、extensions.json 和导出的 .code-profile，HTTP 与管理表单复用该解析器。扩展 ID 为有界 publisher.name，不再枚举固定候选；设置支持扩展自定义项和嵌套语言覆盖，拒绝原型字段及过深/过大数据。Profile 导入仅迁移设置和启用扩展，其余字段必须提示，不假称完整迁移键位、片段或任务。导入接口只返回待编辑数据，保存、安装沿用现有管理权限和主机授权。
 
 内部 settings/extensions 结构未变，不因代码升级重建实例。首次准备查询安装结果，全部核验后保存 extensions-initialized.json；后续重开只报告真实安装状态，保留原生 IDE 卸载操作。显式准备才重新应用基线。失败不写成功回执，安装失败的旧实例下次仍可重试。不扫描项目推荐列表自动安装，不复制桌面登录态；初始基线修改影响所有启用主机，管理页须明确说明。
+
+## 上游失效与原授权恢复（2026-11-06）
+
+Connector 在线、代理 socket 仍存在，不等于后端 IDE lease 可用。HTTP 代理失败时，按实例 ID 和 socket 路径废止当前 endpoint 的可复用状态；晚到的旧 socket 错误不得废止新实例。编辑器根路径的 GET 转回既有 workspace 页，由原浏览器授权和 CSRF POST 重新核对目录并启动；资源请求及写请求返回失败，绝不自动重放写入。IDEEndpointManager 的按主机包装层必须转发 invalidateEndpoint。该恢复不启动、停止或重发 Codex 任务。IDE-12.3 覆盖此边界；线上远端与手机是否恢复仍需单独核验。

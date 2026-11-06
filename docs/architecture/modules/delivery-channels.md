@@ -70,4 +70,6 @@ AccountManager.nativeResultAuthority 按账号/绑定/session/host/thread/turn/�
 
 ## 钉钉短流式状态与完整快照
 
-ChannelProgressLayout 提供可信 status，不从模型 Markdown 猜区域。activeDingTalkLayout 是 HTTPS/SDK/初始创建共享的投影：只流式更新短状态；其余完整正文加原停止/IDE页脚通过 staticMsgContent 更新。旧调用没有 status 时保留全部正文，使用可信 activity 状态行。缓存仅在静态更新收到确认后更新，心跳不重写未变的正文；最终态沿原静态全文与实例回执链路收尾。保持原模板和持久化格式。DEL-09.5 的证据、四层范围和手机未验边界见[排查记录](../../audits/2026-11-05-card-stream-budget.md)。
+ChannelProgressLayout 保留正文与操作区边界。activeDingTalkLayout 为 HTTPS/SDK/初始创建共享的两区投影：完整状态、阶段与实时活动更新原 contentKey；停止/IDE 页脚仅由 staticMsgContent 持有。changedDingTalkCardFields 比较已确认字段，普通正文更新不重写控件或布局元数据。任务快照使用普通卡片按 key 更新，避免长文走有单次预算的流式接口，也不假设模板支持新变量。创建回执初始化缓存，失败不推进；重连复用原卡；终态关闭流式并写静态全文。既有模板与持久化格式不变。
+
+DEL-09.6 补齐停止控件重复的更新过程约束、链接真实变更、失败重试及适配器重建，见[回归记录](../../audits/2026-11-06-stable-progress-controls.md)。

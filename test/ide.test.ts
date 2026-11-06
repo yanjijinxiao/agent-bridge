@@ -31,6 +31,7 @@ function config(store: IDEConfigStore, port = 8790) {
 class FakeTransport implements IDEHostTransport {
   launches: IDELaunchInput[] = [];
   servers: http.Server[] = [];
+  failedServers = new Set<http.Server>();
   sockets: net.Socket[] = [];
   async canonicalDirectory(_host: string, directory: string) { return directory.replace("/alias", "/canonical"); }
   async launch(input: IDELaunchInput) {
@@ -38,6 +39,7 @@ class FakeTransport implements IDEHostTransport {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cig-upstream-")), socketPath = path.join(directory, "ide.sock");
     let alive = true;
     const server = http.createServer((req, res) => {
+      if (this.failedServers.has(server)) { res.destroy(); return; }
       if (req.url === "/healthz") { res.writeHead(200).end("{}"); return; }
       res.setHeader("Set-Cookie", "cig_ide_session=evil; Path=/");
       res.end(JSON.stringify({ headers: req.headers, url: req.url }));
@@ -660,4 +662,37 @@ test("authorized browser enters the usable IDE directly while degraded-profile w
   assert.equal(manager.list()[0].status, "running"); assert.ok(manager.endpoint(entry.id));
   assert.equal((await fetch(`${origin}/ide/${entry.id}/`, { headers: { Cookie: cookie } })).status, 200);
   assert.equal((await fetch(`${origin}/ide/${entry.id}/`, { redirect: "manual" })).status, 303);
+});
+
+
+test("IDE upstream failure recovers through authorized POST and ignores late old-endpoint errors", async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cig-ide-recover-")), transport = new FakeTransport();
+  const manager = new WorkspaceIDEManager({ root, transport, resolve: () => ({ owner: "owner", sessionId: "s", workspace: "/project", hostId: "local", projectName: "project" }) });
+  const port = await freePort(), origin = `http://127.0.0.1:${port}`, management = "http://127.0.0.1:18788";
+  manager.configStore.save(config(manager.configStore, port));
+  const access = new IDEAccessServer(manager); access.setManagementOrigin(management); await access.reload(false);
+  t.after(async () => { await access.close(); fs.rmSync(root, { recursive: true, force: true }); });
+  const entry = manager.entry("account", "s")!;
+  const grant = await access.grant(entry.id);
+  const login = await fetch(origin + "/authorize", { method: "POST", redirect: "manual", headers: { Origin: management }, body: new URLSearchParams({ entryId: entry.id, token: grant.token }) });
+  const cookie = login.headers.get("set-cookie")!.split(";")[0];
+  await manager.open(entry.id);
+  const old = manager.endpoint(entry.id)!;
+  transport.failedServers.add(transport.servers[0]);
+  const failed = await fetch(`${origin}/ide/${entry.id}/`, { headers: { Cookie: cookie }, redirect: "manual" });
+  assert.equal(failed.status, 303); assert.equal(failed.headers.get("location"), `/workspace/${entry.id}`);
+  assert.equal(manager.endpoint(entry.id), undefined);
+  assert.equal(transport.launches.length, 1, "failed GET must not launch an IDE or widen trust");
+  const waiting = await fetch(entry.url, { headers: { Cookie: cookie } }); const html = await waiting.text();
+  assert.match(html, /data-ide-auto-open/); assert.doesNotMatch(html, /等待 Gateway 授权/);
+  const csrf = /name="csrf" value="([^"]+)"/.exec(html)![1];
+  const opened = await fetch(`${origin}/open/${entry.id}`, { method: "POST", redirect: "manual", headers: { Cookie: cookie, Origin: origin }, body: new URLSearchParams({ csrf }) });
+  assert.equal(opened.status, 303); assert.equal(transport.launches.length, 2);
+  const current = manager.endpoint(entry.id)!; assert.notEqual(current.socketPath, old.socketPath);
+  manager.invalidateEndpoint(old); assert.deepEqual(manager.endpoint(entry.id), current, "old connection failure cannot retire the replacement");
+  const ready = await fetch(`${origin}/ide/${entry.id}/`, { headers: { Cookie: cookie } }); assert.equal(ready.status, 200);
+  transport.failedServers.add(transport.servers[1]);
+  const write = await fetch(`${origin}/ide/${entry.id}/save`, { method: "POST", headers: { Cookie: cookie, Origin: origin }, body: "must not replay", redirect: "manual" });
+  assert.equal(write.status, 502); assert.equal(write.headers.get("location"), null);
+  assert.equal(transport.launches.length, 2, "a failed write must not be replayed or auto-start anything");
 });

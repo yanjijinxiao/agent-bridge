@@ -166,3 +166,14 @@ test("a lost continuation create receipt never authorizes further replacement ca
   await f.stream.progress("第三阶段" + "已核验".repeat(220));
   assert.equal(f.starts.length, 2); assert.equal(f.stream.checkpoint().streamId, checkpoint.streamId);
 });
+
+
+test("thought and start events do not persist receipt bookkeeping as phase outcomes", async t => {
+  const f = fixture(t);
+  await f.stream.progress("🤔 正在核对模板");
+  await f.stream.progress("🔎 正在检查卡片");
+  await f.stream.progress("已确认模板只支持原有两个区域");
+  await f.stream.flush();
+  assert.doesNotMatch(f.frames.at(-1).text, /公开分析|完成回执|工具完成 0/);
+  assert.match(f.frames.at(-1).text, /已确认模板只支持原有两个区域/);
+});

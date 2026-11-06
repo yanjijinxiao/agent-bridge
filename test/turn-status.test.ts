@@ -174,7 +174,7 @@ for (const outcome of ["completed", "failed", "interrupted"] as TurnOutcome[]) t
   assert.equal(f.updates.at(-1)!.finalize, true);
 });
 
-test("DingTalk production REST lifecycle retains native streaming while active and closes animation only with final frame", async t => {
+test("DingTalk production REST lifecycle keeps input state through body snapshots and closes animation with final frame", async t => {
   const calls: Array<{ url: string; body: any }> = [];
   const cardClient = new DingTalkHttpsAICardClient(async (url, init) => {
     calls.push({ url: String(url), body: JSON.parse(String(init?.body)) });
@@ -188,7 +188,10 @@ test("DingTalk production REST lifecycle retains native streaming while active a
   const stream = new ChannelTurnTextStream(adapter.client, "room"); t.after(() => stream.suspend());
   await stream.progress("正在执行真实步骤"); await stream.progress("最新公开进展"); await stream.flush();
   assert.ok(calls.filter(call => call.url.endsWith("/streaming")).every(call => call.body.isFinalize === false));
-  assert.ok(calls.find(call => call.body.content)?.body.content.startsWith(turnStatusHeading("running")));
+  const active = calls.filter(call => call.body.cardData).map(call => call.body.cardData.cardParamMap);
+  assert.ok(active.some(map => map.msgContent?.startsWith(turnStatusHeading("running"))));
+  assert.equal(active[0].flowStatus, "2");
+  assert.equal(calls.filter(call => call.url.endsWith("/streaming")).length, 0);
   await stream.fail("具体错误", "interrupted");
   const last = calls.filter(call => call.url.endsWith("/streaming")).at(-1)!;
   assert.equal(last.body.isFinalize, true); assert.equal(last.body.isError, false); // Keep supplied error body visible.

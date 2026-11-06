@@ -1116,7 +1116,7 @@ test("DingTalk HTTPS allowlist recovery reuses its delivered card without multip
   let rejected = true;
   const cardClient = new DingTalkHttpsAICardClient(async (url, init) => {
     calls.push({ url: String(url), body: JSON.parse(String(init?.body)) });
-    return String(url).endsWith("/streaming") && rejected
+    return init?.method === "PUT" && rejected
       ? new Response(JSON.stringify({ code: "Forbidden.AccessDenied.IpNotInWhiteList", message: "DO_NOT_LOG_PROVIDER_BODY", requestId: "req-test" }), { status: 403 })
       : new Response(JSON.stringify({ success: true,
         result: init?.method === "POST" ? String(url).endsWith("/deliver") ? [{ success: true }] : "instance" : true }), { status: 200 });
@@ -1130,7 +1130,9 @@ test("DingTalk HTTPS allowlist recovery reuses its delivered card without multip
   await stream.progress("开始检查");
   const originalCard = stream.checkpoint().messageId;
   assert.ok(originalCard);
-  assert.equal(calls.filter((call) => call.url.endsWith("/streaming")).length, 1);
+  await stream.progress("检查下一步"); await stream.flush();
+  const snapshots = () => calls.filter(call => call.url.endsWith("/instances") && call.body.cardUpdateOptions);
+  assert.equal(snapshots().length, 1);
   assert.ok(warnings.some((line) => line.includes('"httpStatus":403') && line.includes('"code":"Forbidden.AccessDenied.IpNotInWhiteList"')));
   assert.ok(warnings.every((line) => !line.includes("DO_NOT_LOG_PROVIDER_BODY")));
   await stream.progress("最新状态");
@@ -1138,11 +1140,11 @@ test("DingTalk HTTPS allowlist recovery reuses its delivered card without multip
   t.mock.timers.tick(30_000);
   await new Promise<void>((resolve) => setImmediate(resolve));
   assert.equal(calls.filter((call) => call.url.endsWith("/deliver")).length, 1);
-  assert.equal(calls.filter((call) => call.url.endsWith("/streaming")).length, 2);
+  assert.equal(snapshots().length, 2);
   assert.ok(calls.every((call) => call.body.outTrackId === originalCard));
   const snapshot = calls.findLast(call => call.body.cardData)!.body.cardData as { cardParamMap: Record<string, string> };
-  assert.match(snapshot.cardParamMap.staticMsgContent, /最新状态/);
-  assert.ok(Buffer.byteLength(String(calls.findLast(call => call.url.endsWith("/streaming"))?.body.content)) <= 1024);
+  assert.match(snapshot.cardParamMap.content, /最新状态/);
+  assert.equal(calls.filter(call => call.url.endsWith("/streaming")).length, 0);
   assert.equal(await stream.finalize("最终结果"), true);
 });
 

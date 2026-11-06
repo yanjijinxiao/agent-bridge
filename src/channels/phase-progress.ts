@@ -44,8 +44,9 @@ export function applyPhaseProgress(state: PhaseProgress, text: string): void {
 export function activitySummary(state: PhaseProgress): string {
   const parts = [state.completed ? `工具完成 ${state.completed} 次` : "", state.failed ? `工具异常 ${state.failed} 次（非任务终态）` : ""].filter(Boolean);
   if (parts.length) return parts.join("，");
-  // No invented successful result when a phase had only thought/start events.
-  return state.live.length ? "本阶段有公开分析或工具活动，未收到工具完成回执。" : "";
+  // Start/thought events alone do not establish a result. Keep them in the
+  // bounded live region, without persisting protocol bookkeeping as a phase.
+  return "";
 }
 
 export function phaseParagraphs(state: PhaseProgress, close = false): string[] {

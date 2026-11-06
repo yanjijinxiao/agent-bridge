@@ -17,7 +17,7 @@ import { IDE_OPEN_PROGRESS_SCRIPT } from "./open-progress.js";
 import { IDE_LINK_ENTRY_SCRIPT } from "./link-entry.js";
 
 type BrowserSession = IDEBrowserSession;
-export type IDEAccessContext = Pick<WorkspaceIDEManager, "configStore" | "config" | "resolve" | "refresh" | "authorizationFile" | "canonicalForTrust" | "open" | "endpoint" | "resume" | "close" | "onStop" | "accessAvailable"> & Partial<Pick<WorkspaceIDEManager, "canAccess" | "preparationStatus" | "accountForEntry">>;
+export type IDEAccessContext = Pick<WorkspaceIDEManager, "configStore" | "config" | "resolve" | "refresh" | "authorizationFile" | "canonicalForTrust" | "open" | "endpoint" | "invalidateEndpoint" | "resume" | "close" | "onStop" | "accessAvailable"> & Partial<Pick<WorkspaceIDEManager, "canAccess" | "preparationStatus" | "accountForEntry">>;
 const COOKIE = "cig_ide_";
 const escape = (text: string) => text.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
 
@@ -439,7 +439,14 @@ export class IDEAccessServer {
         res.writeHead(result.statusCode ?? 502, headers); result.pipe(res);
       });
       upstream.setTimeout(30_000, () => upstream.destroy());
-      upstream.on("error", () => { if (!res.headersSent) res.writeHead(502).end("IDE connection unavailable"); else res.destroy(); });
+      upstream.on("error", () => {
+        this.manager.invalidateEndpoint(endpoint);
+        if (res.headersSent) { res.destroy(); return; }
+        // Recover editor navigation through the existing CSRF-checked open
+        // form. Never replay writes or redirect an asset fetch to HTML.
+        if (method === "GET" && ide[2] === "/") this.redirect(res, `/workspace/${ide[1]}`);
+        else res.writeHead(502).end("IDE connection unavailable; reopen the project to reconnect");
+      });
       req.on("aborted", () => upstream.destroy()); res.on("close", () => upstream.destroy()); req.pipe(upstream); return;
     }
     res.writeHead(session ? 404 : 401).end();

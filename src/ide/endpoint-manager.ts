@@ -202,6 +202,7 @@ export class IDEEndpointManager {
       canonicalForTrust: (id, subject) => { resolve(id); return this.manager.canonicalForTrust(id, subject); },
       open: (id, trust, directory, roots, subject) => { resolve(id); return this.manager.open(id, trust, directory, roots, subject); },
       endpoint: (id, trust) => { resolve(id); return this.manager.endpoint(id, trust); },
+      invalidateEndpoint: endpoint => this.manager.invalidateEndpoint(endpoint),
       resume: () => this.manager.resume(), close: async () => {}
     };
     record.server = new IDEAccessServer(record.context);

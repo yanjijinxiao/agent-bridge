@@ -807,7 +807,7 @@ type DingTalkHttpsAICardClientOptions = {
 export class DingTalkHttpsAICardClient implements DingTalkAICardClient {
   private readonly updateChains = new Map<string, Promise<void>>();
   private readonly inputingCards = new Set<string>();
-  private readonly progressSnapshots = new Map<string, string>();
+  private readonly progressSnapshots = new Map<string, Record<string, string>>();
   private readonly cardLifecycles = new Map<string, { id: string; owned: boolean }>();
   private readonly streamGuids = new DingTalkStreamSequence();
   private readonly transport: PinnedNetworkLifecycleTransport;
@@ -841,11 +841,12 @@ export class DingTalkHttpsAICardClient implements DingTalkAICardClient {
     this.cardLifecycles.set(input.outTrackId, lifecycle);
     let operation: "create" | "deliver" = "create";
     try {
+      const initial = initialDingTalkCardData(input);
       await this.mutate(lifecycle.id, "create", "/v1.0/card/instances", "POST", input.accessToken, {
         cardTemplateId: input.cardTemplateId,
         outTrackId: input.outTrackId,
         ...mentionParameters,
-        cardData: { cardParamMap: initialDingTalkCardData(input) },
+        cardData: { cardParamMap: initial },
         callbackType: "STREAM",
         imGroupOpenSpaceModel: { supportForward: true },
         imRobotOpenSpaceModel: { supportForward: true }
@@ -857,6 +858,13 @@ export class DingTalkHttpsAICardClient implements DingTalkAICardClient {
       input.onStage?.("delivered");
       this.inputingCards.delete(input.outTrackId);
       this.progressSnapshots.delete(input.outTrackId);
+      // Creation already populated these components. Do not repaint the copy
+      // widgets on the very first stream update after confirmed delivery.
+      if (input.progressLayout && initial.flowStatus === "2") {
+        const snapshot = initial;
+        this.inputingCards.add(input.outTrackId);
+        this.progressSnapshots.set(input.outTrackId, snapshot);
+      }
     } catch (error) {
       this.cardLifecycles.delete(input.outTrackId);
       if (lifecycle.owned) this.transport.close(lifecycle.id);
@@ -917,15 +925,18 @@ export class DingTalkHttpsAICardClient implements DingTalkAICardClient {
       this.progressSnapshots.delete(input.outTrackId);
       return;
     }
-    // Only the short status heading uses the streaming parser. Growing phase
-    // history, the rolling activity window and copy widgets share a complete
-    // static snapshot. A heartbeat must not rewrite that unchanged snapshot.
-    if (!input.finalize && (firstUpdate || this.progressSnapshots.get(input.outTrackId) !== footer)) {
-      await this.updateCardState(lifecycleId, input, content, "2", true, true, footer);
-      if (footer === undefined) this.progressSnapshots.delete(input.outTrackId);
-      else this.progressSnapshots.set(input.outTrackId, footer);
+    // Each component has its own owner. A growing progress document must not
+    // rewrite/remount unchanged code widgets or layout metadata (DEL-09.6).
+    if (!input.finalize) {
+      const snapshot = layout ? dingTalkCardStateParamMap({ contentKey: input.contentKey, text: content, footer, flowStatus: "2" }) : dingTalkCardInputModeParamMap(input.contentKey, footer);
+      const patch = changedDingTalkCardFields(snapshot, firstUpdate ? undefined : this.progressSnapshots.get(input.outTrackId));
+      if (Object.keys(patch).length) {
+        await this.updateCardState(lifecycleId, input, content, "2", true, patch);
+        this.progressSnapshots.set(input.outTrackId, snapshot);
+      }
     }
     this.inputingCards.add(input.outTrackId);
+    if (layout) return; // Complete task snapshots use the template's existing body region.
     const streamBody = dingTalkCardStreamingUpdateBody({
       outTrackId: input.outTrackId,
       contentKey: input.contentKey,
@@ -956,13 +967,12 @@ export class DingTalkHttpsAICardClient implements DingTalkAICardClient {
     content: string,
     flowStatus: "2" | "3" | "5",
     updateByKey: boolean,
-    modeOnly = false,
-    footer?: string
+    inputModePatch?: Record<string, string>
   ): Promise<void> {
     await this.mutateWithRetry(lifecycleId, "state", "/v1.0/card/instances", input.accessToken, {
       outTrackId: input.outTrackId,
       cardData: {
-        cardParamMap: modeOnly ? dingTalkCardInputModeParamMap(input.contentKey, footer) : dingTalkCardStateParamMap({
+        cardParamMap: inputModePatch ?? dingTalkCardStateParamMap({
           contentKey: input.contentKey,
           text: content,
           flowStatus
@@ -1045,7 +1055,7 @@ export class DingTalkSdkAICardClient implements DingTalkAICardClient {
   private readonly runtime = new RuntimeOptions({ connectTimeout: 30_000, readTimeout: 30_000 });
   private readonly updateChains = new Map<string, Promise<void>>();
   private readonly inputingCards = new Set<string>();
-  private readonly progressSnapshots = new Map<string, string>();
+  private readonly progressSnapshots = new Map<string, Record<string, string>>();
   private readonly streamGuids = new DingTalkStreamSequence();
 
   constructor(
@@ -1063,12 +1073,13 @@ export class DingTalkSdkAICardClient implements DingTalkAICardClient {
     const mentionParameters = dingTalkCardAtParameters(input.target, input.atUserIds);
     let operation: "create" | "deliver" = "create";
     try {
+      const initial = initialDingTalkCardData(input);
       const createRequest = new DingTalk.card_1_0.CreateCardRequest({
         cardTemplateId: input.cardTemplateId,
         outTrackId: input.outTrackId,
         ...mentionParameters,
         cardData: new DingTalk.card_1_0.CreateCardRequestCardData({
-          cardParamMap: initialDingTalkCardData(input)
+          cardParamMap: initial
         }),
         callbackType: "STREAM",
         imGroupOpenSpaceModel: new DingTalk.card_1_0.CreateCardRequestImGroupOpenSpaceModel({
@@ -1090,6 +1101,13 @@ export class DingTalkSdkAICardClient implements DingTalkAICardClient {
       input.onStage?.("delivered");
       this.inputingCards.delete(input.outTrackId);
       this.progressSnapshots.delete(input.outTrackId);
+      // Creation already populated these components. Do not repaint the copy
+      // widgets on the very first stream update after confirmed delivery.
+      if (input.progressLayout && initial.flowStatus === "2") {
+        const snapshot = initial;
+        this.inputingCards.add(input.outTrackId);
+        this.progressSnapshots.set(input.outTrackId, snapshot);
+      }
     } catch (error) {
       logCardFailure(error, operation, input.outTrackId);
       if (operation === "create" && error instanceof DingTalkCardMutationError && !error.uncertain) throw error;
@@ -1152,12 +1170,16 @@ export class DingTalkSdkAICardClient implements DingTalkAICardClient {
       this.progressSnapshots.delete(input.outTrackId);
       return;
     }
-    if (!input.finalize && (firstUpdate || this.progressSnapshots.get(input.outTrackId) !== footer)) {
-      await this.updateCardStateWithRetry(input, content, "2", true, true, footer);
-      if (footer === undefined) this.progressSnapshots.delete(input.outTrackId);
-      else this.progressSnapshots.set(input.outTrackId, footer);
+    if (!input.finalize) {
+      const snapshot = layout ? dingTalkCardStateParamMap({ contentKey: input.contentKey, text: content, footer, flowStatus: "2" }) : dingTalkCardInputModeParamMap(input.contentKey, footer);
+      const patch = changedDingTalkCardFields(snapshot, firstUpdate ? undefined : this.progressSnapshots.get(input.outTrackId));
+      if (Object.keys(patch).length) {
+        await this.updateCardStateWithRetry(input, content, "2", true, patch);
+        this.progressSnapshots.set(input.outTrackId, snapshot);
+      }
     }
     this.inputingCards.add(input.outTrackId);
+    if (layout) return;
     const guid = this.streamGuids.next();
     let lastError: unknown;
     for (const [attempt, retryDelay] of this.retryDelaysMs.entries()) {
@@ -1210,8 +1232,7 @@ export class DingTalkSdkAICardClient implements DingTalkAICardClient {
     content: string,
     flowStatus: "2" | "3" | "5",
     updateByKey: boolean,
-    modeOnly = false,
-    footer?: string
+    inputModePatch?: Record<string, string>
   ): Promise<void> {
     let lastError: unknown;
     for (const [attempt, retryDelay] of this.retryDelaysMs.entries()) {
@@ -1219,7 +1240,7 @@ export class DingTalkSdkAICardClient implements DingTalkAICardClient {
       const request = new DingTalk.card_1_0.UpdateCardRequest({
         outTrackId: input.outTrackId,
         cardData: new DingTalk.card_1_0.UpdateCardRequestCardData({
-          cardParamMap: modeOnly ? dingTalkCardInputModeParamMap(input.contentKey, footer) : dingTalkCardStateParamMap({
+          cardParamMap: inputModePatch ?? dingTalkCardStateParamMap({
             contentKey: input.contentKey,
             text: content,
             flowStatus
@@ -1296,21 +1317,15 @@ function initialDingTalkCardData(input: { contentKey: string; text: string; fina
 
 function activeDingTalkLayout(input: DingTalkCardActivity & { contentKey: string; finalize?: boolean }): { body: string; footer: string } | undefined {
   if (input.finalize || !input.progressLayout || !nativeDingTalkLoading(input)) return undefined;
-  if (input.contentKey === "staticMsgContent") throw new Error("DingTalk streaming key conflicts with static footer");
-  const { body, footer, status } = input.progressLayout;
-  // Older layout callers have no trusted heading. Do not infer one from prose
-  // or drop their content: use a native activity heading and retain the body.
-  const hasStatus = Boolean(status && (body === status || body.startsWith(`${status}\n\n`)));
-  const heading = hasStatus ? status! : turnStatusHeading(input.activity ?? "running");
-  const live = dingTalkProgressContent(heading);
-  // DingTalk documents <= 1 KB per streaming call and recommends <= 3 KB
-  // overall. A full replacement of a long phase document violated both even
-  // when HTTP/business receipts were successful. Keep UTF-8 wire bytes bounded.
-  if (Buffer.byteLength(live) > 1_024) throw new Error("DingTalk progress status exceeds streaming budget");
-  const snapshot = [dingTalkProgressContent(hasStatus ? body.slice(status!.length).trimStart() : body),
-    normalizeDingTalkCardContent(footer)].filter(Boolean).join("\n\n");
-  if (snapshot.length > 50_000) throw new Error("DingTalk card payload requires pagination");
-  return { body: live, footer: snapshot };
+  if (input.contentKey === "staticMsgContent") throw new Error("DingTalk body key conflicts with the static controls region");
+  // The deployed template has exactly two bound regions. A made-up third key
+  // is accepted by the API but invisible in clients. Update the complete body
+  // through ordinary by-key card updates, never the size-limited stream API.
+  // Flatten body Markdown widgets; native copy controls belong only to footer.
+  const body = dingTalkProgressContent(input.progressLayout.body);
+  const footer = normalizeDingTalkCardContent(input.progressLayout.footer);
+  if (body.length + footer.length > 50_000) throw new Error("DingTalk card payload requires pagination");
+  return { body, footer };
 }
 
 export function dingTalkCardStateParamMap(input: {
@@ -1333,6 +1348,12 @@ export function dingTalkCardStateParamMap(input: {
 function dingTalkCardInputModeParamMap(contentKey: string, footer?: string): Record<string, string> {
   const { [contentKey]: _body, ...mode } = dingTalkCardStateParamMap({ contentKey, text: "", flowStatus: "2", footer });
   return mode;
+}
+
+/** Diff confirmed component values, not a concatenated visible document. Keys
+ * omitted from a by-key update keep their native component and copy state. */
+function changedDingTalkCardFields(next: Record<string, string>, previous?: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(next).filter(([key, value]) => previous?.[key] !== value));
 }
 
 export function dingTalkCardStreamingUpdateBody(input: {
