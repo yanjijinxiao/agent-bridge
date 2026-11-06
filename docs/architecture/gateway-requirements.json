@@ -19161,13 +19161,14 @@
         {
           "id": "VER-02.3",
           "scenario": "npm 安装后完整启动及 Taskboard 静态资源",
-          "status": "pending-real-package-validation",
+          "status": "verified",
           "tests": [
             {
               "file": "test/taskboard-release-package.test.ts"
             }
           ],
-          "remainingBoundary": "等待实际生成 tarball 并在独立目录安装验收；Windows 未实机验证。"
+          "remainingBoundary": "registry 发布被 npm 403 的 2FA 要求拒绝，未宣称发布成功；Windows 未实机验证。",
+          "verifiedBoundary": "实际 tarball 在独立全局 prefix 安装 131 项依赖；两条 CLI help/version、Gateway /api/build、管理网页、嵌入 Taskboard /health 与其 JS 资源均通过；没有开发工作区符号链接。"
         }
       ]
     }
