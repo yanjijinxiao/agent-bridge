@@ -554,6 +554,18 @@ rl.on("line", (line) => {
   }
 
   if (message.method === "thread/turns/list") {
+    const fileApproval = [...pendingApprovals.values()].find(a => a.threadId === message.params.threadId && a.kind === "file");
+    if (fileApproval && !process.argv.includes("--file-approval-event-only")) {
+      if (message.params.limit !== 1 || message.params.itemsView !== "full" || message.params.sortDirection !== "desc") {
+        fail(message.id, "file approval detail read must be bounded"); return;
+      }
+      respond(message.id, { data: [{ id: fileApproval.turnId, status: "inProgress", items: [
+        { id: "other-item", type: "fileChange", changes: [{ path: "/not-this-approval", kind: { type: "delete" } }] },
+        { id: `approval-item-${fileApproval.turnId}`, type: "fileChange", changes: [
+          { path: "/tmp/project/approved.txt", kind: { type: "add" }, diff: "PRIVATE_FILE_CONTENT" }
+        ] }
+      ] }], nextCursor: null }); return;
+    }
     const queueRace = queueViewRaces.get(message.params.threadId);
     if (queueRace) { respond(message.id, { data: [{ ...queueRace, itemsView: message.params.itemsView }], nextCursor: null }); return; }
     if (!["notLoaded", "summary", "full"].includes(message.params?.itemsView)) {
@@ -720,6 +732,13 @@ rl.on("line", (line) => {
             requestedSchema: { type: "object", properties: { count: { type: "integer", minimum: 1, maximum: 5 }, enabled: { type: "boolean" } }, required: ["count", "enabled"] } } : {})
         }
       };
+      if (approvalKind === "file" && process.argv.includes("--file-approval-event-only")) {
+        send({ method: "item/started", params: { threadId: message.params.threadId, turnId, item: {
+          type: "fileChange", id: `approval-item-${turnId}`, status: "inProgress", changes: [
+            { path: "/tmp/project/pending.txt", kind: { type: "add" }, diff: "PRIVATE_PENDING_DIFF" }
+          ]
+        } } });
+      }
       send(approvalRequest);
       if (approvalKind === "mcp-persist") send(approvalRequest);
       return;

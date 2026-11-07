@@ -15,6 +15,9 @@ export type ManagedSession = {
   senderId: string;
   title: string;
   workspace: string;
+  /** A terminal may have no observed cwd. Empty workspace is then absence,
+   * never path.resolve("") or authority over the Gateway working directory. */
+  workspaceState?: "unknown";
   projectId?: string;
   /** Explicit absence and an unconfirmed native membership are different facts. */
   projectBinding?: "none" | "unknown";
@@ -460,6 +463,7 @@ export class RuntimeStateStore {
     const resolvedWorkspace = path.resolve(workspace);
     const project = this.projectForWorkspace(resolvedWorkspace);
     session.workspace = resolvedWorkspace;
+    delete session.workspaceState;
     session.projectId = project.id;
     delete session.threadId;
     session.updatedAt = new Date().toISOString();
@@ -797,10 +801,12 @@ export class RuntimeStateStore {
     projectId?: string,
     mode: "session" | "qa" = "session",
     knowledgeBaseId?: string,
-    context?: { standalone?: boolean; hostId?: string; membershipUnknown?: boolean }
+    context?: { standalone?: boolean; hostId?: string; membershipUnknown?: boolean; unknownWorkspace?: boolean }
   ): ManagedSession {
     const now = new Date().toISOString();
-    const resolvedWorkspace = path.resolve(workspace);
+    if (context?.unknownWorkspace && (workspace !== "" || !context.standalone || mode !== "session" || projectId))
+      throw new Error("Unknown workspace must be an unassigned resource binding");
+    const resolvedWorkspace = context?.unknownWorkspace ? "" : path.resolve(workspace);
     const project = context?.standalone ? undefined : projectId
       ? this.mutableProject(projectId)
       : this.projectForWorkspace(resolvedWorkspace, context?.hostId);
@@ -816,6 +822,7 @@ export class RuntimeStateStore {
       senderId,
       title: cleanTitle(title) ?? `会话 ${number}`,
       workspace: resolvedWorkspace,
+      ...(context?.unknownWorkspace ? { workspaceState: "unknown" as const } : {}),
       ...(project ? { projectId: project.id } : {}),
       ...(context?.standalone ? { projectBinding: context.membershipUnknown ? "unknown" as const : "none" as const } : {}),
       ...(context?.hostId ? { hostId: context.hostId } : {}),
@@ -905,18 +912,23 @@ export class RuntimeStateStore {
 
   /** One native thread can have many IM edges. Membership changes update every
    * edge on that host atomically, without detaching chats or touching execution. */
-  reconcileThreadProject(threadId: string, hostId: string, projectId: string | undefined, cwd?: string): void {
+  reconcileThreadProject(threadId: string, hostId: string, projectId: string | undefined, cwd?: string, unknownWorkspace?: boolean): void {
+    if (unknownWorkspace && projectId) throw new Error("Unknown workspace cannot grant a project directory");
     if (projectId && (this.mutableProject(projectId).hostId ?? "local") !== hostId) throw new Error("项目主机不一致");
     let changed = false;
     for (const session of this.state.sessions) {
       if (session.threadId !== threadId || session.mode === "qa"
         || (session.hostId ?? this.getProject(session.projectId ?? "")?.hostId ?? "local") !== hostId) continue;
       const bound = this.getBoundSession(session.senderId)?.id === session.id;
-      const workspace = cwd && path.isAbsolute(cwd) ? cwd : session.workspace;
+      const unknown = unknownWorkspace ?? (!cwd && session.workspaceState === "unknown");
+      const workspace = unknown ? "" : cwd && path.isAbsolute(cwd) ? cwd : session.workspace;
       if (session.projectId !== projectId || session.workspace !== workspace
+        || unknown !== (session.workspaceState === "unknown")
         || (projectId ? session.projectBinding === "none" : session.projectBinding !== "none")) {
         session.executionGeneration = crypto.randomUUID();
         session.hostId = hostId; session.workspace = workspace;
+        if (unknown) session.workspaceState = "unknown";
+        else delete session.workspaceState;
         if (projectId) { session.projectId = projectId; delete session.projectBinding; }
         else { delete session.projectId; session.projectBinding = "none"; }
         changed = true;
@@ -1060,6 +1072,10 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
     // Retire legacy overrides without replaying them into Codex: the desktop
     // may already hold a newer choice. Native settings are the only authority.
     delete session.model; delete session.effort; delete session.collaborationMode;
+    if (session.workspaceState === "unknown") {
+      if (session.workspace !== "" || session.projectId) throw new Error("Invalid unknown workspace state");
+      session.projectBinding = "unknown";
+    }
     if (session.projectBinding === "none" || session.projectBinding === "unknown") {
       delete session.projectId;
       session.mode = "session";

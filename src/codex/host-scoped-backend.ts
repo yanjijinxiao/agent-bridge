@@ -5,6 +5,7 @@ type Placement = number | "input" | "options" | "scope" | "shared";
  * not a second implementation of any native command. Exhaustiveness matters:
  * a newly added backend port must not silently default to the local host. */
 export const BACKEND_HOST_PLACEMENT = {
+  runtimeRead: 1, runtimeSend: 1, runtimeInterrupt: 1, runtimeReceipt: 1, runtimeLifecycle: 1,
   withSource: "shared", findNativeInputReceipts: "scope", backendInfo: 0,
   run: "input", runEphemeral: "input", resumeAfterCapacity: "input",
   steer: 1, submitThreadMessage: 1, stop: 1, warmUp: 1, listProjects: 0,

@@ -32,6 +32,7 @@ import {
   appServerApprovalResult,
   isAppServerApprovalMethod,
   parseAppServerApproval,
+  attachFileApprovalChanges,
   type CodexApprovalHandler
 } from "./approval.js";
 import type { CodexExecSandbox } from "./sandbox.js";
@@ -205,6 +206,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private readonly turnRecoveries = new Map<string, CodexTurnRecovery>();
   private readonly turnErrorCodes = new Map<string, CodexFailureCode>();
   private readonly itemPhasesByTurn = new Map<string, Map<string, string>>();
+  private readonly fileChangesByTurn = new Map<string, Map<string, Pick<CodexApprovalRequest, "fileChanges" | "fileChangeCount">>>();
   private readonly reasoningSummariesByTurn = new Map<string, Map<string, string>>();
   private readonly runtimeInfoByThread = new Map<string, CodexRuntimeInfo>();
   private readonly settingsObservers = new Map<string, Set<(value: CodexRuntimeInfo) => void>>();
@@ -252,27 +254,38 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
 
   async resumeAfterCapacity(resume: CodexCapacityResumeInput): Promise<CodexRunResult> {
     this.operationLeases++;
-    let accepted!: () => void, failed!: (error: unknown) => void;
-    const ready = new Promise<void>((resolve, reject) => { accepted = resolve; failed = reject; });
-    void ready.catch(() => undefined);
     try {
       const snapshot = await this.readThreadSnapshot(resume.threadId);
       assertCapacityResume(snapshot, resume.failedTurnId);
       return await this.runWithLease({ prompt: "", cwd: snapshot.state.cwd ?? "", threadId: resume.threadId,
         assertCurrent: resume.assertCurrent,
-        onTurnStarted: async event => {
-          try { await resume.onTurnStarted(event); accepted(); }
-          catch (error) { failed(error); throw error; }
-        }, onProgress: resume.onProgress, onRecovery: resume.onRecovery,
-        onApproval: resume.onApproval ? async request => { await ready; return resume.onApproval!(request); } : undefined,
+        onTurnStarted: resume.onTurnStarted, onProgress: resume.onProgress, onRecovery: resume.onRecovery,
+        onApproval: resume.onApproval,
         onApprovalResult: resume.onApprovalResult,
-        onUserInput: resume.onUserInput ? async request => { await ready; return resume.onUserInput!(request); } : undefined,
-        onUserInputResult: resume.onUserInputResult ? async (request, result) => { await ready; await resume.onUserInputResult!(request, result); } : undefined }, resume);
-    } catch (error) { failed(error); throw error;
+        onUserInput: resume.onUserInput, onUserInputResult: resume.onUserInputResult }, resume);
     } finally { this.operationLeases--; await this.recyclePrivateTransportIfIdle(); }
   }
 
   private async runWithLease(input: CodexRunnerInput & Partial<Pick<CodexQueuedRunInput, "queuedSubmissionId" | "clientUserMessageId" | "onQueueStarting">>, resume?: CodexCapacityResumeInput): Promise<CodexRunResult> {
+    // Server requests can share a JSONL batch with the start receipt. Preserve
+    // the application's accepted identity/audience before exposing approvals
+    // or questions, for ordinary turns as well as capacity recovery. Failure
+    // leaves the native request pending; it never supplies a synthetic answer.
+    let accepted!: () => void, failed!: (error: unknown) => void;
+    const ready = new Promise<void>((resolve, reject) => { accepted = resolve; failed = reject; });
+    void ready.catch(() => undefined);
+    try {
+      return await this.runNativeTurn({ ...input,
+        onTurnStarted: async event => { await input.onTurnStarted?.(event); accepted(); },
+        onApproval: input.onApproval ? async request => { await ready; return input.onApproval!(request); } : undefined,
+        onUserInput: input.onUserInput ? async request => { await ready; return input.onUserInput!(request); } : undefined,
+        onUserInputResult: input.onUserInputResult ? async (request, result) => { await ready; await input.onUserInputResult!(request, result); } : undefined
+      }, resume);
+    } catch (error) { failed(error); throw error; }
+    finally { failed(new Error("Native input acceptance callback did not complete")); }
+  }
+
+  private async runNativeTurn(input: CodexRunnerInput & Partial<Pick<CodexQueuedRunInput, "queuedSubmissionId" | "clientUserMessageId" | "onQueueStarting">>, resume?: CodexCapacityResumeInput): Promise<CodexRunResult> {
     await this.ensureConnected();
     input.assertCurrent?.();
 
@@ -2115,6 +2128,21 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         }
       }
       const itemId = typeof item?.id === "string" ? item.id : undefined;
+      if (key && itemId && item?.type === "fileChange") {
+        const threadId = String(params.threadId), turnId = String(params.turnId);
+        if (this.approvalHandlersByThread.has(threadId) || this.interactionObservers.has(threadId)) {
+          // Pending file changes are not necessarily present in native history
+          // until approval finishes. Retain only display metadata, never diff.
+          const evidence: CodexApprovalRequest = { kind: "file", threadId, turnId, itemId };
+          attachFileApprovalChanges(evidence, [{ id: turnId, items: [item] }]);
+          if (evidence.fileChanges) {
+            const files = this.fileChangesByTurn.get(key) ?? new Map();
+            files.set(itemId, { fileChanges: evidence.fileChanges, fileChangeCount: evidence.fileChangeCount });
+            while (files.size > 20) files.delete(files.keys().next().value!);
+            this.fileChangesByTurn.set(key, files);
+          }
+        }
+      }
       if (key && itemId && item?.type === "agentMessage" && typeof item.phase === "string") {
         const phases = this.itemPhasesByTurn.get(key) ?? new Map<string, string>();
         phases.set(itemId, item.phase);
@@ -2319,6 +2347,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     this.turnTexts.delete(key);
     this.queuedTurnEvents.delete(key);
     this.itemPhasesByTurn.delete(key);
+    this.fileChangesByTurn.delete(key);
     this.reasoningSummariesByTurn.delete(key);
   }
 
@@ -2432,7 +2461,21 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         notify: activeHandler ? this.approvalResults.get(request.threadId) : (envelope && observer
           ? (_request: CodexApprovalRequest, result: import("./approval.js").CodexApprovalResult) => observer.onResult?.(envelope, result) : undefined) };
       this.approvalRequests.set(key, pending);
-      Promise.resolve().then(() => this.child === owner && this.approvalRequests.get(key) === pending ? handler(request) : undefined)
+      Promise.resolve().then(async () => {
+        if (request.kind === "file" && this.child === owner && this.approvalRequests.get(key) === pending) {
+          const observed = this.fileChangesByTurn.get(turnKey(request.threadId, request.turnId))?.get(request.itemId);
+          if (observed) Object.assign(request, structuredClone(observed));
+          else {
+            try {
+              // Reconnect may miss item/started. Read only this native turn;
+              // missing metadata must not become an approval decision.
+              const page = await this.nativeTurns({ threadId: request.threadId, limit: 1, sortDirection: "desc", itemsView: "full" }, 2_000);
+              attachFileApprovalChanges(request, page.data);
+            } catch { /* Render an explicit unavailable-file-list notice. */ }
+          }
+        }
+        return this.child === owner && this.approvalRequests.get(key) === pending ? handler(request) : undefined;
+      })
         .then((decision) => {
           if (this.child !== owner || this.approvalRequests.get(key) !== pending) return;
           if (decision === undefined) {
@@ -2622,6 +2665,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     this.turnRecoveries.clear();
     this.turnErrorCodes.clear();
     this.itemPhasesByTurn.clear();
+    this.fileChangesByTurn.clear();
     this.reasoningSummariesByTurn.clear();
     this.runtimeInfoByThread.clear();
     this.threadStates.clear();

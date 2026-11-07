@@ -4,6 +4,8 @@ import type { CodexApprovalHandler, CodexApprovalResultHandler } from "./approva
 import type { CodexExecSandbox } from "./sandbox.js";
 import { codexFailureCode, type CodexFailureCode } from "./turn-failure.js";
 import type { CodexTurnRecovery } from "./turn-recovery.js";
+import type { AgentBackendId } from "../agents/catalog.js";
+import type { RuntimeResource } from "../agents/contracts.js";
 
 /** Production uses app-server; exec remains a persisted/test compatibility ID. */
 export type CodexBackendId = "exec" | "app-server";
@@ -49,6 +51,8 @@ export type CodexExecutionScope = { hostId: string; threadId: string; turnId: st
 
 export type CodexThreadState = {
   threadId: string;
+  /** Non-conversation resource metadata; never supplies a native turn ID. */
+  resource?: RuntimeResource;
   internal?: boolean;
   persistence: CodexThreadPersistence;
   runtimeStatus: CodexThreadRuntimeStatus;
@@ -118,8 +122,8 @@ export type CodexThreadListInput = {
  * In particular, Desktop owns its catalog, while CLI discovers local rollouts.
  */
 export type CodexSessionCatalog = {
-  backend: CodexBackendId;
-  source: "desktop-catalog" | "app-server-storage" | "cli-rollouts";
+  backend: AgentBackendId;
+  source: "desktop-catalog" | "app-server-storage" | "cli-rollouts" | "runtime-catalog";
   threads: CodexThreadState[];
   hostIds: string[];
   complete: boolean;
@@ -207,7 +211,7 @@ export type CodexHistoryPage = {
 };
 
 export class CodexBackendCapabilityError extends Error {
-  constructor(readonly capability: keyof CodexBackendCapabilities, backend: CodexBackendId) {
+  constructor(readonly capability: keyof CodexBackendCapabilities, backend: AgentBackendId) {
     super(`Codex ${backend} backend does not support ${capability}`);
     this.name = "CodexBackendCapabilityError";
   }
@@ -483,6 +487,7 @@ export type CodexTurnObservation = {
 export type CodexThreadProvenance = { threadId: string; complete: true; turns: Array<{ id: string; status: CodexTurnStatus | "unknown" }> };
 
 export type CodexRuntimeInfo = {
+  execution?: import("../agents/contracts.js").RuntimeDescriptor;
   model?: string;
   effort?: string;
   provider?: string;
@@ -522,11 +527,13 @@ export type CodexProject = {
   sessionCount?: number;
   /** Device-side directory observation; unavailable projects stay in catalogs. */
   available?: boolean;
+  /** Runtime-owned machine, never a Gateway-local filesystem path hint. */
+  machine?: string;
 };
 
 /** Keeps the project source explicit so fallback never mixes backend catalogs. */
 export type CodexProjectCatalog = {
-  backend: CodexBackendId;
+  backend: AgentBackendId;
   projects: CodexProject[];
 };
 
@@ -629,6 +636,13 @@ export type CodexInputRecoverySource = {
 };
 
 export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
+  /** Typed resource operations are separate from native conversation methods.
+   * No terminal output is a CodexRunResult or an executable bridge response. */
+  runtimeRead?(threadId: string, hostId?: string): Promise<import("../agents/contracts.js").RuntimeOutput>;
+  runtimeLifecycle?(input: import("../agents/lifecycle.js").RuntimeLifecycleInput, hostId?: string): Promise<import("../agents/lifecycle.js").RuntimeLifecycleRecord>;
+  runtimeReceipt?(input: import("../agents/protocol.js").RuntimeReceiptInput, hostId?: string): Promise<import("../agents/handoff.js").RuntimeHandoffRecord | null>;
+  runtimeSend?(input: import("../agents/protocol.js").RuntimeSendInput, hostId?: string): Promise<import("../agents/handoff.js").RuntimeHandoffRecord>;
+  runtimeInterrupt?(input: import("../agents/protocol.js").RuntimeInterruptInput, hostId?: string): Promise<import("../agents/contracts.js").RuntimeInterrupt>;
   /** Re-establish a persisted source for background receipt reads; not new authority. */
   withSource?<T>(source: { accountId: string; conversationId: string; actorId: string }, action: () => Promise<T>): Promise<T>;
   /** Resolve transport-specific source IDs without submitting or replaying input. */
@@ -655,7 +669,7 @@ export interface CodexBridgeBackend extends Partial<CodexNativeQueue> {
   resumeAfterCapacity?(input: CodexCapacityResumeInput): Promise<CodexRunResult>;
   stageAttachments?: import("./inbound-files.js").StageInboundFiles;
   fetchOutputFile?: import("./output-files.js").FetchOutputFile;
-  backendInfo(hostId?: string): { id: CodexBackendAdapter["id"]; capabilities: CodexBackendCapabilities };
+  backendInfo(hostId?: string): { id: AgentBackendId; capabilities: CodexBackendCapabilities; runtime?: import("../agents/contracts.js").RuntimeDescriptor };
   readThreadSnapshot(threadId: string, hostId?: string): Promise<CodexThreadSnapshot>;
   readTurnLifecycle?(threadId: string, turnId: string, hostId?: string): Promise<CodexTurnObservation>;
   run(input: CodexRunnerInput): Promise<CodexRunResult>;

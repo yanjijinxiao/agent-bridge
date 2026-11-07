@@ -56,7 +56,7 @@ export function packageNpm(out) {
   for (const [file, name] of [['lucide/dist/umd/lucide.min.js', 'lucide.min.js'], ['marked/lib/marked.umd.js', 'marked.umd.js'], ['dompurify/dist/purify.min.js', 'purify.min.js']])
     fs.copyFileSync(path.join(repo, 'node_modules', file), path.join(dist, 'web/vendor', name));
   for (const name of ['README.md', 'README.en.md', 'LICENSE', 'examples/peer-client.json', 'examples/peer-server.json',
-    'docs/tantan-connector-guide.md', 'docs/gateway-peers.md', 'docs/local-run.md', 'docs/npm-release.md']) {
+    'docs/tantan-connector-guide.md', 'docs/herdr-connector-guide.md', 'docs/gateway-peers.md', 'docs/local-run.md', 'docs/npm-release.md']) {
     fs.mkdirSync(path.dirname(path.join(stage, name)), { recursive: true });
     fs.copyFileSync(path.join(repo, name), path.join(stage, name));
   }

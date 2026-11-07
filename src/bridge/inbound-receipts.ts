@@ -14,6 +14,8 @@ export type InboundReceipt = {
   queuedSubmissionId?: string;
   /** Explicit ordinary turn submission; legacy sources may be checked against the saved inbox. */
   nativeInput?: true;
+  /** Terminal input is never recovered by matching native thread history. */
+  runtimeInput?: true;
   /** Durable output obligation reconstructed from exact native history. */
   recoveredNativeInput?: true;
 };
@@ -50,6 +52,8 @@ export class InboundReceiptJournal {
       if (!/^[a-f0-9]{64}$/.test(id) || !receipt || receipt.clientUserMessageId !== `gateway-${id}`
         || !["received", "submitting", "accepted", "handled", "unconfirmed"].includes(receipt.phase)
         || receipt.nativeInput !== undefined && receipt.nativeInput !== true
+        || receipt.runtimeInput !== undefined && receipt.runtimeInput !== true
+        || receipt.runtimeInput && (receipt.nativeInput || receipt.turnId || receipt.queuedSubmissionId)
         || receipt.recoveredNativeInput !== undefined && receipt.recoveredNativeInput !== true) throw Error("Invalid inbound receipt");
       this.receipts[id] = receipt;
     }
@@ -130,7 +134,7 @@ export class InboundReceiptJournal {
     this.claimed.delete(key); this.processing.add(key);
     try {
       await this.context.run(receipt, action);
-      this.transition(receipt, { phase: "handled" });
+      if (!(receipt.runtimeInput && receipt.phase === "unconfirmed")) this.transition(receipt, { phase: "handled" });
     } catch (error) {
       if (receipt.phase === "submitting") {
         this.transition(receipt, { phase: error instanceof CodexCommunicationError && error.submission === "not-submitted"
@@ -147,13 +151,26 @@ export class InboundReceiptJournal {
     if (!receipt) return undefined;
     return {
       currentId: () => receipt.clientUserMessageId,
-      submitting: (scope: Pick<Receipt, "sessionId" | "hostId" | "threadId" | "nativeInput">) => {
+      submitting: (scope: Pick<Receipt, "sessionId" | "hostId" | "threadId" | "nativeInput" | "runtimeInput">) => {
+        if ((scope.runtimeInput || receipt.runtimeInput) && (scope.nativeInput || receipt.nativeInput || receipt.turnId || receipt.queuedSubmissionId))
+          throw Error("Terminal and native input receipts cannot be mixed");
         this.transition(receipt, { ...scope, ...(receipt.phase === "received" ? { phase: "submitting" } : {}) });
       },
       accepted: (threadId: string, turnId: string) => {
+        if (receipt.runtimeInput) throw Error("Terminal input cannot acquire a native turn receipt");
         this.transition(receipt, { phase: "accepted", threadId, turnId });
         try { this.options.onAccepted?.(structuredClone(receipt)); }
         catch { console.warn("[codex-im-gateway] accepted input cleanup deferred; durable native receipt retained"); }
+      },
+      runtimeAccepted: (threadId: string) => {
+        if (!receipt.runtimeInput || receipt.nativeInput || receipt.turnId) throw Error("Invalid terminal input receipt");
+        this.transition(receipt, { phase: "accepted", threadId });
+        try { this.options.onAccepted?.(structuredClone(receipt)); }
+        catch { console.warn("[agent-bridge] terminal input cleanup deferred; durable receipt retained"); }
+      },
+      runtimeUnconfirmed: () => {
+        if (!receipt.runtimeInput) throw Error("Invalid terminal input receipt");
+        this.transition(receipt, { phase: "unconfirmed" });
       }
     };
   }
@@ -165,6 +182,7 @@ export class InboundReceiptJournal {
   accepted(threadId: string, turnId: string): void { this.capture()?.accepted(threadId, turnId); }
   queued(threadId: string, queuedSubmissionId: string, turnId?: string): void {
     const receipt = this.context.getStore(); if (!receipt) return;
+    if (receipt.runtimeInput) throw Error("Terminal input cannot acquire a native queue receipt");
     this.transition(receipt, { phase: "accepted", threadId, queuedSubmissionId, ...(turnId ? { turnId } : {}) });
     try { this.options.onAccepted?.(structuredClone(receipt)); }
     catch { console.warn("[codex-im-gateway] queued input cleanup deferred; durable native receipt retained"); }
@@ -179,6 +197,21 @@ export class InboundReceiptJournal {
   receipt(messageId: string): Readonly<Receipt> | undefined {
     const receipt = this.receipts[identity(messageId)]; return receipt && structuredClone(receipt);
   }
+  /** Only exact Connector handoff evidence repairs terminal acceptance. It is
+   * never a native turn and never schedules input or native result recovery. */
+  recoverRuntimeAccepted(proof: { clientUserMessageId: string; sessionId: string; hostId: string; threadId: string;
+    actorId: string; conversationId: string }): boolean {
+    const key = proof.clientUserMessageId.slice("gateway-".length), current = this.receipts[key];
+    if (!/^gateway-[a-f0-9]{64}$/.test(proof.clientUserMessageId) || !current || this.processing.has(key)
+      || !current.runtimeInput || current.nativeInput || current.turnId || current.queuedSubmissionId
+      || !["submitting", "unconfirmed"].includes(current.phase)
+      || current.sessionId !== proof.sessionId || current.threadId !== proof.threadId || (current.hostId ?? "local") !== proof.hostId
+      || current.actorId !== proof.actorId || current.conversationId !== proof.conversationId) return false;
+    this.transition(current, { phase: "accepted" });
+    try { this.options.onAccepted?.(structuredClone(current)); }
+    catch { console.warn("[agent-bridge] recovered terminal cleanup deferred; durable receipt retained"); }
+    return true;
+  }
   /** The account's queue coordinator owns the native identity and result duty.
    * Bridge its confirmed receipt back to the original IM identity after a crash
    * between the two journals. Never create a second ordinary-result obligation. */
@@ -188,7 +221,7 @@ export class InboundReceiptJournal {
   }): boolean {
     const key = identity(proof.messageId), current = this.receipts[key];
     if (!current || this.processing.has(key) || !["submitting", "unconfirmed"].includes(current.phase)
-      || current.nativeInput || JSON.stringify(current) !== JSON.stringify(expected)
+      || current.nativeInput || current.runtimeInput || JSON.stringify(current) !== JSON.stringify(expected)
       || current.actorId !== proof.actorId || current.conversationId !== proof.conversationId
       || current.sessionId !== proof.sessionId || (current.hostId ?? "local") !== proof.hostId || current.threadId !== proof.threadId
       || !proof.queuedSubmissionId?.trim() && !proof.turnId?.trim()
@@ -205,6 +238,7 @@ export class InboundReceiptJournal {
   recoverAccepted(expected: Readonly<Receipt>, proof: { hostId: string; threadId: string; turnId: string }): boolean {
     const key = expected.clientUserMessageId.slice("gateway-".length), current = this.receipts[key];
     if (!current || this.processing.has(key) || !["submitting", "unconfirmed"].includes(current.phase)
+      || current.runtimeInput
       || JSON.stringify(current) !== JSON.stringify(expected) || !proof.turnId.trim()
       || (current.hostId ?? "local") !== proof.hostId || current.threadId !== proof.threadId
       || current.turnId && current.turnId !== proof.turnId) return false;

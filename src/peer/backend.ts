@@ -1,4 +1,9 @@
 import { NATIVE_CONTRACT_METHODS } from "./contract.js";
+import { RuntimeError } from "../agents/contracts.js";
+import { lifecycleFingerprint, runtimeLifecycleRecordSchema } from "../agents/lifecycle.js";
+import { RUNTIME_METHODS, runtimeResponse, runtimeOutputSchema, runtimeInterruptResultSchema, runtimeHandoffRecordSchema, runtimeErrorSchema } from "../agents/protocol.js";
+import { bindingResourceRef } from "../agents/resource-catalog.js";
+import { runtimeInputFingerprint } from "../agents/handoff.js";
 import { PeerInteractionClient } from "./interaction-client.js";
 import crypto from "node:crypto";
 import { peerOperationId } from "./identity.js";
@@ -36,6 +41,8 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
   };
   const invoke = async <T = unknown>(method: string, args: unknown[], hostId: string, write = false, input?: Record<string, any>): Promise<T> => {
     hostId ??= "local";
+    if ((RUNTIME_METHODS as readonly string[]).includes(method) && describe(hostId).runtimeContract !== 1)
+      throw new RuntimeError("unsupported", "所选 Connector 尚未提供 runtimeContract: 1");
     if (["run", "steer", "submitThreadMessage", "stop", "interruptTurn", "addQueuedSubmission", "setGoal", "clearGoal", "updateThreadSettings", "renameThread", "archiveThread", "unarchiveThread", "deleteThread"].includes(method)) {
       const threadId = input?.threadId; if (threadId) onThreadMutation?.(threadId, hostId);
     }
@@ -149,6 +156,13 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       return result;
     }
     catch (error) {
+      if ((RUNTIME_METHODS as readonly string[]).includes(method)) {
+        if (error instanceof PeerConnectionError) throw new RuntimeError("transport", "运行接口转发连接中断", write && error.sent ? "unknown" : "not-sent");
+        if (error instanceof PeerError && error.code === "runtime") {
+          const data = runtimeResponse(runtimeErrorSchema, error.data, write);
+          throw new RuntimeError(data.code, error.message, data.submission);
+        }
+      }
       if (error instanceof PeerConnectionError) throw new CodexCommunicationError(
         acceptedTurnId ? "observation" : write && error.sent ? "submission" : "preflight", method, scope?.threadId, acceptedTurnId, error);
       if (error instanceof PeerError && error.code === "codex-communication") {
@@ -197,7 +211,44 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     if (method === "createThread" && description.thread) throw new PeerError("scope", "固定会话授权不能新建其他会话。");
     return invoke<T>(method, [input], hostId, true, input);
   };
+  const resourceRef = (threadId: string, hostId: string) => {
+    const description = describe(hostId);
+    if (description.runtimeContract !== 1 || !description.info.runtime)
+      throw new RuntimeError("unsupported", "所选 Connector 尚未提供 runtimeContract: 1");
+    return bindingResourceRef(threadId, description.info.runtime.endpointId);
+  };
   const overrides: Partial<CodexBridgeBackend> = {
+    runtimeLifecycle: async (input, hostId = "local") => {
+      const descriptor = describe(hostId).info.runtime;
+      if (!descriptor) throw new RuntimeError("unsupported", "所选设备不是运行资源接口");
+      const { assertCurrent: _, ...wire } = input;
+      const expected = input.action === "create" ? undefined : resourceRef(input.threadId, hostId);
+      if (input.action === "create" && describe(hostId).thread) throw new RuntimeError("scope", "固定资源授权不能新建资源");
+      return runtimeResponse(runtimeLifecycleRecordSchema.refine(row => {
+        if (row.fingerprint !== lifecycleFingerprint(wire) || row.action !== input.action) return false;
+        const ref = row.result ? row.result.kind === "closed" ? row.result.ref : row.result.resource.ref : row.created;
+        return !ref || ref.endpointId === descriptor.endpointId && (!expected || ref.id === expected.id);
+      }), await invoke("runtimeLifecycle", [input], hostId, true, input), true);
+    },
+    runtimeRead: async (threadId, hostId = "local") => {
+      const ref = resourceRef(threadId, hostId);
+      return runtimeResponse(runtimeOutputSchema.refine(out => out.ref.endpointId === ref.endpointId && out.ref.id === ref.id),
+        await invoke("runtimeRead", [threadId], hostId));
+    },
+    runtimeSend: async (input, hostId = "local") => runtimeResponse(runtimeHandoffRecordSchema.refine(row =>
+      row.fingerprint === runtimeInputFingerprint(input.target, input.text)
+      && row.ref.endpointId === input.target.ref.endpointId && row.ref.id === input.target.ref.id
+      && (!row.receipt || row.receipt.kind === "terminal-written" && row.receipt.incarnation === input.target.incarnation)),
+      await invoke("runtimeSend", [input], hostId, true, input), true),
+    runtimeReceipt: async (input, hostId = "local") => {
+      const ref = resourceRef(input.threadId, hostId);
+      return runtimeResponse(runtimeHandoffRecordSchema.refine(row => row.fingerprint === input.fingerprint
+        && row.ref.endpointId === ref.endpointId && row.ref.id === ref.id
+        && (!row.receipt || row.receipt.kind === "terminal-written")).nullable(), await invoke("runtimeReceipt", [input], hostId));
+    },
+    runtimeInterrupt: async (input, hostId = "local") => runtimeResponse(runtimeInterruptResultSchema.refine(result =>
+      result.ref.endpointId === input.target.ref.endpointId && result.ref.id === input.target.ref.id),
+      await invoke("runtimeInterrupt", [input], hostId, true, input), true),
     withSource: (source, action) => peerPrincipal.run(source, action),
     async findNativeInputReceipts(scope, sources) {
       if (!registry.isRouted(scope.hostId)) return local.findNativeInputReceipts
@@ -231,7 +282,8 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       return new Map([...matches].filter(([, turns]) => turns.size === 1).map(([id, turns]) => [id, [...turns][0]]));
     },
     backendInfo(hostId) {
-      if (registry.managedRoute(hostId) && !registry.isOnline(hostId ?? "local")) return { id: "app-server", capabilities: APP_SERVER_BACKEND_CAPABILITIES };
+      // A disconnected route retains its last authenticated description. A
+      // never-connected route has unknown capabilities, not default Codex ones.
       return registry.isRouted(hostId) ? describe(hostId).info : local.backendInfo(hostId);
     },
     runEphemeral: input => registry.isRouted(input.hostId)
@@ -267,7 +319,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       const visible = (!input?.cwd || input.cwd === state.cwd) && (!input?.projectId || input.projectId === state.projectId)
         && (!input?.unassigned || state.projectMembership === "none")
         && (input?.persistence === "all" || state.persistence === (input?.persistence ?? "active"));
-      return { backend: description.info.id, source: description.info.id === "exec" ? "cli-rollouts" : "app-server-storage",
+      return { backend: description.info.id, source: description.runtimeContract === 1 ? "runtime-catalog" : description.info.id === "exec" ? "cli-rollouts" : "app-server-storage",
         threads: visible ? [state] : [], hostIds: [host!], complete: true, warnings: [] };
     },
     async listThreads(input, host) { return registry.isRouted(host) ? (await overrides.listSessionCatalog!(input, host)).threads : local.listThreads(input, host); },
@@ -275,10 +327,18 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
       if (!registry.isRouted(host)) return local.listProjects(host, observation);
       const description = describe(host!);
       if (description.thread) return { backend: description.info.id, projects: [] };
-      if (!description.management) throw new PeerError("unsupported", "设备尚未启用项目目录，请更新 Connector。");
+      if (!description.info.capabilities.projectCatalog || !description.management && description.runtimeContract !== 1)
+        throw new PeerError("unsupported", "设备尚未启用项目目录，请更新 Connector。");
       return invoke<import("../codex/backend.js").CodexProjectCatalog>("listProjects", [observation], host!);
     },
-    async warmUp(cwd, host) { if (registry.isRouted(host)) await invoke("warmUp", [cwd], host!); else await local.warmUp(cwd, host); },
+    async warmUp(cwd, host) {
+      if (registry.isRouted(host) && describe(host).info.runtime) {
+        // Runtime endpoints already exist independently; warm-up is a fresh
+        // catalog read, never the native conversation/process startup method.
+        await overrides.listProjects!(host); return;
+      }
+      if (registry.isRouted(host)) await invoke("warmUp", [cwd], host!); else await local.warmUp(cwd, host);
+    },
     stageAttachments: async (files, input) => {
       if (registry.isRouted(input.hostId)) {
         if (!files.length) return [];

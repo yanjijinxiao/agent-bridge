@@ -713,7 +713,8 @@ function renderSessions() {
         <span class="session-binding-state${session.binding?.bound ? " is-bound" : ""}">${session.binding?.bound ? "当前 IM 绑定" : "未绑定到当前 IM 对话"}</span>
         <span class="session-binding-id">对话：${escapeHtml(session.senderId)}</span>
         <span class="session-binding-id">主机：${escapeHtml(session.binding?.hostId || session.hostId || "local")}</span>
-        <span class="session-binding-id">Session：${escapeHtml(session.threadId || "尚未创建 Codex session")}</span>
+        ${session.executionUnavailable ? `<span class="session-binding-id">执行入口尚未连接，绑定记录保留</span>` : ""}
+        <span class="session-binding-id">Session：${escapeHtml(session.threadId || "尚未创建运行资源")}</span>
         ${session.binding?.nativeUnavailable ? `<span class="session-binding-id">原生会话已归档或不存在，交互暂停；绑定记录保留</span>`
           : session.binding?.interaction ? `<span class="session-binding-id">提问入口：${session.binding.interaction.current ? "当前对话" : session.binding.interaction.destination ? "其他跟随对话" : "未确定或原入口失效"}</span>` : ""}
         ${session.binding?.deliveryRoute === "unconfirmed" ? `<span class="session-binding-id">投递身份待确认：在此 IM 对话向机器人发消息后自动补齐</span>` : ""}
@@ -726,15 +727,15 @@ function renderSessions() {
         <span class="session-thread${session.responding ? " is-responding" : ""}">${session.binding?.nativeUnavailable ? "已归档或不可用 · 交互暂停"
           : !session.binding?.bound && session.threadId ? "历史关联 · 非当前绑定"
           : session.binding?.deliveryRoute === "unconfirmed" ? "投递身份待确认"
-          : session.responding ? "正在处理此会话的请求…" : session.threadId ? "已关联 Codex session" : "等待首条消息"}</span>
+          : session.responding ? "正在处理此会话的请求…" : session.threadId ? "已关联运行资源" : "等待首条消息"}</span>
       </button>
       <div class="session-actions">
-        ${session.binding?.bound && session.threadId && session.follow !== false && !session.binding.nativeUnavailable ? `<button class="button button-secondary" type="button" data-session-action="primary" data-account-id="${escapeAttr(session.accountId)}" data-session-id="${escapeAttr(session.id)}" ${session.binding.interaction?.current || session.binding.deliveryRoute === "unconfirmed" ? "disabled" : ""}>设为提问入口</button>` : ""}
+        ${session.binding?.bound && session.threadId && session.follow !== false && !session.binding.nativeUnavailable && !session.executionUnavailable && session.execution?.operations?.interaction?.supported !== false ? `<button class="button button-secondary" type="button" data-session-action="primary" data-account-id="${escapeAttr(session.accountId)}" data-session-id="${escapeAttr(session.id)}" ${session.binding.interaction?.current || session.binding.deliveryRoute === "unconfirmed" ? "disabled" : ""}>设为提问入口</button>` : ""}
         <button class="icon-button" type="button" data-session-action="activate" data-account-id="${escapeAttr(session.accountId)}" data-session-id="${escapeAttr(session.id)}" ${session.active ? "disabled" : ""} title="绑定到此记录的 IM 对话" aria-label="绑定到此记录的 IM 对话"><i data-lucide="circle-play"></i></button>
-        <button class="button button-secondary session-unbind" type="button" data-session-action="unbind" data-account-id="${escapeAttr(session.accountId)}" data-session-id="${escapeAttr(session.id)}" ${session.binding?.bound ? "" : "disabled"} title="仅解除此 IM 对话的绑定，不删除或停止 Codex session"><i data-lucide="unlink"></i><span>解绑</span></button>
+        <button class="button button-secondary session-unbind" type="button" data-session-action="unbind" data-account-id="${escapeAttr(session.accountId)}" data-session-id="${escapeAttr(session.id)}" ${session.binding?.bound ? "" : "disabled"} title="仅解除此 IM 对话的绑定，不删除或停止运行资源"><i data-lucide="unlink"></i><span>解绑</span></button>
         <button class="icon-button" type="button" data-session-action="expiry" data-account-id="${escapeAttr(session.accountId)}" data-session-id="${escapeAttr(session.id)}" ${session.binding?.bound ? "" : "disabled"} title="自动解绑期限" aria-label="设置此 IM 对话的自动解绑期限"><i data-lucide="timer"></i></button>
         <button class="icon-button" type="button" data-session-action="rename" data-account-id="${escapeAttr(session.accountId)}" data-session-id="${escapeAttr(session.id)}" title="重命名会话" aria-label="重命名会话"><i data-lucide="pencil"></i></button>
-        <button class="icon-button" type="button" data-session-action="reset" data-account-id="${escapeAttr(session.accountId)}" data-session-id="${escapeAttr(session.id)}" ${session.threadId ? "" : "disabled"} title="重置 Codex 上下文" aria-label="重置 Codex 上下文"><i data-lucide="rotate-ccw"></i></button>
+        <button class="icon-button" type="button" data-session-action="reset" data-account-id="${escapeAttr(session.accountId)}" data-session-id="${escapeAttr(session.id)}" ${session.threadId ? "" : "disabled"} title="解除运行资源关联" aria-label="解除运行资源关联"><i data-lucide="rotate-ccw"></i></button>
         <button class="icon-button is-danger" type="button" data-session-action="delete" data-account-id="${escapeAttr(session.accountId)}" data-session-id="${escapeAttr(session.id)}" title="删除受管会话" aria-label="删除受管会话"><i data-lucide="trash-2"></i></button>
       </div>
     </article>`;
@@ -1524,8 +1525,10 @@ function renderConversationMessages(messages, responding) {
 }
 
 function renderChatMessage(message) {
+  const execution = selectedSession()?.execution;
+  const source = selectedSession()?.executionUnavailable ? "执行入口待连接" : execution?.kind === "herdr-app" ? "Herdr App 终端" : execution?.kind === "herdr-tui" ? "Herdr TUI 终端" : "Codex";
   return `<article class="chat-message is-${escapeAttr(message.role)}${message.attachments?.length ? " has-attachments" : ""}">
-    <div class="message-meta"><span>${message.role === "user" ? "你" : "Codex"}</span>${message.createdAt ? `<time datetime="${escapeAttr(message.createdAt)}">${escapeHtml(messageTime(message.createdAt))}</time>` : ""}</div>
+    <div class="message-meta"><span>${message.role === "user" ? "你" : source}</span>${message.createdAt ? `<time datetime="${escapeAttr(message.createdAt)}">${escapeHtml(messageTime(message.createdAt))}</time>` : ""}</div>
     <div class="message-bubble">${message.text ? renderMarkdown(message.text) : ""}${renderMessageAttachments(message.attachments)}</div>
   </article>`;
 }
@@ -1554,14 +1557,19 @@ function formatProcessingDuration(startValue, endValue) {
 
 function renderSessionRuntimeControls(session) {
   const nativeRuntime = session ? state.sessionRuntimes.get(sessionKey(session)) || {} : {};
+  const execution = nativeRuntime.execution || session?.execution;
+  const settings = execution?.operations?.settings;
+  const unsupported = session?.executionUnavailable || settings?.supported === false;
   const disabled = !session || isSessionSending() || isSessionSavingRuntime();
-  els.sessionModelInput.disabled = disabled;
-  els.sessionEffortInput.disabled = disabled;
+  els.sessionModelInput.disabled = disabled || unsupported;
+  els.sessionEffortInput.disabled = disabled || unsupported;
   els.sessionStreamInput.disabled = disabled;
   const renderKey = session ? [
     sessionKey(session),
     nativeRuntime.model || "",
     nativeRuntime.effort || "",
+    JSON.stringify(settings || {}),
+    String(Boolean(session.executionUnavailable)),
     typeof session.streamReplies === "boolean" ? String(session.streamReplies) : "inherit",
     String(Boolean(state.config?.streamReplies)),
     state.codexRuntime?.model || "",
@@ -1596,6 +1604,11 @@ function renderSessionRuntimeControls(session) {
   els.sessionModelInput.innerHTML = options.map((option) => `<option value="${escapeAttr(option.value)}"${option.title ? ` title="${escapeAttr(option.title)}"` : ""}>${escapeHtml(option.label)}</option>`).join("");
   els.sessionModelInput.value = nativeRuntime.model || "";
   setSessionEffortOptions(nativeRuntime.model || "", nativeRuntime.effort || "");
+  if (unsupported) {
+    const explanation = escapeHtml(session.executionUnavailable ? "执行入口尚未连接" : settings?.reason || "运行接口未提供此设置");
+    els.sessionModelInput.innerHTML = `<option value="">${explanation}</option>`;
+    els.sessionEffortInput.innerHTML = `<option value="">${explanation}</option>`;
+  }
   els.sessionStreamInput.innerHTML = [
     `<option value="">继承全局（${state.config?.streamReplies ? "开启" : "关闭"}）</option>`,
     '<option value="on">开启</option>',

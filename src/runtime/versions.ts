@@ -11,7 +11,7 @@ export const CONTRACTS = Object.freeze({
   log: Object.freeze({ major: 1, minor: 0 })
 } as const);
 export const PEER_CAPABILITIES = Object.freeze({ writeGuard: 1, interactions: 1, nativeContract: 1,
-  fullIDE: 1, files: 1, management: 1, sharing: 2 } as const);
+  runtimeContract: 1, fullIDE: 1, files: 1, management: 1, sharing: 2 } as const);
 export const PEER_PATH = `/gateway/v${CONTRACTS.peer.major}/peer`;
 export const versionSchema = z.object({ major: z.number().int().positive(), minor: z.number().int().nonnegative() });
 export const runtimeIdentitySchema = z.object({

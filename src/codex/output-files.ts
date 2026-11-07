@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import type { AppServerTransport } from "./app-server-transport.js";
+import type { HostInvocation } from "../hosts/script-host.js";
 
 export type OutputFileLease = { readonly path: string; dispose(): Promise<void> };
 export type FetchOutputFile = (remotePath: string, options: {
@@ -48,13 +49,22 @@ export async function fetchRemoteOutputFile(remotePath: string, options: {
   if (transport.mode !== "remote-daemon" || !transport.args?.length || !/(?:^|\/)ssh$/.test(transport.command)) {
     throw new Error("远程执行器没有文件回传端口");
   }
+  const encoded = Buffer.from(OUTPUT_FILE_SENDER).toString("base64");
+  const args = [...transport.args.slice(0, -1), `exec node -e "eval(Buffer.from('${encoded}','base64').toString())"`];
+  return fetchOutputUsingCommand(remotePath, options, async () => ({ command: transport.command, args }));
+}
+
+/** Read-only fixed helper shared by native SSH and resource-owned hosts. */
+export async function fetchOutputUsingCommand(remotePath: string, options: {
+  readonly maxBytes: number; readonly directory?: string; readonly timeoutMs?: number; readonly allowedRoots?: readonly string[];
+}, command: () => Promise<HostInvocation>, assertCurrent?: () => void): Promise<OutputFileLease> {
   if (!path.posix.isAbsolute(remotePath) || remotePath.includes("\0") || remotePath.length > 4096
     || !Number.isSafeInteger(options.maxBytes) || options.maxBytes < 1) throw new Error("远程文件路径或大小限制无效");
   const maxBytes = Math.min(options.maxBytes, 100 * 1024 * 1024);
-  const encoded = Buffer.from(OUTPUT_FILE_SENDER).toString("base64");
-  const args = [...transport.args.slice(0, -1), `exec node -e "eval(Buffer.from('${encoded}','base64').toString())"`];
+  const call = await command();
   const output = await new Promise<Buffer>((resolve, reject) => {
-    const child = spawn(transport.command, args, { stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
+    assertCurrent?.();
+    const child = spawn(call.command, call.args, { stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
     const chunks: Buffer[] = []; let size = 0, excessive = false, timedOut = false;
     const timer = setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, options.timeoutMs ?? 30_000);
     child.stdout.on("data", (chunk: Buffer) => {

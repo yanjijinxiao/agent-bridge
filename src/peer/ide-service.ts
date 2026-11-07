@@ -5,7 +5,9 @@ import { z } from "zod";
 import { matchesManagedGrant, type ManagedConnectorExport } from "./managed-route.js";
 import type { CodexBridgeBackend } from "../codex/backend.js";
 import { ideConfigSchema } from "../ide/config.js";
-import { CodeServerInstaller, IDEInstallPendingError } from "../ide/installer.js";
+import { CodeServerInstaller, IDEInstallPendingError, ProcessIDEInstallerIO } from "../ide/installer.js";
+import { ideHostCommand } from "../ide/host-command.js";
+import { scriptHostResolver, type ScriptHost, type HostCommandResolver } from "../hosts/script-host.js";
 import { ProcessIDEHostTransport, type IDEHostTransport, type IDELaunch } from "../ide/transport.js";
 import type { IDEProfileStatus } from "../ide/profile.js";
 import { peerGrantSchema, type SharedPeerGrant } from "./sharing-types.js";
@@ -28,7 +30,7 @@ const callSchema = z.discriminatedUnion("method", [
   z.object({ grant: peerGrantSchema, method: z.literal("connect"), lease: z.string().uuid(), stream: z.string().uuid() }).strict(),
   z.object({ grant: peerGrantSchema, method: z.literal("stop"), lease: z.string().uuid() }).strict()
 ]);
-type Lease = { grant: SharedPeerGrant; target: Target; launch?: IDELaunch; abort: AbortController; streams: Set<string>; timer?: NodeJS.Timeout; claimed: boolean; created: number };
+type Lease = { grant: SharedPeerGrant; target: Target; hostId: string; launch?: IDELaunch; abort: AbortController; streams: Set<string>; timer?: NodeJS.Timeout; claimed: boolean; created: number };
 
 /** The device owns executable selection, native membership and socket paths.
  * A Gateway can request this explicitly enabled capability only for a locally
@@ -37,36 +39,52 @@ export class PeerIDEService {
   private readonly transport: IDEHostTransport;
   private readonly installer: CodeServerInstaller;
   private readonly leases = new Set<Lease>();
-  private readonly checks = new Map<string, Promise<void>>();
+  private readonly checks = new Map<string, Promise<string>>();
+  private readonly fileHosts = new Map<string, ScriptHost>();
   private readonly cleanups = new Set<() => Promise<void>>();
   private closed = false;
-  constructor(private readonly options: { config: PeerIDEConfig; backend: CodexBridgeBackend; stateDir: string;
+  constructor(private readonly options: { config: PeerIDEConfig; backend: Pick<CodexBridgeBackend, "inspectThread" | "listProjects">; stateDir: string;
     managedRoute?: ManagedConnectorExport; nativeHostId?: string; codexHome?: string;
+    fileHost?: (threadId: string) => Promise<ScriptHost | undefined>;
     authorize(grant: SharedPeerGrant, threadId: string): void; transport?: IDEHostTransport }) {
-    this.transport = options.transport ?? new ProcessIDEHostTransport({ codexHome: options.codexHome, localDataRoot: options.config.dataRoot ?? path.join(options.stateDir, "ide", "instances") });
-    this.installer = new CodeServerInstaller(path.join(options.stateDir, "ide"), { codexHome: options.codexHome, allowed: host => host === (options.nativeHostId ?? "local") && options.config.enabled && options.config.autoInstall });
+    const dataRoot = options.config.dataRoot ?? path.join(options.stateDir, "ide", "instances");
+    const resolveHostCommand: HostCommandResolver | undefined = options.fileHost ? async (id, script, input) => {
+      const host = this.fileHosts.get(id);
+      if (host) return scriptHostResolver(host)(id, script, input);
+      if (id !== (options.nativeHostId ?? "local")) throw new PeerError("scope", "IDE 文件主机已失效");
+      return ideHostCommand(id, script, { ...input, ...(id === "local" ? { dataRoot } : {}) }, { codexHome: options.codexHome });
+    } : undefined;
+    this.transport = options.transport ?? new ProcessIDEHostTransport({ codexHome: options.codexHome, localDataRoot: dataRoot, resolveHostCommand });
+    this.installer = new CodeServerInstaller(path.join(options.stateDir, "ide"), { codexHome: options.codexHome,
+      ...(resolveHostCommand ? { io: new ProcessIDEInstallerIO(path.join(options.stateDir, "ide", "downloads"), options.codexHome, resolveHostCommand) } : {}),
+      allowed: host => (host === (options.nativeHostId ?? "local") || this.fileHosts.has(host)) && options.config.enabled && options.config.autoInstall });
   }
   private guard(grant: SharedPeerGrant, threadId: string): void {
     if (this.closed || !this.options.config.enabled || grant.delegation || grant.threadId && grant.threadId !== threadId)
       throw new PeerError("access", "完整 IDE 需要本机启用及本人的设备授权；文本共享不能授予终端。");
     this.options.authorize(grant, threadId);
   }
-  private validate(grant: SharedPeerGrant, target: Target): Promise<void> {
+  private validate(grant: SharedPeerGrant, target: Target): Promise<string> {
     const key = JSON.stringify([grant, target]);
     let check = this.checks.get(key);
     if (!check) { check = this.validateCurrent(grant, target).finally(() => this.checks.delete(key)); this.checks.set(key, check); }
     return check;
   }
-  private async validateCurrent(grant: SharedPeerGrant, target: Target): Promise<void> {
+  private async validateCurrent(grant: SharedPeerGrant, target: Target): Promise<string> {
     this.guard(grant, target.threadId);
     const state = await this.options.backend.inspectThread(target.threadId, undefined, { includeTurns: false, timeoutMs: 5000 });
     this.guard(grant, target.threadId);
+    const fileHost = state.resource?.machine ? await this.options.fileHost?.(target.threadId) : undefined;
+    this.guard(grant, target.threadId);
+    if (state.resource?.machine && !fileHost) throw new PeerError("scope", "此资源位于另一台机器，不能使用本机 IDE 目录。");
+    if (fileHost) this.fileHosts.set(fileHost.id, fileHost);
+    const hostId = fileHost?.id ?? this.options.nativeHostId ?? "local";
     if (state.threadId !== target.threadId || state.internal || state.persistence !== "active" || !state.cwd
       || state.projectMembership !== "assigned" || !state.projectId) throw new PeerError("scope", "无法确认 IDE 的原生项目归属。");
     const catalog = await this.options.backend.listProjects(undefined, { timeoutMs: 5000 });
     this.guard(grant, target.threadId);
     const project = catalog.projects.find(p => p.id === state.projectId);
-    const canonical = (p: string) => this.transport.canonicalDirectory(this.options.nativeHostId ?? "local", p);
+    const canonical = (p: string) => this.transport.canonicalDirectory(hostId, p);
     if (!project?.roots.length) throw new PeerError("scope", "原生项目目录不可用。");
     const cwd = await canonical(state.cwd), roots = [...new Set(await Promise.all(project.roots.map(canonical)))];
     // Worktree replaces the native project's primary root; siblings stay in
@@ -76,6 +94,18 @@ export class PeerIDEService {
     if (await canonical(target.workspace) !== cwd || !requested.includes(cwd) || new Set(requested).size !== requested.length
       || JSON.stringify([...expected].sort()) !== JSON.stringify([...requested].sort()))
       throw new PeerError("scope", "IDE 目录与当前原生项目不一致。");
+    // Canonical paths are resolved asynchronously on the selected host. Do not
+    // publish a lease based on the project membership from before that IO.
+    const identity = (s: typeof state) => JSON.stringify([s.threadId, s.cwd, s.projectId, s.projectMembership,
+      s.internal, s.persistence, s.resource?.ref, s.resource?.machine]);
+    const again = await this.options.backend.inspectThread(target.threadId, undefined, { includeTurns: false, timeoutMs: 5000 });
+    const latest = await this.options.backend.listProjects(undefined, { timeoutMs: 5000 });
+    const currentProject = latest.projects.find(p => p.id === state.projectId);
+    if (identity(again) !== identity(state) || JSON.stringify(currentProject?.roots) !== JSON.stringify(project.roots))
+      throw new PeerError("scope", "核对期间 IDE 的项目或目录发生变化。");
+    await fileHost?.verify();
+    this.guard(grant, target.threadId);
+    return hostId;
   }
   attach(connection: PeerConnection): void {
     const streams = new PeerIDEStreams(connection), leases = new Map<string, Lease>();
@@ -95,7 +125,7 @@ export class PeerIDEService {
         if (!lease || JSON.stringify(lease.grant) !== JSON.stringify(call.grant)) throw new PeerError("access", "IDE lease is unavailable");
         // Cleanup remains possible after revocation, without granting new IO.
         if (call.method === "stop") { await stop(call.lease); return; }
-        await this.validate(lease.grant, lease.target);
+        if (await this.validate(lease.grant, lease.target) !== lease.hostId) throw new PeerError("stale", "IDE 文件主机已改变");
         if (!connection.open || leases.get(call.lease) !== lease || !lease.launch?.alive()) throw new PeerError("stale", "IDE lease ended");
         lease.claimed = true;
         const socket = net.createConnection({ path: lease.launch.socketPath, allowHalfOpen: true });
@@ -114,46 +144,47 @@ export class PeerIDEService {
           resume(); return;
         } catch (error) { streams.close(call.stream); throw error; }
       }
-      await this.validate(call.grant, call.target);
+      const hostId = await this.validate(call.grant, call.target);
       if (!connection.open) throw new PeerError("stale", "IDE connection ended");
       if (call.method === "status") {
-        const status = this.installer.list().find(s => s.hostId === (this.options.nativeHostId ?? "local"));
+        const status = this.installer.list().find(s => s.hostId === hostId);
         return status ? { phase: status.phase, bytes: status.bytes, total: status.total } : null;
       }
       if (call.method === "resolve") {
         if (![call.target.workspace, ...(call.target.rootPaths ?? [])].includes(call.workspace)) throw new PeerError("scope", "Directory is not an IDE root");
-        return { workspace: await this.transport.canonicalDirectory(this.options.nativeHostId ?? "local", call.workspace) };
+        return { workspace: await this.transport.canonicalDirectory(hostId, call.workspace) };
       }
       if (this.leases.size >= 8) throw new PeerError("busy", "Device IDE limit reached");
       let binary = this.options.config.binary;
       if (this.options.config.autoInstall && binary === "code-server") {
-        try { binary = await this.installer.binary(this.options.nativeHostId ?? "local"); }
+        try { binary = await this.installer.binary(hostId); }
         catch (error) { if (error instanceof IDEInstallPendingError) throw new PeerError("install-pending", "设备正在安装官方 code-server，请稍后重试。"); throw error; }
-      } else if (binary === "code-server" && this.options.nativeHostId && this.options.nativeHostId !== "local") {
+      } else if (binary === "code-server" && hostId !== "local") {
         // An absolute executable configured on the Connector machine cannot
         // be carried to a different OS. Reuse the target's installed tool;
         // discovery does not grant auto-install or replace PATH executables.
-        binary = await this.installer.existingBinary(this.options.nativeHostId) ?? binary;
+        binary = await this.installer.existingBinary(hostId) ?? binary;
       }
       this.guard(call.grant, call.target.threadId);
       if (!connection.open || this.leases.size >= 8) throw new PeerError("busy", "Device IDE limit reached or disconnected");
-      const id = crypto.randomUUID(), lease: Lease = { grant: call.grant, target: call.target, abort: new AbortController(), streams: new Set(), claimed: false, created: Date.now() };
+      const id = crypto.randomUUID(), lease: Lease = { grant: call.grant, target: call.target, hostId, abort: new AbortController(), streams: new Set(), claimed: false, created: Date.now() };
       leases.set(id, lease); this.leases.add(lease);
       let profile: IDEProfileStatus | undefined;
       try {
-        lease.launch = await this.transport.launch({ hostId: this.options.nativeHostId ?? "local", workspace: await this.transport.canonicalDirectory(this.options.nativeHostId ?? "local", call.target.workspace),
-          rootPaths: call.target.rootPaths ? await Promise.all(call.target.rootPaths.map(p => this.transport.canonicalDirectory(this.options.nativeHostId ?? "local", p))) : undefined,
+        lease.launch = await this.transport.launch({ hostId, workspace: await this.transport.canonicalDirectory(hostId, call.target.workspace),
+          rootPaths: call.target.rootPaths ? await Promise.all(call.target.rootPaths.map(p => this.transport.canonicalDirectory(hostId, p))) : undefined,
           // Migrated Gateway workspaces already have a stable instance ID and
           // user profile. Personal devices still isolate profiles by principal.
           id: matchesManagedGrant(this.options.managedRoute, call.grant) ? call.id
             : crypto.createHash("sha256").update(JSON.stringify([call.grant.principal, call.id])).digest("hex").slice(0, 32),
           binary, ...call.profile, prepare: call.prepare, trustWorkspace: call.trustWorkspace,
+          assertCurrent: () => { this.guard(call.grant, call.target.threadId); if (!connection.open || leases.get(id) !== lease) throw new PeerError("stale", "IDE launch cancelled"); },
           signal: lease.abort.signal, onProfile: p => { profile = p; } });
-        await this.validate(call.grant, call.target);
+        if (await this.validate(call.grant, call.target) !== hostId) throw new PeerError("stale", "IDE 文件主机已改变");
         if (!connection.open || leases.get(id) !== lease) { await lease.launch.stop(); throw new PeerError("stale", "IDE launch cancelled"); }
         if (call.prepare) { await stop(id); return { prepared: true, profile }; }
         const verify = async () => {
-          try { await this.validate(lease.grant, lease.target); if (!lease.launch?.alive() || !lease.claimed && Date.now() - lease.created > 240000) throw new Error("IDE stopped or unclaimed"); }
+          try { if (await this.validate(lease.grant, lease.target) !== hostId || !lease.launch?.alive() || !lease.claimed && Date.now() - lease.created > 240000) throw new Error("IDE stopped or unclaimed"); }
           catch { await stop(id); return; }
           if (leases.get(id) === lease) { lease.timer = setTimeout(verify, 10000); lease.timer.unref(); }
         };
@@ -164,7 +195,10 @@ export class PeerIDEService {
   }
   async close(): Promise<void> {
     this.closed = true;
-    await this.installer.close();
-    await Promise.allSettled([...this.cleanups].map(cleanup => cleanup()));
+    try { await this.installer.close(); }
+    finally {
+      await Promise.allSettled([...this.cleanups].map(cleanup => cleanup()));
+      this.fileHosts.clear();
+    }
   }
 }

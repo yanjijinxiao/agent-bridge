@@ -37,6 +37,9 @@ type Options = {
   filePath: string; receipts: InboundReceiptJournal;
   target: (message: ChannelMessage) => ForwardingTarget | undefined;
   automatic: (message: ChannelMessage) => boolean;
+  /** Additional input-order barriers. Ordering does not authorize replay:
+   * a buffer mutation can wait behind input but remains a nonautomatic command. */
+  ordersInput?: (message: ChannelMessage) => boolean;
   canDispatch: () => boolean;
   dispatch: (message: ChannelMessage) => Promise<void>;
   notice: (message: ChannelMessage, text: string) => Promise<void>;
@@ -62,6 +65,7 @@ export class ForwardingInbox {
     this.rows = saved.rows;
   }
   private now(): number { return this.options.now?.() ?? Date.now(); }
+  private ordered(row: Row): boolean { return row.automatic || this.options.ordersInput?.(row.message) === true; }
   private save(): void { writeJsonFile(this.options.filePath, { version: 1, rows: this.rows }, { durable: true }); }
   private normalize(input: ChannelMessage): ChannelMessage {
     // Weixin's contextToken and attachment descriptors are required to deliver
@@ -242,17 +246,17 @@ export class ForwardingInbox {
         await this.inform(row, "消息内容已保存，但目标绑定已改变；未转发到新的会话，需要核对原消息目标。"); return;
       }
       // Preserve the source order through native acceptance, not through task
-      // completion. Explicit Gateway controls (/status, /stop, approvals) bypass
-      // this transport ordering so they remain available during a long task.
+      // completion. Prompt buffer mutations share this lane with their pieces;
+      // independent controls (/status, /stop, approvals) still bypass it.
       const conversation = row.message.replyTargetId ?? row.message.senderId;
-      const preceding = Object.entries(this.rows).slice(0, Object.keys(this.rows).indexOf(key)).some(([priorKey, prior]) => prior.automatic
+      const preceding = Object.entries(this.rows).slice(0, Object.keys(this.rows).indexOf(key)).some(([priorKey, prior]) => this.ordered(prior)
         && (prior.message.replyTargetId ?? prior.message.senderId) === conversation && equal(prior.target, row.target)
         && !["accepted", "handled"].includes(this.options.receipts.receipt(prior.message.id)?.phase ?? "received")
         // A retained unknown/held record is an audit obligation, not a live
         // handoff. Preserve it without replaying it or locking this chat forever.
         && (this.processing.has(priorKey) || prior.state === "pending"
           && (this.options.receipts.receipt(prior.message.id)?.phase ?? "received") === "received"));
-      if (row.automatic && preceding) {
+      if (this.ordered(row) && preceding) {
         row.nextAt = this.now() + (this.options.retryMs ?? 2000); this.save();
         await this.inform(row, "消息已保存，等待前一条输入完成转发交接；无需重发。"); return;
       }

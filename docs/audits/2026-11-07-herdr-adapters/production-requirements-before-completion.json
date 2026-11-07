@@ -1,0 +1,2162 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-07",
+  "scope": "Herdr increment; IDs do not replace old Gateway case IDs",
+  "orthogonality": "docs/architecture/herdr-adaptation-design.md section 10",
+  "requirements": [
+    {
+      "id": "HDR-01",
+      "feature": "显式执行入口与版本",
+      "status": "verified-boundary",
+      "contract": "连接/注册明确且不启动备用执行器；线上升级未验收",
+      "implementation": [
+        {
+          "file": "src/agents/config.ts",
+          "sha256": "56c4e6971663217486b7b08e9b0384bcf89cfb433f421d162230d23fc868b84d"
+        },
+        {
+          "file": "src/peer/config.ts",
+          "sha256": "e4e8cf5f58332318fa5970c8d5052b7b79c83a4d29142a4a02a2aadddbc15dc3"
+        },
+        {
+          "file": "src/peer/index.ts",
+          "sha256": "58070a7531f5aa0826058ba0e4f013a186c00f5224d37eb34abb76207779d223"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "old Connector configuration still chooses Codex without a runtime fallback",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "herdr-tui: explicit single runtime configuration is accepted",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "herdr-tui: missing runtime, mixed kind and implicit replacement are rejected",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "herdr-tui: Codex profile and remote-host exports cannot leak into the runtime",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "herdr-tui: endpoint identity survives JSON property order but not endpoint replacement",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "herdr-app: explicit single runtime configuration is accepted",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "herdr-app: missing runtime, mixed kind and implicit replacement are rejected",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "herdr-app: Codex profile and remote-host exports cannot leak into the runtime",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "herdr-app: endpoint identity survives JSON property order but not endpoint replacement",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "App requires its configured core identity and both absolute sockets",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "legacy credentials remain paired and cannot be half configured",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-config.test.ts",
+          "name": "binding identity refuses overlong resource IDs instead of producing an unusable grant",
+          "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-process.test.ts",
+          "name": "herdr-tui: executable Connector completes discovery/read/write and restart without replay",
+          "sha256": "c715e15c84fc1982584287bc71df08b667f4db9af3b8e4a2ef87e43c2f421886",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-process.test.ts",
+          "name": "herdr-app: executable Connector completes discovery/read/write and restart without replay",
+          "sha256": "c715e15c84fc1982584287bc71df08b667f4db9af3b8e4a2ef87e43c2f421886",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-process.test.ts",
+          "name": "a failed App handshake closes the socket and exits the Connector without registration",
+          "sha256": "c715e15c84fc1982584287bc71df08b667f4db9af3b8e4a2ef87e43c2f421886",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-02",
+      "feature": "目录与项目归属",
+      "status": "partial",
+      "contract": "空项目和歧义有直接反例；完整分页和无 cwd 绑定待补",
+      "implementation": [
+        {
+          "file": "src/agents/herdr/app.ts",
+          "sha256": "17f07ed947bd440974ae319c0bc9dc9850c1e1bd8ef8b7b5a20bc1a14ef7d81e"
+        },
+        {
+          "file": "src/agents/herdr/app-layout.ts",
+          "sha256": "77c9a806553603dc646b2160c3e978002ba1fcfe3b548908d1e16267c5308fce"
+        },
+        {
+          "file": "src/agents/herdr/tui.ts",
+          "sha256": "82c6fa93587c7b54c4ffc3986c2c0245bd4be4a7ffb2628e4d95b86b0c2c7752"
+        },
+        {
+          "file": "src/agents/resource-catalog.ts",
+          "sha256": "3ba57f206bd50e48ec7a91232541ec24b81320e8b2c9afeafc0dd2f40e99c0e2"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: discovery keeps empty projects and explicit terminal semantics",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: pairing refusal gives no catalog or write authority",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: endpoint-qualified IDs never probe a different runtime",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: discovery keeps empty projects and explicit terminal semantics",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: pairing refusal gives no catalog or write authority",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: endpoint-qualified IDs never probe a different runtime",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "TUI preserves empty workspaces and identifies public JSON separately from private protocol 22",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App catalogs match terminal ids to spaces and retain empty spaces",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App catalog does not assign a terminal from ambiguous duplicated spaces",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App catalog does not assign a terminal from ambiguous distinct spaces",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App resource inspection preserves project membership used by binding and IDE",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App inspection refuses ambiguous space ownership and mismatched machines",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App window offline fails catalog rather than returning a substitute empty directory",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/herdr-app-layout.test.ts",
+          "name": "App layout reads explicit terminal blocks and floats, never mod content or a global agent selector",
+          "sha256": "0fdeccf47d1ced00277cc7c9ba311f6a99799e6b3717e6b2cc0122fcf58a231a",
+          "result": "passed"
+        },
+        {
+          "file": "test/herdr-app-layout.test.ts",
+          "name": "App layout bounds recursion and rejects unknown node semantics",
+          "sha256": "0fdeccf47d1ced00277cc7c9ba311f6a99799e6b3717e6b2cc0122fcf58a231a",
+          "result": "passed"
+        },
+        {
+          "file": "test/herdr-app-layout.test.ts",
+          "name": "window/core matching establishes membership through the pinned core document",
+          "sha256": "0fdeccf47d1ced00277cc7c9ba311f6a99799e6b3717e6b2cc0122fcf58a231a",
+          "result": "passed"
+        },
+        {
+          "file": "test/herdr-app-layout.test.ts",
+          "name": "a remote layout failure cannot remove the verified local project",
+          "sha256": "0fdeccf47d1ced00277cc7c9ba311f6a99799e6b3717e6b2cc0122fcf58a231a",
+          "result": "passed"
+        },
+        {
+          "file": "test/herdr-app-layout.test.ts",
+          "name": "remote membership qualifies IDs exactly once against its own document",
+          "sha256": "0fdeccf47d1ced00277cc7c9ba311f6a99799e6b3717e6b2cc0122fcf58a231a",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-03",
+      "feature": "配对、身份与固定资源",
+      "status": "verified-boundary",
+      "contract": "原 actor/chat/account 和 fixed resource；真实多人跨群另验",
+      "implementation": [
+        {
+          "file": "src/peer/runtime-service.ts",
+          "sha256": "6c8ea0aef86901ce6798696780d982f8b92825a6e00c874b7813a6099a59df8b"
+        },
+        {
+          "file": "src/peer/execution-service.ts",
+          "sha256": "90b1f4c9a4703ca08eeb5f77adf46cf59e0823ccacae3d956eea35252e8e790f"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: pairing refusal gives no catalog or write authority",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another actorId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another conversationId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another accountId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: source reuse with different text or resource is rejected",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: final source revalidation rejects a binding change during runtime connection",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: fixed export rejects another same-endpoint terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: write operation identity must match actor, source and method",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: pairing refusal gives no catalog or write authority",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another actorId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another conversationId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another accountId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: source reuse with different text or resource is rejected",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: final source revalidation rejects a binding change during runtime connection",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: fixed export rejects another same-endpoint terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: write operation identity must match actor, source and method",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-04",
+      "feature": "输入交接与去重",
+      "status": "verified-boundary",
+      "contract": "短交接、持久意图、同源幂等、未知不重放；不是原生任务队列",
+      "implementation": [
+        {
+          "file": "src/agents/handoff.ts",
+          "sha256": "7c273f7485911a35915a3043694a7be674faf7991da3d42e284217b2c3836197"
+        },
+        {
+          "file": "src/peer/runtime-service.ts",
+          "sha256": "6c8ea0aef86901ce6798696780d982f8b92825a6e00c874b7813a6099a59df8b"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/agent-handoff.test.ts",
+          "name": "handoff persists intent before native write, stores receipt but no executable prompt, and replays only receipt",
+          "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-handoff.test.ts",
+          "name": "handoff cannot reuse a source id for another target, body or program",
+          "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-handoff.test.ts",
+          "name": "handoff unknown acknowledgement and restart never resend",
+          "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-handoff.test.ts",
+          "name": "handoff confirmed receipt remains confirmed after revocation during write; revoked callers cannot read cache",
+          "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-handoff.test.ts",
+          "name": "handoff source change before write is not-sent, and same source retry only returns recorded decision",
+          "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-handoff.test.ts",
+          "name": "handoff journal write failure prevents runtime invocation",
+          "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-handoff.test.ts",
+          "name": "handoff failed acknowledgement persistence remains unknown after reload",
+          "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-handoff.test.ts",
+          "name": "handoff concurrent writes to one terminal are excluded only until handoff settles",
+          "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-handoff.test.ts",
+          "name": "handoff malformed acknowledgement cannot become not-sent or permit replay",
+          "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-handoff.test.ts",
+          "name": "handoff real SIGKILL after socket delivery reloads as unknown without a second write",
+          "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: receipt lookup is read-only, exact-source, and survives Connector reconstruction",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: an unknown Connector receipt never becomes absent or retransmitted through lookup",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: malformed or cross-resource wire evidence cannot fabricate acceptance",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: discovery keeps empty projects and explicit terminal semantics",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: pairing refusal gives no catalog or write authority",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another actorId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another conversationId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another accountId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: confirmed input survives Connector reconstruction without replay or invented turn",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: source reuse with different text or resource is rejected",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: final source revalidation rejects a binding change during runtime connection",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: unknown write stays unknown on reconnect and never resubmits",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: replaced process and blocked terminal are not writable",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: terminal content stays untrusted display data",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: fixed export rejects another same-endpoint terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: native conversation methods cannot execute against a terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: endpoint-qualified IDs never probe a different runtime",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: remote same-named cwd is not used for local file upload",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: write operation identity must match actor, source and method",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: interrupt receipt is separate from task completion and not repeated",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: concurrent interrupt sources cannot double-write the same terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: receipt lookup is read-only, exact-source, and survives Connector reconstruction",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: an unknown Connector receipt never becomes absent or retransmitted through lookup",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: malformed or cross-resource wire evidence cannot fabricate acceptance",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: discovery keeps empty projects and explicit terminal semantics",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: pairing refusal gives no catalog or write authority",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another actorId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another conversationId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another accountId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: confirmed input survives Connector reconstruction without replay or invented turn",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: source reuse with different text or resource is rejected",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: final source revalidation rejects a binding change during runtime connection",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: unknown write stays unknown on reconnect and never resubmits",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: replaced process and blocked terminal are not writable",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: terminal content stays untrusted display data",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: fixed export rejects another same-endpoint terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: native conversation methods cannot execute against a terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: endpoint-qualified IDs never probe a different runtime",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: remote same-named cwd is not used for local file upload",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: write operation identity must match actor, source and method",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: interrupt receipt is separate from task completion and not repeated",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: concurrent interrupt sources cannot double-write the same terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "resource binding IDs require canonical encoding and exact endpoint",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-05",
+      "feature": "只读交接恢复",
+      "status": "verified-boundary",
+      "contract": "精确来源/目标/指纹；丢确认、写盘失败；没有回执不判未发送",
+      "implementation": [
+        {
+          "file": "src/agents/handoff.ts",
+          "sha256": "7c273f7485911a35915a3043694a7be674faf7991da3d42e284217b2c3836197"
+        },
+        {
+          "file": "src/agents/protocol.ts",
+          "sha256": "2c9f21d1ce20c0ae30e0db32f8717fde56386a0bb6be64d7c5500e55f85ce92f"
+        },
+        {
+          "file": "src/peer/backend.ts",
+          "sha256": "0196c7ff74f264cacb310acaae7b73798193d2daaa6d574415ce5dbd74b87c36"
+        },
+        {
+          "file": "src/bridge/inbound-receipts.ts",
+          "sha256": "c93d572ded599c5868ff1a1dd748e8f428b8533a70761d7d1ada0d148fc272de"
+        },
+        {
+          "file": "src/bridge/runtime-observation.ts",
+          "sha256": "fe9c665ad731cbfdef4be572e1728c4c7d78e27eb1548854a60a6c412dc487b0"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: receipt lookup is read-only, exact-source, and survives Connector reconstruction",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: an unknown Connector receipt never becomes absent or retransmitted through lookup",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: interrupt receipt is separate from task completion and not repeated",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: receipt lookup is read-only, exact-source, and survives Connector reconstruction",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: an unknown Connector receipt never becomes absent or retransmitted through lookup",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: interrupt receipt is separate from task completion and not repeated",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: lost Gateway ack is repaired by read-only receipt lookup after both sides restart",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: unknown receipt survives Gateway restart as observation, never native recovery or another input",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: stop uses the runtime interrupt receipt instead of native stop or task completion",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: lost Gateway ack is repaired by read-only receipt lookup after both sides restart",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: unknown receipt survives Gateway restart as observation, never native recovery or another input",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: stop uses the runtime interrupt receipt instead of native stop or task completion",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "mismatched receipt fingerprint cannot repair Gateway acceptance or finish an unknown card",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "failed Gateway receipt persistence keeps the recovery obligation retryable without sending",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "a live handoff cannot be finalized as idle while its acknowledgement is pending",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-06",
+      "feature": "只读画面与目标身份",
+      "status": "verified-boundary",
+      "contract": "屏幕是数据；读前后核验；上游无原子 CAS 仍有限制",
+      "implementation": [
+        {
+          "file": "src/agents/contracts.ts",
+          "sha256": "72dac4353f5b51ff7cd7889525a63e0988c8405f00bacf735601cfcb219c7c61"
+        },
+        {
+          "file": "src/bridge/runtime-observation.ts",
+          "sha256": "fe9c665ad731cbfdef4be572e1728c4c7d78e27eb1548854a60a6c412dc487b0"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: receipt lookup is read-only, exact-source, and survives Connector reconstruction",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another actorId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another conversationId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another accountId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: replaced process and blocked terminal are not writable",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: terminal content stays untrusted display data",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: write operation identity must match actor, source and method",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: receipt lookup is read-only, exact-source, and survives Connector reconstruction",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another actorId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another conversationId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another accountId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: replaced process and blocked terminal are not writable",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: terminal content stays untrusted display data",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: write operation identity must match actor, source and method",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "TUI pane replacement refuses the write",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "TUI source revocation before write propagates without submitting",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "TUI reads visible screen, preserves truncation, never claims transcript",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App kept terminal replaced by another foreground cannot receive old input",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App terminal without program identity cannot receive ordinary input",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App read never scrolls the program or interprets terminal action blocks",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App remote terminal keeps its actual machine identity",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL write timeout is unknown, read timeout is not a submitted task",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App unknown program identity can be read but gaining an identity mid-read discards the screen",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "TUI unknown program identity remains readable without enabling writes",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App checks source after last readiness await, including interrupt writes",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL source revocation while connecting prevents any bytes, without claiming ambiguous delivery",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL invalid UTF-8 is rejected instead of returning replacement characters",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "runtime endpoint identity changes with configured service and ignores input property order",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "runtime observation does not claim success from idle, silence or completed-looking screen text",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "a replacement during read never publishes the new program screen",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "revocation during read discards the returned screen",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "binding revocation stops reads without stopping a remote task",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "changed incarnation cannot inherit old terminal output",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "changed cwd cannot inherit old terminal output",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "changed machine cannot inherit old terminal output",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "observer close is read-only and leaves durable work for the next process",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-07",
+      "feature": "中断及并发",
+      "status": "partial",
+      "contract": "App requested 不等于 cancelled；TUI 不模拟按键；App 实机中断待验",
+      "implementation": [
+        {
+          "file": "src/peer/runtime-service.ts",
+          "sha256": "6c8ea0aef86901ce6798696780d982f8b92825a6e00c874b7813a6099a59df8b"
+        },
+        {
+          "file": "src/agents/herdr/app.ts",
+          "sha256": "17f07ed947bd440974ae319c0bc9dc9850c1e1bd8ef8b7b5a20bc1a14ef7d81e"
+        },
+        {
+          "file": "src/agents/herdr/tui.ts",
+          "sha256": "82c6fa93587c7b54c4ffc3986c2c0245bd4be4a7ffb2628e4d95b86b0c2c7752"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: interrupt receipt is separate from task completion and not repeated",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: concurrent interrupt sources cannot double-write the same terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: interrupt receipt is separate from task completion and not repeated",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: concurrent interrupt sources cannot double-write the same terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App still-working interrupt reports requested rather than interrupted",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App checks source after last readiness await, including interrupt writes",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: stop uses the runtime interrupt receipt instead of native stop or task completion",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: progress controls match interrupt capability and blocked state is not a fabricated chat question",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: stop uses the runtime interrupt receipt instead of native stop or task completion",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: progress controls match interrupt capability and blocked state is not a fabricated chat question",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-08",
+      "feature": "JSONL 与 RPC 反序列化",
+      "status": "verified-boundary",
+      "contract": "格式/超时/目标/错误证据验证，任意远端正文不挂错误 cause",
+      "implementation": [
+        {
+          "file": "src/agents/json-line-client.ts",
+          "sha256": "50ef34951090934f53e23f3062cb40c44f3f0e6b991882cc8d8c733497749367"
+        },
+        {
+          "file": "src/agents/protocol.ts",
+          "sha256": "2c9f21d1ce20c0ae30e0db32f8717fde56386a0bb6be64d7c5500e55f85ce92f"
+        },
+        {
+          "file": "src/peer/backend.ts",
+          "sha256": "0196c7ff74f264cacb310acaae7b73798193d2daaa6d574415ce5dbd74b87c36"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: receipt lookup is read-only, exact-source, and survives Connector reconstruction",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: malformed or cross-resource wire evidence cannot fabricate acceptance",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another actorId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another conversationId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: another accountId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: source reuse with different text or resource is rejected",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: final source revalidation rejects a binding change during runtime connection",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: write operation identity must match actor, source and method",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: concurrent interrupt sources cannot double-write the same terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: receipt lookup is read-only, exact-source, and survives Connector reconstruction",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: malformed or cross-resource wire evidence cannot fabricate acceptance",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another actorId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another conversationId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: another accountId cannot read or write the paired resource",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: source reuse with different text or resource is rejected",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: final source revalidation rejects a binding change during runtime connection",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: write operation identity must match actor, source and method",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: concurrent interrupt sources cannot double-write the same terminal",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "resource binding IDs require canonical encoding and exact endpoint",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "TUI preserves empty workspaces and identifies public JSON separately from private protocol 22",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "TUI source revocation before write propagates without submitting",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App resource inspection preserves project membership used by binding and IDE",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App detects an unsupported hello generation before any resource operation",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App still-working interrupt reports requested rather than interrupted",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL correlates out-of-order responses and buffers split UTF-8 frames",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL lost write acknowledgement is unknown and never replayed",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL write timeout is unknown, read timeout is not a submitted task",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL malformed response fails pending writes without retry",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL wrong id cannot acknowledge a write",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "TUI JSONL uses a new connection per request even before the preceding socket close event",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "TUI discards a response naming another pane even when original terminal is still present",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "App checks source after last readiness await, including interrupt writes",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL source revocation while connecting prevents any bytes, without claiming ambiguous delivery",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL async final guard cannot authorize a write",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL remote error body is absent from returned Error and cause",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL invalid UTF-8 is rejected instead of returning replacement characters",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL notification observer failure cannot consume matching response",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL oversized partial frame fails pending write without unbounded buffering",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL oversized request is rejected before any socket request",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL close ends an outstanding write as unknown and disallows future calls",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL unavailable configured endpoint is not-sent and never starts another server",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-runtime.test.ts",
+          "name": "JSONL guard closing its owner cannot enqueue a write after final authorization",
+          "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-09",
+      "feature": "普通 IM 入口和卡片恢复",
+      "status": "partial",
+      "contract": "公共展示/IDE/@/阻塞/终态隔离通过；真实渠道、持续跟随、多参与者未完成",
+      "implementation": [
+        {
+          "file": "src/bridge/service.ts",
+          "sha256": "f25b9a0091ae8f24d760f60a94c238418b1381d291ce15f4f9a22c938185cb75"
+        },
+        {
+          "file": "src/bridge/runtime-observation.ts",
+          "sha256": "fe9c665ad731cbfdef4be572e1728c4c7d78e27eb1548854a60a6c412dc487b0"
+        },
+        {
+          "file": "src/channels/progress.ts",
+          "sha256": "64f8d27c247925163a6785de0b153e722e6153dc3a14ad56df6b544d9433f983"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: lost Gateway ack is repaired by read-only receipt lookup after both sides restart",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: real channel -> Connector input has no native turn and releases restart before task completion",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: unknown receipt survives Gateway restart as observation, never native recovery or another input",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: terminal action blocks are visible data, never executed or called a successful task",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: unbind retires observer and a later target never inherits the old input",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: help, status and terminal history use runtime capabilities, without native messages",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: stop uses the runtime interrupt receipt instead of native stop or task completion",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: progress controls match interrupt capability and blocked state is not a fabricated chat question",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: another actor cannot submit through a permitted group binding",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: lost Gateway ack is repaired by read-only receipt lookup after both sides restart",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: real channel -> Connector input has no native turn and releases restart before task completion",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: unknown receipt survives Gateway restart as observation, never native recovery or another input",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: terminal action blocks are visible data, never executed or called a successful task",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: unbind retires observer and a later target never inherits the old input",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: help, status and terminal history use runtime capabilities, without native messages",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: stop uses the runtime interrupt receipt instead of native stop or task completion",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: progress controls match interrupt capability and blocked state is not a fabricated chat question",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: another actor cannot submit through a permitted group binding",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "runtime observation does not claim success from idle, silence or completed-looking screen text",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "a replacement during read never publishes the new program screen",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "revocation during read discards the returned screen",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "ambiguous completion mention is not replayed after observer reconstruction",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "mismatched receipt fingerprint cannot repair Gateway acceptance or finish an unknown card",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "failed Gateway receipt persistence keeps the recovery obligation retryable without sending",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "runtime observation follows working to idle while keeping a non-native outcome",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "a confirmed started flag allows an observed fast idle without inventing a turn",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "runtime blocked is not a terminal task result",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "runtime unknown is not a terminal task result",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "runtime exited is reported as process evidence",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "runtime error is reported as process evidence",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "a crash with a writing intent resumes observation but never resends input",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "a live handoff cannot be finalized as idle while its acknowledgement is pending",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "offline observation keeps the same obligation for reconnect",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "binding revocation stops reads without stopping a remote task",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "changed incarnation cannot inherit old terminal output",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "changed cwd cannot inherit old terminal output",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "changed machine cannot inherit old terminal output",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "observer close is read-only and leaves durable work for the next process",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "proven not-sent input does not start terminal observation",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "corrupt observation journals are rejected and retained",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "terminal rendering escapes action fences, images, links, ANSI and controls",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-10",
+      "feature": "共享与文件/IDE",
+      "status": "partial",
+      "contract": "实际字节与 IDE 进程/HTTP通过；App 跨 machine 未适配",
+      "implementation": [
+        {
+          "file": "src/peer/sharing-authority.ts",
+          "sha256": "f83d043a56a4eac977d994bac0f266f27581ad864241391d8fb837db07e545c3"
+        },
+        {
+          "file": "src/peer/ide-service.ts",
+          "sha256": "d12d9b4433c35a1690849bd5dac6bd8ec7d6d6a137452109f57b2d7d3801e694"
+        },
+        {
+          "file": "src/peer/execution-service.ts",
+          "sha256": "90b1f4c9a4703ca08eeb5f77adf46cf59e0823ccacae3d956eea35252e8e790f"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: malformed or cross-resource wire evidence cannot fabricate acceptance",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: remote same-named cwd is not used for local file upload",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-tui: write operation identity must match actor, source and method",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: malformed or cross-resource wire evidence cannot fabricate acceptance",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: remote same-named cwd is not used for local file upload",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/agent-peer.test.ts",
+          "name": "herdr-app: write operation identity must match actor, source and method",
+          "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-sharing-ide.test.ts",
+          "name": "herdr-tui: owner-approved shared terminal uses the same grant and revocation chain",
+          "sha256": "78d65b1973485ff2bdee179ea92657cc2bdc975c84b792c6d317d3501024b904",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-sharing-ide.test.ts",
+          "name": "herdr-tui: terminal attachments stage into its actual workspace through existing file transport",
+          "sha256": "78d65b1973485ff2bdee179ea92657cc2bdc975c84b792c6d317d3501024b904",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-sharing-ide.test.ts",
+          "name": "herdr-tui: full IDE launches on Connector and rejects a remote terminal at a same-named local path",
+          "sha256": "78d65b1973485ff2bdee179ea92657cc2bdc975c84b792c6d317d3501024b904",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-sharing-ide.test.ts",
+          "name": "herdr-app: owner-approved shared terminal uses the same grant and revocation chain",
+          "sha256": "78d65b1973485ff2bdee179ea92657cc2bdc975c84b792c6d317d3501024b904",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-sharing-ide.test.ts",
+          "name": "herdr-app: terminal attachments stage into its actual workspace through existing file transport",
+          "sha256": "78d65b1973485ff2bdee179ea92657cc2bdc975c84b792c6d317d3501024b904",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-sharing-ide.test.ts",
+          "name": "herdr-app: full IDE launches on Connector and rejects a remote terminal at a same-named local path",
+          "sha256": "78d65b1973485ff2bdee179ea92657cc2bdc975c84b792c6d317d3501024b904",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-11",
+      "feature": "命令能力正交性",
+      "status": "partial",
+      "contract": "普通入口按语义拒绝不等价操作；全部子命令/别名/Web/Taskboard 尚未完成",
+      "implementation": [
+        {
+          "file": "src/bridge/runtime-command-policy.ts",
+          "sha256": "ec9555568f9c6f754e61c4202e594105ac254bdb95aa285e3c16bfbfe3b9ceb0"
+        },
+        {
+          "file": "src/bridge/service.ts",
+          "sha256": "f25b9a0091ae8f24d760f60a94c238418b1381d291ce15f4f9a22c938185cb75"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: help, status and terminal history use runtime capabilities, without native messages",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: stop uses the runtime interrupt receipt instead of native stop or task completion",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: progress controls match interrupt capability and blocked state is not a fabricated chat question",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: help, status and terminal history use runtime capabilities, without native messages",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: stop uses the runtime interrupt receipt instead of native stop or task completion",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: progress controls match interrupt capability and blocked state is not a fabricated chat question",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-12",
+      "feature": "退出清理独立性",
+      "status": "verified-boundary",
+      "contract": "任一自有资源清理失败仍尝试其余；不终止独立 agent",
+      "implementation": [
+        {
+          "file": "src/peer/cleanup.ts",
+          "sha256": "e5371c7b0dedc6d998d7edda91689f9871c98e28fe1dceea9568114e9203e653"
+        },
+        {
+          "file": "src/peer/index.ts",
+          "sha256": "58070a7531f5aa0826058ba0e4f013a186c00f5224d37eb34abb76207779d223"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/connector-runtime-process.test.ts",
+          "name": "herdr-tui: executable Connector completes discovery/read/write and restart without replay",
+          "sha256": "c715e15c84fc1982584287bc71df08b667f4db9af3b8e4a2ef87e43c2f421886",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-process.test.ts",
+          "name": "herdr-app: executable Connector completes discovery/read/write and restart without replay",
+          "sha256": "c715e15c84fc1982584287bc71df08b667f4db9af3b8e4a2ef87e43c2f421886",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-runtime-process.test.ts",
+          "name": "a failed App handshake closes the socket and exits the Connector without registration",
+          "sha256": "c715e15c84fc1982584287bc71df08b667f4db9af3b8e4a2ef87e43c2f421886",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-cleanup.test.ts",
+          "name": "Connector cleanup with transport failure still attempts each independent resource",
+          "sha256": "32da9358b873209408bc276656f5866b2fb9e87052c9fa15878a5574bdf8a9f5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-cleanup.test.ts",
+          "name": "Connector cleanup with terminal failure still attempts each independent resource",
+          "sha256": "32da9358b873209408bc276656f5866b2fb9e87052c9fa15878a5574bdf8a9f5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-cleanup.test.ts",
+          "name": "Connector cleanup with native-observer failure still attempts each independent resource",
+          "sha256": "32da9358b873209408bc276656f5866b2fb9e87052c9fa15878a5574bdf8a9f5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-cleanup.test.ts",
+          "name": "Connector cleanup with ide-service failure still attempts each independent resource",
+          "sha256": "32da9358b873209408bc276656f5866b2fb9e87052c9fa15878a5574bdf8a9f5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-cleanup.test.ts",
+          "name": "Connector cleanup with host-service failure still attempts each independent resource",
+          "sha256": "32da9358b873209408bc276656f5866b2fb9e87052c9fa15878a5574bdf8a9f5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-cleanup.test.ts",
+          "name": "Connector cleanup with runtime failure still attempts each independent resource",
+          "sha256": "32da9358b873209408bc276656f5866b2fb9e87052c9fa15878a5574bdf8a9f5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-cleanup.test.ts",
+          "name": "Connector cleanup with lock failure still attempts each independent resource",
+          "sha256": "32da9358b873209408bc276656f5866b2fb9e87052c9fa15878a5574bdf8a9f5",
+          "result": "passed"
+        },
+        {
+          "file": "test/connector-cleanup.test.ts",
+          "name": "Connector cleanup with none failure still attempts each independent resource",
+          "sha256": "32da9358b873209408bc276656f5866b2fb9e87052c9fa15878a5574bdf8a9f5",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-13",
+      "feature": "资源创建/命名/关闭",
+      "status": "pending",
+      "contract": "已设计，原生有接口但尚未完整业务适配；不可与 archive 混同",
+      "implementation": [],
+      "tests": []
+    },
+    {
+      "id": "HDR-14",
+      "feature": "持续跟随与多参与者通知",
+      "status": "partial",
+      "contract": "只读持续跟随、原卡恢复、stream切换与输入义务分离已隔离验证；真实跨设备跟随、多参与者合并通知及无序号间隔内任务仍有边界",
+      "implementation": [
+        {
+          "file": "src/bridge/runtime-observation.ts",
+          "sha256": "fe9c665ad731cbfdef4be572e1728c4c7d78e27eb1548854a60a6c412dc487b0"
+        },
+        {
+          "file": "src/bridge/runtime-command-policy.ts",
+          "sha256": "ec9555568f9c6f754e61c4202e594105ac254bdb95aa285e3c16bfbfe3b9ceb0"
+        },
+        {
+          "file": "src/bridge/service.ts",
+          "sha256": "f25b9a0091ae8f24d760f60a94c238418b1381d291ce15f4f9a22c938185cb75"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "explicit follow retry applies to a pending terminal card, not to terminal execution",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "follow off preserves pending input recovery and never converts it to a subscription",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "input priority retains ambiguous passive card evidence instead of resetting its handle",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "passive follow keeps an idle baseline then observes consecutive external runs without submitting",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "passive follow reconnect records only fresh read evidence",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "passive follow reconstruction and repeated on preserve one active presentation",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "passive follow retires changed cwd without reading the replacement",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "passive follow retires changed incarnation without reading the replacement",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "passive follow retires changed machine without reading the replacement",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "passive following yields to an input result instead of duplicating terminal output",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "revoked passive follow stops without reading or announcing a task outcome",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "runtime observation follows working to idle while keeping a non-native outcome",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "simultaneous synchronize waits for the original read instead of completing from a stale snapshot",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "stream off suppresses progress while preserving input outcome",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "turning passive follow off retires its existing card and keeps the external process alone",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-observation.test.ts",
+          "name": "unknown and unchanged idle states do not produce passive follow cards",
+          "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: /follow on uses read-only Peer calls and keeps successive external runs",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: follow off closes passive display but preserves pending input recovery",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: repeated follow sync and Gateway restart preserve one active card",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-app: stream off/on affects an existing card and preserves its IDE and final delivery",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: /follow on uses read-only Peer calls and keeps successive external runs",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: follow off closes passive display but preserves pending input recovery",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: repeated follow sync and Gateway restart preserve one active card",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        },
+        {
+          "file": "test/runtime-channel.test.ts",
+          "name": "herdr-tui: stream off/on affects an existing card and preserves its IDE and final delivery",
+          "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "id": "HDR-15",
+      "feature": "完整 Web/Taskboard 能力表",
+      "status": "pending",
+      "contract": "不能因无结构化工具而禁用所有任务数据操作，统一表面尚未完成",
+      "implementation": [],
+      "tests": []
+    },
+    {
+      "id": "HDR-16",
+      "feature": "原生 Codex 兼容与端口穷尽",
+      "status": "partial",
+      "contract": "原生链路继续使用原生设置、审批、队列、turn；全库回归通过的边界之外，跳过的实际环境不得算通过。",
+      "implementation": [
+        {
+          "file": "src/codex/backend.ts",
+          "sha256": "4ac3548e0c9bf5fa8885c7cc7f22c0b39df5eac0d583aa13090e40f8d3bdbe3c"
+        },
+        {
+          "file": "src/codex/host-scoped-backend.ts",
+          "sha256": "5965824e9e1f7fbaeb1a02bb6f2ecef89f3e1622d02663e105c2bfa1cd1051b4"
+        },
+        {
+          "file": "src/peer/contract.ts",
+          "sha256": "83f5606a71b7592574aa153a7e115a70d7fbf08e8b069a948b93b944c451dac1"
+        },
+        {
+          "file": "src/server/account-manager.ts",
+          "sha256": "0e14889f71aad04ce13b2e09b9924712b9f5b1b93f4e5576d7cc8b73239f1c82"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/peer-complete-contract.test.ts",
+          "name": "all public backend ports have an explicit peer transport policy",
+          "sha256": "b6e155998c8a7ad543b9b5c2072947b615148d7aa0a476da4e654d3fab883196",
+          "result": "passed",
+          "run": "fullRegression"
+        }
+      ],
+      "additionalEvidence": "production-verification.json fullRegression; skipped tests listed individually"
+    },
+    {
+      "id": "HDR-17",
+      "feature": "终端来源与原生恢复隔离",
+      "status": "verified-boundary",
+      "contract": "runtimeInput 不与原生 turn/queue/recoveredNativeInput 混用；只按原 chat/actor/binding 修复接受事实。",
+      "implementation": [
+        {
+          "file": "src/bridge/inbound-receipts.ts",
+          "sha256": "c93d572ded599c5868ff1a1dd748e8f428b8533a70761d7d1ada0d148fc272de"
+        },
+        {
+          "file": "src/server/account-manager.ts",
+          "sha256": "0e14889f71aad04ce13b2e09b9924712b9f5b1b93f4e5576d7cc8b73239f1c82"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/inbound-receipts.test.ts",
+          "name": "terminal handoff recovery checks original chat, actor and binding without generating native acceptance",
+          "sha256": "12d064fcd8b697525d89885a33c09ec112e428d9712be148a69b311752880731",
+          "result": "passed",
+          "run": "fullRegression"
+        },
+        {
+          "file": "test/inbound-receipts.test.ts",
+          "name": "terminal receipt cannot be mixed with native turn or queue evidence, even before persistence",
+          "sha256": "12d064fcd8b697525d89885a33c09ec112e428d9712be148a69b311752880731",
+          "result": "passed",
+          "run": "fullRegression"
+        }
+      ]
+    }
+  ]
+}

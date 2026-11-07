@@ -8,7 +8,7 @@ import { PeerConnection, PeerError } from "./rpc.js";
 import type { CodexInboundFile } from "../codex/inbound-files.js";
 import type { OutputFileLease } from "../codex/output-files.js";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
-import type { CodexBridgeBackend } from "../codex/backend.js";
+import type { PeerFileTransport } from "./runtime-filesystem.js";
 
 export const FILE_METHODS = ["fileUploadBegin", "fileUploadChunk", "fileUploadFinish", "fileDownloadBegin", "fileDownloadChunk", "fileClose"] as const;
 export const FILE_CHUNK_BYTES = 256 * 1024;
@@ -58,26 +58,37 @@ type Lease = {
   temporary?: string; target?: string; sum?: crypto.Hash; stat?: fs.Stats;
   dispose?: () => Promise<void>;
   label?: string;
+  filesystemScope?: string;
 };
 
 /** Private upload storage and bounded descriptor leases. No caller chooses an upload path. */
 export class PeerFiles {
   private readonly leases = new Map<string, Lease>();
   constructor(private readonly stateDir: string,
-    private readonly inspect: (threadId: string, write: boolean) => Promise<{ cwd: string }>,
+    private readonly inspect: (threadId: string, write: boolean) => Promise<{ cwd: string; filesystemScope?: string }>,
     // Only an explicitly configured deployment grant inherits the old host's
     // output scope (including temporary exports). Personal grants stay confined
     // to the selected workspace and received attachments. This never grants an
     // upload destination or bypasses thread, connection or descriptor checks.
     private readonly hostOutputAllowed: (grant: PeerGrant) => boolean = () => false,
-    private readonly remote?: CodexBridgeBackend) {}
-  private async uploaded(file: string, grant: PeerGrant, threadId: string, size: number, label: string): Promise<{ path: string }> {
-    if (!this.remote) return { path: file };
-    if (!this.remote.stageAttachments) throw new PeerError("unsupported", "Host attachment transport unavailable");
-    const [result] = await this.remote.stageAttachments([{ path: file, label, kind: "file" }],
+    private readonly remote?: PeerFileTransport | ((threadId: string, assertCurrent: () => void) => Promise<PeerFileTransport | undefined>)) {}
+  private host(threadId: string, guard: () => void) { return typeof this.remote === "function" ? this.remote(threadId, guard) : Promise.resolve(this.remote); }
+  /** Runtime file leases follow project/directory/machine, not the foreground
+   * program. Check after asynchronous routing and before each returned chunk. */
+  private async checkFilesystem(threadId: string, expected?: string): Promise<void> {
+    if (expected !== undefined && (await this.inspect(threadId, false)).filesystemScope !== expected)
+      throw new PeerError("changed", "File resource scope changed during transfer");
+  }
+  private async uploaded(file: string, grant: PeerGrant, threadId: string, size: number, label: string, guard: () => void, filesystemScope?: string): Promise<{ path: string }> {
+    const remote = await this.host(threadId, guard); guard();
+    await this.checkFilesystem(threadId, filesystemScope); guard();
+    if (!remote) return { path: file };
+    if (!remote.stageAttachments) throw new PeerError("unsupported", "Host attachment transport unavailable");
+    const [result] = await remote.stageAttachments([{ path: file, label, kind: "file" }],
       { scope: JSON.stringify([grant.id, threadId]), threadId, maxBytes: size });
+    await this.checkFilesystem(threadId, filesystemScope); guard();
     const indexFile = path.join(this.stateDir, "file-host-paths.json");
-    const index = readJsonFile<Record<string, string[]>>(indexFile, {}), key = JSON.stringify([grant.id, threadId]);
+    const index = readJsonFile<Record<string, string[]>>(indexFile, {}), key = JSON.stringify([grant.id, threadId, ...(remote.filesystemId ? [remote.filesystemId] : [])]);
     index[key] = [...new Set([...(index[key] ?? []), path.dirname(result.path)])];
     writeJsonFile(indexFile, index, { durable: true });
     return { path: result.path };
@@ -113,7 +124,7 @@ export class PeerFiles {
     if (method === "fileUploadBegin") {
       const p = z.object({ threadId: threadSchema, scope: z.string().min(1).max(4096), name: z.string().max(1024), size: sizeSchema, hash: hashSchema }).strict().parse(payload);
       if (grant.threadId && grant.threadId !== p.threadId) throw new PeerError("scope", "File transfer thread is not granted");
-      await this.inspect(p.threadId, true);
+      const state = await this.inspect(p.threadId, true);
       authorize?.(p.threadId);
       if (!owner.open) throw new PeerError("offline", "File transfer connection closed");
       const dir = this.directory(grant, p.threadId, p.scope), target = path.join(dir, `${p.hash}-${name(p.name)}`);
@@ -121,12 +132,12 @@ export class PeerFiles {
         const prior = open(target, p.size);
         try { if (prior.stat.size !== p.size || digest(prior.fd, p.size) !== p.hash) throw new PeerError("changed", "Stored attachment does not match"); }
         finally { fs.closeSync(prior.fd); }
-        const result = await this.uploaded(target, grant, p.threadId, p.size, p.name);
+        const result = await this.uploaded(target, grant, p.threadId, p.size, p.name, () => { authorize?.(p.threadId); if (!owner.open) throw new PeerError("offline", "File transfer connection closed"); }, state.filesystemScope);
         authorize?.(p.threadId); if (!owner.open) throw new PeerError("offline", "File transfer connection closed");
         return { complete: true, ...result };
       }
       const temporary = path.join(dir, `.${crypto.randomUUID()}.part`), fd = fs.openSync(temporary, "wx", 0o600);
-      try { return { id: this.add({ kind: "upload", owner, grantId: grant.id, threadId: p.threadId, fd, size: p.size, offset: 0, expected: p.hash, temporary, target, label: p.name, sum: crypto.createHash("sha256") }) }; }
+      try { return { id: this.add({ kind: "upload", owner, grantId: grant.id, threadId: p.threadId, filesystemScope: state.filesystemScope, fd, size: p.size, offset: 0, expected: p.hash, temporary, target, label: p.name, sum: crypto.createHash("sha256") }) }; }
       catch (error) { fs.closeSync(fd); fs.rmSync(temporary, { force: true }); throw error; }
     }
     if (method === "fileDownloadBegin") {
@@ -138,16 +149,19 @@ export class PeerFiles {
       if (!path.isAbsolute(p.path)) throw new PeerError("path", "An absolute output file path is required");
       const inbound = this.directory(grant, p.threadId);
       let remoteLease: OutputFileLease | undefined;
-      if (this.remote) {
-        if (!this.remote.fetchOutputFile) throw new PeerError("unsupported", "Host output transport unavailable");
+      const remote = await this.host(p.threadId, () => { authorize?.(p.threadId); if (!owner.open) throw new PeerError("offline", "File transfer connection closed"); });
+      await this.checkFilesystem(p.threadId, state.filesystemScope);
+      authorize?.(p.threadId); if (!owner.open) throw new PeerError("offline", "File transfer connection closed");
+      if (remote) {
+        if (!remote.fetchOutputFile) throw new PeerError("unsupported", "Host output transport unavailable");
         const index = readJsonFile<Record<string, string[]>>(path.join(this.stateDir, "file-host-paths.json"), {});
-        remoteLease = await this.remote.fetchOutputFile(p.path, { hostId: "local", maxBytes: p.maxBytes,
-          allowedRoots: this.hostOutputAllowed(grant) ? undefined : [state.cwd, ...(index[JSON.stringify([grant.id, p.threadId])] ?? [])] });
-        try { authorize?.(p.threadId); if (!owner.open) throw new PeerError("offline", "File transfer connection closed"); }
+        remoteLease = await remote.fetchOutputFile(p.path, { hostId: "local", threadId: p.threadId, maxBytes: p.maxBytes,
+          allowedRoots: this.hostOutputAllowed(grant) ? undefined : [state.cwd, ...(index[JSON.stringify([grant.id, p.threadId, ...(remote.filesystemId ? [remote.filesystemId] : [])])] ?? [])] });
+        try { await this.checkFilesystem(p.threadId, state.filesystemScope); authorize?.(p.threadId); if (!owner.open) throw new PeerError("offline", "File transfer connection closed"); }
         catch (error) { await remoteLease.dispose(); throw error; }
       }
       const file = fs.realpathSync(remoteLease?.path ?? p.path);
-      if (!this.remote && !this.hostOutputAllowed(grant) && !inside(fs.realpathSync(state.cwd), file) && !inside(inbound, file))
+      if (!remote && !this.hostOutputAllowed(grant) && !inside(fs.realpathSync(state.cwd), file) && !inside(inbound, file))
         throw new PeerError("path", "Output file must belong to the selected session workspace or its received attachments");
       if (fs.lstatSync(remoteLease?.path ?? p.path).isSymbolicLink()) throw new PeerError("path", "Output file must not be a symbolic link");
       let opened: ReturnType<typeof open>;
@@ -157,7 +171,7 @@ export class PeerFiles {
         const expected = digest(fd, stat.size), current = fs.statSync(file);
         if (current.dev !== stat.dev || current.ino !== stat.ino || current.size !== stat.size || current.mtimeMs !== stat.mtimeMs || fs.realpathSync(remoteLease?.path ?? p.path) !== file)
           throw new PeerError("changed", "Output file changed before transfer");
-        return { id: this.add({ kind: "download", owner, grantId: grant.id, threadId: p.threadId, fd, size: stat.size, offset: 0, expected, stat, dispose: remoteLease?.dispose }),
+        return { id: this.add({ kind: "download", owner, grantId: grant.id, threadId: p.threadId, filesystemScope: state.filesystemScope, fd, size: stat.size, offset: 0, expected, stat, dispose: remoteLease?.dispose }),
           size: stat.size, hash: expected, name: name(inside(inbound, file) ? path.basename(file).replace(/^[a-f0-9]{64}-/, "") : p.path) };
       } catch (error) { fs.closeSync(fd); await remoteLease?.dispose(); throw error; }
     }
@@ -167,6 +181,9 @@ export class PeerFiles {
     authorize?.(lease.threadId);
     if (method === "fileClose") { this.remove(p.id); return null; }
     try {
+      await this.checkFilesystem(lease.threadId, lease.filesystemScope);
+      authorize?.(lease.threadId);
+      if (!owner.open || this.leases.get(p.id) !== lease) throw new PeerError("scope", "File transfer expired or connection closed");
       if (method === "fileUploadChunk" && lease.kind === "upload") {
         const bytes = Buffer.from(p.data ?? "", "base64");
         if (p.offset !== lease.offset || !bytes.length || bytes.length > FILE_CHUNK_BYTES || bytes.toString("base64") !== p.data || lease.offset + bytes.length > lease.size)
@@ -176,7 +193,9 @@ export class PeerFiles {
         lease.sum!.update(bytes); lease.offset += bytes.length; return { offset: lease.offset };
       }
       if (method === "fileUploadFinish" && lease.kind === "upload") {
-        await this.inspect(lease.threadId, true);
+        const state = await this.inspect(lease.threadId, true);
+        if (lease.filesystemScope !== undefined && state.filesystemScope !== lease.filesystemScope)
+          throw new PeerError("changed", "File resource scope changed during transfer");
         // Inspection can outlive revocation, disconnect or lease expiry. Do
         // not publish using the authority/descriptor captured before the await.
         authorize?.(lease.threadId);
@@ -190,7 +209,10 @@ export class PeerFiles {
           try { if (prior.stat.size !== lease.size || digest(prior.fd, lease.size) !== lease.expected) throw new PeerError("hash", "Stored attachment does not match"); }
           finally { fs.closeSync(prior.fd); }
         }
-        const result = await this.uploaded(lease.target!, grant, lease.threadId, lease.size, lease.label!);
+        const result = await this.uploaded(lease.target!, grant, lease.threadId, lease.size, lease.label!, () => {
+          authorize?.(lease.threadId);
+          if (!owner.open || this.leases.get(p.id) !== lease) throw new PeerError("scope", "File transfer expired or connection closed");
+        }, lease.filesystemScope);
         authorize?.(lease.threadId);
         if (!owner.open || this.leases.get(p.id) !== lease) throw new PeerError("scope", "File transfer expired or connection closed");
         this.remove(p.id); return result;

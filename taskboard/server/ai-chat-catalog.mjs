@@ -75,8 +75,23 @@ export async function resolveAiWorkspace(projectId, codexStatePath, database) {
   };
 }
 
+export function nativeConversationUnavailable(execution) {
+  if (execution && !execution.operations["structured-output"].supported)
+    return "当前运行接口提供终端输入和画面，没有此面板所需的原生轮次及最终答复回执。普通工作说明可从绑定聊天或 Gateway 会话页发送；看板管理不受影响。";
+}
+
 /** Public catalogs are projections of the same selected native service. */
 export async function discoverAiCatalog({ nativeBackend, codexStatePath, database, projectId }) {
+  const execution = (await nativeBackend.backendInfo?.())?.runtime;
+  const reason = nativeConversationUnavailable(execution);
+  if (reason) {
+    // A terminal screen has no native turn/final contract. Returning a clear
+    // capability result keeps board CRUD and ordinary IM instructions separate
+    // from the chat runner, which must not invent completed workflow outputs.
+    if (!await database.getProject(projectId)) throw new ApiError(404, "PROJECT_NOT_FOUND", `Project '${projectId}' does not exist`);
+    return { models: [], skills: [], sandboxes: [], execution, nativeConversation: false,
+      reason };
+  }
   const { workspacePath } = await resolveAiWorkspace(projectId, codexStatePath, database);
   const [models, skills] = await Promise.all([
     nativeBackend.listModels(), nativeBackend.listSkills(workspacePath),

@@ -113,6 +113,8 @@ export class ChannelTurnTextStream {
       contextToken?: string;
       onTextDelivered?: (part: { messageId: string; text: string }) => void;
       progressEnabled?: boolean;
+      /** Display only: capability-specific controls never execute an action. */
+      interruptControl?: "request" | "hidden";
       /** Read-only presentation projection. Re-evaluated at send time and
        * heartbeats; never persisted into task facts or terminal page plans. */
       decorateProgress?: (text: string) => string;
@@ -121,7 +123,7 @@ export class ChannelTurnTextStream {
     const saved = persistence?.restore;
     // A pre-upgrade partially delivered result owns its exact page layout.
     this.statusHeader = saved?.statusHeader ?? (!saved?.resultPageBytes && client.capabilities?.turnStatusHeader === "available");
-    this.activityMetadata = this.statusHeader || client.capabilities?.turnStatusHeader === "available";
+    this.activityMetadata = this.statusHeader || client.capabilities?.turnStatusHeader === "available" || persistence?.interruptControl !== undefined;
     this.supported = saved?.resultPresentation === "native-text" ? false
       : saved?.resultPresentation === "card" || Boolean(saved?.messageId || saved?.bootstrap || saved?.creationAttempted) || (persistence?.progressEnabled !== false && (client.capabilities
         ? client.capabilities.progress === "available" : Boolean(client.startTextStream && client.updateTextStream)));
@@ -624,7 +626,7 @@ export class ChannelTurnTextStream {
 
   private renderBody(): string {
     const current = this.progressEntries.filter(entry => progressKind(entry) === "update").at(-1);
-    if (this.statusHeader || this.activity === "waiting-result") return renderTurnProgressCard(this.progressFacts());
+    if (this.statusHeader || this.activity === "waiting-result" || this.persistence?.interruptControl !== undefined) return renderTurnProgressCard(this.progressFacts());
     const sections = [
       this.activityMetadata ? turnStatusHeading(this.visibleActivity())
         : this.communicationNotice ? "⏳ **等待后端确认**" : this.recoveryNotice ? "⏳ **等待 Codex 后续状态**"
@@ -662,7 +664,7 @@ export class ChannelTurnTextStream {
         ? this.thought : undefined,
       recent: this.progressEntries.filter(entry => entry !== current), tools: this.toolActivity,
       answerPreview: this.answerPreview, notice: this.communicationNotice || this.recoveryNotice,
-      phases: this.phaseProgress };
+      phases: this.phaseProgress, interruptControl: this.persistence?.interruptControl };
   }
 
   private visibleActivity(): TurnActivity {

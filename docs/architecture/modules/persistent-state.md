@@ -1,5 +1,7 @@
 # 持久状态、账号与写入失败
 
+Herdr 源码增量的状态文件分开：Connector runtime-handoffs-v1 保存交接指纹与结果，runtime-interrupts-v1 保存中断操作，runtime-lifecycle-v1 保存创建/命名/关闭的指纹、中间资源和回执；Gateway runtime-observations-v1 保存精确来源、实例、原卡 checkpoint 和可选恢复指纹。可选 following 保存只读订阅及当前展示周期，lastSequence/lastSyncedAt 保存观察基线；旧记录仍是输入观察。follow off 不删除输入义务，完成卡确认后只清理本次展示周期。无 prompt/执行重试队列。InboundReceipt 的 runtimeInput 不与 nativeInput/turn/queue 混用；只读回执修复不产生原生结果义务。旧观察记录缺少恢复指纹仅继续观察，不猜测原输入；坏版本和坏结构保留文件并报错。见[运行模块](agent-runtime.md)。
+
 RuntimeStateStore 是一个账号状态文件的内存写入者。账号启停、来源运行代次和资源属于 AccountManager；状态库不决定 Codex 执行终态。JSON 文件、交接 journal、原生数据库各有自己的事实，不能互相覆盖。
 
 普通输入崩溃恢复在既有来源journal增加可选nativeInput/recoveredNativeInput事实字段，不改版本或重建去重历史。accepted恢复须精确比较原记录，追加/fsync成功后才清理正文；恢复失败回滚内存。recoveredNativeInput且phase=accepted表示尚待结果日志确认的义务，Hub保存投递事实后才记handled；两个文件间的进程崩溃由既有事实补结算，不用重发输入补偿。

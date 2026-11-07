@@ -36,6 +36,10 @@ export function createTaskboardNativeBackend(options = {}) {
     return selected[method](...args);
   }]));
   return Object.assign(client, {
+    // Older injected native conversation adapters predate descriptors. Keep
+    // that existing port usable; selected multi-runtime adapters supply this
+    // method and their errors must propagate instead of inventing capability.
+    async backendInfo(...args) { const selected = await get(); return selected.backendInfo?.(...args); },
     hasRestartBlockingWork() { return Boolean(backend?.hasRestartBlockingWork?.()); },
     async close() {
       closed = true;

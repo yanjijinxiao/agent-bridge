@@ -3,6 +3,7 @@ import type { CodexBridgeBackend } from "../codex/backend.js";
 /** Every public facade port has an explicit transport policy. Adding a native
  * port without updating this map is a type error and fails the contract audit. */
 export const PEER_BACKEND_CONTRACT = {
+  runtimeRead: "runtime-rpc", runtimeSend: "runtime-rpc", runtimeInterrupt: "runtime-rpc", runtimeReceipt: "runtime-rpc", runtimeLifecycle: "runtime-rpc",
   withSource: "source-context", findNativeInputReceipts: "source-recovery",
   backendInfo: "negotiated", run: "rpc", steer: "rpc", submitThreadMessage: "rpc", stop: "rpc",
   runEphemeral: "rpc", warmUp: "rpc", listProjects: "rpc", listThreads: "catalog-projection",

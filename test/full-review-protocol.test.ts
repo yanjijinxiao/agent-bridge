@@ -22,11 +22,15 @@ test("an unconfirmed start keeps its subscription and approval owner without a b
     if (method === "thread/unsubscribe") { unsubscribes++; return {}; }
     starts++; throw failure;
   };
-  const handler = async () => "decline" as const;
+  let decisions = 0;
+  const handler = async () => { decisions++; return "decline" as const; };
   await assert.rejects(wire.run({ threadId: "thread", cwd: "/tmp/project", prompt: "test", onApproval: handler }), failure);
   assert.equal(starts, 1); assert.equal(unsubscribes, 0);
   assert.equal(wire.unconfirmedStarts.has("thread"), true);
-  assert.equal(wire.approvalHandlersByThread.get("thread"), handler);
+  const retained = wire.approvalHandlersByThread.get("thread");
+  assert.equal(typeof retained, "function");
+  await assert.rejects(retained({ threadId: "thread" }), failure);
+  assert.equal(decisions, 0, "an unconfirmed identity cannot bypass the acceptance/audience barrier");
 });
 
 test("explicit native project identity wins over shared roots and earlier resolver calls", async () => {

@@ -29,7 +29,11 @@ test('native approval pings only its turn participants and confirmation starts o
   async sendMentionNotification(){return {messageId:'final-mention'};},
  });
  const runner=new AppServerCodexRunner({codexBin:fileURLToPath(new URL('fixtures/fake-codex-app-server.mjs',import.meta.url)),requestTimeoutMs:2000});t.after(()=>runner.close());
- let runs=0;const run=runner.run.bind(runner);runner.run=input=>{runs++;return run(input);};
+ let runs=0;const run=runner.run.bind(runner);runner.run=input=>{runs++;return run({...input,onTurnStarted:async event=>{
+  // Native approval may share the JSONL batch with turn/start. Delay the
+  // application receipt callback to exercise that ordering deterministically.
+  await new Promise(resolve=>setTimeout(resolve,50));await input.onTurnStarted?.(event);
+ }});};
  const service=new BridgeService({accountId:'account',stateStore:store,turnAudience:audience,channel,runner,
   config:{...defaultConfig(root),allowedSenderIds:['actor']},onTurnStatus:status=>{statuses.push(status.active);}});
  t.after(()=>service.suspendUserInputs());

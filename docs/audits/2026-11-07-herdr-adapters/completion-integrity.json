@@ -1,0 +1,16 @@
+{
+  "requirements": 19,
+  "selectedPassingCases": 697,
+  "sourceOrScriptFiles": 65,
+  "checks": [
+    "current source and test hashes",
+    "exact named case mapping",
+    "real DingTalk CLI/App/Herdr evidence",
+    "real Mac/Linux browser editor/terminal/Git/reconnect",
+    "git diff --check"
+  ],
+  "result": "passed",
+  "productionDistWritten": false,
+  "wholeRepositoryReviewed": false,
+  "deploymentStatus": "candidate tested; final production switch recorded separately"
+}

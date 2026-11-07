@@ -7,6 +7,14 @@ import type { ChannelCommand } from "./channel-intent.js";
 import type { CodexBackendCapabilities } from "../codex/backend.js";
 import { copyableChoices } from "../channels/copyable.js";
 
+/** Buffer controls must not overtake earlier pieces (or be overtaken by later
+ * pieces). This applies to text, menu and card commands without changing their
+ * conservative command-replay policy. Viewing the buffer is independent. */
+export function ordersPromptInput(text: string): boolean {
+  const command = parseCommand(text);
+  return command?.name === "prompt" && /^(?:start|s|done|d|cancel)$/i.test(command.arg.trim());
+}
+
 /** One canonical command inventory for aliases, reservation and help limits. */
 export const CHANNEL_COMMAND_REGISTRY = [
   { name: "help", aliases: ["h"] },
@@ -153,9 +161,9 @@ export function parseCommand(
   const canonicalName = COMMAND_ALIASES[name] ?? (BUILT_IN_COMMAND_NAMES.has(name) ? name : capabilityAliases[name] ?? name);
   // Normalize before authorization and mode checks, including /s new.
   if (canonicalName === "session" && rest[0]?.toLowerCase() === "new") {
-    return { name: "new", arg: rest.slice(1).join(" ") };
+    return { name: "new", arg: argument.trim().replace(/^new(?:\s+|$)/i, "") };
   }
-  return { name: canonicalName, arg: ["answer", "queue", "steer", "goal"].includes(canonicalName) ? argument : rest.join(" ") };
+  return { name: canonicalName, arg: ["answer", "queue", "steer", "goal", "new"].includes(canonicalName) ? argument : rest.join(" ") };
 }
 
 export type ChannelHelpContext = {

@@ -2,6 +2,18 @@
 
 这些文档同时记录目标行为、当前实现和未验证项。存在文档、读过文件、测试通过是三种不同的事实，不能互相替代。
 
+## 接口调研与设计提案
+
+[Herdr 两套适配的模块、函数与代码设计](herdr-adaptation-design.md)：列出真实调用链的 Codex 假设、Herdr 多 agent 源码依据、身份/交接/观察边界和实施验收清单。开发状态与上线状态分开记录。
+
+[Herdr 底层适配四层检查](../audits/2026-11-07-herdr-adapters/README.md)：源码增量、函数清单、隔离回归及 12/Mac 实机边界。两套适配、生产 Connector 入口、生命周期、命令/卡片、Web、文件/共享/IDE 已落入源码；当前检查表区分实机通过和发布/设备边界。历史 427-case 汇总不包含这次新增设计范围。
+
+[Herdr TUI / App 与通用运行接口调研](agent-runtime-interface-research-2026-11-06.md)：对照当前实现、Codex App Server、Herdr 的两种执行后台及 App 窗口接口；以 Claude Code、OpenCode 等检验未来适配边界。记录源码版本、接口差异、迁移建议和 32 个待验证场景，尚不是已实现或已验收功能。
+
+[命令与业务能力契约补充设计](agent-command-compatibility-2026-11-07.md)：逐项核对 36 个内置命令及别名，拆分子操作、Gateway 业务与原生能力，补充 Taskboard、QA、扩展、帮助/按钮/执行的一致判定及 24 个待实现 case。文中的 3 项帮助测试与待办是改前基线；当前命令/别名、调用面和具体用例结果见 Herdr 四层检查。两篇提案需一起阅读。
+
+同文第 1.1～1.3 节已追加 Herdr 上游接口证据：核对 TUI 102 个请求、core 32 个方法和 App 71 个内置界面命令，确认 11 个 Bridge 命令的核心原生操作无等价结构化接口，并区分已有目录/输入/中断/观察能力及终端历史的限制。属于源码核实，尚非集成验收。
+
 ## 当前未完成工作
 
 [当前剩余清单](remaining-work.md)分开记录未实现功能、缺测组合与真实设备验收。当前 427 个 case 全部有测试映射，343 项已有窄边界通过记录、84 项部分覆盖。数字是已有记录汇总，不代表本次全库重新精读。最新[阶段展示与终态回归](../audits/2026-11-05-terminal-progress-regression.md)补齐 DEL-08.8–DEL-08.11 的相关文档入口。
@@ -23,6 +35,7 @@
 | --- | --- |
 | 实验 Connector | [Peer 的接口适配、授权和验证边界](modules/peer-transport.md) |
 | 原生协议与连接 | [同一核心、权限继承、读写连接和生命周期](modules/native-protocol.md) |
+| 多 agent 运行接口（开发中） | [两套 Herdr 适配、输入交接及生产接入边界](modules/agent-runtime.md) |
 | 消息接收与交接 | [来源、提交、接收和未知回执](modules/inbound-forwarding.md) |
 | 持久状态与账号 | [版本、迁移、内存/磁盘一致性和特殊标识](modules/persistent-state.md) |
 | 绑定及准入 | [精确会话边、个人/群身份和撤权](modules/bindings-access.md) |

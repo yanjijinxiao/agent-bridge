@@ -1,5 +1,7 @@
 # 进展、卡片与渠道回执
 
+Herdr 源码中的终端观察复用 ChannelTurnPresentation，状态事实来自 RuntimeObservationController。blocked 是等待终端处理，不生成原生审批/聊天问答；idle/error/exited 是终端观察结果，不能变成“已完成任务”。中断控件按能力显示，只承诺请求；画面有界刷新、状态阶段保留，IDE 和 @ 沿用公共能力。回执未知不另建卡、不自动重发通知；见[运行模块](agent-runtime.md)与[增量四层检查](../../audits/2026-11-07-herdr-adapters/README.md)。
+
 TurnPresentation/ThreadEventHub 保存按 host/thread/turn、阶段、卡片和页的展示状态。进展摘要、commentary、公开工具状态与最终答案分开，长任务持续刷新；原生 running/terminal 决定执行状态，渠道回执决定平台接收。Task 卡用普通字号状态与原生 loading，不额外附大标题冒充新答案。
 
 进行中的公开 commentary 由 phase-progress 按阶段保留，工具/公开摘要只保留有界动态窗口。下一段 commentary 结束上一段的活动窗口，保留工具计数小结。长卡由 TurnPresentation 先保存新旧句柄和收尾意图，再沿相同任务开下一张卡；旧卡收尾失败不转移新卡结果，创建回执未知不授权重建。复制框与 IDE 页脚由原展示层管理。详情与边界见[阶段成果与实时活动](../phase-progress.md)。会话恢复通知使用独立标题，idle 不得把已失败轮次显示为“已完成”。
@@ -75,3 +77,5 @@ ChannelProgressLayout 保留正文与操作区边界。activeDingTalkLayout 为 
 DEL-09.6 补齐停止控件重复的更新过程约束、链接真实变更、失败重试及适配器重建，见[回归记录](../../audits/2026-11-06-stable-progress-controls.md)。
 
 DEL-09.7：activeDingTalkLayout 在流式页脚的独立末段显示可信的运行/恢复状态，使原生加载光标与 IDE 链接、复制框分离；该段不随工具活动变化，不进入复制值或等待/终态正文。预算检查包含新增段落且先于任何 API 写入。沿用双组件，不把长正文迁回流式接口。见[位置回归记录](../../audits/2026-11-06-loading-position.md)。
+
+2026-11-08 终端展示增量：Herdr 使用独立的 [终端投影模块](terminal-presentation.md)，稳定阶段复用公共进度历史与续卡，活动窗口有界，最终正文保留段落。源终端画面不进入原生工具/审批/action 管道。当前模板只收起全文为摘要，`/history` 是当前终端快照入口；不宣称已实现卡内原生折叠组件。

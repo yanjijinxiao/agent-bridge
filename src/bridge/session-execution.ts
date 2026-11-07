@@ -1,15 +1,18 @@
 import { RuntimeStateStore, type ManagedSession } from "../state/runtime-state.js";
 
+/** Stable authorization topology for both live leases and durable read-only
+ * observers. A title/model change is not a new target; a binding generation is. */
+export function sessionExecutionStamp(store: RuntimeStateStore, current: ManagedSession): string {
+  const project = current.projectId ? store.getProject(current.projectId) : undefined;
+  return JSON.stringify([current.id, current.senderId, current.workspace, current.projectId, current.projectBinding,
+    current.hostId ?? project?.hostId ?? "local", [...project?.rootPaths ?? []].sort(), current.executionGeneration]);
+}
+
 /** A source binding lease, independent of native acceptance and delivery.
  * Only our acknowledged new-thread callback may advance its expected thread.
  * Cosmetic settings are deliberately excluded; authority and topology are not. */
 export function sessionExecutionScope(store: RuntimeStateStore, session: ManagedSession, conversationId = session.senderId) {
-  const topology = (current: ManagedSession) => {
-    const project = current.projectId ? store.getProject(current.projectId) : undefined;
-    return JSON.stringify([current.id, current.senderId, current.workspace, current.projectId, current.projectBinding,
-      current.hostId ?? project?.hostId ?? "local", [...project?.rootPaths ?? []].sort(),
-      current.executionGeneration]);
-  };
+  const topology = (current: ManagedSession) => sessionExecutionStamp(store, current);
   let expected = topology(session);
   let threadId = session.threadId;
   const current = () => {

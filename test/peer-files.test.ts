@@ -15,6 +15,35 @@ import { BridgeService } from "../src/bridge/service.js";
 import { parsePrompt } from "../src/bridge/format.js";
 import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.js";
 
+for (const moment of ["host-resolution", "download-chunk", "upload-finish"] as const)
+  test(`runtime file scope changes at ${moment} cannot inherit an old transfer`, async t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "peer-runtime-file-scope-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const owner = { open: true } as PeerConnection;
+    let scope = "original-project-machine", resolving = false;
+    const files = new PeerFiles(root, async () => ({ cwd: root, filesystemScope: scope }), () => false,
+      async () => { if (resolving) scope = "replacement-project-machine"; return undefined; });
+    t.after(() => files.close(owner));
+    const grant = { id: crypto.randomUUID(), principal, hostId: "peer:test", threadId: "thread" };
+    const call = (method: string, payload: unknown) => files.call(grant, owner, method, payload);
+    if (moment === "upload-finish") {
+      const lease = await call("fileUploadBegin", { threadId: "thread", scope: "input", name: "in.txt", size: 1,
+        hash: crypto.createHash("sha256").update("x").digest("hex") }) as { id: string };
+      await call("fileUploadChunk", { id: lease.id, offset: 0, data: "eA==" });
+      scope = "replacement-project-machine";
+      await assert.rejects(call("fileUploadFinish", { id: lease.id }), /scope changed/);
+      assert.ok(!fs.readdirSync(root, { recursive: true }).some(f => String(f).endsWith("in.txt")));
+      return;
+    }
+    const file = path.join(root, "result.txt"); fs.writeFileSync(file, "private output");
+    resolving = moment === "host-resolution";
+    const download = call("fileDownloadBegin", { threadId: "thread", path: file, maxBytes: 100 });
+    if (resolving) { await assert.rejects(download, /scope changed/); return; }
+    const lease = await download as { id: string };
+    scope = "replacement-project-machine";
+    await assert.rejects(call("fileDownloadChunk", { id: lease.id, offset: 0 }), /scope changed/);
+  });
+
 async function fixture(t: test.TestContext) {
   const f = await peerFixture(t);
   f.thread.cwd = path.join(f.root, "device-workspace"); fs.mkdirSync(f.thread.cwd);

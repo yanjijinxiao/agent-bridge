@@ -12,6 +12,9 @@ export type CodexApprovalRequest = {
   cwd?: string;
   reason?: string;
   grantRoot?: string;
+  /** Display-only metadata from the exact native turn/item, never a grant. */
+  fileChanges?: Array<{ path: string; kind: "add" | "delete" | "update"; movePath?: string }>;
+  fileChangeCount?: number;
   permissions?: Record<string, unknown>;
   serverName?: string;
   hostId?: string;
@@ -32,6 +35,28 @@ export type AppServerApprovalMethod =
   | "item/fileChange/requestApproval"
   | "item/permissions/requestApproval"
   | "mcpServer/elicitation/request";
+
+/** File approval RPCs carry an item ID, while paths live in the turn's items.
+ * Correlate both identities; do not infer paths from prompts or another item.
+ * Exclude diffs/content entirely and bound the presentation metadata. */
+export function attachFileApprovalChanges(request: CodexApprovalRequest, turns: unknown[]): void {
+  if (request.kind !== "file") return;
+  const turn = turns.find(value => recordValue(value)?.id === request.turnId);
+  const items = recordValue(turn)?.items;
+  if (!Array.isArray(items)) return;
+  const item = items.find(value => recordValue(value)?.id === request.itemId);
+  const changes = recordValue(item)?.changes;
+  if (recordValue(item)?.type !== "fileChange" || !Array.isArray(changes) || !changes.length) return;
+  const files: NonNullable<CodexApprovalRequest["fileChanges"]> = [];
+  for (const change of changes.slice(0, 20)) {
+    const c = recordValue(change), kind = recordValue(c?.kind), file = stringValue(c?.path);
+    if (!file || !["add", "delete", "update"].includes(String(kind?.type))) return;
+    const movePath = stringValue(kind?.movePath);
+    files.push({ path: file, kind: kind!.type as "add" | "delete" | "update", ...(movePath ? { movePath } : {}) });
+  }
+  request.fileChanges = files;
+  request.fileChangeCount = changes.length;
+}
 
 export function isAppServerApprovalMethod(method: string | undefined): method is AppServerApprovalMethod {
   return method === "item/commandExecution/requestApproval"

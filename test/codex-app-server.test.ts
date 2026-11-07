@@ -136,6 +136,21 @@ test(`a start acknowledgement cannot overwrite newer native failure state: ${pro
 });
 }
 
+test("a failed acceptance callback leaves an early native approval pending without an answer", async t => {
+  const runner = new AppServerCodexRunner({ requestTimeoutMs: 2_000, transport: {
+    command: process.execPath, args: [path.join(fixturesDir, "fake-codex-app-server.mjs")], mode: "remote-daemon"
+  } });
+  t.after(() => runner.close());
+  let approvals = 0;
+  await assert.rejects(runner.run({ cwd: "/tmp/project", threadId: "thread-existing", prompt: "approval:command",
+    onTurnStarted: async () => { await new Promise(resolve => setTimeout(resolve, 50)); throw new Error("audience storage unavailable"); },
+    onApproval: async () => { approvals++; return "accept"; }
+  }), /audience storage unavailable/);
+  assert.equal(approvals, 0);
+  const state = await runner.inspectThread("thread-existing");
+  assert.equal(state.latestTurnStatus, "inProgress", "a synthetic approval/denial would have completed the fixture turn");
+});
+
 test("native queue add/list/delete/start consumes the stored item and retains approval callbacks", async t => {
   const runner = new AppServerCodexRunner({ requestTimeoutMs: 2_000, transport: {
     command: process.execPath, args: [path.join(fixturesDir, "fake-codex-app-server.mjs")], mode: "remote-daemon"
@@ -148,10 +163,10 @@ test("native queue add/list/delete/start consumes the stored item and retains ap
   const events: string[] = [];
   const result = await runner.runQueuedSubmission({ threadId: "thread-existing", queuedSubmissionId: item.id,
     cwd: "/tmp/project", onQueueStarting: () => { events.push("submitting"); },
-    onTurnStarted: () => { events.push("accepted"); }, onApproval: async () => { events.push("approval"); return "accept"; } });
+    onTurnStarted: async () => { await new Promise(resolve => setTimeout(resolve, 50)); events.push("accepted"); }, onApproval: async () => { events.push("approval"); return "accept"; } });
   assert.equal(result.threadId, "thread-existing");
   assert.equal(events[0], "submitting");
-  assert.deepEqual(events.slice(1).sort(), ["accepted", "approval"]);
+  assert.deepEqual(events.slice(1), ["accepted", "approval"]);
   assert.equal((await runner.listQueuedSubmissions("thread-existing")).data.length, 0);
   await assert.rejects(runner.runQueuedSubmission({ threadId: "thread-existing", queuedSubmissionId: item.id, cwd: "/tmp/project" }), /原生队列已发生变化/);
 });
@@ -599,7 +614,7 @@ test("routes command, file, permission and simple MCP approvals to the active ch
   t.after(() => runner.close());
 
   for (const kind of ["command", "file", "permissions", "mcp"] as const) {
-    const requests: Array<{ kind: string; command?: string; reason?: string }> = [];
+    const requests: Array<import("../src/codex/approval.js").CodexApprovalRequest> = [];
     const result = await runner.run({
       prompt: `approval:${kind}`,
       cwd: "/tmp/project",
@@ -615,6 +630,10 @@ test("routes command, file, permission and simple MCP approvals to the active ch
     assert.equal(requests[0]?.kind, kind);
     assert.match(requests[0]?.reason ?? "", new RegExp(kind));
     if (kind === "command") assert.equal(requests[0]?.command, "touch approved.txt");
+    if (kind === "file") {
+      assert.deepEqual(requests[0]?.fileChanges, [{ path: "/tmp/project/approved.txt", kind: "add" }]);
+      assert.doesNotMatch(JSON.stringify(requests[0]), /PRIVATE_FILE_CONTENT|not-this-approval/);
+    }
   }
 });
 
@@ -631,6 +650,21 @@ test("CLI app-server deduplicates native MCP identity and confirms the exact per
     }, onApprovalResult: (_request, result) => { receipts.push(result); } });
   assert.equal(result.text, "approval:mcp-persist:accept");
   assert.equal(calls, 1); assert.deepEqual(receipts, ["confirmed"]);
+});
+
+test("pending file approval uses exact live item metadata before native history persists it", async t => {
+  const runner = new AppServerCodexRunner({ requestTimeoutMs: 2000, transport: {
+    command: process.execPath, args: [path.join(fixturesDir, "fake-codex-app-server.mjs"), "--file-approval-event-only"], mode: "remote-daemon"
+  } });
+  t.after(() => runner.close());
+  const result = await runner.run({ prompt: "approval:file", cwd: "/tmp/project", threadId: "thread-live-file",
+    onApproval: request => {
+      assert.deepEqual(request.fileChanges, [{ path: "/tmp/project/pending.txt", kind: "add" }]);
+      assert.doesNotMatch(JSON.stringify(request), /PRIVATE_PENDING_DIFF/);
+      return "accept";
+    } });
+  assert.equal(result.text, "approval:file:accept");
+  assert.equal((runner as any).fileChangesByTurn.size, 0);
 });
 
 test("CLI app-server preserves command, file and extra-permission session decisions", async t => {

@@ -1,0 +1,756 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-08",
+  "baseline": "37b2a2ca8b467528167bc62cd54ce3cfce8b287e",
+  "status": "real-channel-and-browser-validated-candidate",
+  "scope": "Defined Herdr TUI/App adaptation; source tests, real endpoints and deployment acceptance are separate",
+  "fullRegression": {
+    "command": "node --test --test-concurrency=4 --test-timeout=120000 --import tsx test/*.test.ts (spec + audit reporters)",
+    "summary": {
+      "tests": 3733,
+      "pass": 3643,
+      "fail": 0,
+      "skipped": 90,
+      "cancelled": 0
+    },
+    "log": {
+      "path": "/private/tmp/herdr-tantan-v15-root.log",
+      "sha256": "e7002d4dad08077030160fbbd96c5d08ecd05345c7f3b8269564e3e916a0a983"
+    },
+    "records": "root-test-results.jsonl",
+    "skippedTests": [
+      {
+        "file": "test/gap-management-browser.test.ts",
+        "name": "isolated production Gateway browser gap scenarios"
+      },
+      {
+        "file": "test/herdr-live-connector.test.ts",
+        "name": "herdr-tui: live production Connector handoff and SIGKILL recovery preserve the original terminal"
+      },
+      {
+        "file": "test/herdr-live-connector.test.ts",
+        "name": "herdr-app: live production Connector handoff and SIGKILL recovery preserve the original terminal"
+      },
+      {
+        "file": "test/ide-gitlens-browser.test.ts",
+        "name": "IDE-08.5: real GitLens displays line authorship and full commit hover"
+      },
+      {
+        "file": "test/ide-open-progress.test.ts",
+        "name": "real browser stays on one IDE document while downloading and on preparation failure"
+      },
+      {
+        "file": "test/ide-project-link.test.ts",
+        "name": "real fresh Chrome opens a project link directly with no channel login or manual confirmation"
+      },
+      {
+        "file": "test/ide-real-browser.test.ts",
+        "name": "real code-server workspace, profile and browser authorization"
+      },
+      {
+        "file": "test/native-approval-receipt.test.ts",
+        "name": "INT-02.3: a real native decision is not replayed after reconnect (lostConfirmation=false)"
+      },
+      {
+        "file": "test/native-approval-receipt.test.ts",
+        "name": "INT-02.3: a real native decision is not replayed after reconnect (lostConfirmation=true)"
+      },
+      {
+        "file": "test/native-bridge-instructions.test.ts",
+        "name": "native model receives bridge instructions on new thread"
+      },
+      {
+        "file": "test/native-bridge-instructions.test.ts",
+        "name": "native model receives bridge instructions on empty-same-client thread"
+      },
+      {
+        "file": "test/native-bridge-instructions.test.ts",
+        "name": "native model receives bridge instructions on empty-other-client thread"
+      },
+      {
+        "file": "test/native-bridge-instructions.test.ts",
+        "name": "native model receives bridge instructions on continued-other-client thread"
+      },
+      {
+        "file": "test/native-concurrent-control.test.ts",
+        "name": "NATIVE-02.1: concurrent peers steer the same native turn once (reconnect=false)"
+      },
+      {
+        "file": "test/native-concurrent-control.test.ts",
+        "name": "NATIVE-02.1: concurrent peers steer the same native turn once (reconnect=true)"
+      },
+      {
+        "file": "test/native-concurrent-control.test.ts",
+        "name": "CTRL-04.1: stopping an idle thread does not interrupt a different active native turn"
+      },
+      {
+        "file": "test/native-concurrent-control.test.ts",
+        "name": "CTRL-01.3: steer checks revoked source after native connection preparation"
+      },
+      {
+        "file": "test/native-concurrent-control.test.ts",
+        "name": "CTRL-01.3: interrupt checks revoked source after native connection preparation"
+      },
+      {
+        "file": "test/native-config-construction.test.ts",
+        "name": "NATIVE-01.3: migrated auto constructs one native adapter for writes and read views"
+      },
+      {
+        "file": "test/native-config-construction.test.ts",
+        "name": "NATIVE-01.3: migrated exec constructs one native adapter for writes and read views"
+      },
+      {
+        "file": "test/native-empty-thread.test.ts",
+        "name": "native empty session survives metadata reads until its first input (stdio)"
+      },
+      {
+        "file": "test/native-empty-thread.test.ts",
+        "name": "native empty session survives metadata reads until its first input (daemon)"
+      },
+      {
+        "file": "test/native-input-crash-recovery.test.ts",
+        "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":false}"
+      },
+      {
+        "file": "test/native-input-crash-recovery.test.ts",
+        "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":false,\"recoveryCrash\":false}"
+      },
+      {
+        "file": "test/native-input-crash-recovery.test.ts",
+        "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":true,\"recoveryCrash\":false}"
+      },
+      {
+        "file": "test/native-input-crash-recovery.test.ts",
+        "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":false}"
+      },
+      {
+        "file": "test/native-input-crash-recovery.test.ts",
+        "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":true,\"completedOffline\":false,\"recoveryCrash\":true}"
+      },
+      {
+        "file": "test/native-input-crash-recovery.test.ts",
+        "name": "IN-02.2: real SIGKILL acceptance recovery without replay {\"existing\":false,\"completedOffline\":true,\"recoveryCrash\":\"after\"}"
+      },
+      {
+        "file": "test/native-permission-inheritance.test.ts",
+        "name": "NATIVE-02.2: native permission inheritance {\"callback\":false,\"reconnect\":false,\"explicit\":false}"
+      },
+      {
+        "file": "test/native-permission-inheritance.test.ts",
+        "name": "NATIVE-02.2: native permission inheritance {\"callback\":false,\"reconnect\":false,\"explicit\":true}"
+      },
+      {
+        "file": "test/native-permission-inheritance.test.ts",
+        "name": "NATIVE-02.2: native permission inheritance {\"callback\":false,\"reconnect\":true,\"explicit\":false}"
+      },
+      {
+        "file": "test/native-permission-inheritance.test.ts",
+        "name": "NATIVE-02.2: native permission inheritance {\"callback\":false,\"reconnect\":true,\"explicit\":true}"
+      },
+      {
+        "file": "test/native-permission-inheritance.test.ts",
+        "name": "NATIVE-02.2: native permission inheritance {\"callback\":true,\"reconnect\":false,\"explicit\":false}"
+      },
+      {
+        "file": "test/native-permission-inheritance.test.ts",
+        "name": "NATIVE-02.2: native permission inheritance {\"callback\":true,\"reconnect\":false,\"explicit\":true}"
+      },
+      {
+        "file": "test/native-permission-inheritance.test.ts",
+        "name": "NATIVE-02.2: native permission inheritance {\"callback\":true,\"reconnect\":true,\"explicit\":false}"
+      },
+      {
+        "file": "test/native-permission-inheritance.test.ts",
+        "name": "NATIVE-02.2: native permission inheritance {\"callback\":true,\"reconnect\":true,\"explicit\":true}"
+      },
+      {
+        "file": "test/native-permission-inheritance.test.ts",
+        "name": "NATIVE-02.5: an explicit writable workspace change reaches the loaded owner and remains inherited"
+      },
+      {
+        "file": "test/native-project-continuation.test.ts",
+        "name": "real native removed membership survives continuation from an old Gateway project context"
+      },
+      {
+        "file": "test/native-project-continuation.test.ts",
+        "name": "real native reassigned membership survives continuation from an old Gateway project context"
+      },
+      {
+        "file": "test/native-question-race.test.ts",
+        "name": "INT-04.2: real native question accepts one im answer and retires the other surface"
+      },
+      {
+        "file": "test/native-question-race.test.ts",
+        "name": "INT-04.2: real native question accepts one ui answer and retires the other surface"
+      },
+      {
+        "file": "test/native-queue-concurrency.test.ts",
+        "name": "CTRL-02.1: two real clients append concurrently and preserve native FIFO (none)"
+      },
+      {
+        "file": "test/native-queue-concurrency.test.ts",
+        "name": "CTRL-02.1: two real clients append concurrently and preserve native FIFO (writers)"
+      },
+      {
+        "file": "test/native-queue-concurrency.test.ts",
+        "name": "CTRL-02.1: two real clients append concurrently and preserve native FIFO (all-clients)"
+      },
+      {
+        "file": "test/native-queue-crash-recovery.test.ts",
+        "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"pending\"}"
+      },
+      {
+        "file": "test/native-queue-crash-recovery.test.ts",
+        "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"running\"}"
+      },
+      {
+        "file": "test/native-queue-crash-recovery.test.ts",
+        "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"completed-offline\"}"
+      },
+      {
+        "file": "test/native-queue-crash-recovery.test.ts",
+        "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"after\",\"state\":\"pending\"}"
+      },
+      {
+        "file": "test/native-queue-crash-recovery.test.ts",
+        "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"after\",\"state\":\"completed-offline\"}"
+      },
+      {
+        "file": "test/native-queue-crash-recovery.test.ts",
+        "name": "CTRL-03.1: real Gateway queue journal SIGKILL {\"cut\":\"before\",\"state\":\"running\",\"crashRecovery\":true}"
+      },
+      {
+        "file": "test/native-queue-integration.test.ts",
+        "name": "real Codex consumes native queue once: idle"
+      },
+      {
+        "file": "test/native-queue-integration.test.ts",
+        "name": "real Codex consumes native queue once: busy"
+      },
+      {
+        "file": "test/native-queue-integration.test.ts",
+        "name": "real Codex consumes native queue once: busy-restart"
+      },
+      {
+        "file": "test/native-queue-integration.test.ts",
+        "name": "real Codex external owner consumes a cross-process queue without a second resume"
+      },
+      {
+        "file": "test/native-settings-integration.test.ts",
+        "name": "installed native protocol accepts explicit owning UI settings, images and same-core catalogs"
+      },
+      {
+        "file": "test/native-thread-settings.test.ts",
+        "name": "native settings survive client replacement and desktop edits govern ordinary continuation"
+      },
+      {
+        "file": "test/native-thread-settings.test.ts",
+        "name": "settings changed during a running turn affect only the next turn and do not interrupt it"
+      },
+      {
+        "file": "test/peer-ide-real-browser.test.ts",
+        "name": "real CLI Connector code-server workbench, authorization and reconnect"
+      },
+      {
+        "file": "test/peer-real-native.test.ts",
+        "name": "real native Connector preserves queued source receipts across disconnect without replay"
+      },
+      {
+        "file": "test/queued-bridge-context.test.ts",
+        "name": "queued first input receives DingTalk rules in the actual native model request"
+      },
+      {
+        "file": "test/queued-bridge-context.test.ts",
+        "name": "queued first input receives WeChat rules in the actual native model request"
+      },
+      {
+        "file": "test/queued-bridge-context.test.ts",
+        "name": "queued first input receives Feishu rules in the actual native model request"
+      },
+      {
+        "file": "test/queued-bridge-context.test.ts",
+        "name": "queued first input receives WeCom rules in the actual native model request"
+      },
+      {
+        "file": "test/real-ssh-files.test.ts",
+        "name": "IN-06: real SSH binary round trip and failure isolation (not-configured)"
+      },
+      {
+        "file": "test/shared-app-server-integration.test.ts",
+        "name": "CAT-03.3: real IM creation persists the native thread before model completion and keeps the native title free of channel instructions"
+      },
+      {
+        "file": "test/shared-app-server-integration.test.ts",
+        "name": "NATIVE-04.2: retiring a real read-only connection preserves the same native core PID, accepted turn and input count"
+      },
+      {
+        "file": "test/shared-app-server-integration.test.ts",
+        "name": "real native project membership reaches IDE enrichment with the existing stable project identity"
+      },
+      {
+        "file": "test/shared-app-server-integration.test.ts",
+        "name": "a CLI-only native service provides a local project IDE without any Desktop membership registry"
+      },
+      {
+        "file": "test/shared-app-server-integration.test.ts",
+        "name": "one native core provides creation, unloaded continuation, goals, lifecycle, catalog and queue for both peers"
+      },
+      {
+        "file": "test/shared-app-server-integration.test.ts",
+        "name": "a shared-core approval survives observer restart with the exact native request id and no synthetic refusal"
+      },
+      {
+        "file": "test/shared-app-server-integration.test.ts",
+        "name": "Gateway disconnect after acceptance does not interrupt a peer-visible native turn or repeat its input"
+      },
+      {
+        "file": "test/shared-app-server-integration.test.ts",
+        "name": "the same native adapter retains dynamic tools and structured ephemeral output"
+      },
+      {
+        "file": "test/shared-app-server-integration.test.ts",
+        "name": "Gateway continuation inherits the peer's permissions and reviewer instead of deriving them from callback presence"
+      },
+      {
+        "file": "test/system-error-recovery-native.test.ts",
+        "name": "real Codex state-only rehydration preserves history without model execution, retained=false"
+      },
+      {
+        "file": "test/system-error-recovery-native.test.ts",
+        "name": "real Codex state-only rehydration preserves history without model execution, retained=true"
+      },
+      {
+        "file": "test/taskboard-native-crash.test.ts",
+        "name": "TB-09.6: real SIGKILL before native acceptance commit, completedOffline=false"
+      },
+      {
+        "file": "test/taskboard-native-crash.test.ts",
+        "name": "TB-09.6: real SIGKILL before native acceptance commit, completedOffline=true"
+      },
+      {
+        "file": "test/taskboard-native-crash.test.ts",
+        "name": "TB-09.6: real SIGKILL after native acceptance commit, completedOffline=false"
+      },
+      {
+        "file": "test/taskboard-native-crash.test.ts",
+        "name": "TB-09.6: real SIGKILL after native acceptance commit, completedOffline=true"
+      },
+      {
+        "file": "test/taskboard-native-integration.test.ts",
+        "name": "Taskboard uses the shared native core for selected catalogs, settings and public items"
+      },
+      {
+        "file": "test/taskboard-native-integration.test.ts",
+        "name": "Taskboard restart detaches observation, restores the exact accepted run and never repeats input"
+      },
+      {
+        "file": "test/taskboard-native-integration.test.ts",
+        "name": "Taskboard native approval is delivered as original choices and resolved without storing an answer"
+      },
+      {
+        "file": "test/taskboard-native-integration.test.ts",
+        "name": "native automatic worker retains its durable claim through Taskboard restart (disabled=false)"
+      },
+      {
+        "file": "test/taskboard-native-integration.test.ts",
+        "name": "native automatic worker retains its durable claim through Taskboard restart (disabled=true)"
+      },
+      {
+        "file": "test/taskboard-native-integration.test.ts",
+        "name": "one native adapter preserves UI and late IM approval subscribers (detachUi=false)"
+      },
+      {
+        "file": "test/taskboard-native-integration.test.ts",
+        "name": "one native adapter preserves UI and late IM approval subscribers (detachUi=true)"
+      },
+      {
+        "file": "test/update-manager.test.ts",
+        "name": "prefers the npm CLI bundled beside node.exe on Windows"
+      },
+      {
+        "file": "test/workflow-browser-execution.test.ts",
+        "name": "production WorkflowBoard runs the saved flow through HTTP and opens its exact AI conversation"
+      },
+      {
+        "file": "test/workflow-native-execution.test.ts",
+        "name": "workflow custom code actually executes on the native core and checks its command receipt"
+      },
+      {
+        "file": "test/workflow-native-execution.test.ts",
+        "name": "workflow reconnects the same native node after owner restart and advances the writeback exactly once"
+      }
+    ]
+  },
+  "taskboardRegression": {
+    "summary": {
+      "tests": 515,
+      "pass": 513,
+      "fail": 0,
+      "skipped": 2,
+      "cancelled": 0
+    },
+    "log": {
+      "path": "/private/tmp/herdr-release-taskboard.log",
+      "sha256": "6691f22accbe3150db2132f9265d945de54d4abae479c7978ea40355a28dcbc8"
+    },
+    "records": "taskboard-test-results.jsonl",
+    "skippedTests": [
+      {
+        "file": "taskboard/test/ai-chat-browser.test.mjs",
+        "name": "isolated Chrome exercises production AI and issue composers, model scope and responsive layout"
+      },
+      {
+        "file": "taskboard/test/inject-composer-browser.test.mjs",
+        "name": "isolated Chrome runs the owned native composer steps without sending a task"
+      }
+    ]
+  },
+  "incremental": {
+    "uniqueSelectedPassedCases": 403,
+    "note": "Feature plus relevant shared regression cases, including pre-existing tests; not all newly added tests and not a proof of every combination",
+    "records": "production-test-results.jsonl"
+  },
+  "liveRegression": {
+    "summary": {
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "records": "live-test-results.jsonl",
+    "log": {
+      "path": "/private/tmp/herdr-live-final.log",
+      "sha256": "2e7803a07890a70f697522efa8ea612a78ea8fa79f908b21124d61f6b7ab3c16"
+    },
+    "scope": "Real Herdr TUI Codex CLI / real App PTY, production Connector entry child, temporary GatewayPeerServer and BridgeService with captured IM channel. Connector SIGKILL, recreate Connector and Gateway observation object; exact input attribution, IDE link, once-only notification; no real IM send."
+  },
+  "physicalChecks": [
+    {
+      "description": "Linux12 TUI真实Codex CLI创建/命名/关闭",
+      "evidence": {
+        "path": "/private/tmp/herdr-tui-lifecycle-live6.log",
+        "sha256": "5ff6c3650f11fa55e4e86ceb85ffea213aa2ffcb3980ec9ea916a98165e51591"
+      },
+      "boundary": "结束后的清理探针pane_not_found是已关闭目标，不作为再次执行"
+    },
+    {
+      "description": "Mac App创建/命名/指定终端关闭",
+      "evidence": {
+        "path": "/private/tmp/herdr-lifecycle-live.log",
+        "sha256": "b1dba79321fa1aa652f9a1294858630cc77aaafdfbb8f133ac3127f93d3e50a5"
+      },
+      "boundary": "保持先前资源"
+    },
+    {
+      "description": "Codex working→显式Esc请求→观察idle",
+      "evidence": {
+        "path": "/private/tmp/herdr-tui-stop-live.log",
+        "sha256": "f0f61c5e336fd8c8e1bc67b07872a82b8ca1348a1ee9c0a5d4bcd2fb460017b4"
+      },
+      "boundary": "不宣称所有agent中断语义一致"
+    },
+    {
+      "description": "App真实PTY/OSC状态与原生interrupt",
+      "evidence": {
+        "path": "/private/tmp/herdr-app-stop-live5.log",
+        "sha256": "1adec1264ee6471bc8b87d132a66829131fa54fcf25ec9c2441d9f53e9ed11f9"
+      },
+      "boundary": "不是Claude/OpenCode完整业务测试"
+    },
+    {
+      "description": "App到Linux SSH文件1MB往返、共享写入/stale hash、真实code-server health/workbench200",
+      "evidence": {
+        "path": "/private/tmp/herdr-app-remote-live7.log",
+        "sha256": "2527dbf5a1cba47270deaa2998278527ac54ed1cddb4a836ced702be9e4add18"
+      },
+      "boundary": "WS字节另有隔离1MB测试，未真实Git/终端UI/手机"
+    },
+    {
+      "description": "删除自有测试machine profile，其他profile保留",
+      "evidence": {
+        "path": "/private/tmp/herdr-owned-machine-cleanup.log",
+        "sha256": "2abe543ac3ad591b48de7ae1c227d0639f21cd691173641c99fc6146d0b59add"
+      },
+      "boundary": "远端自有进程另以PID/cmdline/XDG核验清理"
+    }
+  ],
+  "typecheck": {
+    "result": "passed",
+    "logs": [
+      {
+        "path": "/private/tmp/herdr-release-typecheck.log",
+        "sha256": "ea256dcec48f968981373ff66a4f29637a1f8dc850587073142fdf93e4d0eb6d"
+      },
+      {
+        "path": "/private/tmp/herdr-release-taskboard-typecheck.log",
+        "sha256": "523f54722b2555de278240331186e40c3d8837ac02df2f89ac559012781c0b19"
+      }
+    ]
+  },
+  "isolatedBuild": {
+    "result": "passed",
+    "directory": "/private/tmp/herdr-tantan-candidate-v15-20261108",
+    "productionDistModified": false,
+    "logs": [
+      {
+        "path": "/private/tmp/herdr-release-build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/private/tmp/herdr-release-web-build2.log",
+        "sha256": "90b11802448ff91ab884012cf2f97e958512048d4603891ace7a3e4779c4635c"
+      },
+      {
+        "path": "/private/tmp/herdr-release-help.log",
+        "sha256": "ebc12372b3c3086ba28d6d0730d4bf3336b924049043c1a102e1f6e40c4eea5b"
+      },
+      {
+        "path": "/private/tmp/herdr-release-server-help.log",
+        "sha256": "4aef94889afed16a47586543b1149c73c1a6995a1cbf3a3f0e1b5e54d7fea0bc"
+      },
+      {
+        "path": "/private/tmp/herdr-release-package-tests.log",
+        "sha256": "d8914aaea9462c40ceedd45d7c6e313db16049aade136bf0dd64a0b57614dd0e"
+      },
+      {
+        "path": "/private/tmp/herdr-tantan-v15-build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "note": "Bridge TypeScript, Taskboard Vite and packaged runtime, copied Web vendors; both compiled CLI help passed. Vite existing large-chunk warning. npm package tool clean-source release prerequisite remains; no tarball claimed.",
+    "candidate": {
+      "status": "unpublished-acceptance",
+      "version": "0.5.0",
+      "baseline": "37b2a2ca8b467528167bc62cd54ce3cfce8b287e",
+      "compiledHash": "e641a8066a98d1fafbaa152c630298cf734c13c4a470c6ba8b8618feeaebdfe7",
+      "files": 974,
+      "hashAlgorithm": "sha256 of sorted relative-path:sha256 lines joined by LF"
+    }
+  },
+  "fixEvidence": {
+    "fileScope": {
+      "before": {
+        "path": "/private/tmp/herdr-file-scope-before.log",
+        "sha256": "37686153d0804cc2f4d5b82b29403476cfed35d3417eec971a3d4da48c160dd7"
+      },
+      "after": {
+        "path": "/private/tmp/herdr-file-scope-after.log",
+        "sha256": "f13387665f6d4ed23d00165e198ab167c5534aa20e325366e5e5bd05a443afad"
+      },
+      "actualDefect": "Old lease could survive resource scope change after host resolution, before download chunk, or upload publication; all three failing cases now pass."
+    },
+    "runtimeFindings": [
+      "remote Node wrapper HOME reset",
+      "separate helper /tmp namespaces; persistent private IDE socket"
+    ],
+    "fixtureCorrections": [
+      "Wrong lifecycle receipt field assertion",
+      "macOS /var vs /private/var fixture cwd alias",
+      "Escaped underscore display assertion",
+      "App automatic empty-space removal during test cleanup",
+      "Vite executable initially looked up under wrong node_modules location"
+    ]
+  },
+  "notVerified": [
+    "App 远端目录完整性保守标记；不推断不可见空间或原生磁盘历史。",
+    "SIGKILL 无法执行进程清理回调；恢复只读且不重放。",
+    "Taskboard 结构化自动工作流/QA 需要上游工具与最终输出合同，不能用终端快照替代。",
+    "上游无原子 compare-and-write，末次核对之后的替换或 PID 复用不能完全排除。",
+    "不同 agent 启动参数不可能由一套固定 argv 穷尽；App 多终端 tab 命名明确拒绝连带修改。",
+    "主库 90 项及 Taskboard 2 项跳过分别列明；其中两项 Herdr opt-in 后续实机通过。",
+    "协议外未知响应明确拒绝；未声称可自动适配将来的不兼容协议。",
+    "无原生结构化模型/审批/队列/goal 合同；原记录路由保留，不能模拟终端按键实现。",
+    "无变化序号时，两个轮询之间完成的外部任务可能不可见；不存在可靠的多人原生 turn 聚合。",
+    "普通 screen 输出无可执行动作语义；已有 Codex 结构化动作保持原逻辑。",
+    "没有精确回执时保留未知；不会根据相似终端文字确认接收。",
+    "真实多人钉钉跨群未另行验收；隔离授权与来源矩阵已测试。",
+    "真实多人跨群及移动端布局不在本次追加实测范围；不是 IM/浏览器核心验收的替代或前提。",
+    "Herdr TUI 中断键仍需按其他 agent 明确配置；本轮真实业务代理使用 Codex CLI。",
+    "完整主机断电、全部上游版本和所有运行组合未穷尽。",
+    "头头尚未切换；探探为候选验收部署；npm 尚未发布。",
+    "真实浏览器已覆盖 Mac 与 Linux 的编辑、Git、终端及刷新，未覆盖所有设备/浏览器。"
+  ],
+  "deployment": {
+    "pushed": false,
+    "npmPublished": false,
+    "tantanGatewayCandidate": "v14",
+    "macNativeConnectorCandidate": "v15",
+    "linuxNativeConnectorCandidate": "v13",
+    "herdrConnectorsCandidate": "v11",
+    "toutouChanged": false,
+    "codexAppOrDaemonRestarted": false,
+    "productionDistWritten": false,
+    "note": "Candidates differ only in subsequent presentation/native file-approval enrichment; final uniform artifact activation remains separate."
+  },
+  "previousCheckpoint": "production-verification-before-e2e.json",
+  "nativeCompatibility": {
+    "summary": {
+      "tests": 220,
+      "pass": 220,
+      "fail": 0,
+      "skipped": 0
+    },
+    "log": {
+      "path": "/private/tmp/herdr-native-compat-v15.log",
+      "sha256": "fb99da0e595ac021827ef5d24b541ed44b98863db5fb893615d85ba54799f9af"
+    },
+    "records": "native-test-results.jsonl",
+    "scope": "installed native binary, isolated temporary HOME and local test model; real DingTalk E2E separately recorded"
+  },
+  "realChannelChecks": [
+    {
+      "name": "Codex CLI and App real DingTalk E2E",
+      "assertions": [
+        {
+          "environment": "cli",
+          "serverPidUnchanged": true,
+          "nativeInputs": 7,
+          "uniqueClientIds": 7,
+          "sameTurnSteer": true,
+          "queueConsumedOnce": true,
+          "stopInterrupted": true,
+          "finalNativeState": "idle"
+        },
+        {
+          "environment": "mac",
+          "serverPidUnchanged": true,
+          "nativeInputs": 8,
+          "uniqueClientIds": 8,
+          "sameTurnSteer": true,
+          "queueConsumedOnce": true,
+          "stopInterrupted": true,
+          "finalNativeState": "notLoaded"
+        }
+      ],
+      "evidence": [
+        {
+          "path": "/private/tmp/native-e2e-assertions.json",
+          "sha256": "6d53db3cf72b02ff129bdcbfa2dd276638585dde9737dee17586548a73339526"
+        },
+        {
+          "path": "/private/tmp/native-cli-history-final.json",
+          "sha256": "116ed1498ef8208b9a41cd2b6623e415f83cda142bc9b7851e622faf625768ac"
+        },
+        {
+          "path": "/private/tmp/native-mac-history-final.json",
+          "sha256": "36a9460b01c984ef52c4622fc6bad6e22600f151f812d378cb495a3087ca7f1c"
+        },
+        {
+          "path": "/private/tmp/native-cli-reconnect-cards.json",
+          "sha256": "5c7839bc119a4bb733c976f0be05358d5f6a8b0987036372551e827a2064ac4c"
+        },
+        {
+          "path": "/private/tmp/native-mac-stop-card.json",
+          "sha256": "9f712d20be23632752cefa07b735a26287055a1df702acbfbc10510bd3cccb9c"
+        },
+        {
+          "path": "/private/tmp/native-mac-file-detail-card-v15.json",
+          "sha256": "e82e9728494c1a26e3f4f57df87f31f3866b8950e52048a46b2d3ced2c5b6021"
+        },
+        {
+          "path": "/private/tmp/native-mac-file-detail-result-v15.json",
+          "sha256": "c4943751ab187e3b1741d382bec389cb52557ba76a4cec5aaf6833fb598ed793"
+        }
+      ]
+    },
+    {
+      "name": "Herdr App/TUI real DingTalk and crash recovery",
+      "evidence": [
+        {
+          "path": "/private/tmp/herdr-tantan-live-events.ndjson",
+          "sha256": "86116bfd24fb56f4a8b8ba753e6535f908d4f142430e7cbb55da8a7e1de5ec86"
+        },
+        {
+          "path": "/private/tmp/herdr-app-connector-crash-before.json",
+          "sha256": "b61a0fefcab9a213a340dbc375cb62869cd59d398bf04b6b1079ec18cbf6700c"
+        },
+        {
+          "path": "/private/tmp/herdr-app-connector-crash-complete.json",
+          "sha256": "bf07b4c844aef7a31885ed3259df0be0f8d162b8f5cd4b59ef01c69c876d3b44"
+        },
+        {
+          "path": "/private/tmp/herdr-app-gateway-crash-before.json",
+          "sha256": "6e2565f11d5c3b2eca0a1cbe1d1dee4ed5250109f5e29e2ccaee8fbfe8a39c4f"
+        },
+        {
+          "path": "/private/tmp/herdr-app-gateway-crash-complete.json",
+          "sha256": "80320cd98dab869d2796e61c189e7c0b8deb9c87a2303a070e209ee07cc23d12"
+        },
+        {
+          "path": "/private/tmp/herdr-tui-pid-before.json",
+          "sha256": "e3826cf7f07b327d9a26afc17f2effc1714dba650aa68e2ff3632029d7691594"
+        },
+        {
+          "path": "/private/tmp/herdr-tui-pid-complete.json",
+          "sha256": "47003225594ec38afbf4c11c3da67228a1fd670e9a48e3810d26078b365977df"
+        },
+        {
+          "path": "/private/tmp/herdr-tui-stable-pid-final-card.json",
+          "sha256": "77680a07dba116da20f77fae6ec96a291be55531e1aefac67899883b0aa6d617"
+        }
+      ]
+    },
+    {
+      "name": "Herdr final terminal presentation",
+      "result": "passed; observed real DingTalk desktop card with paragraphs, phase result, command summary, IDE link and no stop control",
+      "evidence": [
+        {
+          "path": "/private/tmp/herdr-format-v15-card.json",
+          "sha256": "91fd1694e3b5815135225f486131159198ba445f0033fe4068493d4d5edc7f4d"
+        }
+      ]
+    }
+  ],
+  "browserChecks": {
+    "mac": "passed: actual project link, saved HERDR-browser-check.txt, terminal pwd/cat/git status, Source Control changed-file badge, refresh reconnect",
+    "linux12": "passed: saved README marker, terminal pwd/cat, Git Open Changes diff, refresh reconnect",
+    "method": "CUA real Chrome; user completed certificate interstitial",
+    "limits": "not a mobile or all browser/device matrix"
+  },
+  "e2eFixEvidence": [
+    {
+      "description": "Native file approval omitted paths; v14 history-only enrichment could not find pending changes, v15 correlates item/started and exact turn/item",
+      "before": {
+        "path": "/private/tmp/native-mac-approval-pending-v14.json",
+        "sha256": "0a79d26bd25160e72f458559d14ff711caaa057cd065e4dd06242e00a8676ec8"
+      },
+      "after": {
+        "path": "/private/tmp/native-mac-file-detail-card-v15.json",
+        "sha256": "e82e9728494c1a26e3f4f57df87f31f3866b8950e52048a46b2d3ced2c5b6021"
+      },
+      "targeted": {
+        "path": "/private/tmp/native-file-approval-v15.log",
+        "sha256": "5a61e0f0dafc544f4ec63a80c6cafeec7524e40b126488fe2678cdc2c5c9da24"
+      }
+    },
+    {
+      "description": "Ghost composer discarded current terminal response, then final renderer flattened paragraphs",
+      "before": [
+        {
+          "path": "/private/tmp/herdr-format-v11-card.json",
+          "sha256": "f053f0240b97af5ee1051e117d1d4b4b499ce7296ca8715f6bcde783babbb1c1"
+        },
+        {
+          "path": "/private/tmp/herdr-format-v12-card.json",
+          "sha256": "e17e57e87037d3426b98ac96634b4516031fa9bf5c0e859df202983c2de87e75"
+        }
+      ],
+      "after": {
+        "path": "/private/tmp/herdr-format-v15-card.json",
+        "sha256": "91fd1694e3b5815135225f486131159198ba445f0033fe4068493d4d5edc7f4d"
+      }
+    },
+    {
+      "description": "Fast native approval before durable onTurnStarted participant acceptance",
+      "before": {
+        "path": "/private/tmp/herdr-native-approval-race-before.log",
+        "sha256": "974fbdd907df730e8e95843b0a6ee243d068280e6d0ef1a10a67c06f25d7bd9b"
+      },
+      "after": {
+        "path": "/private/tmp/herdr-native-approval-race-after.log",
+        "sha256": "ad7d239fa21a087c49a96d22a816c097d93b0d87b21673fee5fb9d8f3f6e6bfb"
+      }
+    }
+  ]
+}

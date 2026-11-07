@@ -3,6 +3,32 @@ import fs from "node:fs";
 import vm from "node:vm";
 import test from "node:test";
 const source = fs.readFileSync(new URL("../src/web/app.js", import.meta.url), "utf8");
+test("Web runtime capabilities disable only unavailable native controls, leaving stream independent", () => {
+  const session = { id: "terminal", streamReplies: true, executionUnavailable: false, execution: { operations: { settings: { supported: false, reason: "终端没有原生设置" } } } };
+  const els = { sessionModelInput: { disabled: false, innerHTML: "", value: "" }, sessionEffortInput: { disabled: false, innerHTML: "", value: "" },
+    sessionStreamInput: { disabled: false, innerHTML: "", value: "" }, sessionRuntimeToolbar: { dataset: {} } };
+  const context = vm.createContext({ session, els, state: { sessionRuntimes: new Map(), codexModels: [], config: { streamReplies: true } },
+    sessionKey: () => "terminal", isSessionSending: () => false, isSessionSavingRuntime: () => false,
+    escapeHtml: (s: string) => s, escapeAttr: (s: string) => s, setSessionEffortOptions() {} });
+  const start = source.indexOf("function renderSessionRuntimeControls(");
+  vm.runInContext(source.slice(start, source.indexOf("\nfunction setSessionEffortOptions(", start)), context);
+  vm.runInContext("renderSessionRuntimeControls(session)", context);
+  assert.equal(els.sessionModelInput.disabled, true); assert.equal(els.sessionEffortInput.disabled, true);
+  assert.equal(els.sessionStreamInput.disabled, false); assert.equal(els.sessionStreamInput.value, "on");
+  assert.match(els.sessionModelInput.innerHTML, /终端没有原生设置/);
+  session.execution.operations.settings = { supported: true, reason: "" };
+  vm.runInContext("renderSessionRuntimeControls(session)", context);
+  assert.equal(els.sessionModelInput.disabled, false); assert.ok(!els.sessionModelInput.innerHTML.includes("终端没有原生设置"));
+  session.executionUnavailable = true;
+  vm.runInContext("renderSessionRuntimeControls(session)", context);
+  assert.equal(els.sessionModelInput.disabled, true);
+  assert.equal(els.sessionEffortInput.disabled, true);
+  assert.equal(els.sessionStreamInput.disabled, false);
+  assert.match(els.sessionModelInput.innerHTML, /尚未连接/);
+  session.executionUnavailable = false;
+  vm.runInContext("renderSessionRuntimeControls(session)", context);
+  assert.equal(els.sessionModelInput.disabled, false);
+});
 for (const field of ["model", "effort", "stream", "refresh"]) test(`Web ${field} changes do not replay unrelated stale execution settings`, async () => {
   const session = { accountId: "account", id: "chosen", streamReplies: true };
   const calls: any[] = [], state = { sessions: [session], savingRuntimeSessions: new Set(), sessionRuntimes: new Map() };

@@ -82,6 +82,9 @@ export interface AiChatAttachmentInput {
 }
 
 export interface AiChatCatalog {
+  nativeConversation?: boolean;
+  reason?: string;
+  execution?: { kind: string; endpointId: string };
   models: AiChatModel[];
   skills: AiChatSkill[];
   sandboxes: string[];

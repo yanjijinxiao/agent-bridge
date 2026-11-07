@@ -1,7 +1,10 @@
 import { PEER_CAPABILITIES } from "../runtime/versions.js";
 import crypto from "node:crypto";
 import { z } from "zod";
-import type { CodexBackendCapabilities, CodexThreadState, CodexBackendId } from "../codex/backend.js";
+import type { CodexBackendCapabilities, CodexThreadState } from "../codex/backend.js";
+import type { AgentBackendId } from "../agents/catalog.js";
+import { runtimeDescriptorSchema } from "../agents/protocol.js";
+import type { RuntimeDescriptor } from "../agents/contracts.js";
 import { EXEC_BACKEND_CAPABILITIES } from "../codex/backend.js";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import { peerPrincipal, type PeerBridgePort, type PeerPrincipal } from "./context.js";
@@ -23,16 +26,19 @@ const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/
   writeGuard: z.literal(PEER_CAPABILITIES.writeGuard).optional(),
   interactions: z.literal(PEER_CAPABILITIES.interactions).optional(),
   nativeContract: z.literal(PEER_CAPABILITIES.nativeContract).optional(),
+  runtimeContract: z.literal(PEER_CAPABILITIES.runtimeContract).optional(),
   fullIDE: z.literal(PEER_CAPABILITIES.fullIDE).optional(),
   managedHost: z.string().optional(),
   hosts: z.array(z.object({ nativeHostId: z.string().min(1).max(512), managedHost: z.string().optional() }).strict()).max(100).optional(),
   files: z.object({ version: z.literal(PEER_CAPABILITIES.files) }).strict().optional(),
   management: z.object({ version: z.literal(PEER_CAPABILITIES.management) }).strict().optional(),
   sharing: z.object({ version: z.union([z.literal(1), z.literal(PEER_CAPABILITIES.sharing)]) }).strict().optional(),
-  info: z.object({ id: z.enum(["exec", "app-server"]), capabilities: z.record(z.string(), z.boolean()) }),
-  independent: z.boolean() }).strict();
+  info: z.object({ id: z.enum(["exec", "app-server", "herdr-tui", "herdr-app"]), capabilities: z.record(z.string(), z.boolean()), runtime: runtimeDescriptorSchema.optional() }),
+  independent: z.boolean() }).strict().refine(value => value.info.id === "exec" || value.info.id === "app-server"
+    ? !value.runtimeContract && !value.info.runtime : value.runtimeContract === 1 && value.info.runtime?.kind === value.info.id && !value.nativeContract && !value.interactions,
+  "运行接口和原生会话接口能力声明不一致");
 export type PeerDescription = { profileId: string; label?: string; managedHost?: string; hosts?: { nativeHostId: string; managedHost?: string }[]; writeGuard?: 1; interactions?: 1; nativeContract?: 1; fullIDE?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
-  info: { id: CodexBackendId; capabilities: CodexBackendCapabilities }; independent: boolean };
+  runtimeContract?: 1; info: { id: AgentBackendId; capabilities: CodexBackendCapabilities; runtime?: RuntimeDescriptor }; independent: boolean };
 type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection; parent?: string; nativeHostId?: string;
   versions: ReturnType<PeerConnection["versionStatus"]> };
 export const peerNativeHost = (root: string, native: string) => `${root}:host:${crypto.createHash("sha256").update(native).digest("hex").slice(0, 24)}`;
@@ -128,7 +134,7 @@ export class PeerRegistry implements PeerBridgePort {
       const raw = descriptionSchema.parse(params);
       const capabilities = { ...EXEC_BACKEND_CAPABILITIES, skills: false, mcpServers: false } as Record<string, boolean>;
       for (const key of Object.keys(capabilities)) capabilities[key] = raw.info.capabilities[key] === true;
-      const description = { ...raw, info: { id: raw.info.id, capabilities } } as PeerDescription;
+      const description = { ...raw, info: { id: raw.info.id, capabilities, ...(raw.info.runtime ? { runtime: raw.info.runtime } : {}) } } as PeerDescription;
       const suffix = description.thread ? `:${crypto.createHash("sha256").update(description.thread.threadId).digest("hex").slice(0, 16)}` : "";
       const hostId = `peer:${nodeId}:${description.profileId}${suffix}`;
       const managed = this.managedRoutes.find(r => managedTarget(r) === hostId);

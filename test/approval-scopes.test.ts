@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { parseAppServerApproval, appServerApprovalResult, approvalOptions } from "../src/codex/approval.js";
+import { parseAppServerApproval, appServerApprovalResult, approvalOptions, attachFileApprovalChanges } from "../src/codex/approval.js";
 import { ChannelApprovalController } from "../src/bridge/approval.js";
 import { ApprovalJournal } from "../src/bridge/approval-journal.js";
 
@@ -12,6 +12,41 @@ const base = { threadId: "thread", turnId: "turn", itemId: "item" };
 const mcp = { ...base, serverName: "cua_repl", mode: "form", message: 'Allow Computer Use to use "iDingTalk"?',
   requestedSchema: { type: "object", properties: {} }, _meta: { codex_approval_kind: "mcp_tool_call",
     connector_name: "Computer Use", tool_params: { app: "dd.work.exclusive4aliding" }, persist: ["session", "always"] } };
+
+test("file approval details require exact native turn and item and never include file content", async t => {
+  const request = parseAppServerApproval("item/fileChange/requestApproval", base)!;
+  const change = { path: "/tmp/new.txt", kind: { type: "update", movePath: "/tmp/moved.txt" }, diff: "PRIVATE_CONTENT" };
+  const item = { id: "item", type: "fileChange", changes: [change] };
+  for (const turns of [[{ id: "other", items: [item] }], [{ id: "turn", items: [{ ...item, id: "other" }] }],
+    [{ id: "turn", items: [{ ...item, type: "agentMessage" }] }]]) {
+    attachFileApprovalChanges(request, turns); assert.equal(request.fileChanges, undefined);
+  }
+  attachFileApprovalChanges(request, [{ id: "turn", items: [item] }]);
+  assert.deepEqual(request.fileChanges, [{ path: "/tmp/new.txt", kind: "update", movePath: "/tmp/moved.txt" }]);
+  assert.doesNotMatch(JSON.stringify(request), /PRIVATE_CONTENT/);
+  const notices: any[] = [];
+  const c = new ChannelApprovalController(async (_sender, notice) => { notices.push(notice); });
+  t.after(() => c.declineAll("group"));
+  const pending = c.request("group", request);
+  assert.match(notices[0].text, /修改清单：[\s\S]*修改：\/tmp\/new.txt → \/tmp\/moved.txt/);
+  assert.doesNotMatch(notices[0].text, /PRIVATE_CONTENT/);
+  c.decide("group", "A1", "accept"); assert.equal(await pending, "accept");
+});
+
+test("unavailable and truncated file lists stay explicit without inventing write scope", async t => {
+  const request = parseAppServerApproval("item/fileChange/requestApproval", base)!;
+  const notices: any[] = [];
+  const c = new ChannelApprovalController(async (_sender, notice) => { notices.push(notice); });
+  t.after(() => c.declineAll("group"));
+  void c.request("group", request);
+  assert.match(notices[0].text, /文件清单暂不可用/);
+  assert.doesNotMatch(notices[0].text, /写入范围/);
+  attachFileApprovalChanges(request, [{ id: "turn", items: [{ id: "item", type: "fileChange",
+    changes: Array.from({ length: 21 }, (_, i) => ({ path: `/tmp/file-${i}`, kind: { type: "add" } })) }] }]);
+  assert.equal(request.fileChanges?.length, 20); assert.equal(request.fileChangeCount, 21);
+  void c.request("group", request);
+  assert.match(notices[1].text, /仅显示前 20 项，共 21 项/);
+});
 
 test("Computer Use exposes only native persistence choices and sends their exact native metadata", () => {
   const request = parseAppServerApproval(method, mcp)!;

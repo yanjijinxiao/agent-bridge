@@ -48,6 +48,26 @@ test("native turns retain selected cwd, exact continuation id, chosen permission
   assert.equal(events.filter(event => event.role === "user")[0].content, "HIDDEN_SENTINEL \uFFFC first");
 });
 
+test("terminal capability is explained before native settings, local path probing or workflow mutation", async t => {
+  const f = await createFixture(); t.after(() => f.close());
+  const thread = await f.service.createThread({ projectId: "project" });
+  f.backend.backendInfo = () => ({ runtime: { kind: "herdr-app", endpointId: "app",
+    operations: { "structured-output": { supported: false, reason: "terminal screen" } } } });
+  f.backend.listModels = () => { throw Error("native models must not be queried"); };
+  f.backend.listSkills = () => { throw Error("native skills must not be queried"); };
+  const catalog = await f.service.getCatalog("project");
+  assert.equal(catalog.nativeConversation, false); assert.equal(catalog.execution.kind, "herdr-app");
+  assert.match(catalog.reason, /普通工作说明/); assert.match(catalog.reason, /看板管理不受影响/);
+  await assert.rejects(f.service.createThread({ projectId: "project" }), e => e.code === "NATIVE_CONVERSATION_UNAVAILABLE");
+  await assert.rejects(f.service.startTurn(thread.id, { message: "do not invent final" }), e => e.code === "NATIVE_CONVERSATION_UNAVAILABLE");
+  for (const changes of [{ model: "other" }, { reasoningEffort: "low" }, { sandbox: "read-only" }])
+    await assert.rejects(f.service.updateThread(thread.id, changes), e => e.code === "NATIVE_CONVERSATION_UNAVAILABLE");
+  assert.equal((await f.service.updateThread(thread.id, { title: "renamed locally" })).title, "renamed locally");
+  assert.equal(f.database.listAiChatThreads().length, 1); assert.equal(f.database.listAiChatRuns(thread.id).length, 0);
+  assert.equal(f.core.calls.length, 0); assert.equal(f.database.getProject("project").name, "Project");
+  await assert.rejects(f.service.getCatalog("missing"), e => e.code === "PROJECT_NOT_FOUND");
+});
+
 test("same-thread admission locks while different native threads run concurrently and explicit stop targets one exact turn", async t => {
   const holds = new Map();
   const f = await createFixture({ onRun(input) { if (!input.prompt.includes("WAIT")) return "Done"; const hold = Promise.withResolvers(); holds.set(input.clientUserMessageId, hold); return hold.promise; } });

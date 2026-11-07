@@ -8,9 +8,10 @@ import { PeerError } from "./rpc.js";
 import { peerGrantSchema, sharingPrincipalSchema, sharedPermissionSchema, samePerson, sameChatPerson, type SharedPeerGrant, type SharedPermission } from "./sharing-types.js";
 import { SharedWorkspaceHost } from "./shared-workspace.js";
 import { SessionControlQueue } from "../bridge/session-control.js";
+import { scriptHostResolver, type ScriptHost } from "../hosts/script-host.js";
 
 const rootSchema = z.object({ path: z.string(), dev: z.number(), ino: z.number() }).strict();
-const resourceSchema = z.object({ id: z.string().uuid(), hostId: z.string(), threadId: z.string(), owner: sharingPrincipalSchema, cwd: z.string(), root: rootSchema, directory: rootSchema.optional() }).strict();
+const resourceSchema = z.object({ id: z.string().uuid(), hostId: z.string(), threadId: z.string(), owner: sharingPrincipalSchema, cwd: z.string(), root: rootSchema, directory: rootSchema.optional(), filesystemHost: z.string().optional() }).strict();
 const inviteSchema = z.object({ hash: z.string(), resourceId: z.string().uuid(), expiresAt: z.number() }).strict();
 const requestSchema = z.object({ id: z.string().uuid(), resourceId: z.string().uuid(), principal: sharingPrincipalSchema, createdAt: z.number(), status: z.enum(["pending", "approved", "denied"]), grantId: z.string().uuid().optional() }).strict();
 const storeSchema = z.object({ version: z.literal(1), resources: z.array(resourceSchema), invites: z.array(inviteSchema), requests: z.array(requestSchema), grants: z.array(peerGrantSchema) }).strict();
@@ -22,9 +23,10 @@ const unavailable = () => new PeerError("access", "资源未授权、已撤销�
 export class PeerSharingAuthority {
   private data: z.infer<typeof storeSchema>;
   private readonly claims = new SessionControlQueue();
-  constructor(private readonly file: string, private readonly backend: CodexBridgeBackend,
+  constructor(private readonly file: string, private readonly backend: Pick<CodexBridgeBackend, "inspectThread">,
     private readonly confirm: (input: OwnerConfirmation) => Promise<boolean>, private readonly now = Date.now,
-    private readonly workspace = new SharedWorkspaceHost()) {
+    private readonly workspace = new SharedWorkspaceHost(),
+    private readonly fileHost?: (threadId: string) => Promise<ScriptHost | undefined>) {
     this.data = storeSchema.parse(readJsonFile(file, { version: 1, resources: [], invites: [], requests: [], grants: [] }));
   }
   private save(next: typeof this.data): void { writeJsonFile(this.file, next, { durable: true }); this.data = next; }
@@ -37,12 +39,22 @@ export class PeerSharingAuthority {
   }
   valid(grant: SharedPeerGrant): boolean { try { this.current(grant); return true; } catch { return false; } }
   hasResources(): boolean { return this.data.resources.length > 0; }
+  private async workspaceFor(threadId: string, resource?: z.infer<typeof resourceSchema>) {
+    const host = await this.fileHost?.(threadId);
+    if (resource && resource.filesystemHost !== host?.id) throw unavailable();
+    return { hostId: host?.id, workspace: host ? new SharedWorkspaceHost(host.id, undefined, scriptHostResolver(host)) : this.workspace };
+  }
   private async state(r: z.infer<typeof resourceSchema>) {
     const state = await this.inspect(r.threadId);
-    if (state.threadId !== r.threadId || state.internal || !["active", "archived"].includes(state.persistence) || !state.cwd || JSON.stringify(await this.workspace.directory(state.cwd)) !== JSON.stringify(r.root)) throw unavailable();
+    const { workspace } = await this.workspaceFor(r.threadId, r);
+    if (state.threadId !== r.threadId || state.internal || !["active", "archived"].includes(state.persistence) || !state.cwd || JSON.stringify(await workspace.directory(state.cwd)) !== JSON.stringify(r.root)) throw unavailable();
     return state;
   }
-  private inspect(threadId: string) { return this.backend.inspectThread(threadId, undefined, { includeTurns: false, timeoutMs: 5000 }); }
+  private async inspect(threadId: string) {
+    const state = await this.backend.inspectThread(threadId, undefined, { includeTurns: false, timeoutMs: 5000 });
+    if (state.resource?.machine && !await this.fileHost?.(threadId)) throw new PeerError("scope", "远端资源不能授权本机同名目录。");
+    return state;
+  }
   assert(grant: SharedPeerGrant, method: string, args: unknown[]): void {
     const first = args[0] as any;
     const thread = ["listSkills", "warmUp"].includes(method) ? grant.threadId : method === "getRuntimeInfo" ? args[1] : typeof first === "string" ? first : first?.threadId;
@@ -58,7 +70,7 @@ export class PeerSharingAuthority {
     const permission = method.startsWith("fileDownload") ? "files"
       : method === "workspace.write" ? "ide-write" : method.startsWith("workspace.") ? "ide-read" : undefined;
     if (permission && !permissions.includes(permission)
-      || ["createThread", "deleteThread", "getAccountRateLimits", "receipt", "listModels"].includes(method)) throw unavailable();
+      || ["createThread", "deleteThread", "runtimeLifecycle", "getAccountRateLimits", "receipt", "listModels"].includes(method)) throw unavailable();
     if (thread && thread !== grant.threadId) throw unavailable();
   }
   visible(grant: SharedPeerGrant, threadId: string): boolean {
@@ -97,11 +109,11 @@ export class PeerSharingAuthority {
       if (!grant.delegation) {
         const r = this.data.resources.find(r => r.hostId === grant.hostId && r.threadId === input.threadId && samePerson(r.owner, grant.principal));
         if (!r?.directory || input.resourceId && input.resourceId !== r.id) throw unavailable(); await this.state(r); live(); if (!this.data.resources.includes(r)) throw unavailable();
-        return this.workspace.workspace(r.directory, method, { path: input.path ?? "", text: input.text, hash: input.hash }, live);
+        return (await this.workspaceFor(r.threadId, r)).workspace.workspace(r.directory, method, { path: input.path ?? "", text: input.text, hash: input.hash }, live);
       }
       await this.verify(grant, method, [input]); const r = this.resource(grant.delegation.resourceId);
       if (!r.directory || input.resourceId && input.resourceId !== r.id) throw unavailable();
-      return this.workspace.workspace(r.directory, method, { path: input.path ?? "", text: input.text, hash: input.hash }, () => { live(); this.assert(grant, method, [input]); });
+      return (await this.workspaceFor(r.threadId, r)).workspace.workspace(r.directory, method, { path: input.path ?? "", text: input.text, hash: input.hash }, () => { live(); this.assert(grant, method, [input]); });
     }
     if (grant.delegation) throw unavailable(); // Delegation never includes re-sharing or ownership.
     const threadId = input.threadId ?? grant.threadId;
@@ -110,12 +122,14 @@ export class PeerSharingAuthority {
     if (method === "claim") {
       const state = await this.inspect(threadId);
       if (state.threadId !== threadId || state.internal || state.persistence !== "active" || !state.cwd || !path.isAbsolute(state.cwd)) throw unavailable();
-      const root = await this.workspace.directory(state.cwd), cwd = root.path, directory = input.workspace ? root : undefined;
-      if (r && samePerson(r.owner, grant.principal) && r.cwd === cwd && JSON.stringify(r.root) === JSON.stringify(root) && (!input.workspace || r.directory && JSON.stringify(r.directory) === JSON.stringify(directory))) return { resource: r };
+      const { workspace, hostId: filesystemHost } = await this.workspaceFor(threadId);
+      const root = await workspace.directory(state.cwd), cwd = root.path, directory = input.workspace ? root : undefined;
+      if (r && r.filesystemHost === filesystemHost && samePerson(r.owner, grant.principal) && r.cwd === cwd && JSON.stringify(r.root) === JSON.stringify(root) && (!input.workspace || r.directory && JSON.stringify(r.directory) === JSON.stringify(directory))) return { resource: r };
       if (!await this.confirm({ principal: grant.principal, threadId, workspace: directory?.path })) throw new PeerError("declined", "本机未确认所有权。");
       live(); const again = await this.inspect(threadId); live();
-      if (again.persistence !== "active" || again.internal || !again.cwd || JSON.stringify(await this.workspace.directory(again.cwd)) !== JSON.stringify(root)) throw unavailable();
-      const resource = { id: crypto.randomUUID(), hostId: grant.hostId, threadId, owner: grant.principal, cwd, root, directory };
+      if (again.persistence !== "active" || again.internal || !again.cwd || (await this.workspaceFor(threadId)).hostId !== filesystemHost
+        || JSON.stringify(await workspace.directory(again.cwd)) !== JSON.stringify(root)) throw unavailable();
+      const resource = { id: crypto.randomUUID(), hostId: grant.hostId, threadId, owner: grant.principal, cwd, root, directory, ...(filesystemHost ? { filesystemHost } : {}) };
       this.save({ ...this.data, resources: [...this.data.resources.filter(x => x !== r), resource],
         invites: this.data.invites.filter(i => i.resourceId !== r?.id), requests: this.data.requests.filter(i => i.resourceId !== r?.id), grants: this.data.grants.filter(g => g.delegation?.resourceId !== r?.id) });
       return { resource };

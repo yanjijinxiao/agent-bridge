@@ -14,7 +14,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { parseActionBlocks } from "../bridge/actions.js";
-import { sessionExecutionScope } from "../bridge/session-execution.js";
+import { sessionExecutionScope, sessionExecutionStamp } from "../bridge/session-execution.js";
+import { terminalScreenText } from "../bridge/runtime-observation.js";
+import { RuntimeError, assertSameReadTarget, type RuntimeDescriptor } from "../agents/contracts.js";
 import type {
   ChannelCapabilityNavigation,
   ChannelCapabilityProvider
@@ -31,7 +33,7 @@ import { InboundReceiptJournal } from "../bridge/inbound-receipts.js";
 import { NativeInputReceiptObserver } from "../bridge/native-input-recovery.js";
 import { ForwardingInbox, type ForwardingTarget } from "../bridge/forwarding-inbox.js";
 import { ForwardingDeferredError } from "../bridge/forwarding-error.js";
-import { parseCommand } from "../bridge/channel-commands.js";
+import { ordersPromptInput, parseCommand } from "../bridge/channel-commands.js";
 import type { ChannelMessage } from "../channels/message.js";
 import { prepareTurnSubmission, TurnSubmission, TurnDeliveryError, TurnApplicationError } from "../bridge/turn-submission.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
@@ -166,6 +168,8 @@ export type AccountSummary = PublicWeixinAccount & {
 };
 
 export type AccountSession = ManagedSession & {
+  execution?: RuntimeDescriptor;
+  executionUnavailable?: boolean;
   followStatus?: ReturnType<ThreadEventHub["status"]>;
   runtimeRecovery?: ReturnType<ThreadEventHub["status"]>["runtimeRecovery"];
   accountId: string;
@@ -720,6 +724,9 @@ export class AccountManager {
     const runner = this.runnerFor(config);
     const service = this.bridgeFactory({
       assertRuntimeWritable: () => this.assertRuntimeWritable(),
+      administrativeRuntimeAccess: (sessionId, hostId) => Boolean(this.options.peerRegistry?.managedRoute(hostId)
+        && ["starting", "running"].includes(this.entries.get(account.accountId)?.status ?? "")
+        && store.getSession(sessionId)?.threadId),
       isRuntimeDraining: () => Boolean(this.releaseOwner || this.stoppingAll),
       ideApprovals: this.ideApprovals,
       admission: this.admission,
@@ -1341,7 +1348,10 @@ export class AccountManager {
   async getSessionRuntimeInfo(accountId: string, sessionId: string): Promise<CodexRuntimeInfo> {
     const store = this.storeFor(accountId), session = requireSession(store, sessionId);
     const hostId = session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local";
-    return this.runnerFor().getRuntimeInfo(session.workspace, session.threadId, hostId, { timeoutMs: 2000, purpose: "status" });
+    const runner = this.runnerFor(), execution = runner.backendInfo?.(hostId).runtime;
+    if (execution && !execution.operations.settings.supported) return { execution };
+    return { ...await runner.getRuntimeInfo(session.workspace, session.threadId, hostId, { timeoutMs: 2000, purpose: "status" }),
+      ...(execution ? { execution } : {}) };
   }
 
   async getCodexModels(scope?: CodexRuntimeQuery): Promise<CodexModelOption[]> {
@@ -1407,6 +1417,8 @@ export class AccountManager {
       ...(overrides.effort?.trim() ? { effort: overrides.effort.trim() } : {}) };
     if (Object.keys(patch).length) {
       const runner = this.runnerFor();
+      const settings = runner.backendInfo?.(hostId).runtime?.operations.settings;
+      if (settings && !settings.supported) throw new RuntimeError("unsupported", settings.reason);
       if (!runner.updateThreadSettings) throw new Error("当前 Connector 不支持原生会话设置，请升级 Connector。");
       if (!session.threadId) {
         if (!runner.createThread) throw new Error("当前后端不支持原生会话创建。");
@@ -1434,7 +1446,10 @@ export class AccountManager {
   }
 
   setSessionInteractionPrimary(accountId: string, sessionId: string): InteractionRouteStatus {
-    const session = requireSession(this.storeFor(accountId), sessionId);
+    const store = this.storeFor(accountId), session = requireSession(store, sessionId);
+    const hostId = session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local";
+    const interaction = this.runnerFor().backendInfo?.(hostId).runtime?.operations.interaction;
+    if (interaction && !interaction.supported) throw new RuntimeError("unsupported", interaction.reason);
     if (!session.threadId || !this.threadSubscriptions().some(binding => binding.enabled
       && binding.key === JSON.stringify([accountId, sessionId]))) throw new Error("请选择当前启用跟随的会话绑定，再设置主交互对话。");
     if (["archived", "missing"].includes(this.threadEvents.status(JSON.stringify([accountId, sessionId])).runtime?.persistence ?? "")) {
@@ -1458,7 +1473,8 @@ export class AccountManager {
     const pending = requireSession(store, sessionId);
     if (pending.threadId) {
       const project = pending.projectId ? store.getProject(pending.projectId) : undefined;
-      assertCodexThreadRunnable(await this.runnerFor().inspectThread(pending.threadId, pending.hostId ?? project?.hostId));
+      const state = await this.runnerFor().inspectThread(pending.threadId, pending.hostId ?? project?.hostId);
+      if (!state.resource) assertCodexThreadRunnable(state);
     }
     const session = store.activateSession(sessionId);
     store.setInteractionMode(session.senderId, session.mode === "qa" ? "qa" : "session");
@@ -1582,7 +1598,23 @@ export class AccountManager {
     }
     const storedProject = session.projectId ? store.getProject(session.projectId) : undefined;
     const project = storedProject ? this.synchronizeManagedProject(store, storedProject) : undefined;
-    const history = await this.runnerFor().getHistory(session.threadId, session.hostId ?? project?.hostId);
+    const runner = this.runnerFor(), hostId = session.hostId ?? project?.hostId;
+    if (runner.backendInfo?.(hostId).runtime) {
+      // Screen text is untrusted display data, not native history or result actions.
+      const identity = (value: ManagedSession) => JSON.stringify([value.threadId, sessionExecutionStamp(store, value)]);
+      const expected = identity(session);
+      const current = () => { store.refresh(); if (identity(requireSession(store, sessionId)) !== expected) throw new RuntimeError("changed", "读取期间会话已改变，请刷新。"); };
+      const before = await runner.inspectThread(session.threadId, hostId); current();
+      if (!before.resource || !runner.runtimeRead) throw new RuntimeError("unsupported", "当前运行接口未提供终端快照");
+      const output = await runner.runtimeRead(session.threadId, hostId); current();
+      const after = await runner.inspectThread(session.threadId, hostId); current();
+      if (!after.resource) throw new RuntimeError("changed", "运行资源类型已改变");
+      assertSameReadTarget(before.resource, after.resource);
+      if (output.ref.endpointId !== before.resource.ref.endpointId || output.ref.id !== before.resource.ref.id) throw new RuntimeError("changed", "画面来自其他终端");
+      return [{ id: `screen:${session.threadId}`, role: "assistant", createdAt: new Date().toISOString(), attachments: [],
+        text: "这是当前终端快照，不是结构化对话历史。\n\n" + terminalScreenText(output, 12000) }];
+    }
+    const history = await runner.getHistory(session.threadId, hostId);
     return history.flatMap((message) => {
       if (message.role === "user") {
         const parsed = parsePrompt(message.text);
@@ -1651,6 +1683,13 @@ export class AccountManager {
       store.setSessionPromptPreview(session.id, promptPreview);
     }
     this.setSessionResponding(accountId, session.id, true);
+    if (this.runnerFor(config).backendInfo?.(session.hostId ?? project?.hostId).runtime) {
+      try {
+        await entry.service.submitWebRuntimeInput(session.id, prompt, attachments);
+        return { threadId: session.threadId!, message: { id: crypto.randomUUID(), role: "assistant", attachments: [],
+          createdAt: new Date().toISOString(), text: "终端输入交接已确认，后续状态将在绑定对话中更新。交接确认不代表任务完成；刷新此页可查看终端快照。" } };
+      } finally { this.setSessionResponding(accountId, session.id, false); }
+    }
     try {
       if (session.threadId && typeof this.runnerFor(config).inspectThread === "function") {
         const hostId = session.hostId ?? project?.hostId ?? "local", threadId = session.threadId;
@@ -1863,7 +1902,7 @@ export class AccountManager {
     if (previous?.owner === owner) return previous.task;
     const journal = this.receiptsFor(accountId), inbox = this.forwardingInboxes.get(accountId);
     const candidates = Object.values(journal.snapshot()).filter(receipt => {
-      if (!["submitting", "unconfirmed"].includes(receipt.phase) || !receipt.sessionId || receipt.queuedSubmissionId
+      if (!["submitting", "unconfirmed"].includes(receipt.phase) || !receipt.sessionId || receipt.queuedSubmissionId || receipt.runtimeInput
         || (receipt.hostId ?? "local") !== hostId || receipt.threadId !== threadId) return false;
       if (receipt.nativeInput) return true;
       // Old receipts did not distinguish turns from controls/queue/steer. Only
@@ -1921,6 +1960,7 @@ export class AccountManager {
         return !command || command.name === "steer" && Boolean(command.arg.trim())
           || command.name === "queue" && Boolean(command.arg.trim()) && !/^(?:list|cancel)(?:\s|$)/i.test(command.arg.trim());
       },
+      ordersInput: message => ordersPromptInput(message.text),
       dispatch: message => this.dispatchChannelMessage(accountId, message),
       reconcile: receipt => receipt.threadId
         ? this.recoverNativeInputs(accountId, receipt.hostId ?? "local", receipt.threadId) : Promise.resolve(),
@@ -2015,16 +2055,28 @@ export class AccountManager {
     const conversation = this.entries.get(accountId)?.client?.conversationIdentity?.(session.senderId);
     const followStatus = this.threadEvents.status(JSON.stringify([accountId, session.id]));
     const runtimeRecovery = followStatus.runtimeRecovery;
+    let execution: RuntimeDescriptor | undefined, executionUnavailable = false;
+    try {
+      execution = this.runnerFor().backendInfo?.(session.hostId ?? this.storeFor(accountId).getProject(session.projectId ?? "")?.hostId).runtime;
+    } catch (error) {
+      // A saved association outlives its Connector. Listing local records must
+      // not require every historical endpoint to have registered after restart.
+      // Unknown capabilities cannot be interpreted as the native Codex branch.
+      if (!(error instanceof CodexCommunicationError)) throw error;
+      executionUnavailable = true;
+    }
     return {
       ...session,
+      ...(execution ? { execution } : {}),
+      ...(executionUnavailable ? { executionUnavailable: true } : {}),
       accountId,
       active,
       responding: this.isSessionResponding(accountId, session.id),
-      ...(active && session.threadId ? { followStatus } : {}),
+      ...(active && session.threadId && !execution && !executionUnavailable ? { followStatus } : {}),
       ...(runtimeRecovery ? { runtimeRecovery } : {}),
       binding: { ...this.storeFor(accountId).sessionBindingTarget(session), bound: active,
         ...(conversation ? { conversation } : {}),
-        ...(active && session.threadId ? { interaction: this.getSessionInteractionRoute(accountId, session.id),
+        ...(active && session.threadId && !execution && !executionUnavailable ? { interaction: this.getSessionInteractionRoute(accountId, session.id),
           deliveryRoute: this.entries.get(accountId)?.client?.deliveryRouteStatus?.(session.senderId),
           nativeUnavailable: ["archived", "missing"].includes(this.threadEvents.status(JSON.stringify([accountId, session.id])).runtime?.persistence ?? "") } : {}),
         ...((active || expiry?.endedSessionId === session.id) ? { expiry } : {}) }
@@ -2116,6 +2168,7 @@ export class AccountManager {
       if (typeof operation !== "function") throw new Error(`Selected native adapter does not support ${method}`);
       return Reflect.apply(operation, backend, args);
     }]));
+    client.backendInfo = (hostId?: string) => read().backendInfo(hostId);
     client.run = (input: import("../codex/backend.js").CodexRunnerInput) => {
       const assertCurrent = () => { this.assertRuntimeWritable(); input.assertCurrent?.(); };
       assertCurrent(); return read().run({ ...input, assertCurrent });

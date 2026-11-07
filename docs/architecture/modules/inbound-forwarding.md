@@ -1,5 +1,7 @@
 # 消息接收、转发与原生接收回执
 
+Herdr 开发增量：runtimeInput 标记终端来源，明确排除原生历史/队列恢复。Gateway 丢失响应后通过独立 runtimeReceipt 查询 Connector 原来源、目标、指纹；recoverRuntimeAccepted 只修复相同 actor/chat/session/host/thread 的非活跃记录，不添加 turn/queue 或 recoveredNativeInput，不重发。屏幕观察和结果卡由独立观察 journal 持有，详见[运行模块](agent-runtime.md)。
+
 本模块保证 Gateway 已接收的来源和交接记录可核对，区分“还在准备”“已尝试但未知”“原生明确接收”。它不拥有 Codex 的任务执行顺序和任务生命周期。以下描述当前实现，不把未完成的组合验证写成保证。
 
 ## 事实由谁持有
@@ -54,6 +56,8 @@ received 记录与 inbox 的 pending/held/unconfirmed 是两个维度。普通�
 ## 重启、去重与观察
 
 Gateway 重启只结束自身连接与交接过程；已经由独立原生执行器接收的轮次继续运行，恢复后按原 thread/turn 跟随，不重发输入。RestartWork 的豁免还要求后端确认该 scope 的独立性，不能仅看到 threadId 就放行；实际审批答案和结果发送仍有各自保护。
+
+2026-11-08 探探真实附件验收发现 `/prompt done` 原本作为控制命令绕过输入顺序，可能在附件后的文字仍待处理时提前提交。现在 `ordersPromptInput` 仅将 start/s、done/d、cancel（包括菜单/卡片来源）加入输入保序；`ForwardingInbox.ordered` 与 `automatic` 分开，前者不能赋予重放权限。先前输入处理完成才提交合并区，等待期间 attempts 不增加，因此未执行的控制可在重启后继续；已经尝试、结果未知的控制仍保留回执且不重放。`/status`、`/stop`、审批及只查看 `/prompt` 不受该顺序限制。无新持久字段，旧 version 1 inbox 可直接读取。46 项 forwarding-inbox 回归含真实 BridgeService 缓冲区、处理前重启、未知命令和控制旁路；探探 v6 文件+说明快速提交已返回预期组合标记。
 
 inbox 只对仍活跃的接收前交接保序。已结束但未知的旧记录保留待核对，不永久挡住新独立输入。控制命令不需要等整个原生任务执行完成。
 

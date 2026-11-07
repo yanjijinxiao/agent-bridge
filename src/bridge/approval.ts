@@ -249,7 +249,10 @@ function approvalDetails(request: CodexApprovalRequest) {
   const details = request.kind === "command"
     ? ["类型：运行命令", request.command ? `命令：\n${limit(request.command)}` : undefined]
     : request.kind === "file"
-      ? ["类型：修改文件", request.grantRoot ? `写入范围：${request.grantRoot}` : undefined]
+      ? ["类型：修改文件", request.grantRoot ? `写入范围：${request.grantRoot}` : undefined,
+        request.fileChanges?.length ? `修改清单：\n${request.fileChanges.map(file =>
+          `${{ add: "新增", delete: "删除", update: "修改" }[file.kind]}：${approvalPath(file.path)}${file.movePath ? ` → ${approvalPath(file.movePath)}` : ""}`).join("\n")}${(request.fileChangeCount ?? 0) > request.fileChanges.length ? `\n仅显示前 ${request.fileChanges.length} 项，共 ${request.fileChangeCount} 项。` : ""}`
+          : "文件清单暂不可用，请到 Codex 核对修改范围后再决定。"]
       : request.kind === "mcp"
         ? ["类型：工具操作确认", request.serverName ? `来源：${request.serverName}` : undefined]
         : ["类型：申请额外权限", request.permissions ? `权限：${limit(JSON.stringify(request.permissions))}` : undefined];
@@ -257,6 +260,10 @@ function approvalDetails(request: CodexApprovalRequest) {
     request.cwd ? `工作目录：${request.cwd}` : undefined,
     request.reason ? `原因：${limit(request.reason)}` : undefined,
     request.scopeDescription ? `授权对象：${limit(request.scopeDescription)}` : undefined];
+}
+function approvalPath(value: string): string {
+  return Array.from(value.replace(/[\r\n\t\x00-\x1f\x7f]/g, " ")).slice(0, 500).join("")
+    .replace(/[\\`*_{}\[\]<>#|~]/g, "\\$&");
 }
 function approvalNotice(id: string, request: CodexApprovalRequest, timeoutMs: number): ChannelApprovalNotice {
   const timeout = `${Math.max(1, Math.ceil(timeoutMs / 60_000))} 分钟内未处理将自动拒绝。`;

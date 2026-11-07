@@ -39,6 +39,23 @@ function request(socketPath: string, url = "/healthz", body?: Buffer) {
 }
 async function ready(socketPath: string) { await eventually(async () => { try { return await request(socketPath); } catch { return false; } }, "IDE socket did not become ready"); }
 
+for (const changed of ["directory", "project-roots"]) test(`IDE resolution rejects ${changed} changes during remote canonicalization`, async t => {
+  const f = await fixture(t);
+  const inspect = f.backend.inspectThread.bind(f.backend);
+  let calls = 0;
+  t.mock.method(f.backend, "inspectThread", async (...args: Parameters<typeof inspect>) => {
+    calls++;
+    // First inspect establishes scope; the second is after directory IO.
+    if (calls === 2) {
+      if (changed === "directory") f.thread.cwd = f.roots[1];
+      else f.projects[0].roots = [f.roots[1]];
+    }
+    return inspect(...args);
+  });
+  await assert.rejects(f.transport.canonicalDirectory(f.ticket.hostId, f.roots[0], f.context), /项目或目录发生变化/);
+  assert.equal(f.runs.length, 0); assert.equal(f.stops.length, 0);
+});
+
 test("management can enable a paired full IDE device before a project is bound, without admitting unpaired devices", async t => {
   const f = await peerFixture(t, { device: true, webIDE: { enabled: true, binary: path.resolve("test/fixtures/peer-ide-code-server.mjs"), autoInstall: false } });
   const ide = new WorkspaceIDEManager({ root: f.root, resolve: () => undefined });

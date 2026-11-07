@@ -21,6 +21,7 @@ import { RuntimeStateStore } from "../src/state/runtime-state.js";
 import { listRetainedAccounts, loadAccount, saveAccount } from "../src/weixin/accounts.js";
 import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.js";
 import { APP_SERVER_BACKEND_CAPABILITIES, EXEC_BACKEND_CAPABILITIES } from "../src/codex/backend.js";
+import { CodexCommunicationError } from "../src/codex/communication-error.js";
 import type { NormalizedWeixinMessage } from "../src/weixin/messages.js";
 
 function setup(t: test.TestContext, options: { taskboardClient?: object; taskCards?: boolean; llmWiki?: object; root?: string;
@@ -272,6 +273,29 @@ function setup(t: test.TestContext, options: { taskboardClient?: object; taskCar
     runner
   };
 }
+
+test("an offline historical Connector does not break the session list or impersonate native capabilities", t => {
+  const f = setup(t);
+  const store = new RuntimeStateStore(accountStatePaths(f.paths, "account-one"));
+  const offline = store.createSession("offline-chat", f.root, "Offline", undefined, "session", undefined,
+    { hostId: "peer:absent:work" });
+  store.setSessionThread(offline.id, "offline-thread");
+  const online = store.createSession("online-chat", f.root, "Online");
+  let disconnected = true;
+  Object.assign(f.runner, { backendInfo(host?: string) {
+    if (host === "peer:absent:work" && disconnected) throw new CodexCommunicationError("preflight", "peer/discover");
+    return { id: "app-server", capabilities: APP_SERVER_BACKEND_CAPABILITIES };
+  } });
+  const listed = f.manager.listSessions();
+  assert.equal(listed.length, 2);
+  assert.equal(listed.find(s => s.id === offline.id)?.executionUnavailable, true);
+  assert.equal(listed.find(s => s.id === offline.id)?.binding.interaction, undefined);
+  assert.equal(listed.find(s => s.id === offline.id)?.followStatus, undefined);
+  assert.equal(listed.find(s => s.id === online.id)?.executionUnavailable, undefined);
+  disconnected = false;
+  assert.equal(f.manager.listSessions().find(s => s.id === offline.id)?.executionUnavailable, undefined,
+    "unavailability is a current projection, never a persisted capability override");
+});
 
 test("session summaries share one synchronous subscription view and immediately observe rebinds", async t => {
   const f = setup(t); await f.manager.startAccount("account-one", false);

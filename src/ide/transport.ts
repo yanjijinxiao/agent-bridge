@@ -7,11 +7,14 @@ import { ideSshConnection } from "./host-command.js";
 import { IDE_PROFILE_HELPER, IDE_SETTING_DEFAULTS, type IDEProfileStatus } from "./profile.js";
 import type { IDEAccessSubject } from "./access-subject.js";
 import type { IDEInstallStatus } from "./installer.js";
+import type { HostCommandResolver } from "../hosts/script-host.js";
+import { openHostSocketRelay } from "../hosts/socket-relay.js";
 
 const exec = promisify(execFile);
 export type IDELaunch = { socketPath: string; workspaceFile?: string; alive: () => boolean; stop: () => Promise<void> };
 export type IDELaunchInput = { hostId: string; workspace: string; id: string; binary: string;
   context?: IDEHostContext;
+  assertCurrent?: () => void;
   rootPaths?: readonly string[];
   settings: Record<string, unknown>; extensions: readonly string[]; prepare?: boolean; trustWorkspace?: boolean;
   onProfile?: (status: IDEProfileStatus) => void; signal?: AbortSignal };
@@ -95,7 +98,18 @@ async function listExtensions(){
  report(extensionWarning&&extensionWarning!=='extensions-user-managed'?'error':'ready');
  if(input.prepare){if(extensionWarning)throw Error('Extensions unavailable');process.stdout.write('CIG_PREPARED\n');process.exit(0);}
  if(stopping)throw Error('Cancelled');
- const temp=fs.mkdtempSync(path.join(os.tmpdir(),'cig-ide-'));fs.chmodSync(temp,0o700);
+ // Remote Node can be launched in a fresh container for every helper. Its
+ // /tmp is not shared with the next socket relay or SSH connection. Keep the
+ // private socket on the same persistent account filesystem as IDE data.
+ let socketRoot=os.tmpdir();
+ if(input.hostId!=='local'){
+  socketRoot=path.join(os.homedir(),'.codex-im-gateway','sockets');
+  fs.mkdirSync(socketRoot,{recursive:true,mode:0o700});
+  const stat=fs.lstatSync(socketRoot);
+  if(!stat.isDirectory()||stat.isSymbolicLink()||fs.realpathSync(socketRoot)!==socketRoot
+    ||(process.getuid&&stat.uid!==process.getuid())||(stat.mode&0o077)!==0)throw Error('Unsafe IDE socket directory');
+ }
+ const temp=fs.mkdtempSync(path.join(socketRoot,'cig-ide-'));fs.chmodSync(temp,0o700);
  const socket=path.join(temp,'ide.sock');
  if(Buffer.byteLength(socket)>100) throw Error('IDE socket path exceeds platform limit');
  // Only an explicitly Gateway-approved directory session opts out of the
@@ -104,13 +118,21 @@ async function listExtensions(){
  child=cp.spawn(input.binary,[...prefix,'--auth','none','--socket',socket,'--socket-mode','0600','--disable-proxy','--disable-telemetry',...trust,workspaceFile||cwd],{cwd,detached:true,stdio:['ignore','pipe','pipe']});
  child.stdout.resume();child.stderr.resume();child.on('error',()=>{process.stderr.write('code-server executable unavailable\n');process.exitCode=1;});
  child.on('close',code=>{try{fs.rmSync(temp,{recursive:true,force:true});}catch{}process.exit(code||0);});
+ const listeningDeadline=Date.now()+15000;
+ while(!stopping){
+  try{if(fs.statSync(socket).isSocket())break;}catch{}
+  if(child.exitCode!==null||child.signalCode||Date.now()>listeningDeadline)throw Error('IDE listener did not start');
+  await new Promise(resolve=>setTimeout(resolve,20));
+ }
+ if(stopping)throw Error('IDE cancelled before listening');
  process.stdout.write('CIG_SOCKET '+JSON.stringify({socket,workspaceFile})+'\n');
 })().catch(()=>{process.stderr.write('IDE host preparation failed\n');exitCode=1;kill();});
 `;
 
 export class ProcessIDEHostTransport implements IDEHostTransport {
-  constructor(private readonly options: { codexHome?: string; sshBin?: string; localDataRoot?: string } = {}) {}
-  private invocation(hostId: string, input: object): { command: string; args: string[] } {
+  constructor(private readonly options: { codexHome?: string; sshBin?: string; localDataRoot?: string; resolveHostCommand?: HostCommandResolver } = {}) {}
+  private async invocation(hostId: string, input: object): Promise<{ command: string; args: string[] }> {
+    if (this.options.resolveHostCommand) return this.options.resolveHostCommand(hostId, HELPER, input);
     const data = Buffer.from(JSON.stringify({ ...input, ...(hostId === "local" && this.options.localDataRoot ? { dataRoot: this.options.localDataRoot } : {}) })).toString("base64");
     if (hostId === "local") return { command: process.execPath, args: ["-e", HELPER, data] };
     const ssh = ideSshConnection(hostId, this.options);
@@ -119,7 +141,7 @@ export class ProcessIDEHostTransport implements IDEHostTransport {
       `exec node -e "eval(Buffer.from('${helper}','base64').toString())" '${data}'`] };
   }
   async canonicalDirectory(hostId: string, workspace: string): Promise<string> {
-    const call = this.invocation(hostId, { operation: "resolve", workspace });
+    const call = await this.invocation(hostId, { operation: "resolve", workspace });
     const { stdout } = await exec(call.command, call.args, { timeout: 15_000, maxBuffer: 32_000, windowsHide: true })
       .catch(() => { throw new Error("无法读取项目目录；请检查主机 Node、SSH 连接和目录权限。"); });
     const result = JSON.parse(stdout) as { cwd: string };
@@ -128,16 +150,19 @@ export class ProcessIDEHostTransport implements IDEHostTransport {
   }
   async launch(input: IDELaunchInput): Promise<IDELaunch> {
     if (input.signal?.aborted) throw new Error("IDE 启动已取消");
-    const { onProfile, signal, context: _context, ...payload } = input;
-    const call = this.invocation(input.hostId, { ...payload, defaults: IDE_SETTING_DEFAULTS });
+    const { onProfile, signal, context: _context, assertCurrent, ...payload } = input;
+    const call = await this.invocation(input.hostId, { ...payload, defaults: IDE_SETTING_DEFAULTS });
+    signal?.throwIfAborted(); assertCurrent?.();
     const processChild = spawn(call.command, call.args, { stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
     let stopping = false, hostReason = "unknown";
     processChild.stderr?.on("data", chunk => { hostReason = connectionReason(String(chunk)) ?? hostReason; });
     processChild.once("exit", (code, signal) => { if (!stopping) console.warn(`[codex-im-gateway] IDE host exited code=${code} signal=${signal} reason=${hostReason}`); });
     let tunnel: ChildProcess | undefined, temp: string | undefined;
+    let relay: Awaited<ReturnType<typeof openHostSocketRelay>> | undefined;
     let workspaceFile: string | undefined;
     const stop = async () => {
       stopping = true;
+      await relay?.stop();
       await Promise.all([terminate(tunnel), terminate(processChild)]);
       if (temp) fs.rmSync(temp, { recursive: true, force: true });
     };
@@ -176,8 +201,13 @@ export class ProcessIDEHostTransport implements IDEHostTransport {
           }
         });
       });
-      if (input.prepare || input.hostId === "local") return { socketPath: socket, ...(workspaceFile ? { workspaceFile } : {}),
+      if (input.prepare || input.hostId === "local" && !this.options.resolveHostCommand) return { socketPath: socket, ...(workspaceFile ? { workspaceFile } : {}),
         alive: () => processChild.exitCode === null && !processChild.signalCode, stop };
+      if (this.options.resolveHostCommand) {
+        relay = await openHostSocketRelay(input.hostId, socket, this.options.resolveHostCommand);
+        return { socketPath: relay.socketPath, ...(workspaceFile ? { workspaceFile } : {}),
+          alive: () => processChild.exitCode === null && !processChild.signalCode && relay!.alive(), stop };
+      }
       temp = fs.mkdtempSync(path.join(os.tmpdir(), "cig-tunnel-")); fs.chmodSync(temp, 0o700);
       const localSocket = path.join(temp, "ide.sock");
       const ssh = ideSshConnection(input.hostId, this.options);

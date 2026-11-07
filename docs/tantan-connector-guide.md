@@ -1,5 +1,7 @@
 # 探探使用指南：连接自己的设备，在钉钉使用 Codex
 
+适用范围：探探现网已发布的 Codex Connector。Herdr TUI / App 已完成本文关联的源码适配及列明的隔离、实机验证，已在探探及专用 Connector 部署验收构建，尚未 npm 发布；其配置见 [Herdr 连接与功能说明](herdr-connector-guide.md)，不属于本教程已发布的使用流程。开发分支已补目录、生命周期、输入/只读恢复、文件/共享/完整 IDE 及 Web 能力路由，探探上的验收构建不等于旧 npm Connector 已支持。开发进度与边界见 [Herdr 四层检查](audits/2026-11-07-herdr-adapters/production-checklist.md)。配对、个人准入和资源所有者审批原则继续适用。
+
 探探让你在钉钉里继续自己电脑或服务器上的 Codex 会话。你发送需求、图片或文件，Codex 在所选设备上执行，探探把进展、审批和结果发回原聊天。
 
 本文用于接入已经运行的「探探」Gateway。你只需在自己的设备运行 Connector，再与探探配对。设备主动连接探探，无需开放入站端口，也无需自己部署机器人。

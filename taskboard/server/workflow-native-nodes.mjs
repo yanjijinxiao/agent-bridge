@@ -1,5 +1,6 @@
 import { ApiError } from "./database.mjs";
 import { commandNodeInstruction, workflowCommands } from "./workflow-command-nodes.mjs";
+import { nativeConversationUnavailable } from "./ai-chat-catalog.mjs";
 
 const instructions = {
   "basic-planning": "分析输入，给出依赖、执行步骤与验收条件。只输出计划；后续子节点由流程执行器调度。",
@@ -12,6 +13,10 @@ const instructions = {
 /** This adapter is for genuinely agentic steps. Deterministic branches and
  * issue writes are executed by local-node handlers, never by a generic prompt. */
 export async function prepareNativeWorkflowNode({ node, run, context, aiChat, nativeBackend }) {
+  // Validate the node's execution contract before querying native Skills/MCP.
+  // Terminal text cannot provide a final value for downstream workflow steps.
+  const reason = nativeConversationUnavailable((await nativeBackend.backendInfo?.())?.runtime);
+  if (reason) throw new ApiError(409, "NATIVE_CONVERSATION_UNAVAILABLE", reason);
   const d = node.data;
   const commands = workflowCommands(d, context);
   let instruction = commandNodeInstruction(d, context) ?? instructions[d.kind], skillIds;

@@ -1399,6 +1399,7 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
     selectedThreadId && deletingThreadId === selectedThreadId,
   );
   const sendBlocked = loading
+    || activeCatalog?.nativeConversation === false
     || submitting
     || settingsSaving
     || composerBlocked
@@ -2298,6 +2299,9 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
             )}
           </div>
 
+          {activeCatalog?.nativeConversation === false && (
+            <div className="ai-chat-error" role="status"><span>{activeCatalog.reason}</span></div>
+          )}
           {(error || catalogError) && (
             <div className="ai-chat-error" role="alert">
               <LinearIcon name="alert" />

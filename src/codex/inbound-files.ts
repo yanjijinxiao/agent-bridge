@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import type { AppServerTransport } from "./app-server-transport.js";
+import type { HostInvocation } from "../hosts/script-host.js";
 
 export type CodexInboundFile = { path: string; label: string; kind: "image" | "file" | "video" | "audio" };
 export type StageInboundFiles = (files: CodexInboundFile[], options: {
@@ -52,6 +53,13 @@ export async function stageRemoteFiles(files: CodexInboundFile[], scope: string,
     || !/(?:^|\/)ssh$/.test(transport.command)) throw new Error("Remote backend has no attachment staging transport");
   const encoded = Buffer.from(INBOUND_FILE_RECEIVER).toString("base64");
   const args = [...transport.args.slice(0, -1), `exec node -e "eval(Buffer.from('${encoded}','base64').toString())" -- "$HOME"`];
+  return stageFilesUsingCommand(files, scope, maxBytes, async () => ({ command: transport.command, args }));
+}
+
+/** Same bounded content-addressed receiver, independent of agent transport. */
+export async function stageFilesUsingCommand(files: CodexInboundFile[], scope: string, maxBytes: number,
+  command: () => Promise<HostInvocation>, assertCurrent?: () => void): Promise<CodexInboundFile[]> {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) throw new Error("Invalid attachment staging limit");
   const output: CodexInboundFile[] = [];
   for (const file of files) {
     // Opening a FIFO can block before fstat or the SSH timeout runs. Match the
@@ -70,8 +78,10 @@ export async function stageRemoteFiles(files: CodexInboundFile[], scope: string,
     const hash = crypto.createHash("sha256").update(body).digest("hex");
     const name = file.label.replace(/[^\w.-]/g, "_").replace(/^\W+/, "").slice(0, 150) || "attachment";
     const header = JSON.stringify({ name, size: body.length, hash, scope: crypto.createHash("sha256").update(scope).digest("hex") });
+    const call = await command();
     const remotePath = await new Promise<string>((resolve, reject) => {
-      const child = spawn(transport.command, args, { stdio: ["pipe", "pipe", "pipe"] });
+      assertCurrent?.();
+      const child = spawn(call.command, call.args, { stdio: ["pipe", "pipe", "pipe"] });
       let reply = "", excessive = false;
       const timer = setTimeout(() => { child.kill("SIGTERM"); reject(new Error("Remote attachment staging timed out")); }, 30_000);
       child.stdout.on("data", data => { reply += data.toString(); if (reply.length > 8192) { excessive = true; child.kill("SIGTERM"); } });

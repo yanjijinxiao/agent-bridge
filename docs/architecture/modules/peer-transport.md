@@ -1,6 +1,6 @@
 # Connector 模块与接口契约
 
-本模块是 Gateway 的唯一执行入口，同机也通过 Connector。设备端仍复用唯一的 `CodexBridgeBackend` 原生适配器。机器人仍由原渠道适配器负责，输入策略、角色、审批卡片、复制控件、队列编排和投递沿用主链路。Connector 不运行第二套 agent 调度器。配置与操作见 [功能说明](../../gateway-peers.md)，资源共享见 [共享说明](../../peer-sharing.md)。
+本模块是 Gateway 的唯一执行入口，同机也通过 Connector。Codex 设备复用原生适配器；源码中的 Herdr 使用同一设备授权和传输下的独立运行端口，不伪装原生 thread/turn。机器人、角色、共享、文件与展示继续共用，Connector 不运行第二套 agent 调度器。配置与操作见[功能说明](../../gateway-peers.md)，共享见[共享说明](../../peer-sharing.md)，Herdr 边界见[运行模块](agent-runtime.md)。
 
 ## 边界和职责
 
@@ -25,6 +25,7 @@
 - `writeGuard: 1`：所有写操作的最低版本要求。旧设备缺失此标识时明确拒绝写入。
 - `nativeContract: 1`：队列、恢复、Skills/MCP、原生设置、动态工具和新线程执行。Gateway 不静默丢弃这些参数。
 - `interactions: 1`：独立原生审批/问答观察；按 thread + consumer 管理订阅。
+- `runtimeContract: 1`：资源 read/send/interrupt/receipt/lifecycle；独立于 nativeContract。只读 receipt 核对原来源及指纹，不发送输入；screen 不是原生消息历史。五个端口使当前 facade 显式分类总数为 57；尚未发布此新增合同。
 - `files.version: 1`、`management.version: 1`、`sharing.version: 2`：分别约束文件、管理和资源授权协议。
 - 后端本身不支持的能力保留原生 capability 错误。固定 thread 和资源委托限制的是授权范围，不是备用执行器选择。
 

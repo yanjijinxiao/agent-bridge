@@ -1,0 +1,514 @@
+{
+  "schemaVersion": 1,
+  "baseline": "37b2a2ca8b467528167bc62cd54ce3cfce8b287e",
+  "date": "2026-11-07",
+  "scope": "Herdr increment including passive-follow source review; unchanged files retain previous reviewed ranges",
+  "wholeRepositoryReviewed": false,
+  "method": "Read full new runtime modules; inspect changed shared functions and callers; regression alone is not semantic review. Historical hashes remain historical.",
+  "files": [
+    {
+      "file": "src/agents/catalog.ts",
+      "sha256": "5e907e18f3c389d5a30c8f974222d09f7d3a6de7602c3b1837673875d7164ad6",
+      "lines": 8,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          8
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/config.ts",
+      "sha256": "56c4e6971663217486b7b08e9b0384bcf89cfb433f421d162230d23fc868b84d",
+      "lines": 39,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          39
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/contracts.ts",
+      "sha256": "72dac4353f5b51ff7cd7889525a63e0988c8405f00bacf735601cfcb219c7c61",
+      "lines": 107,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          107
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/handoff.ts",
+      "sha256": "7c273f7485911a35915a3043694a7be674faf7991da3d42e284217b2c3836197",
+      "lines": 123,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          123
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/herdr/app-layout.ts",
+      "sha256": "77c9a806553603dc646b2160c3e978002ba1fcfe3b548908d1e16267c5308fce",
+      "lines": 60,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          60
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/herdr/app-view.ts",
+      "sha256": "73c13015b8228cf2a6782549030d60bbe9c2d572764cc6ff378db8f23263a6dc",
+      "lines": 39,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          39
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/herdr/app.ts",
+      "sha256": "17f07ed947bd440974ae319c0bc9dc9850c1e1bd8ef8b7b5a20bc1a14ef7d81e",
+      "lines": 138,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          138
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/herdr/tui.ts",
+      "sha256": "82c6fa93587c7b54c4ffc3986c2c0245bd4be4a7ffb2628e4d95b86b0c2c7752",
+      "lines": 90,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          90
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/index.ts",
+      "sha256": "37b75d0360a44e1da7ab7942798dc937127bbdbff37273dd7f23bffa20f06018",
+      "lines": 7,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          7
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/json-line-client.ts",
+      "sha256": "50ef34951090934f53e23f3062cb40c44f3f0e6b991882cc8d8c733497749367",
+      "lines": 129,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          129
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/protocol.ts",
+      "sha256": "2c9f21d1ce20c0ae30e0db32f8717fde56386a0bb6be64d7c5500e55f85ce92f",
+      "lines": 51,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          51
+        ]
+      ]
+    },
+    {
+      "file": "src/agents/resource-catalog.ts",
+      "sha256": "3ba57f206bd50e48ec7a91232541ec24b81320e8b2c9afeafc0dd2f40e99c0e2",
+      "lines": 68,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          68
+        ]
+      ]
+    },
+    {
+      "file": "src/bridge/inbound-receipts.ts",
+      "sha256": "c93d572ded599c5868ff1a1dd748e8f428b8533a70761d7d1ada0d148fc272de",
+      "lines": 256,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "runtimeInput schema",
+        "capture",
+        "handle",
+        "queued",
+        "recoverRuntimeAccepted",
+        "recoverAccepted/recoverQueued exclusion"
+      ]
+    },
+    {
+      "file": "src/bridge/runtime-command-policy.ts",
+      "sha256": "ec9555568f9c6f754e61c4202e594105ac254bdb95aa285e3c16bfbfe3b9ceb0",
+      "lines": 37,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          37
+        ]
+      ]
+    },
+    {
+      "file": "src/bridge/runtime-observation.ts",
+      "sha256": "fe9c665ad731cbfdef4be572e1728c4c7d78e27eb1548854a60a6c412dc487b0",
+      "lines": 339,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          339
+        ]
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "sha256": "f25b9a0091ae8f24d760f60a94c238418b1381d291ce15f4f9a22c938185cb75",
+      "lines": 4107,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "runtimeObserver constructor wiring",
+        "currentRuntimeObservation",
+        "runtimeDisplayText",
+        "runtimeInterruptControl",
+        "handleRuntimeCommand",
+        "runtimeScreen",
+        "runRuntimeInput",
+        "handleActiveMessage/runCodexTurn dispatch",
+        "suspendUserInputs",
+        "handleMessageNow binding-change finalization",
+        "runtimeScope",
+        "refreshRuntimeBinding",
+        "handleRuntimeFollow",
+        "assertSessionCapability progress semantic"
+      ]
+    },
+    {
+      "file": "src/bridge/session-execution.ts",
+      "sha256": "a9b177715304d270f08798e88dcde00064fb864a6e1c0ebff7ba9717ea666186",
+      "lines": 30,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          30
+        ]
+      ]
+    },
+    {
+      "file": "src/channels/completion-mentions.ts",
+      "sha256": "288c97b683982c1d60dce8536206753a3f515c359cc38c988e9c7b2c2079f59a",
+      "lines": 30,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          30
+        ]
+      ]
+    },
+    {
+      "file": "src/channels/progress.ts",
+      "sha256": "64f8d27c247925163a6785de0b153e722e6153dc3a14ad56df6b544d9433f983",
+      "lines": 805,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "constructor capability-specific presentation",
+        "setActivity",
+        "progressFacts",
+        "renderBody"
+      ]
+    },
+    {
+      "file": "src/channels/turn-progress-card.ts",
+      "sha256": "2bbdac942aeb2898f4696d948796ae09237c3565066de599c13b660cce0c2e38",
+      "lines": 89,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          89
+        ]
+      ]
+    },
+    {
+      "file": "src/channels/turn-status.ts",
+      "sha256": "d04bec01cb9e7b9850d5ad74cadc2d92422beac0a4baf4d9cced1039f9c88b1a",
+      "lines": 34,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          34
+        ]
+      ]
+    },
+    {
+      "file": "src/codex/backend.ts",
+      "sha256": "4ac3548e0c9bf5fa8885c7cc7f22c0b39df5eac0d583aa13090e40f8d3bdbe3c",
+      "lines": 758,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "runtime metadata types",
+        "runtime ports"
+      ]
+    },
+    {
+      "file": "src/codex/host-scoped-backend.ts",
+      "sha256": "5965824e9e1f7fbaeb1a02bb6f2ecef89f3e1622d02663e105c2bfa1cd1051b4",
+      "lines": 42,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "runtime host argument positions"
+      ]
+    },
+    {
+      "file": "src/peer/backend.ts",
+      "sha256": "0196c7ff74f264cacb310acaae7b73798193d2daaa6d574415ce5dbd74b87c36",
+      "lines": 437,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "invoke runtime dispatch/error decode",
+        "resourceRef",
+        "runtimeRead/runtimeSend/runtimeInterrupt/runtimeReceipt",
+        "backendInfo offline metadata"
+      ]
+    },
+    {
+      "file": "src/peer/cleanup.ts",
+      "sha256": "e5371c7b0dedc6d998d7edda91689f9871c98e28fe1dceea9568114e9203e653",
+      "lines": 10,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          10
+        ]
+      ]
+    },
+    {
+      "file": "src/peer/config.ts",
+      "sha256": "e4e8cf5f58332318fa5970c8d5052b7b79c83a4d29142a4a02a2aadddbc15dc3",
+      "lines": 23,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          23
+        ]
+      ]
+    },
+    {
+      "file": "src/peer/contract.ts",
+      "sha256": "83f5606a71b7592574aa153a7e115a70d7fbf08e8b069a948b93b944c451dac1",
+      "lines": 27,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          27
+        ]
+      ]
+    },
+    {
+      "file": "src/peer/execution-service.ts",
+      "sha256": "90b1f4c9a4703ca08eeb5f77adf46cf59e0823ccacae3d956eea35252e8e790f",
+      "lines": 560,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "create/constructor native-runtime split",
+        "execution.call authorization/runtime dispatch",
+        "nativeBackend",
+        "readState remote machine guard",
+        "close"
+      ]
+    },
+    {
+      "file": "src/peer/ide-service.ts",
+      "sha256": "d12d9b4433c35a1690849bd5dac6bd8ec7d6d6a137452109f57b2d7d3801e694",
+      "lines": 171,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "catalog type narrowing and resource.machine guard"
+      ]
+    },
+    {
+      "file": "src/peer/index.ts",
+      "sha256": "58070a7531f5aa0826058ba0e4f013a186c00f5224d37eb34abb76207779d223",
+      "lines": 121,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          121
+        ]
+      ]
+    },
+    {
+      "file": "src/peer/registry.ts",
+      "sha256": "ab44d5f288e23cf87a64c482c6b666dabf630efdbb7d64181f76a14c0a37375a",
+      "lines": 326,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "descriptionSchema",
+        "registration validation",
+        "description offline retention"
+      ]
+    },
+    {
+      "file": "src/peer/runtime-service.ts",
+      "sha256": "6c8ea0aef86901ce6798696780d982f8b92825a6e00c874b7813a6099a59df8b",
+      "lines": 94,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          94
+        ]
+      ]
+    },
+    {
+      "file": "src/peer/sharing-authority.ts",
+      "sha256": "f83d043a56a4eac977d994bac0f266f27581ad864241391d8fb837db07e545c3",
+      "lines": 152,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "inspect remote machine guard",
+        "assert",
+        "verify"
+      ]
+    },
+    {
+      "file": "src/runtime/versions.ts",
+      "sha256": "422d1b4abc30e3c6fe793eba09f17afb59da5501e21435a3279339c93f78da2a",
+      "lines": 52,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "runtimeContract"
+      ]
+    },
+    {
+      "file": "src/server/account-manager.ts",
+      "sha256": "0e14889f71aad04ce13b2e09b9924712b9f5b1b93f4e5576d7cc8b73239f1c82",
+      "lines": 3084,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "recoverNativeInputs excludes runtimeInput"
+      ]
+    }
+  ],
+  "testFiles": [
+    {
+      "file": "test/agent-handoff.test.ts",
+      "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/agent-peer.test.ts",
+      "sha256": "b7602575f74dcdbbba6ff3c00310430a9001695db6e94b16566d9aa4875b761d",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/agent-runtime.test.ts",
+      "sha256": "c2232b56801158066547855f81a60b59a0320b016a42187f5067384dd8af7a37",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/connector-cleanup.test.ts",
+      "sha256": "32da9358b873209408bc276656f5866b2fb9e87052c9fa15878a5574bdf8a9f5",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/connector-runtime-config.test.ts",
+      "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/connector-runtime-process.test.ts",
+      "sha256": "c715e15c84fc1982584287bc71df08b667f4db9af3b8e4a2ef87e43c2f421886",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/fixtures/agent-handoff-child.ts",
+      "sha256": "ad0785658bbd6c879f4479ab46ece513ac9dc9de174e8957c75ee1f638e90e63",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/herdr-app-layout.test.ts",
+      "sha256": "0fdeccf47d1ced00277cc7c9ba311f6a99799e6b3717e6b2cc0122fcf58a231a",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/inbound-receipts.test.ts",
+      "sha256": "12d064fcd8b697525d89885a33c09ec112e428d9712be148a69b311752880731",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/peer-complete-contract.test.ts",
+      "sha256": "b6e155998c8a7ad543b9b5c2072947b615148d7aa0a476da4e654d3fab883196",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/runtime-channel.test.ts",
+      "sha256": "b0655a2d368033036767d9e79e314f12e0afc2a88eae278304fa493caf8afa5e",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/runtime-observation.test.ts",
+      "sha256": "e937b039dad1d99d84d6cd5bdcb3edadbc70f940052703f5fd19105f82c94766",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/runtime-peer-fixture.ts",
+      "sha256": "011c8ccc7b76e602b80ccaadbe628d8b1495ca0eb8dffeee94cccb5e3204690a",
+      "review": "scenario/assertions and fixture boundary"
+    },
+    {
+      "file": "test/runtime-sharing-ide.test.ts",
+      "sha256": "78d65b1973485ff2bdee179ea92657cc2bdc975c84b792c6d317d3501024b904",
+      "review": "scenario/assertions and fixture boundary"
+    }
+  ],
+  "staticReview": {
+    "scope": [
+      "Connector strict configuration and CLI",
+      "runtime protocol version declaration",
+      "changed shared card renderers",
+      "README/tutorial/developer docs",
+      "isolated compile/CLI help"
+    ],
+    "notClaimed": [
+      "all existing UI static files reread",
+      "real platform/mobile visual acceptance",
+      "release/npm artifacts updated"
+    ]
+  },
+  "previousCheckpoint": "production-read-ledger-before-follow.json"
+}

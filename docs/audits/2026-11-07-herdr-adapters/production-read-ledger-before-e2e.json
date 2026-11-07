@@ -1,0 +1,905 @@
+{
+  "schemaVersion": 1,
+  "baseline": "37b2a2ca8b467528167bc62cd54ce3cfce8b287e",
+  "date": "2026-11-08",
+  "scope": "Herdr source completion increment and shared call boundaries",
+  "wholeRepositoryReviewed": false,
+  "method": "New runtime modules reviewed by intent/control flow, shared modified functions and callers reviewed separately; full regression is not full semantic review. Unchanged checkpoint hashes preserve previous reading evidence.",
+  "files": [
+    {
+      "file": "scripts/package-npm.mjs",
+      "sha256": "7343db79a4a144eb5de263200638821fc868c2e7ef359d8c03c71391639c4567",
+      "lines": 88,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "src/agents/catalog.ts",
+      "sha256": "5e907e18f3c389d5a30c8f974222d09f7d3a6de7602c3b1837673875d7164ad6",
+      "lines": 8,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          8
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/agents/config.ts",
+      "sha256": "ac885167a1d547f583458e326f58bd565b3c96f063c027b0e2c18baccf38fa1f",
+      "lines": 44,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          44
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/contracts.ts",
+      "sha256": "374270d6f4582e6052bdc0a0daea846ea03fdeed7c0d26a59efeffd8a8d3198f",
+      "lines": 126,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          126
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/filesystem-scope.ts",
+      "sha256": "9317cd2f9fbaf7f12a41460b2d223c838f0ec8df07b4b34762a0922042f40c26",
+      "lines": 9,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          9
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/handoff.ts",
+      "sha256": "51eec8cdb1b721fdde327b5e3d0fbb3875bbfa63c53014520f0e0386c60d8b0f",
+      "lines": 122,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          122
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/herdr/app-layout.ts",
+      "sha256": "c180cfcd21fbc307cbc0a624e3f81c3cd63d2b26cc78c32b75b2d324c2d6f664",
+      "lines": 61,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          61
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/herdr/app-view.ts",
+      "sha256": "b647a928f53848924307df51b206b864b4f381abaa5a0cae0df929c66f772740",
+      "lines": 61,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          61
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/herdr/app.ts",
+      "sha256": "f89b379323378f0ed00e262308d310ba67cc47a0ad7ec7f25dd79896126ca0b2",
+      "lines": 231,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          231
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/herdr/file-host.ts",
+      "sha256": "6b474b911f239d8dea49fd3d78a0b2a925b310b443c193cb3261d7e11f968193",
+      "lines": 45,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          45
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/herdr/tui.ts",
+      "sha256": "9481cb11759c426fab977eb31ecae36608908f9661cfc0aeea86dc8358991fe3",
+      "lines": 198,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          198
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/index.ts",
+      "sha256": "37b75d0360a44e1da7ab7942798dc937127bbdbff37273dd7f23bffa20f06018",
+      "lines": 7,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          7
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/agents/json-line-client.ts",
+      "sha256": "50ef34951090934f53e23f3062cb40c44f3f0e6b991882cc8d8c733497749367",
+      "lines": 129,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          129
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/agents/lifecycle.ts",
+      "sha256": "41f2d3eb7d5b9024af0992e60ca49c3afb6fc9316b93ca0e8714a342022da3de",
+      "lines": 109,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          109
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/protocol.ts",
+      "sha256": "b3f1bf4369c6fd9f6a2b930185d28bf425a3c0556bee3939c53eb942d58898f0",
+      "lines": 51,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          51
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/agents/resource-catalog.ts",
+      "sha256": "3ba57f206bd50e48ec7a91232541ec24b81320e8b2c9afeafc0dd2f40e99c0e2",
+      "lines": 68,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          68
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/agents/write-gate.ts",
+      "sha256": "308aeb09f0468468b2b76cc60725decabf14cb0d0d0e7ee94a0c90e1826dc1f2",
+      "lines": 14,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          14
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/bridge/channel-commands.ts",
+      "sha256": "b43518db3aaed46f0fb4c3962410bb1919417532a4d5dfc3332f4101c133b22b",
+      "lines": 193,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "src/bridge/inbound-receipts.ts",
+      "sha256": "c93d572ded599c5868ff1a1dd748e8f428b8533a70761d7d1ada0d148fc272de",
+      "lines": 256,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "runtimeInput schema",
+        "capture",
+        "handle",
+        "queued",
+        "recoverRuntimeAccepted",
+        "recoverAccepted/recoverQueued exclusion"
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/bridge/runtime-command-policy.ts",
+      "sha256": "e9ffa8cd7c244d6d7bbe1965ecd40a95681408e17e49c059872239292dd59d53",
+      "lines": 65,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          65
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/bridge/runtime-lifecycle-command.ts",
+      "sha256": "1f7bc53fb58bc860746d209178d86362547e516c27410ae7879f9f052d6fd08e",
+      "lines": 24,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          24
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/bridge/runtime-observation.ts",
+      "sha256": "a1e95e50c4211a19eb936091905fd328baca34b30701d203b24159be56559814",
+      "lines": 347,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          347
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "sha256": "17c52cb237895b36ff6f5082aaa48641d7b41da969144ee9957835212352380c",
+      "lines": 4191,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "runtimeObserver constructor wiring",
+        "currentRuntimeObservation",
+        "runtimeDisplayText",
+        "runtimeInterruptControl",
+        "handleRuntimeCommand",
+        "runtimeScreen",
+        "runRuntimeInput",
+        "handleActiveMessage/runCodexTurn dispatch",
+        "suspendUserInputs",
+        "handleMessageNow binding-change finalization",
+        "runtimeScope",
+        "refreshRuntimeBinding",
+        "handleRuntimeFollow",
+        "assertSessionCapability progress semantic"
+      ]
+    },
+    {
+      "file": "src/bridge/session-execution.ts",
+      "sha256": "a9b177715304d270f08798e88dcde00064fb864a6e1c0ebff7ba9717ea666186",
+      "lines": 30,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          30
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/channels/completion-mentions.ts",
+      "sha256": "288c97b683982c1d60dce8536206753a3f515c359cc38c988e9c7b2c2079f59a",
+      "lines": 30,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          30
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/channels/progress.ts",
+      "sha256": "64f8d27c247925163a6785de0b153e722e6153dc3a14ad56df6b544d9433f983",
+      "lines": 805,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "constructor capability-specific presentation",
+        "setActivity",
+        "progressFacts",
+        "renderBody"
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/channels/stream-checkpoint.ts",
+      "sha256": "3d5ac3cd2f08813724e7229edab5296a2c69bc2ec141b72bca5c04e187cd712e",
+      "lines": 33,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          33
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/channels/turn-progress-card.ts",
+      "sha256": "2bbdac942aeb2898f4696d948796ae09237c3565066de599c13b660cce0c2e38",
+      "lines": 89,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          89
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/channels/turn-status.ts",
+      "sha256": "d04bec01cb9e7b9850d5ad74cadc2d92422beac0a4baf4d9cced1039f9c88b1a",
+      "lines": 34,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          34
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/codex/backend.ts",
+      "sha256": "2fe8dfbe4568d509fb4070c608e702e6063e4e311dff5afb35469db2487134c2",
+      "lines": 760,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "runtime metadata types",
+        "runtime ports"
+      ]
+    },
+    {
+      "file": "src/codex/host-scoped-backend.ts",
+      "sha256": "35a926bb05fec2722825142f26da73b994230011fcf8c5710bd8001f9583fa8a",
+      "lines": 42,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "runtime host argument positions"
+      ]
+    },
+    {
+      "file": "src/codex/inbound-files.ts",
+      "sha256": "52740296546039892619c1de86f074409a283f03c75aa94433a2de119486a4dd",
+      "lines": 106,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "src/codex/output-files.ts",
+      "sha256": "86b9e1d748c21d9f9739b1ef42ccdbcb32b80573a312018ad05ec4bf85ee0d57",
+      "lines": 98,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "src/hosts/script-host.ts",
+      "sha256": "276f718cbccf375268ceb3eccfe08acf98ae7b9b53daf3e7d598def4fa416dd7",
+      "lines": 17,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          17
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/hosts/socket-relay.ts",
+      "sha256": "db8b88de798020191c381ded97150ab2c1837e88841e05b7c553aa8642b0de6a",
+      "lines": 60,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          60
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/ide/host-command.ts",
+      "sha256": "b9e00e711acba7520370d7adbe8aef23aa1485b5ade637a90ce947748a75552f",
+      "lines": 59,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "src/ide/installer.ts",
+      "sha256": "9272f631fa9e8bfe698c9711ebead6ada4c39ebafa46dbd0282b3bd1ad517c85",
+      "lines": 214,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "src/ide/transport.ts",
+      "sha256": "6753ce2af074d3c828a53813833ff7ac7bda14e2eefdb7097db21f76f1a62471",
+      "lines": 255,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "src/peer/backend.ts",
+      "sha256": "5149b51264bad63fb09399f117ad0600275c14efdfbdd3e9fe1df89b70bd803d",
+      "lines": 457,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "invoke runtime dispatch/error decode",
+        "resourceRef",
+        "runtimeRead/runtimeSend/runtimeInterrupt/runtimeReceipt",
+        "backendInfo offline metadata"
+      ]
+    },
+    {
+      "file": "src/peer/cleanup.ts",
+      "sha256": "e5371c7b0dedc6d998d7edda91689f9871c98e28fe1dceea9568114e9203e653",
+      "lines": 10,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          10
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/peer/config.ts",
+      "sha256": "e4e8cf5f58332318fa5970c8d5052b7b79c83a4d29142a4a02a2aadddbc15dc3",
+      "lines": 23,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          23
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/peer/contract.ts",
+      "sha256": "663d3abf48b0577109cb2cef194429eb06838033489979c4e5835220b59e9f37",
+      "lines": 27,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": []
+    },
+    {
+      "file": "src/peer/execution-service.ts",
+      "sha256": "804dd76b3e590a559f1a145a3da113cb36f162cf9c8f17f37a0b6555091aa0ae",
+      "lines": 570,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "create/constructor native-runtime split",
+        "execution.call authorization/runtime dispatch",
+        "nativeBackend",
+        "readState remote machine guard",
+        "close"
+      ]
+    },
+    {
+      "file": "src/peer/files.ts",
+      "sha256": "bb0b8b73b96438db7056ed046ef9eff5bd2381145981ca0e6797c4166711bc56",
+      "lines": 295,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "src/peer/ide-service.ts",
+      "sha256": "d9baab1e33e0fdad0875dc9fc63ebf3338bc2358152ea46b097a87316556da19",
+      "lines": 204,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "catalog type narrowing and resource.machine guard"
+      ]
+    },
+    {
+      "file": "src/peer/index.ts",
+      "sha256": "58070a7531f5aa0826058ba0e4f013a186c00f5224d37eb34abb76207779d223",
+      "lines": 121,
+      "review": "complete-file-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          121
+        ]
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/peer/registry.ts",
+      "sha256": "ab44d5f288e23cf87a64c482c6b666dabf630efdbb7d64181f76a14c0a37375a",
+      "lines": 326,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "descriptionSchema",
+        "registration validation",
+        "description offline retention"
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/peer/runtime-filesystem.ts",
+      "sha256": "a08244f86966e9282a875af874c9d4d8d1cc282dc56969551aeafd0c5fd6f753",
+      "lines": 49,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          49
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/peer/runtime-service.ts",
+      "sha256": "ee59c0a4c9233bfd6fc835b59311d299e83955dc2f8d5067e9aa5242d55c60f6",
+      "lines": 119,
+      "review": "complete-file-contract-and-control-flow",
+      "reviewedRanges": [
+        [
+          1,
+          119
+        ]
+      ],
+      "focus": "module intent, identity/authorization, async IO, write receipts, cleanup, compatibility; see module function contracts"
+    },
+    {
+      "file": "src/peer/shared-workspace.ts",
+      "sha256": "2d76944fb62c69304a0149221e4896a565d95ab9c6dafeb72e2446fd62d2687b",
+      "lines": 113,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "src/peer/sharing-authority.ts",
+      "sha256": "f1a57786064b86296960b7e4e61cf01a862799a2fab34cbcd735e5347f696164",
+      "lines": 162,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "inspect remote machine guard",
+        "assert",
+        "verify"
+      ]
+    },
+    {
+      "file": "src/runtime/versions.ts",
+      "sha256": "422d1b4abc30e3c6fe793eba09f17afb59da5501e21435a3279339c93f78da2a",
+      "lines": 52,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "runtimeContract"
+      ],
+      "carriedFromUnchangedCheckpoint": true
+    },
+    {
+      "file": "src/server/account-manager.ts",
+      "sha256": "f506b23a38a2b5c6fd16ba4b0f66582fd2aba9ddef7a6649b4c256a3fce1c621",
+      "lines": 3125,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "recoverNativeInputs excludes runtimeInput"
+      ]
+    },
+    {
+      "file": "src/state/runtime-state.ts",
+      "sha256": "324d5f6f071470eba5862430dc2b18a16fb288978033f19639e794d2ab2e6edc",
+      "lines": 1211,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "src/web/app.js",
+      "sha256": "5c977598bce7e0cfe562609d7106abeb3129396dadf9da5a33e7b17f40e76878",
+      "lines": 2681,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "taskboard/server/ai-chat-catalog.mjs",
+      "sha256": "dec66d6b696112103e79e848b6813a767cdda27f4fd6562645b3a60b11f75cea",
+      "lines": 109,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "taskboard/server/ai-chat.mjs",
+      "sha256": "04fb0dad9d8a8e9732666791418728ae1e50a818fc2763bcbd78653770bc6dfe",
+      "lines": 650,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "taskboard/server/native-backend.mjs",
+      "sha256": "b49bb79348d7566aa9b1d620648be4dd453bea8302467ac780f309f5d0f6782f",
+      "lines": 50,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "taskboard/server/workflow-native-nodes.mjs",
+      "sha256": "aea3040b9f8d1eb7dfb66d77a530ade44a08f9e32e468c84f4b8a2dd9bd33967",
+      "lines": 44,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "taskboard/web/src/components/AiChat.tsx",
+      "sha256": "ea5446004100d517443c8d5130bb1bd1f379e95513a10ba200b87d31448cdf47",
+      "lines": 2681,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    },
+    {
+      "file": "taskboard/web/src/types.ts",
+      "sha256": "0e478eca0cbad5383a87b9109e6253f77f1bf3c7c9ed4ca8bf52fe7b4149cf52",
+      "lines": 296,
+      "review": "changed-functions-and-call-boundaries-only",
+      "focus": [
+        "changed adapter integration and immediate callers; not whole-file review"
+      ]
+    }
+  ],
+  "testFiles": [
+    {
+      "file": "taskboard/test/ai-chat-runner.test.mjs",
+      "sha256": "a823786f1acd0d590ae4875cc047c4c4c2ff4d9477a218cfad13349623bce728"
+    },
+    {
+      "file": "taskboard/test/workflow-runtime-capabilities.test.mjs",
+      "sha256": "480e83fa56d03d2e393dc000bd47dc7f8e94cb6e46ae276299886c8bbdd539ec"
+    },
+    {
+      "file": "test/agent-handoff.test.ts",
+      "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e"
+    },
+    {
+      "file": "test/agent-peer.test.ts",
+      "sha256": "47b52a37af8f40894e53c45a187fbbc97cc8e81934746f8b23e4f4fcb0355d8c"
+    },
+    {
+      "file": "test/agent-runtime.test.ts",
+      "sha256": "fcbfa65801ecb114eba770f323ed6642760d9a1d75277cade836da182646c386"
+    },
+    {
+      "file": "test/connector-cleanup.test.ts",
+      "sha256": "32da9358b873209408bc276656f5866b2fb9e87052c9fa15878a5574bdf8a9f5"
+    },
+    {
+      "file": "test/connector-runtime-config.test.ts",
+      "sha256": "10c3807f70e07b0acaed7095ec940bfdf25135bbdf9a0d8a891847bbe41305e5"
+    },
+    {
+      "file": "test/connector-runtime-process.test.ts",
+      "sha256": "fb5fb3d1506192d28c5ce90e4012bee4161af3957c35b8821d786b9c6f56103d"
+    },
+    {
+      "file": "test/herdr-app-layout.test.ts",
+      "sha256": "0fdeccf47d1ced00277cc7c9ba311f6a99799e6b3717e6b2cc0122fcf58a231a"
+    },
+    {
+      "file": "test/herdr-live-connector.test.ts",
+      "sha256": "b044dfe789ae34ab0c4693091f12666569c7689080065af1896c1c1071825eb4"
+    },
+    {
+      "file": "test/inbound-receipts.test.ts",
+      "sha256": "12d064fcd8b697525d89885a33c09ec112e428d9712be148a69b311752880731"
+    },
+    {
+      "file": "test/peer-complete-contract.test.ts",
+      "sha256": "65fc7860a46128d51de12c0019a4f951600f18a51de22335d7a60aa1fd81c472"
+    },
+    {
+      "file": "test/peer-files.test.ts",
+      "sha256": "5fb64ba57dafda92d94c3bf380285ecf09ac3be13cff7b0dc0553831b60fb334"
+    },
+    {
+      "file": "test/peer-ide.test.ts",
+      "sha256": "f5fd8c22b4b32e35f1c94ac4ebb808d8fceb9b0b1409d3b8dc38eb8e16173b43"
+    },
+    {
+      "file": "test/runtime-channel.test.ts",
+      "sha256": "e6238c936d2e0e8df6384147de08c18dd7c7b49a5a34d1bc06036fce623511d8"
+    },
+    {
+      "file": "test/runtime-command-policy.test.ts",
+      "sha256": "5931ad50cc3f4f859a47dca910017a2f4d87ffbae7292d3b48191a854472e121"
+    },
+    {
+      "file": "test/runtime-file-host.test.ts",
+      "sha256": "2962e69ae651068e864282c329ede8d6a9f89d3a0a915a84a973eeeb1e9b9791"
+    },
+    {
+      "file": "test/runtime-lifecycle.test.ts",
+      "sha256": "e88226af6f9d5056b1afced6cfe9aedc089a6f628a1695e784630779725d4da8"
+    },
+    {
+      "file": "test/runtime-observation.test.ts",
+      "sha256": "96ce505912bdd3724aaa52214a3aeb88eafdc9587a4adfc4552de21c86834ed5"
+    },
+    {
+      "file": "test/runtime-sharing-ide.test.ts",
+      "sha256": "78d65b1973485ff2bdee179ea92657cc2bdc975c84b792c6d317d3501024b904"
+    },
+    {
+      "file": "test/runtime-versions.test.ts",
+      "sha256": "4148024481389451dfb33186b4dd3138d8ae1b70ad12242846cc54681c66300c"
+    },
+    {
+      "file": "test/runtime-web.test.ts",
+      "sha256": "b77552e138fd4e49ae66d388b7858b50ddd23170986452e080d19f1b122ba4ac"
+    },
+    {
+      "file": "test/stream-checkpoint.test.ts",
+      "sha256": "4e9adbceccbb3de47231404fc19d7aa9df2845f93e6d75bb80e4c59a5b331aa5"
+    },
+    {
+      "file": "test/web-native-settings.test.ts",
+      "sha256": "25b606b2b81417a7440cdb5e6d66c551d883759428cd62ae61be9bc5b70c9af9"
+    }
+  ],
+  "staticReview": [
+    {
+      "file": "README.en.md",
+      "sha256": "5f2e8b704b4f24946dfa6be99bda552c17c82f2e84b899b0af416255b73206a8",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "README.md",
+      "sha256": "5b737bc7f2c73042c5ca4323ccbdb29e69fbb0a1e54bfdee60d9b6d845c98091",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/README.md",
+      "sha256": "20599d75f25488173a4986d276b45749b03da9be2f55fcffd624c2ca78c508e0",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/agent-command-compatibility-2026-11-07.md",
+      "sha256": "d6bad77101b6b9aa357c17d64d77d605037705c3a0d03868adc903c801e0a966",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/agent-runtime-interface-research-2026-11-06.md",
+      "sha256": "17bce8d8d3f153173ace740a3df91b2f1a94c5a6bf7f731704e62ab4b50641ef",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/gateway-contracts.md",
+      "sha256": "84096594a6c07776cdb174659e0989efa70eec1b0d19438b2283bfa6c4149685",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/herdr-adaptation-design.md",
+      "sha256": "d804731c9c7c8a4a8830d8489d7573d0c8ac4294919cd7c37c2cb08f7885b38d",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/herdr-test-environments.md",
+      "sha256": "958da766c480cdf32fa49a3be11eb9a0a5433bb6e7539463824e216c3a16b8ca",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/modules/agent-runtime.md",
+      "sha256": "f95f4ed82c9b3cbcbf86be18c7e92f3e15607498c886d6c64bc51969679b43b7",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/modules/delivery-channels.md",
+      "sha256": "20c1c37d90d15e41767ad80fb893bb159cf5bb14474199b6e8245adce6d9a11a",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/modules/inbound-forwarding.md",
+      "sha256": "13315e4aecb8a928820b5fc76a8eb889379d0f1dc983859ef70858201b564956",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/modules/peer-transport.md",
+      "sha256": "fc9dc563a0302f5ad280bf9334af2bd750a26911bf5e934533e50207d576714f",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/modules/persistent-state.md",
+      "sha256": "38aa0cf405c14c44935e2b688d58bf6feedf37154504483d6c9e9defedd6ee73",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/architecture/remaining-work.md",
+      "sha256": "6c7edbae0ca0eecc3e9308327a3bf9be051381671c324f556cccc011cc7f3afe",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/channel-command-audit.md",
+      "sha256": "66e765a5531123773534599a0cdc0e422305f71a6aab02a840628df6383250e4",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/herdr-connector-guide.md",
+      "sha256": "e03a6ccd47560b7f83522a70cc38cda23db345a3c3520abbc117fa822b80fb13",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    },
+    {
+      "file": "docs/tantan-connector-guide.md",
+      "sha256": "12ff9ca1e8041526fbcee77e23c2a312ac35e8cb52d6586b2b024847c9c704b6",
+      "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
+    }
+  ],
+  "unchangedConfigurationPolicy": "No production settings or package version changed; strict parser tested, public guide packaged, temporary build only.",
+  "previousCheckpoint": "production-read-ledger-before-completion.json"
+}

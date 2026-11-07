@@ -4,6 +4,7 @@ import path from "node:path";
 import { PeerError } from "./rpc.js";
 import { spawn } from "node:child_process";
 import { ideHostCommand, runIDEHost } from "../ide/host-command.js";
+import type { HostCommandResolver } from "../hosts/script-host.js";
 
 export type SharedDirectory = { path: string; dev: number; ino: number };
 const maxBytes = 128 * 1024;
@@ -74,10 +75,10 @@ const fail=${fail.toString()},sha=${sha.toString()};
 ${sharedDirectory.toString()}\n${target.toString()}\n${read.toString()}\n${sharedWorkspace.toString()}`;
 }
 export class SharedWorkspaceHost {
-  constructor(private readonly hostId = "local", private readonly codexHome?: string) {}
+  constructor(private readonly hostId = "local", private readonly codexHome?: string, private readonly resolveHostCommand?: HostCommandResolver) {}
   directory(cwd: string): Promise<SharedDirectory> {
     return this.hostId === "local" ? Promise.resolve(sharedDirectory(cwd)) : runIDEHost(this.hostId,
-      `${hostHelper()}\nconst input=JSON.parse(Buffer.from(process.argv[1],'base64').toString());process.stdout.write(JSON.stringify(sharedDirectory(input.cwd)));`, { cwd }, undefined, 30000, { codexHome: this.codexHome });
+      `${hostHelper()}\nconst input=JSON.parse(Buffer.from(process.argv[1],'base64').toString());process.stdout.write(JSON.stringify(sharedDirectory(input.cwd)));`, { cwd }, undefined, 30000, { codexHome: this.codexHome, resolveHostCommand: this.resolveHostCommand });
   }
   async workspace(root: SharedDirectory, method: string, input: { path: string; text?: string; hash?: string }, guard: () => void): Promise<unknown> {
     if (this.hostId === "local") return sharedWorkspace(root, method, input, guard);
@@ -87,7 +88,9 @@ const input=JSON.parse(Buffer.from(process.argv[1],'base64').toString());
 const result=sharedWorkspace(input.root,input.method,input.input,()=>{
  process.stdout.write('READY\\n');const b=Buffer.alloc(1);if(fs.readSync(0,b,0,1,null)!==1||b[0]!==49)throw fail();
 });process.stdout.write(JSON.stringify(result));`;
-    const call = ideHostCommand(this.hostId, script, { root, method, input }, { codexHome: this.codexHome });
+    const call = this.resolveHostCommand ? await this.resolveHostCommand(this.hostId, script, { root, method, input })
+      : ideHostCommand(this.hostId, script, { root, method, input }, { codexHome: this.codexHome });
+    guard();
     return new Promise((resolve, reject) => {
       const child = spawn(call.command, call.args, { stdio: ["pipe", "pipe", "pipe"] });
       child.stderr.resume(); child.stdin.on("error", () => {});

@@ -3,6 +3,8 @@ import fs from "node:fs";
 import { pipeline } from "node:stream";
 import { promisify } from "node:util";
 import { resolveRemoteSshConnection, type RemoteCodexTransportOptions } from "../codex/remote-host.js";
+import type { HostCommandResolver } from "../hosts/script-host.js";
+export type IDEHostCommandOptions = RemoteCodexTransportOptions & { resolveHostCommand?: HostCommandResolver };
 
 const exec = promisify(execFile);
 export function ideSshConnection(hostId: string, options: RemoteCodexTransportOptions = {}) {
@@ -16,13 +18,13 @@ export function ideHostCommand(hostId: string, script: string, input: object, op
   return { command: ssh.command, args: [...ssh.args, ssh.target,
     `exec node -e "eval(Buffer.from('${code}','base64').toString())" '${data}'`] };
 }
-export async function runIDEHost<T>(hostId: string, script: string, input: object, signal?: AbortSignal, timeout = 30_000, options: RemoteCodexTransportOptions = {}): Promise<T> {
-  const call = ideHostCommand(hostId, script, input, options);
+export async function runIDEHost<T>(hostId: string, script: string, input: object, signal?: AbortSignal, timeout = 30_000, options: IDEHostCommandOptions = {}): Promise<T> {
+  const call = options.resolveHostCommand ? await options.resolveHostCommand(hostId, script, input) : ideHostCommand(hostId, script, input, options);
   const { stdout } = await exec(call.command, call.args, { timeout, signal, maxBuffer: 1_000_000, windowsHide: true });
   return JSON.parse(stdout) as T;
 }
-export async function uploadIDEHost(hostId: string, script: string, input: object, file: string, signal: AbortSignal, options: RemoteCodexTransportOptions = {}): Promise<void> {
-  const call = ideHostCommand(hostId, script, input, options);
+export async function uploadIDEHost(hostId: string, script: string, input: object, file: string, signal: AbortSignal, options: IDEHostCommandOptions = {}): Promise<void> {
+  const call = options.resolveHostCommand ? await options.resolveHostCommand(hostId, script, input) : ideHostCommand(hostId, script, input, options);
   await new Promise<void>((resolve, reject) => {
     const child = spawn(call.command, call.args, { signal, stdio: ["pipe", "ignore", "pipe"], windowsHide: true });
     const source = fs.createReadStream(file); child.stderr.resume();

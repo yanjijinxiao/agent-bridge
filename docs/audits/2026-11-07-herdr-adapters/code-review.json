@@ -1,0 +1,656 @@
+{
+  "schemaVersion": 1,
+  "baseline": "37b2a2ca8b467528167bc62cd54ce3cfce8b287e",
+  "scope": "new adapter implementation and tests only",
+  "files": [
+    {
+      "file": "src/agents/contracts.ts",
+      "sha256": "f15d16c309ec907a672a16bdd05ca0a35e48b9da0f705c98a8aa362acb734e89",
+      "reviewedLines": [
+        1,
+        104
+      ],
+      "functions": [
+        {
+          "symbol": "RuntimeError.constructor",
+          "lines": [
+            69,
+            72
+          ]
+        },
+        {
+          "symbol": "terminalOperations",
+          "lines": [
+            75,
+            86
+          ]
+        },
+        {
+          "symbol": "assertSameReadTarget",
+          "lines": [
+            90,
+            94
+          ]
+        },
+        {
+          "symbol": "assertSameResource",
+          "lines": [
+            98,
+            104
+          ]
+        }
+      ],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    },
+    {
+      "file": "src/agents/config.ts",
+      "sha256": "56c4e6971663217486b7b08e9b0384bcf89cfb433f421d162230d23fc868b84d",
+      "reviewedLines": [
+        1,
+        39
+      ],
+      "functions": [
+        {
+          "symbol": "runtimeEndpointId",
+          "lines": [
+            25,
+            29
+          ]
+        },
+        {
+          "symbol": "createHerdrRuntime",
+          "lines": [
+            33,
+            39
+          ]
+        }
+      ],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    },
+    {
+      "file": "src/agents/json-line-client.ts",
+      "sha256": "32d8f2878f1e2ce97f17d8e1815e69264910601d8d10566b016c902d5ad500d5",
+      "reviewedLines": [
+        1,
+        128
+      ],
+      "functions": [
+        {
+          "symbol": "JsonLineClient.constructor",
+          "lines": [
+            22,
+            24
+          ]
+        },
+        {
+          "symbol": "JsonLineClient.connect",
+          "lines": [
+            26,
+            53
+          ]
+        },
+        {
+          "symbol": "JsonLineClient.request",
+          "lines": [
+            55,
+            92
+          ]
+        },
+        {
+          "symbol": "JsonLineClient.receive",
+          "lines": [
+            94,
+            119
+          ]
+        },
+        {
+          "symbol": "JsonLineClient.invalid",
+          "lines": [
+            120,
+            120
+          ]
+        },
+        {
+          "symbol": "JsonLineClient.failAll",
+          "lines": [
+            121,
+            125
+          ]
+        },
+        {
+          "symbol": "JsonLineClient.close",
+          "lines": [
+            126,
+            127
+          ]
+        }
+      ],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    },
+    {
+      "file": "src/agents/herdr/tui.ts",
+      "sha256": "602e58bc14b0e3afed0ef3a1f6bea2bc9d6a6acec1274ef0af60488e9dab74c5",
+      "reviewedLines": [
+        1,
+        90
+      ],
+      "functions": [
+        {
+          "symbol": "HerdrTuiAdapter.constructor",
+          "lines": [
+            24,
+            24
+          ]
+        },
+        {
+          "symbol": "HerdrTuiAdapter.describe",
+          "lines": [
+            25,
+            32
+          ]
+        },
+        {
+          "symbol": "HerdrTuiAdapter.snapshot",
+          "lines": [
+            33,
+            33
+          ]
+        },
+        {
+          "symbol": "HerdrTuiAdapter.resource",
+          "lines": [
+            34,
+            42
+          ]
+        },
+        {
+          "symbol": "HerdrTuiAdapter.catalog",
+          "lines": [
+            43,
+            50
+          ]
+        },
+        {
+          "symbol": "HerdrTuiAdapter.resolve",
+          "lines": [
+            51,
+            62
+          ]
+        },
+        {
+          "symbol": "HerdrTuiAdapter.inspect",
+          "lines": [
+            63,
+            63
+          ]
+        },
+        {
+          "symbol": "HerdrTuiAdapter.read",
+          "lines": [
+            64,
+            71
+          ]
+        },
+        {
+          "symbol": "HerdrTuiAdapter.send",
+          "lines": [
+            72,
+            85
+          ]
+        },
+        {
+          "symbol": "HerdrTuiAdapter.interrupt",
+          "lines": [
+            86,
+            88
+          ]
+        },
+        {
+          "symbol": "HerdrTuiAdapter.close",
+          "lines": [
+            89,
+            89
+          ]
+        }
+      ],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    },
+    {
+      "file": "src/agents/herdr/app.ts",
+      "sha256": "4b292fb0a05425e730cea230cb4014a3eded5e431e65a15728a90ed3ec45579d",
+      "reviewedLines": [
+        1,
+        117
+      ],
+      "functions": [
+        {
+          "symbol": "HerdrAppAdapter.constructor",
+          "lines": [
+            22,
+            23
+          ]
+        },
+        {
+          "symbol": "HerdrAppAdapter.describe",
+          "lines": [
+            24,
+            39
+          ]
+        },
+        {
+          "symbol": "HerdrAppAdapter.require",
+          "lines": [
+            40,
+            43
+          ]
+        },
+        {
+          "symbol": "HerdrAppAdapter.resource",
+          "lines": [
+            44,
+            56
+          ]
+        },
+        {
+          "symbol": "HerdrAppAdapter.catalog",
+          "lines": [
+            57,
+            76
+          ]
+        },
+        {
+          "symbol": "HerdrAppAdapter.inspect",
+          "lines": [
+            77,
+            83
+          ]
+        },
+        {
+          "symbol": "HerdrAppAdapter.read",
+          "lines": [
+            84,
+            91
+          ]
+        },
+        {
+          "symbol": "HerdrAppAdapter.send",
+          "lines": [
+            92,
+            103
+          ]
+        },
+        {
+          "symbol": "HerdrAppAdapter.interrupt",
+          "lines": [
+            104,
+            115
+          ]
+        },
+        {
+          "symbol": "HerdrAppAdapter.close",
+          "lines": [
+            116,
+            116
+          ]
+        }
+      ],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    },
+    {
+      "file": "src/agents/herdr/app-view.ts",
+      "sha256": "73c13015b8228cf2a6782549030d60bbe9c2d572764cc6ff378db8f23263a6dc",
+      "reviewedLines": [
+        1,
+        39
+      ],
+      "functions": [
+        {
+          "symbol": "HerdrAppViewClient.constructor",
+          "lines": [
+            11,
+            11
+          ]
+        },
+        {
+          "symbol": "HerdrAppViewClient.list",
+          "lines": [
+            12,
+            37
+          ]
+        },
+        {
+          "symbol": "HerdrAppViewClient.close",
+          "lines": [
+            38,
+            38
+          ]
+        }
+      ],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    },
+    {
+      "file": "src/agents/handoff.ts",
+      "sha256": "97327824fad19bd1a47311bc87500b961d9cab946358952e73ab0f2ba0f0e0ab",
+      "reviewedLines": [
+        1,
+        106
+      ],
+      "functions": [
+        {
+          "symbol": "RuntimeHandoffJournal.constructor",
+          "lines": [
+            24,
+            26
+          ]
+        },
+        {
+          "symbol": "RuntimeHandoffJournal.get",
+          "lines": [
+            27,
+            33
+          ]
+        },
+        {
+          "symbol": "RuntimeHandoffJournal.write",
+          "lines": [
+            34,
+            38
+          ]
+        },
+        {
+          "symbol": "RuntimeHandoffCoordinator.constructor",
+          "lines": [
+            49,
+            49
+          ]
+        },
+        {
+          "symbol": "RuntimeHandoffCoordinator.sendOnce",
+          "lines": [
+            50,
+            96
+          ]
+        },
+        {
+          "symbol": "RuntimeHandoffCoordinator.checkSource",
+          "lines": [
+            97,
+            105
+          ]
+        }
+      ],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    },
+    {
+      "file": "src/agents/index.ts",
+      "sha256": "37b75d0360a44e1da7ab7942798dc937127bbdbff37273dd7f23bffa20f06018",
+      "reviewedLines": [
+        1,
+        7
+      ],
+      "functions": [],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    },
+    {
+      "file": "test/agent-runtime.test.ts",
+      "sha256": "f85322e6aa594bdbe6eb4e15e86d1db5f49604eda4c3b7cdf8e497689bb6fdac",
+      "reviewedLines": [
+        1,
+        299
+      ],
+      "functions": [
+        {
+          "symbol": "Rpc.constructor",
+          "lines": [
+            16,
+            16
+          ]
+        },
+        {
+          "symbol": "Rpc.request",
+          "lines": [
+            17,
+            20
+          ]
+        },
+        {
+          "symbol": "Rpc.close",
+          "lines": [
+            21,
+            21
+          ]
+        },
+        {
+          "symbol": "tuiFixture",
+          "lines": [
+            28,
+            40
+          ]
+        },
+        {
+          "symbol": "appFixture",
+          "lines": [
+            41,
+            56
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            77,
+            77
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            82,
+            82
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            87,
+            87
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            98,
+            98
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            117,
+            117
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            125,
+            125
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            131,
+            131
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            141,
+            141
+          ]
+        },
+        {
+          "symbol": "socketFixture",
+          "lines": [
+            156,
+            168
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            214,
+            214
+          ]
+        },
+        {
+          "symbol": "beforeWrite",
+          "lines": [
+            234,
+            234
+          ]
+        },
+        {
+          "symbol": "notification",
+          "lines": [
+            258,
+            258
+          ]
+        }
+      ],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    },
+    {
+      "file": "test/agent-handoff.test.ts",
+      "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e",
+      "reviewedLines": [
+        1,
+        107
+      ],
+      "functions": [
+        {
+          "symbol": "setup",
+          "lines": [
+            12,
+            16
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            20,
+            20
+          ]
+        },
+        {
+          "symbol": "send",
+          "lines": [
+            25,
+            28
+          ]
+        },
+        {
+          "symbol": "send",
+          "lines": [
+            37,
+            37
+          ]
+        },
+        {
+          "symbol": "send",
+          "lines": [
+            45,
+            45
+          ]
+        },
+        {
+          "symbol": "send",
+          "lines": [
+            52,
+            52
+          ]
+        },
+        {
+          "symbol": "send",
+          "lines": [
+            60,
+            60
+          ]
+        },
+        {
+          "symbol": "send",
+          "lines": [
+            68,
+            68
+          ]
+        },
+        {
+          "symbol": "send",
+          "lines": [
+            74,
+            74
+          ]
+        },
+        {
+          "symbol": "send",
+          "lines": [
+            81,
+            81
+          ]
+        },
+        {
+          "symbol": "send",
+          "lines": [
+            89,
+            89
+          ]
+        },
+        {
+          "symbol": "send",
+          "lines": [
+            105,
+            105
+          ]
+        }
+      ],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    },
+    {
+      "file": "test/fixtures/agent-handoff-child.ts",
+      "sha256": "ad0785658bbd6c879f4479ab46ece513ac9dc9de174e8957c75ee1f638e90e63",
+      "reviewedLines": [
+        1,
+        15
+      ],
+      "functions": [
+        {
+          "symbol": "send",
+          "lines": [
+            6,
+            9
+          ]
+        },
+        {
+          "symbol": "assertCurrent",
+          "lines": [
+            14,
+            14
+          ]
+        }
+      ],
+      "status": "reviewed-for-listed-adapter-scenarios",
+      "limits": "Not production Gateway integration; design and audit state the uncovered paths."
+    }
+  ]
+}

@@ -15,7 +15,7 @@ import { defaultConfig } from "../src/state/config.js";
 import type { ChannelMessage } from "../src/channels/message.js";
 import { forwardingCard } from "../src/bridge/forwarding-card.js";
 import { Lexer } from "marked";
-import { parseCommand } from "../src/bridge/channel-commands.js";
+import { ordersPromptInput, parseCommand } from "../src/bridge/channel-commands.js";
 import { spawnSync } from "node:child_process";
 
 const input: ChannelMessage = { id: "provider-source", senderId: "actor", replyTargetId: "room", text: "original\nmessage",
@@ -35,6 +35,7 @@ function fixture(t: test.TestContext) {
   const make = () => {
     receipts = new InboundReceiptJournal(path.join(root, "receipts.jsonl"), [], { onAccepted: r => inbox.accepted(r) });
     return inbox = new ForwardingInbox({ filePath: file, receipts, target: () => target, automatic: () => automatic,
+      ordersInput: message => ordersPromptInput(message.text),
       canDispatch: () => canDispatch, now: () => now, notice: async (_m, text) => { notices.push(text); },
       dispatch: m => receipts.handle(m, () => action(m)) });
   };
@@ -225,6 +226,68 @@ test("Gateway status/control messages bypass a pending ordinary message instead 
   await f.inbox.receive(input); f.automatic = false;
   await f.inbox.receive({ ...input, id: "status", text: "/status", attachments: [] });
   assert.deepEqual(f.writes.map(m => m.id), ["status"]);
+});
+
+for (const text of ["/prompt start", "/pp s", "/prompt done", "/pp d", "/prompt cancel"]) {
+  test(`${text} preserves input order without becoming replayable, including card actions`, async t => {
+    const f = fixture(t), ready = Promise.withResolvers<void>();
+    f.action = async m => { if (m.id === input.id) await ready.promise; f.writes.push(m); };
+    const earlier = f.inbox.receive(input);
+    f.automatic = false;
+    await f.inbox.receive({ ...input, id: "buffer-control", text, attachments: [], interaction: { kind: "card", messageId: "card" } });
+    assert.equal(f.writes.length, 0);
+    assert.equal(Object.values(f.saved()).find(r => r.message.id === "buffer-control")?.automatic, false);
+    ready.resolve(); await earlier;
+    f.restart(); f.advance(); f.inbox.start(); await settle();
+    assert.deepEqual(f.writes.map(m => m.id), [input.id, "buffer-control"]);
+  });
+}
+
+test("a pending buffer start blocks later pieces while status and stop still bypass", async t => {
+  const f = fixture(t), ready = Promise.withResolvers<void>();
+  f.action = async m => { if (m.id === "start") await ready.promise; f.writes.push(m); };
+  f.automatic = false;
+  const start = f.inbox.receive({ ...input, id: "start", text: "/prompt start", attachments: [] });
+  f.automatic = true; await f.inbox.receive(input);
+  f.automatic = false;
+  for (const command of ["/status", "/stop", "/prompt"])
+    await f.inbox.receive({ ...input, id: command, text: command, attachments: [] });
+  assert.deepEqual(f.writes.map(m => m.id), ["/status", "/stop", "/prompt"]);
+  ready.resolve(); await start; f.advance(); f.inbox.start(); await settle();
+  assert.deepEqual(f.writes.map(m => m.id).slice(-2), ["start", input.id]);
+});
+
+test("an ordered prompt command with unknown effects is never replayed or a permanent barrier", async t => {
+  const f = fixture(t); f.automatic = false;
+  f.action = async () => { f.receipts.submitting(); throw Error("lost buffer command reply"); };
+  await assert.rejects(f.inbox.receive({ ...input, text: "/prompt done" }));
+  f.restart(); f.advance(); f.inbox.start(); await settle();
+  assert.equal(f.writes.length, 0); assert.equal(f.inbox.summary("room").unconfirmed, 1);
+  f.automatic = true; f.action = async m => { f.writes.push(m); };
+  await f.inbox.receive({ ...input, id: "independent" });
+  assert.deepEqual(f.writes.map(m => m.id), ["independent"]);
+});
+
+test("real prompt buffer includes slow prepared text before done, across inbox and service restart", async t => {
+  const f = fixture(t), store = new RuntimeStateStore(resolveStatePaths(path.join(f.root, "state")));
+  const session = store.createSession("room", f.root, "original", undefined, "session", undefined, { standalone: true });
+  store.setSessionThread(session.id, "thread");
+  const prompts: string[] = [], ready = Promise.withResolvers<void>();
+  const create = () => new BridgeService({ config: { ...defaultConfig(f.root), allowedSenderIds: ["actor"], streamReplies: false },
+    stateStore: store, inputReceipts: f.receipts,
+    weixin: { async sendTyping() {}, async sendText() { return { messageId: "reply" }; } },
+    runner: { async run(value: { prompt: string }) { prompts.push(value.prompt); return { text: "ok", raw: "ok", threadId: "thread", turnId: "turn" }; } } as never });
+  let bridge = create(); t.after(() => bridge.suspendUserInputs());
+  f.action = async m => { if (m.id === "piece") await ready.promise; await bridge.handleMessage(m); };
+  f.automatic = false; await f.inbox.receive({ ...input, id: "start", text: "/prompt start", attachments: [] });
+  f.automatic = true;
+  const piece = f.inbox.receive({ ...input, id: "piece", text: "required instruction after file", attachments: [] });
+  f.automatic = false; await f.inbox.receive({ ...input, id: "done", text: "/prompt done", attachments: [] });
+  assert.equal(prompts.length, 0);
+  ready.resolve(); await piece; bridge.suspendUserInputs(); f.restart(); bridge = create();
+  f.advance(); f.inbox.start(); await settle();
+  assert.equal(prompts.length, 1); assert.match(prompts[0], /required instruction after file/);
+  assert.equal(f.receipts.receipt("done")?.phase, "handled");
 });
 
 test("inbox corruption fails closed and leaves the original bytes intact", t => {

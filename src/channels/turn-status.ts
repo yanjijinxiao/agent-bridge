@@ -1,11 +1,13 @@
 /** Presentation facts, never inferred from model text, silence or stream closure. */
-export type TurnActivity = "running" | "waiting-input" | "waiting-approval" | "recovering" | "unconfirmed" | "waiting-result";
-export type TurnOutcome = "completed" | "failed" | "interrupted" | "continued" | "detached" | "session-restored" | "session-unconfirmed";
+export type TurnActivity = "running" | "waiting-input" | "waiting-approval" | "waiting-external" | "recovering" | "unconfirmed" | "waiting-result";
+export type TurnOutcome = "completed" | "failed" | "interrupted" | "continued" | "detached" | "session-restored" | "session-unconfirmed"
+  | "terminal-idle" | "terminal-exited" | "terminal-error" | "input-not-sent";
 
 const labels: Record<TurnActivity | TurnOutcome, string> = {
   running: "进行中",
   "waiting-input": "等你回答",
   "waiting-approval": "等待审批",
+  "waiting-external": "等待终端处理",
   recovering: "正在恢复执行",
   unconfirmed: "执行状态待确认",
   "waiting-result": "任务已结束，结果待同步",
@@ -15,7 +17,8 @@ const labels: Record<TurnActivity | TurnOutcome, string> = {
   continued: "已转入后续卡片",
   detached: "已停止同步（任务未停止）",
   "session-restored": "会话已恢复（原任务未重试）",
-  "session-unconfirmed": "会话恢复未确认"
+  "session-unconfirmed": "会话恢复未确认",
+  "terminal-idle": "终端当前空闲", "terminal-exited": "终端进程已退出", "terminal-error": "终端报告错误", "input-not-sent": "输入未发送"
 };
 
 export function turnStatusHeading(status: TurnActivity | TurnOutcome): string {

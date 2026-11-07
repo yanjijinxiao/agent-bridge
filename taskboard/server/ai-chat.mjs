@@ -104,10 +104,9 @@ export class AiChatService {
     const submission = aiSubmission(input, "thread", input.projectId);
     const existing = findAiSubmission(this.database, submission);
     if (existing) return existing;
-    const [catalog, resolved] = await Promise.all([
-      this.getCatalog(input.projectId),
-      resolveAiWorkspace(input.projectId, this.codexStatePath, this.projectCatalog),
-    ]);
+    const catalog = await this.getCatalog(input.projectId);
+    if (catalog.nativeConversation === false) throw new ApiError(409, "NATIVE_CONVERSATION_UNAVAILABLE", catalog.reason);
+    const resolved = await resolveAiWorkspace(input.projectId, this.codexStatePath, this.projectCatalog);
     const model = this.#resolveModel(catalog, input.model);
     const reasoningEffort = input.reasoningEffort ?? model.defaultReasoningEffort;
     this.#validateReasoningEffort(model, reasoningEffort);
@@ -149,10 +148,10 @@ export class AiChatService {
       (key) => Object.hasOwn(changes, key),
     );
     const wasActive = changesSettings && this.#threadIsActive(thread);
-
+    const catalog = changesSettings ? await this.getCatalog(thread.origin.projectId) : undefined;
+    if (catalog?.nativeConversation === false) throw new ApiError(409, "NATIVE_CONVERSATION_UNAVAILABLE", catalog.reason);
     if (Object.hasOwn(changes, "sandbox")) this.#validateSandbox(changes.sandbox);
     if (Object.hasOwn(changes, "model") || Object.hasOwn(changes, "reasoningEffort")) {
-      const catalog = await this.getCatalog(thread.origin.projectId);
       thread = this.getThread(threadId);
       const model = this.#resolveModel(catalog, changes.model ?? thread.model);
       const reasoningEffort = changes.reasoningEffort ?? thread.reasoningEffort;
@@ -204,10 +203,9 @@ export class AiChatService {
       );
     }
 
-    const [catalog, resolved] = await Promise.all([
-      this.getCatalog(thread.origin.projectId),
-      resolveAiWorkspace(thread.origin.projectId, this.codexStatePath, this.projectCatalog),
-    ]);
+    const catalog = await this.getCatalog(thread.origin.projectId);
+    if (catalog.nativeConversation === false) throw new ApiError(409, "NATIVE_CONVERSATION_UNAVAILABLE", catalog.reason);
+    const resolved = await resolveAiWorkspace(thread.origin.projectId, this.codexStatePath, this.projectCatalog);
 
     thread = this.getThread(threadId);
     const confirmed = findAiSubmission(this.database, submission);

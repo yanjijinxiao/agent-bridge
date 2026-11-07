@@ -11,7 +11,14 @@ import path from "node:path";
 import { localProjectsAtWorkspace, managedProjectForNative, nativeProjectForManaged } from "../state/project-identity.js";
 
 import { AccessController, requiredCommandRole, roleAllows, type SessionRole } from "./access.js";
-import { sessionExecutionScope } from "./session-execution.js";
+import { sessionExecutionScope, sessionExecutionStamp } from "./session-execution.js";
+import { RuntimeError, assertSameReadTarget, type RuntimeResource } from "../agents/contracts.js";
+import { runtimeInputFingerprint } from "../agents/handoff.js";
+import { resourceBindingId, bindingResourceRef } from "../agents/resource-catalog.js";
+import { parseRuntimeCreateCommand, RUNTIME_CREATE_USAGE } from "./runtime-lifecycle-command.js";
+import type { RuntimeLifecycleInput } from "../agents/lifecycle.js";
+import { RuntimeObservationController, RuntimeObservationJournal, terminalScreenText, runtimeObservationPrincipal, type RuntimeObservationScope } from "./runtime-observation.js";
+import { runtimeCommandRestriction, runtimeCommandTarget, runtimeHelp } from "./runtime-command-policy.js";
 import { observeStatus, STATUS_RPC_BUDGET_MS } from "./status-observation.js";
 import { SessionControlJournal, SessionControlQueue } from "./session-control.js";
 import type { AcceptedPresentationInput } from "./input-presentation.js";
@@ -197,6 +204,9 @@ export type BridgeServiceOptions = {
   channelCapabilities?: ChannelCapabilityProvider;
   approvalTimeoutMs?: number;
   assertRuntimeWritable?: () => void;
+  /** Administrative Web requests may use only explicitly managed deployment
+   * routes. This is injected by the authenticated server, never by an IM actor. */
+  administrativeRuntimeAccess?: (sessionId: string, hostId: string) => boolean;
   forwardingStatus?: (conversationId: string) => { waiting: number; held: number; unconfirmed: number } | undefined;
   forwardingInbox?: Pick<ForwardingInbox, "items" | "retry" | "cancel">;
   onAttachmentsPrepared?: (messageId: string, attachments: ChannelMessage["attachments"], references?: ChannelMessage["references"]) => void;
@@ -214,6 +224,7 @@ export type BridgeServiceOptions = {
 
 export class BridgeService {
   private readonly channel: ChannelClient;
+  private readonly runtimeObserver: RuntimeObservationController;
   private readonly sessionLists = new Map<string, {
     rows: SessionCatalogRow[];
     items: SessionCatalogItem[];
@@ -366,6 +377,51 @@ export class BridgeService {
       codexBin: options.config.codexBin,
       execSandbox: options.config.codexExecSandbox
     });
+    // Terminal observations survive the account process, but never own agent
+    // execution or call native turn recovery. Source authority is reconstructed
+    // from its original actor/chat and the exact durable binding generation.
+    this.runtimeObserver = new RuntimeObservationController({
+      journal: new RuntimeObservationJournal(path.join(path.dirname(options.stateStore.approvalJournalPath), "runtime-observations-v1.json")),
+      current: scope => this.currentRuntimeObservation(scope),
+      followEnabled: scope => options.stateStore.getSession(scope.sessionId)?.follow !== false,
+      progressEnabled: scope => (options.stateStore.getSession(scope.sessionId)?.streamReplies ?? options.config.streamReplies) !== false,
+      inspect: scope => peerPrincipal.run(runtimeObservationPrincipal(scope), async () => {
+        const state = await this.runner.inspectThread(scope.threadId, scope.hostId);
+        if (!state.resource) throw new RuntimeError("changed", "运行资源类型已改变");
+        return state.resource;
+      }),
+      read: scope => peerPrincipal.run(runtimeObservationPrincipal(scope), () => {
+        if (!this.runner.runtimeRead) throw new RuntimeError("unsupported", "运行接口未就绪");
+        return this.runner.runtimeRead(scope.threadId, scope.hostId);
+      }),
+      receipt: row => peerPrincipal.run(runtimeObservationPrincipal(row.scope), async () => {
+        if (!this.runner.runtimeReceipt || !row.recovery) return null;
+        return this.runner.runtimeReceipt({ threadId: row.scope.threadId, ...row.recovery }, row.scope.hostId);
+      }),
+      recovered: (row, receipt) => {
+        if (receipt.phase === "confirmed" && row.recovery)
+          options.inputReceipts?.recoverRuntimeAccepted({ ...row.scope, clientUserMessageId: row.recovery.clientUserMessageId });
+      },
+      presentation: (row, save) => new ChannelTurnPresentation(this.channel, row.scope.conversationId, {
+        restore: row.checkpoint, save, contextToken: options.stateStore.getContextToken(row.scope.conversationId),
+        interruptControl: this.runtimeInterruptControl(row.scope.hostId),
+        progressEnabled: options.stateStore.getSession(row.scope.sessionId)?.streamReplies ?? options.config.streamReplies,
+        decorateProgress: text => this.runtimeDisplayText(row.scope, text),
+        onTextDelivered: part => this.options.onOutboundMessage?.({ direction: "outbound", id: part.messageId,
+          recipientId: row.scope.conversationId, text: part.text, attachments: [] })
+      }),
+      decorateText: (scope, text) => this.runtimeDisplayText(scope, text),
+      notify: async row => {
+        if (!row.scope.mention || this.channel.capabilities.mentions !== "available" || !this.currentRuntimeObservation(row.scope)) return;
+        const completedCard = completedCardForMentions(row.checkpoint);
+        const combine = completedCard && this.channel.canCombineCompletionMentionCard({ completedCard, mentions: [row.scope.mention] });
+        await this.channel.sendMentionNotification({ toUserId: row.scope.conversationId, mentions: [row.scope.mention],
+          text: "终端状态已更新，请查看本次输入的结果卡。", contextToken: options.stateStore.getContextToken(row.scope.conversationId),
+          ...(combine ? { completedCard } : {}) });
+      },
+      diagnostic: code => console.warn(`[agent-bridge] ${code}`)
+    });
+    this.runtimeObserver.start();
     this.llmWiki = options.llmWiki ?? new LlmWikiMcpClientPool();
     this.modeSettings = normalizeChannelModeSettings(options.modeSettings);
     this.userInputs = new ChannelUserInputController(
@@ -402,7 +458,12 @@ export class BridgeService {
       stateStore: options.stateStore,
       replyText: (senderId, text) => this.reply(senderId, text),
       sendCard: (message, card) => this.replyTaskCard(message, card),
-      runWorkflow: (message, instruction) => this.runCodexTurn(message, taskboardSkillPrompt(instruction)),
+      runWorkflow: async (message, instruction) => {
+        // This is an ordinary instruction, not a structured tool invocation or
+        // task completion receipt. The selected runtime owns input semantics;
+        // Taskboard remains the authority for issue changes and acceptance.
+        await this.runCodexTurn(message, taskboardSkillPrompt(instruction));
+      },
       sourceGuard: (message, raw) => this.conversationControlGuard(message.senderId, requiredCommandRole("task", raw), false),
       attachmentPaths: async (message) => {
         const items = await this.promptItemsFromMessageWithNotice(message);
@@ -456,7 +517,10 @@ export class BridgeService {
       if (remaining) this.conversationWork.set(conversationId, remaining); else this.conversationWork.delete(conversationId);
       // All binding entry points (new, project, Taskboard, catalog and leave)
       // use the same subscription invalidation boundary.
-      if (binding() !== before) await this.options.onSubscriptionsChanged?.();
+      if (binding() !== before) {
+        await this.refreshRuntimeBinding(conversationId, message.senderId, message.mention);
+        await this.options.onSubscriptionsChanged?.();
+      }
     }
   }
 
@@ -632,6 +696,7 @@ export class BridgeService {
     command: ChannelCommand,
     channelCapabilities: readonly ChannelCommandCapability[]
   ): Promise<void | false> {
+    if (await this.handleRuntimeCommand(message, command)) return;
     // These native-input paths own a later write-ahead boundary, after async
     // attachment preparation and the source guard. Marking them here would turn
     // a proven preparation refusal into an unknown native acknowledgement.
@@ -1518,6 +1583,273 @@ export class BridgeService {
     return session;
   }
 
+  private currentRuntimeObservation(scope: RuntimeObservationScope): boolean {
+    if (this.audienceSuspended || scope.accountId !== (this.options.accountId ?? "standalone")) return false;
+    this.options.stateStore.refresh();
+    const session = this.executionSession(scope.conversationId);
+    return Boolean(session && session.id === scope.sessionId && session.threadId === scope.threadId
+      && (this.sessionHostId(session) ?? "local") === scope.hostId
+      && sessionExecutionStamp(this.options.stateStore, session) === scope.bindingStamp
+      && (scope.origin === "web" ? scope.actorId === "web-admin"
+        && this.options.administrativeRuntimeAccess?.(scope.sessionId, scope.hostId) === true
+        : this.hasAccess(scope.actorId, scope.conversationId) && roleAllows(this.role(scope.conversationId, scope.actorId), "viewer")));
+  }
+
+  private runtimeScope(conversationId: string, session: ManagedSession, actorId = this.actor.getStore() ?? conversationId,
+    mention?: RuntimeObservationScope["mention"]): RuntimeObservationScope {
+    if (!session.threadId) throw new RuntimeError("scope", "当前绑定没有运行资源");
+    return { sessionId: session.id, threadId: session.threadId, hostId: this.sessionHostId(session) ?? "local",
+      conversationId, actorId, accountId: this.options.accountId ?? "standalone",
+      bindingStamp: sessionExecutionStamp(this.options.stateStore, session), ...(mention ? { mention } : {}) };
+  }
+
+  /** Binding/settings mutations do not become task writes. Failure to obtain a
+   * fresh read is reported by follow status, never a reason to undo a binding. */
+  private async refreshRuntimeBinding(conversationId: string, actorId: string, mention?: RuntimeObservationScope["mention"]): Promise<void> {
+    try {
+      const session = this.executionSession(conversationId);
+      if (!session?.threadId || !this.runner.backendInfo?.(this.sessionHostId(session)).runtime) return;
+      const scope = this.runtimeScope(conversationId, session, actorId, mention);
+      await this.runtimeObserver.refreshPresentation(scope);
+      if (session.follow !== false && !this.runtimeObserver.followStatus(scope)) {
+        const state = await this.runner.inspectThread(scope.threadId, scope.hostId);
+        if (state.resource && this.currentRuntimeObservation(scope)) this.runtimeObserver.follow(scope, state.resource);
+      }
+      await this.runtimeObserver.synchronize(scope);
+      this.runtimeObserver.start();
+    } catch { console.warn("[agent-bridge] runtime-subscription-refresh-unconfirmed"); }
+  }
+
+  private runtimeDisplayText(scope: RuntimeObservationScope, text: string): string {
+    let url: string | undefined;
+    try {
+      const session = this.options.stateStore.getSession(scope.sessionId);
+      if (session && this.currentRuntimeObservation(scope)) url = this.options.ideProgressEntry?.(session);
+    } catch { /* Optional IDE metadata must not invent another target. */ }
+    return withIDEEntry(text, url, { atEnd: true });
+  }
+
+  private runtimeInterruptControl(hostId: string): "request" | "hidden" {
+    try { return this.runner.backendInfo(hostId).runtime?.operations.interrupt.supported ? "request" : "hidden"; }
+    catch { return "hidden"; } // Retiring a saved card must not require a live endpoint.
+  }
+
+  /** Common operation routing consumes declared semantics. Unrelated Gateway
+   * controls remain usable while the execution device is disconnected. */
+  private async handleRuntimeCommand(message: ChannelMessage, command: ChannelCommand): Promise<boolean> {
+    const route = runtimeCommandTarget(command);
+    if (route === "gateway" || route === "record") return false;
+    const session = this.executionSession(message.senderId);
+    const selectedHost = route === "catalog" ? this.catalogHost(message.senderId)
+      : this.options.stateStore.getConnectorSelection(this.catalogPrincipal(message.senderId))?.hostId;
+    const hostId = route === "catalog" ? selectedHost ?? this.options.stateStore.getActiveProject(message.senderId)?.hostId
+      : session ? this.sessionHostId(session) ?? "local" : selectedHost;
+    if (!hostId) return false;
+    const descriptor = this.runner.backendInfo?.(hostId).runtime;
+    if (!descriptor) return false;
+    const restriction = runtimeCommandRestriction(descriptor, command);
+    if (restriction) { await this.reply(message.senderId, restriction); return true; }
+    if (command.name === "help") {
+      await this.replyActionCard(message.senderId, createChoiceCard({ title: "Agent Bridge 终端入口", body: runtimeHelp(descriptor),
+        fallbackText: runtimeHelp(descriptor), choices: [{ label: "会话与终端", command: "sessions", arg: "" },
+          { label: "当前状态", command: "status", arg: "" }, { label: "终端画面", command: "history", arg: "" },
+          { label: "项目", command: "project", arg: "" }, { label: "过程展示", command: "stream", arg: "" }] }));
+      return true;
+    }
+    if (command.name === "qa" || command.name === "mode" && command.arg.trim() === "qa") {
+      await this.reply(message.senderId, "现有 QA 工作流依赖结构化工具调用，终端工作流适配尚未完成；未改变模式或发送输入。"); return true;
+    }
+    if (command.name === "new" || command.name === "session" && /^(?:new|rename|close)(?:\s|$)/.test(command.arg.trim())) {
+      await this.handleRuntimeLifecycle(message, command, hostId); return true;
+    }
+    if (!session?.threadId) return false;
+    if (command.name === "follow") {
+      await this.handleRuntimeFollow(message, command.arg.trim(), session); return true;
+    }
+    if (command.name === "status" || command.name === "history" || command.name === "stop") {
+      const assertCurrent = this.controlGuard(message.senderId, session, command.name === "stop" ? "controller" : "viewer");
+      const state = await this.runner.inspectThread(session.threadId, hostId); assertCurrent();
+      if (!state.resource) throw new RuntimeError("changed", "运行资源类型已改变");
+      if (command.name === "history") { await this.runtimeScreen(message.senderId, session, state.resource, assertCurrent); return true; }
+      if (command.name === "status") {
+        const r = state.resource;
+        const labels = { idle: "空闲", working: "运行中", blocked: "等待人工处理", done: "终端报告结束", error: "终端报告错误", exited: "进程已退出", unknown: "未确认" };
+        await this.reply(message.senderId, `当前终端：${r.title}\n\n运行接口：${descriptor.kind}\n终端状态：${labels[r.state]}\n状态依据：${r.evidence}\n\n这不是原生任务成功回执。/history 查看当前画面；等待人工处理时请在 Herdr 中操作。`); return true;
+      }
+      if (!this.runner.runtimeInterrupt) throw new RuntimeError("unsupported", "Connector 中断接口未就绪");
+      this.options.inputReceipts?.submitting({ sessionId: session.id, hostId, threadId: session.threadId });
+      const result = await this.runner.runtimeInterrupt({ threadId: session.threadId, target: state.resource,
+        clientUserMessageId: this.options.inputReceipts?.currentId() ?? message.id, assertCurrent }, hostId);
+      assertCurrent();
+      await this.reply(message.senderId, result.kind === "not-active" ? "终端当前没有报告运行中的任务，未发送中断。"
+        : `已请求终端中断。观察结果：${({ stopped: "已停止运行", exited: "进程已退出", still_working: "仍在运行", unknown: "未确认" })[result.observation ?? "unknown"]}。`);
+      return true;
+    }
+    return false;
+  }
+
+  private async handleRuntimeLifecycle(message: ChannelMessage, command: ChannelCommand, hostId: string): Promise<void> {
+    if (!await this.requireRole(message.senderId, "controller")) return;
+    if (!this.runner.runtimeLifecycle) throw new RuntimeError("unsupported", "Connector 尚未提供生命周期接口");
+    const action = command.name === "new" ? "new" : command.arg.trim().split(/\s/, 1)[0];
+    const arg = command.name === "new" ? command.arg : command.arg.trim().slice(action.length).trim();
+    const assertCurrent = action === "new"
+      ? this.catalogGuard(message.senderId, this.conversationControlGuard(message.senderId, "controller"), hostId)
+      : this.controlGuard(message.senderId, this.executionSession(message.senderId), "controller");
+    const clientUserMessageId = this.options.inputReceipts?.currentId() ?? message.id;
+    let input: RuntimeLifecycleInput;
+    if (action === "new") {
+      const parsed = parseRuntimeCreateCommand(arg);
+      if (!parsed) { await this.reply(message.senderId, RUNTIME_CREATE_USAGE); return; }
+      // An explicit directory is scoped to the selected Connector. The prior
+      // chat binding may still belong to another device until create succeeds.
+      // Only an omitted directory inherits and validates the active project.
+      const project = parsed.cwd ? undefined : this.options.stateStore.getActiveProject(message.senderId);
+      if (project && (project.hostId ?? "local") !== hostId) throw new RuntimeError("scope", "当前项目属于另一台设备，请先选择目标项目");
+      const cwd = parsed.cwd ?? project?.workspace;
+      if (!cwd) { await this.reply(message.senderId, "请先选择项目，或用 --cwd 指定设备上的绝对目录。\n\n" + RUNTIME_CREATE_USAGE); return; }
+      const endpoint = this.runner.backendInfo(hostId).runtime!.endpointId;
+      const projectId = !parsed.cwd && project?.sourceProjectId ? bindingResourceRef(project.sourceProjectId, endpoint).id : undefined;
+      input = { action: "create", ...parsed, cwd, projectId, clientUserMessageId, assertCurrent };
+    } else {
+      const session = this.executionSession(message.senderId);
+      if (!session?.threadId) { await this.reply(message.senderId, "请先绑定要管理的终端。"); return; }
+      if (action === "close" && arg !== "--confirm") {
+        await this.reply(message.senderId, "此操作会结束当前终端进程；App 结束指定终端，TUI 关闭面板。若要执行，请发送 /session close --confirm。解绑请使用 /unbind。"); return;
+      }
+      if (action === "rename" && !arg) { await this.reply(message.senderId, "用法：/session rename 新名称。App 仅能修改独占终端的标签页名称。"); return; }
+      const state = await this.runner.inspectThread(session.threadId, hostId); assertCurrent();
+      if (!state.resource) throw new RuntimeError("changed", "目标已不再是运行资源");
+      input = { action: action === "rename" ? "rename" : "close", threadId: session.threadId, target: state.resource,
+        ...(action === "rename" ? { title: arg } : {}), clientUserMessageId, assertCurrent } as RuntimeLifecycleInput;
+    }
+    const result = await this.runner.runtimeLifecycle(input, hostId); assertCurrent();
+    if (result.phase !== "confirmed" || !result.result) {
+      await this.reply(message.senderId, result.phase === "not-sent" ? "生命周期操作未提交，原绑定未改变。请核对参数和运行接口状态。"
+        : `${result.phase === "partial" ? "已创建面板，但后续启动未完成" : "生命周期操作结果尚未确认"}；未重放操作，原绑定未改变。${result.created ? `已确认资源：${result.created.id}。` : ""}请在 Herdr 中核对。`); return;
+    }
+    if (result.result.kind === "created") {
+      await this.bindCatalogSession(message.senderId, resourceBindingId(result.result.resource.ref), hostId, assertCurrent);
+    } else if (result.result.kind === "renamed") {
+      const session = this.executionSession(message.senderId);
+      if (session) this.options.stateStore.renameSession(session.id, result.result.resource.title);
+      this.invalidateCatalogs(message.senderId);
+      await this.reply(message.senderId, `名称已更新：${result.result.resource.title}。`);
+    } else if (result.result.kind === "closed") await this.reply(message.senderId, result.result.scope === "pane" ? "已关闭指定终端面板。" : "已结束指定终端进程；布局和历史由 Herdr 按原生规则处理。");
+  }
+
+  private async handleRuntimeFollow(message: ChannelMessage, arg: string, session: ManagedSession): Promise<void> {
+    if (arg === "primary") {
+      await this.reply(message.senderId, "当前终端接口没有结构化审批路由；请在 Herdr 中处理终端交互。跟随和绑定未改变。"); return;
+    }
+    if (!["", "on", "off", "sync", "sync --retry-delivery"].includes(arg)) {
+      await this.reply(message.senderId, "用法：/follow [on|off|sync]。跟随只读取终端状态和画面，不提交或停止任务。"); return;
+    }
+    const retry = arg === "sync --retry-delivery";
+    if (retry && (!/^\/follow\s+sync\s+--retry-delivery\s*$/i.test(message.text.trim())
+      || !await this.requireRole(message.senderId, "controller"))) return;
+    const guard = this.controlGuard(message.senderId, session, retry ? "controller" : arg ? "participant" : "viewer");
+    guard();
+    const scope = this.runtimeScope(message.senderId, session);
+    if (arg === "off") {
+      this.options.stateStore.setSessionFollow(session.id, false);
+      await this.runtimeObserver.synchronize(scope);
+      await this.reply(message.senderId, "终端持续跟随已关闭。已提交输入的回执恢复和结果投递保留，远端任务继续运行。"); return;
+    }
+    const enabled = session.follow !== false || arg === "on";
+    if (arg && !enabled) {
+      await this.reply(message.senderId, "持续跟随已关闭，未同步。可用 /follow on 开启；不会向终端发送输入。"); return;
+    }
+    if (arg) {
+      const state = await this.runner.inspectThread(scope.threadId, scope.hostId); guard();
+      if (!state.resource) throw new RuntimeError("changed", "运行资源类型已改变");
+      this.runtimeObserver.follow(scope, state.resource);
+      if (arg === "on") this.options.stateStore.setSessionFollow(session.id, true);
+      await this.runtimeObserver.synchronize(scope, retry);
+    }
+    const status = this.runtimeObserver.followStatus(scope);
+    await this.reply(message.senderId, `终端持续跟随：${enabled ? "开启" : "关闭"}。\n\n${status?.lastSyncedAt
+      ? `最近成功读取：${new Date(status.lastSyncedAt).toLocaleString("zh-CN", { hour12: false })}。`
+      : "尚未取得跟随快照，可用 /follow on 建立订阅。"}\n只读取当前终端；空闲不等于任务成功。/stream 控制过程展示。`);
+  }
+
+  private async runtimeScreen(senderId: string, session: ManagedSession, target: RuntimeResource, assertCurrent: () => void): Promise<void> {
+    if (!this.runner.runtimeRead || !session.threadId) throw new RuntimeError("unsupported", "Connector 画面读取接口未就绪");
+    const output = await this.runner.runtimeRead(session.threadId, this.sessionHostId(session)); assertCurrent();
+    const after = await this.runner.inspectThread(session.threadId, this.sessionHostId(session)); assertCurrent();
+    if (!after.resource) throw new RuntimeError("changed", "运行资源类型已改变");
+    assertSameReadTarget(target, after.resource);
+    if (output.ref.endpointId !== target.ref.endpointId || output.ref.id !== target.ref.id) throw new RuntimeError("changed", "画面来自其他终端");
+    await this.reply(senderId, "这是当前终端画面，不是结构化对话历史。\n\n" + terminalScreenText(output));
+  }
+
+  /** Separate input semantic, shared source ACL/file transport/presentation.
+   * No Codex turn, assistant final, approval answer or action block is inferred
+   * from a terminal screen. The short handoff ends before observation starts. */
+  async submitWebRuntimeInput(sessionId: string, text: string, items: PromptBufferItem[]): Promise<void> {
+    const session = this.options.stateStore.getSession(sessionId);
+    if (!session?.threadId) throw new RuntimeError("scope", "当前绑定没有运行资源");
+    const scope: RuntimeObservationScope = { ...this.runtimeScope(session.senderId, session, "web-admin"), origin: "web" };
+    const guard = () => {
+      this.options.assertRuntimeWritable?.();
+      if (!this.currentRuntimeObservation(scope)) throw new RuntimeError("scope", "Web 管理入口仅可操作当前绑定的托管 Connector；消息未提交。");
+    };
+    guard();
+    await peerPrincipal.run(runtimeObservationPrincipal(scope), async () => {
+      const state = await this.runner.inspectThread(scope.threadId, scope.hostId); guard();
+      if (!state.resource) throw new RuntimeError("changed", "运行资源类型已改变");
+      const id = this.options.inputReceipts?.capture()?.currentId();
+      if (!id) throw new RuntimeError("scope", "Web 输入缺少持久化来源标识");
+      await this.runRuntimeInput({ id, senderId: session.senderId, text, attachments: [], raw: {} }, text, items, session,
+        state.resource, undefined, { scope, guard });
+    });
+  }
+
+  private async runRuntimeInput(message: ChannelMessage, text: string, items: PromptBufferItem[], session: ManagedSession,
+    target: RuntimeResource, buffered?: { submitting: () => void; accepted: () => void },
+    administrative?: { scope: RuntimeObservationScope; guard: () => void }): Promise<void> {
+    if (!session.threadId || !this.runner.runtimeSend) throw new RuntimeError("unsupported", "当前 Connector 未提供终端输入接口");
+    const assertCurrent = administrative?.guard ?? this.controlGuard(message.senderId, session, "participant");
+    assertCurrent();
+    if (this.submittingSessions.has(session.id)) throw new ForwardingDeferredError("上一条输入尚在交接，当前消息暂缓转发。");
+    const marker = {}; this.submittingSessions.set(session.id, marker);
+    const source = this.options.inputReceipts?.capture();
+    let observation: string | undefined, entered = false, confirmed = false;
+    try {
+      const hostId = this.sessionHostId(session) ?? "local";
+      const staged = await stageTurnAttachments(this.runner, items, { accountId: this.options.accountId, conversationId: message.senderId,
+        sessionId: session.id, threadId: session.threadId, hostId, maxBytes: this.options.config.maxInboundBytes });
+      assertCurrent();
+      const prompt = buildPromptParts(text, staged, administrative ? "Web" : channelPromptSource(this.channel.channel)).prompt;
+      const origin = this.participantOrigin(session);
+      const scope: RuntimeObservationScope = administrative?.scope ?? { sessionId: session.id, threadId: session.threadId, hostId,
+        conversationId: message.senderId, actorId: this.actor.getStore() ?? message.senderId,
+        accountId: this.options.accountId ?? "standalone", bindingStamp: sessionExecutionStamp(this.options.stateStore, session),
+        ...(origin?.mention ? { mention: origin.mention } : {}) };
+      const clientUserMessageId = source?.currentId() ?? message.id;
+      if (!clientUserMessageId?.trim()) throw new RuntimeError("scope", "输入缺少可核验的消息来源标识");
+      observation = this.runtimeObserver.begin(scope, target, clientUserMessageId, runtimeInputFingerprint(target, prompt));
+      if (session.follow !== false) this.runtimeObserver.follow(scope, target);
+      source?.submitting({ sessionId: session.id, hostId, threadId: session.threadId, runtimeInput: true });
+      buffered?.submitting(); assertCurrent(); entered = true;
+      const receipt = await this.runner.runtimeSend({ threadId: session.threadId, target, text: prompt, clientUserMessageId, assertCurrent }, hostId);
+      confirmed = receipt.phase === "confirmed";
+      this.runtimeObserver.handed(observation, receipt);
+      if (receipt.phase === "confirmed") { source?.runtimeAccepted(session.threadId); buffered?.accepted(); }
+      else if (receipt.phase !== "not-sent") {
+        source?.runtimeUnconfirmed(); throw new RuntimeError("transport", "终端输入交接未确认，未自动重发；将继续核对原终端状态。", "unknown");
+      } else throw new RuntimeError("not-ready", "输入未发送；终端当前不接受这条输入，请核对状态。");
+    } catch (error) {
+      const phase = !entered || error instanceof RuntimeError && error.submission === "not-sent" ? "not-sent" : "unknown";
+      if (observation && !confirmed) this.runtimeObserver.uncertain(observation, phase);
+      if (entered && phase === "unknown" && !confirmed) source?.runtimeUnconfirmed();
+      throw error;
+    } finally {
+      if (this.submittingSessions.get(session.id) === marker) this.submittingSessions.delete(session.id);
+      this.runtimeObserver.start();
+    }
+  }
+
   private controlGuard(conversationId: string, session: ManagedSession | undefined, required: SessionRole): () => void {
     const actorId = this.actor.getStore() ?? conversationId;
     const binding = session && sessionExecutionScope(this.options.stateStore, session, conversationId);
@@ -1569,6 +1901,7 @@ export class BridgeService {
   private assertSessionCapability(senderId: string, capability: "liveFollow" | "collaborationModes" | "goals" | "progress"): void {
     const session = this.executionSession(senderId);
     const info = this.runner.backendInfo?.(session ? this.sessionHostId(session) : undefined);
+    if (capability === "progress" && info?.runtime?.operations.read.supported && info.runtime.operations.inspect.supported) return;
     if (info && !info.capabilities[capability]) throw new CodexBackendCapabilityError(capability, info.id);
   }
 
@@ -1867,28 +2200,50 @@ export class BridgeService {
     }
     const reason = unavailableProjectSessionChoiceReason({ title: state.title ?? threadId, updatedAt: state.updatedAt ?? "", candidate: codexThreadStateCandidate(state, state.cwd ?? "") });
     if (state.persistence !== "active" || state.internal || reason) { await this.reply(senderId, reason ?? "此会话不可绑定，请选择未归档的普通会话。"); return; }
-    if (!state.cwd || !path.isAbsolute(state.cwd)) { await this.reply(senderId, "该会话没有可确认的工作目录，未建立绑定。"); return; }
+    const unknownWorkspace = !state.cwd || !path.isAbsolute(state.cwd);
+    if (unknownWorkspace && !state.resource) { await this.reply(senderId, "该会话没有可确认的工作目录，未建立绑定。"); return; }
+    const workspace = unknownWorkspace ? "" : state.cwd!;
     const store = this.options.stateStore;
     assertCurrent();
     const existing = store.listSessions().find(s => s.senderId === senderId && s.mode !== "qa" && s.threadId === threadId && this.sessionHostId(s) === hostId);
-    let project = state.projectId ? managedProjectForNative({ projectId: state.projectId, hostId, workspace: state.cwd }, store.listProjects()) : undefined;
-    if (!project && state.projectId) {
-      project = store.createProject(path.basename(state.cwd), state.cwd, { sourceProjectId: state.projectId, hostId, projectKind: hostId === "local" ? "local" : "remote" });
+    let project = state.projectId && !unknownWorkspace ? managedProjectForNative({ projectId: state.projectId, hostId, workspace }, store.listProjects()) : undefined;
+    if (!project && state.projectId && !unknownWorkspace) {
+      project = store.createProject(path.basename(workspace), workspace, { sourceProjectId: state.projectId, hostId, projectKind: hostId === "local" ? "local" : "remote" });
     }
     if (existing) {
       // Explicit native membership supersedes old edges even with follow off.
       // Unknown membership preserves the edge; cwd itself is still observed.
-      const observedProjectId = state.projectId || state.projectMembership === "none" ? project?.id : existing.projectId;
-      if (state.projectId || state.projectMembership === "none") store.reconcileThreadProject(threadId, hostId, observedProjectId, state.cwd);
+      const observedProjectId = unknownWorkspace ? undefined : state.projectId || state.projectMembership === "none" ? project?.id : existing.projectId;
+      if (state.resource || state.projectId || state.projectMembership === "none") store.reconcileThreadProject(threadId, hostId, observedProjectId, state.cwd, unknownWorkspace);
     }
-    const session = existing ? store.activateSession(existing.id) : store.createSession(senderId, state.cwd, state.title || `会话 ${threadId.slice(0,8)}`, project?.id, "session", undefined, { standalone: !project, hostId, membershipUnknown: !project && state.projectMembership !== "none" });
-    if (!existing) store.setSessionThread(session.id, threadId);
-    const canFollow = this.runner.backendInfo?.(hostId).capabilities.liveFollow ?? this.options.config.codexBackend !== "exec";
+    let session = existing ? store.activateSession(existing.id) : store.createSession(senderId, workspace, state.title || `会话 ${threadId.slice(0,8)}`, project?.id, "session", undefined, { standalone: !project, hostId, unknownWorkspace, membershipUnknown: !project && state.projectMembership !== "none" });
+    if (!existing) session = store.setSessionThread(session.id, threadId);
+    const backend = this.runner.backendInfo?.(hostId);
+    const canFollow = backend?.runtime ? backend.runtime.operations.inspect.supported && backend.runtime.operations.read.supported
+      : backend?.capabilities.liveFollow ?? this.options.config.codexBackend !== "exec";
     if (!canFollow) store.setSessionFollow(session.id, false);
     store.setInteractionMode(senderId, "session");
+    // The old guard protected the binding mutation; that mutation invalidates
+    // its old session generation. Subsequent presentation follows the new one.
+    const boundGuard = this.controlGuard(senderId, session, "viewer");
+    const screenGuard = () => {
+      boundGuard();
+      if (principal && this.options.peer && hostId?.startsWith("peer:")) this.connectorSelection.assertAuthorized(principal, hostId);
+    };
     const location = hostId.startsWith("peer:") && this.options.peer ? `设备：${this.options.peer.label(hostId)}` : `主机：${hostId}`;
-    await this.reply(senderId, `已绑定会话：${session.title}\n\n${location}\n\n工作目录：${state.cwd}\n\n下一条消息将继续这个会话；/history 查看历史，/leave 退出绑定。`);
-    await this.handleHistoryCommand(senderId, "6");
+    await this.reply(senderId, `已绑定会话：${session.title}\n\n${location}\n\n工作目录：${unknownWorkspace ? "尚未确认；文件和 IDE 需待目录确认后使用" : workspace}\n\n下一条消息将继续这个会话；/history 查看历史，/leave 退出绑定。`);
+    if (state.resource) {
+      try { await this.runtimeScreen(senderId, session, state.resource, screenGuard); }
+      catch (error) {
+        // Binding is already committed. A process transition during this
+        // optional first read must not turn creation into a failed command
+        // that invites another create. Keep the strict screen identity check;
+        // never publish its discarded output or bless a superseded binding.
+        if (!(error instanceof RuntimeError) || error.code !== "changed") throw error;
+        screenGuard();
+        await this.reply(senderId, "会话绑定已完成。首次画面读取期间终端发生变化，暂未展示画面；可用 /history 重新读取。无需重复新建或绑定。");
+      }
+    } else await this.handleHistoryCommand(senderId, "6");
   }
 
 
@@ -1905,6 +2260,12 @@ export class BridgeService {
       return;
     }
     const hostId = this.sessionHostId(session) ?? "local";
+    if (this.runner.backendInfo?.(hostId).runtime) {
+      const assertCurrent = this.controlGuard(senderId, session, "viewer");
+      const state = await this.runner.inspectThread(session.threadId, hostId); assertCurrent();
+      if (!state.resource) throw new RuntimeError("changed", "运行资源类型已改变");
+      await this.runtimeScreen(senderId, session, state.resource, assertCurrent); return;
+    }
     const token = Symbol("history");
     this.historyRequests.set(senderId, token);
     const assertCurrent = this.controlGuard(senderId, session, "viewer");
@@ -2129,6 +2490,10 @@ export class BridgeService {
     try { state = await this.runner.inspectThread(session.threadId, hostId); }
     catch (error) { throw communicationError(error, { phase: "preflight", operation: "thread/read", threadId: session.threadId }); }
     assertCurrent();
+    if (state.resource) {
+      await this.runRuntimeInput(message, "", items, session, state.resource);
+      return true;
+    }
     if (state.threadId !== session.threadId || state.persistence !== "active" || state.internal) {
       await this.reply(message.senderId, copyableChoices("绑定的会话当前不可接收消息，未提交；绑定未删除。", [{ label: "核对当前状态", value: "/status" }]));
       return true;
@@ -2463,6 +2828,7 @@ export class BridgeService {
         this.buffers.settle(senderId, batch.id, entered);
       } catch (error) {
         if (!entered || error instanceof CodexRunAdmissionError || error instanceof CodexBackendCapabilityError
+          || error instanceof RuntimeError && error.submission === "not-sent"
           || error instanceof CodexCommunicationError && error.submission === "not-submitted")
           this.buffers.settle(senderId, batch.id, false);
         // A submitting intent without a native receipt remains held, including
@@ -2735,6 +3101,14 @@ export class BridgeService {
       await this.replySessionRequired(message.senderId);
       return;
     }
+    if (!queued && currentSession?.threadId && this.runner.backendInfo?.(this.sessionHostId(currentSession)).runtime) {
+      const assertCurrent = this.controlGuard(message.senderId, currentSession, "participant");
+      const state = await this.runner.inspectThread(currentSession.threadId, this.sessionHostId(currentSession));
+      assertCurrent();
+      if (!state.resource) throw new RuntimeError("changed", "绑定的运行资源类型已改变");
+      return this.runRuntimeInput(message, text, attachments, currentSession, state.resource, buffered);
+    }
+    if (currentSession?.workspaceState === "unknown") throw new RuntimeError("scope", "终端工作目录未确认，不能转为原生会话执行");
     const pinned = queued ? this.options.stateStore.getSession(queued.receipt.sessionId) : undefined;
     const activeProject = queued ? this.options.stateStore.getProject(pinned?.projectId ?? "") : this.options.stateStore.getActiveProject(message.senderId);
     const activeSession = pinned ?? currentSession;
@@ -3599,7 +3973,7 @@ export class BridgeService {
     return this.userInputs.hasRequest(senderId, request);
   }
 
-  suspendUserInputs(): void { this.audienceSuspended = true; this.userInputs.close(); this.approvals.close(); }
+  suspendUserInputs(): void { this.audienceSuspended = true; this.runtimeObserver.close(); this.userInputs.close(); this.approvals.close(); }
   hasBindingWork(senderId: string): boolean {
     return this.conversationWork.has(senderId) || this.approvals.hasPending(senderId) || this.userInputs.hasUnsettled(senderId);
   }

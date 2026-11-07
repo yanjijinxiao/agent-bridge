@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-07T11:57:19.080Z",
+  "commands": [
+    "npm run typecheck",
+    "node --test --test-reporter=spec --import tsx test/agent-runtime.test.ts test/agent-handoff.test.ts"
+  ],
+  "tests": [
+    {
+      "id": "HERDR-ADAPTER-001",
+      "name": "handoff persists intent before native write, stores receipt but no executable prompt, and replays only receipt",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-002",
+      "name": "handoff cannot reuse a source id for another target, body or program",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-003",
+      "name": "handoff unknown acknowledgement and restart never resend",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-004",
+      "name": "handoff confirmed receipt remains confirmed after revocation during write; revoked callers cannot read cache",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-005",
+      "name": "handoff source change before write is not-sent, and same source retry only returns recorded decision",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-006",
+      "name": "handoff journal write failure prevents runtime invocation",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-007",
+      "name": "handoff failed acknowledgement persistence remains unknown after reload",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-008",
+      "name": "handoff concurrent writes to one terminal are excluded only until handoff settles",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-009",
+      "name": "handoff malformed acknowledgement cannot become not-sent or permit replay",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-010",
+      "name": "handoff real SIGKILL after socket delivery reloads as unknown without a second write",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-011",
+      "name": "terminal capabilities never advertise native approvals, steering or queue",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-012",
+      "name": "TUI preserves empty workspaces and identifies public JSON separately from private protocol 22",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-013",
+      "name": "TUI resolves stable terminal to its current pane instead of sending name or terminal id",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-014",
+      "name": "TUI pane replacement refuses the write",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-015",
+      "name": "TUI blocked refuses ordinary input without send_keys fallback",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-016",
+      "name": "TUI working refuses ordinary input without send_keys fallback",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-017",
+      "name": "TUI unknown refuses ordinary input without send_keys fallback",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-018",
+      "name": "TUI source revocation before write propagates without submitting",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-019",
+      "name": "TUI reads visible screen, preserves truncation, never claims transcript",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-020",
+      "name": "TUI ambiguous prompt error never triggers a second write",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-021",
+      "name": "App catalogs match terminal ids to spaces and retain empty spaces",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-022",
+      "name": "App refuses a different core and never falls back",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-023",
+      "name": "App detects an unsupported hello generation before any resource operation",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-024",
+      "name": "App send started=false remains terminal-written without native turn",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-025",
+      "name": "App send started=null remains terminal-written without native turn",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-026",
+      "name": "App send started=true remains terminal-written without native turn",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-027",
+      "name": "App kept terminal replaced by another foreground cannot receive old input",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-028",
+      "name": "App terminal without program identity cannot receive ordinary input",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-029",
+      "name": "App read never scrolls the program or interprets terminal action blocks",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-030",
+      "name": "App still-working interrupt reports requested rather than interrupted",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-031",
+      "name": "App remote terminal keeps its actual machine identity",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-032",
+      "name": "App window offline fails catalog rather than returning a substitute empty directory",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-033",
+      "name": "closing adapters only disconnects their own clients",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-034",
+      "name": "JSONL correlates out-of-order responses and buffers split UTF-8 frames",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-035",
+      "name": "JSONL lost write acknowledgement is unknown and never replayed",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-036",
+      "name": "JSONL write timeout is unknown, read timeout is not a submitted task",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-037",
+      "name": "JSONL malformed response fails pending writes without retry",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-038",
+      "name": "JSONL wrong id cannot acknowledge a write",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-039",
+      "name": "TUI JSONL uses a new connection per request even before the preceding socket close event",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-040",
+      "name": "App unknown program identity can be read but gaining an identity mid-read discards the screen",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-041",
+      "name": "TUI unknown program identity remains readable without enabling writes",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-042",
+      "name": "TUI discards a response naming another pane even when original terminal is still present",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-043",
+      "name": "App checks source after last readiness await, including interrupt writes",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-044",
+      "name": "JSONL source revocation while connecting prevents any bytes, without claiming ambiguous delivery",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-045",
+      "name": "JSONL async final guard cannot authorize a write",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-046",
+      "name": "JSONL remote error body is absent from returned Error and cause",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-047",
+      "name": "JSONL invalid UTF-8 is rejected instead of returning replacement characters",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-048",
+      "name": "JSONL notification observer failure cannot consume matching response",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-049",
+      "name": "runtime configuration rejects fallback, implicit paths, unknown kinds and unsupported versions",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-050",
+      "name": "runtime endpoint identity changes with configured service and ignores input property order",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-051",
+      "name": "JSONL oversized partial frame fails pending write without unbounded buffering",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-052",
+      "name": "JSONL oversized request is rejected before any socket request",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-053",
+      "name": "JSONL close ends an outstanding write as unknown and disallows future calls",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-054",
+      "name": "JSONL unavailable configured endpoint is not-sent and never starts another server",
+      "status": "passed"
+    },
+    {
+      "id": "HERDR-ADAPTER-055",
+      "name": "JSONL guard closing its owner cannot enqueue a write after final authorization",
+      "status": "passed"
+    }
+  ],
+  "pass": 55,
+  "fail": 0,
+  "skip": 0,
+  "sourceFiles": [
+    {
+      "file": "src/agents/contracts.ts",
+      "sha256": "f15d16c309ec907a672a16bdd05ca0a35e48b9da0f705c98a8aa362acb734e89"
+    },
+    {
+      "file": "src/agents/config.ts",
+      "sha256": "56c4e6971663217486b7b08e9b0384bcf89cfb433f421d162230d23fc868b84d"
+    },
+    {
+      "file": "src/agents/json-line-client.ts",
+      "sha256": "32d8f2878f1e2ce97f17d8e1815e69264910601d8d10566b016c902d5ad500d5"
+    },
+    {
+      "file": "src/agents/herdr/tui.ts",
+      "sha256": "602e58bc14b0e3afed0ef3a1f6bea2bc9d6a6acec1274ef0af60488e9dab74c5"
+    },
+    {
+      "file": "src/agents/herdr/app.ts",
+      "sha256": "4b292fb0a05425e730cea230cb4014a3eded5e431e65a15728a90ed3ec45579d"
+    },
+    {
+      "file": "src/agents/herdr/app-view.ts",
+      "sha256": "73c13015b8228cf2a6782549030d60bbe9c2d572764cc6ff378db8f23263a6dc"
+    },
+    {
+      "file": "src/agents/handoff.ts",
+      "sha256": "97327824fad19bd1a47311bc87500b961d9cab946358952e73ab0f2ba0f0e0ab"
+    },
+    {
+      "file": "src/agents/index.ts",
+      "sha256": "37b75d0360a44e1da7ab7942798dc937127bbdbff37273dd7f23bffa20f06018"
+    },
+    {
+      "file": "test/agent-runtime.test.ts",
+      "sha256": "f85322e6aa594bdbe6eb4e15e86d1db5f49604eda4c3b7cdf8e497689bb6fdac"
+    },
+    {
+      "file": "test/agent-handoff.test.ts",
+      "sha256": "738e506f9eff68ddd6a01226e52b39caae3f1e14204e8c660f348c0fce68a76e"
+    },
+    {
+      "file": "test/fixtures/agent-handoff-child.ts",
+      "sha256": "ad0785658bbd6c879f4479ab46ece513ac9dc9de174e8957c75ee1f638e90e63"
+    }
+  ],
+  "limits": [
+    "No production Peer/Gateway integration",
+    "No mobile UI acceptance",
+    "No App real-agent interrupt acceptance",
+    "No per-agent native approvals or queue"
+  ]
+}

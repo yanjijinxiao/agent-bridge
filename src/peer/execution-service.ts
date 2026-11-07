@@ -1,3 +1,8 @@
+import type { AgentCatalog } from "../agents/catalog.js";
+import { RuntimeResourceCatalog } from "../agents/resource-catalog.js";
+import { RuntimeError } from "../agents/contracts.js";
+import { RUNTIME_METHODS } from "../agents/protocol.js";
+import { PeerRuntimeService } from "./runtime-service.js";
 import { PEER_CAPABILITIES } from "../runtime/versions.js";
 import { diagnostic, withDiagnosticContext } from "../runtime/diagnostics.js";
 import { PeerRecoveryJournal } from "./recovery-journal.js";
@@ -22,12 +27,14 @@ import { MANAGEMENT_METHODS, PeerManagement } from "./management.js";
 import { PeerSharingAuthority, type OwnerConfirmation } from "./sharing-authority.js";
 import { PeerIDEService, type PeerIDEConfig } from "./ide-service.js";
 import { matchesManagedGrant, type ManagedConnectorExport } from "./managed-route.js";
+import { RuntimeFilesystem } from "./runtime-filesystem.js";
+import { runtimeFilesystemScope } from "../agents/filesystem-scope.js";
 import { CodexSessionCompletionMonitor } from "../server/codex-session-monitor.js";
 import { PeerHostDirectories } from "./host-directories.js";
 import { SharedWorkspaceHost } from "./shared-workspace.js";
 
 const callSchema = z.object({ grant: grantSchema, method: z.enum(["monitorSessionEvents", "unmonitorSessionEvents", "listSessionCatalog", "inspectThread", "readThreadSnapshot", "readTurnLifecycle", "readTurnActivities", "getHistory", "getHistoryPage",
-  "getRuntimeInfo", "updateThreadSettings", "warmUp", "listSkills", "listMcpServers", "serverIdentity", "readThreadProvenance", "listQueuedSubmissions", "addQueuedSubmission", "deleteQueuedSubmission", "runQueuedSubmission", "resumeAfterCapacity", "recoverSystemError", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "interruptTurn", "getGoal", "setGoal", "clearGoal", "receipt", "observeThreadInteractions", "unobserveThreadInteractions", ...FILE_METHODS, ...MANAGEMENT_METHODS]),
+  "getRuntimeInfo", "updateThreadSettings", "warmUp", "listSkills", "listMcpServers", "serverIdentity", "readThreadProvenance", "listQueuedSubmissions", "addQueuedSubmission", "deleteQueuedSubmission", "runQueuedSubmission", "resumeAfterCapacity", "recoverSystemError", "listModels", "getAccountRateLimits", "listProjects", "run", "steer", "submitThreadMessage", "stop", "interruptTurn", "getGoal", "setGoal", "clearGoal", "receipt", "observeThreadInteractions", "unobserveThreadInteractions", ...FILE_METHODS, ...MANAGEMENT_METHODS, ...RUNTIME_METHODS]),
   args: z.array(z.unknown()).max(4), operationId: z.string().regex(/^[a-f0-9]{64}$/).optional() }).strict();
 const runSchema = z.object({ threadId: z.string().optional(), ephemeral: z.boolean().optional(), cwd: z.string(), prompt: z.string().max(500_000), clientUserMessageId: z.string().optional(),
   developerInstructions: z.string().optional(), threadTitle: z.string().optional(), model: z.string().optional(), effort: z.string().optional(),
@@ -50,7 +57,7 @@ const goalSchema = z.object({ objective: z.string().max(500000).optional(), stat
 const catalogSchema = z.object({ cwd: z.string().optional(), projectId: z.string().optional(), unassigned: z.boolean().optional(),
   persistence: z.enum(["active", "archived", "all"]).optional(), limit: z.number().int().min(1).max(1000).optional() }).strict();
 export type PeerExecutionOptions = {
-  backend: CodexBridgeBackend; threadId?: string; profileId: string; label?: string; stateDir: string;
+  backend: CodexBridgeBackend | RuntimeResourceCatalog; threadId?: string; profileId: string; label?: string; stateDir: string;
   /** True only for an independently managed native daemon, never private exec. */
   independent?: boolean;
   approve: (grant: PeerGrant) => Promise<boolean>;
@@ -72,10 +79,12 @@ export class PeerExecutionService {
   private readonly recovery: PeerRecoveryJournal;
   private readonly files: PeerFiles;
   private readonly queueLeases = new WeakMap<PeerConnection, Map<string, () => void>>();
-  private readonly management: PeerManagement;
-  private readonly interactions: PeerInteractionService;
+  private readonly management?: PeerManagement;
+  private readonly runtime?: PeerRuntimeService;
+  private readonly interactions?: PeerInteractionService;
   private readonly sharing: PeerSharingAuthority;
   private readonly ide?: PeerIDEService;
+  private readonly filesystem?: RuntimeFilesystem;
   private constructor(private readonly options: PeerExecutionOptions, description: PeerDescription) {
     this.description = description;
     this.recovery = new PeerRecoveryJournal(options.stateDir);
@@ -83,12 +92,19 @@ export class PeerExecutionService {
     if (Array.isArray(stored)) this.grants = z.array(grantSchema).parse(stored);
     else { this.grants = z.object({ version: z.literal(2), grants: z.array(grantSchema) }).strict().parse(stored).grants; this.privatePolicy = true; }
     this.receipts = new PeerReceipts(path.join(options.stateDir, "receipts.json"));
+    if (options.backend instanceof RuntimeResourceCatalog) this.filesystem = new RuntimeFilesystem(options.backend);
     this.files = new PeerFiles(options.stateDir, (id, write) => this.readState(id, write), grant => matchesManagedGrant(options.managedRoute, grant),
-      options.nativeHostId && options.nativeHostId !== "local" ? options.backend : undefined);
-    this.interactions = new PeerInteractionService(options.backend);
-    this.management = new PeerManagement(options.backend, options.stateDir, this.receipts, new PeerHostDirectories(options.nativeHostId, options.codexHome));
-    this.sharing = new PeerSharingAuthority(path.join(options.stateDir, "sharing.json"), options.backend, options.approveOwner ?? (async () => false), Date.now, new SharedWorkspaceHost(options.nativeHostId, options.codexHome));
+      this.filesystem ? (id, guard) => this.filesystem!.files(id, guard) : options.nativeHostId && options.nativeHostId !== "local" ? this.nativeBackend() : undefined);
+    if (options.backend instanceof RuntimeResourceCatalog) {
+      this.runtime = new PeerRuntimeService(options.backend, options.stateDir);
+    } else {
+      this.interactions = new PeerInteractionService(options.backend);
+      this.management = new PeerManagement(options.backend, options.stateDir, this.receipts, new PeerHostDirectories(options.nativeHostId, options.codexHome));
+    }
+    this.sharing = new PeerSharingAuthority(path.join(options.stateDir, "sharing.json"), options.backend, options.approveOwner ?? (async () => false), Date.now,
+      new SharedWorkspaceHost(options.nativeHostId, options.codexHome), this.filesystem ? id => this.filesystem!.host(id) : undefined);
     if (options.webIDE?.enabled) this.ide = new PeerIDEService({ config: options.webIDE, backend: options.backend, stateDir: options.stateDir, managedRoute: options.managedRoute, nativeHostId: options.nativeHostId, codexHome: options.codexHome,
+      fileHost: this.filesystem ? id => this.filesystem!.host(id) : undefined,
       authorize: (grant, threadId) => {
         this.assertThread(threadId);
         if (grant.delegation || !(matchesManagedGrant(options.managedRoute, grant) || options.inheritedDeviceGrant?.(grant) || this.grants.some(g => JSON.stringify(g) === JSON.stringify(grant)))) throw new PeerError("access", "设备授权已失效。");
@@ -117,24 +133,26 @@ export class PeerExecutionService {
       if (state.persistence === "active") assertCodexThreadRunnable(state);
       if (state.internal || !["active", "archived"].includes(state.persistence) || !state.cwd || !path.isAbsolute(state.cwd)) throw new Error("Select an existing ordinary Codex thread with a confirmed local cwd");
     }
+    const native = options.backend instanceof RuntimeResourceCatalog ? undefined : options.backend;
     const info = options.backend.backendInfo();
     const capabilities = { ...info.capabilities,
-      skills: info.capabilities.skills === true && !!options.backend.listSkills,
-      mcpServers: info.capabilities.mcpServers === true && !!options.backend.listMcpServers,
-      nativeQueue: info.capabilities.nativeQueue === true && !!options.backend.addQueuedSubmission && !!options.backend.runQueuedSubmission && !!options.backend.listQueuedSubmissions && !!options.backend.deleteQueuedSubmission,
+      skills: info.capabilities.skills === true && !!native?.listSkills,
+      mcpServers: info.capabilities.mcpServers === true && !!native?.listMcpServers,
+      nativeQueue: info.capabilities.nativeQueue === true && !!native?.addQueuedSubmission && !!native?.runQueuedSubmission && !!native?.listQueuedSubmissions && !!native?.deleteQueuedSubmission,
       projectCatalog: !options.threadId && info.capabilities.projectCatalog,
       projects: !options.threadId && info.capabilities.projects };
     const service = new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
       ...(options.managedRoute ? { managedHost: options.managedRoute.hostId } : {}),
-      writeGuard: PEER_CAPABILITIES.writeGuard, nativeContract: PEER_CAPABILITIES.nativeContract,
+      writeGuard: PEER_CAPABILITIES.writeGuard,
+      ...(native ? { nativeContract: PEER_CAPABILITIES.nativeContract } : { runtimeContract: PEER_CAPABILITIES.runtimeContract }),
       ...(options.webIDE?.enabled ? { fullIDE: PEER_CAPABILITIES.fullIDE } : {}),
-      ...(options.backend.observeThreadInteractions ? { interactions: PEER_CAPABILITIES.interactions } : {}),
+      ...(native?.observeThreadInteractions ? { interactions: PEER_CAPABILITIES.interactions } : {}),
       files: { version: PEER_CAPABILITIES.files },
-      management: { version: PEER_CAPABILITIES.management },
+      ...(native ? { management: { version: PEER_CAPABILITIES.management } } : {}),
       sharing: { version: PEER_CAPABILITIES.sharing },
       thread: state ? { ...state, cwd: state.cwd! } : undefined,
-      info: { id: info.id, capabilities }, independent: options.independent === true });
-    await service.recovery.restorePending(options.backend);
+      info: { id: info.id, capabilities, ...(info.runtime ? { runtime: info.runtime } : {}) }, independent: options.independent === true });
+    if (native) await service.recovery.restorePending(native);
     return service;
   }
   attach(connection: PeerConnection): void {
@@ -169,6 +187,7 @@ export class PeerExecutionService {
         throw new PeerError("access", "This chat/session grant was not approved on this device");
       try {
         if (call.method === "monitorSessionEvents" || call.method === "unmonitorSessionEvents") {
+          this.nativeBackend();
           if (!matchesManagedGrant(this.options.managedRoute, call.grant) || this.options.managedRoute?.hostId !== "local")
             throw new PeerError("access", "Profile monitoring requires the configured local deployment route");
           if (call.method === "unmonitorSessionEvents") { monitors.get(z.string().parse(call.args[0]))?.(); return null; }
@@ -188,8 +207,9 @@ export class PeerExecutionService {
           this.sharing.assert(call.grant, call.method, args);
         };
         if ((FILE_METHODS as readonly string[]).includes(call.method)) return await this.files.call(call.grant, connection, call.method, call.args[0], threadId => assertAccess([{ threadId }]));
-        if ((MANAGEMENT_METHODS as readonly string[]).includes(call.method)) return await this.management.call(call.grant, connection, call.method, call.args[0], call.operationId, () => assertAccess());
+        if ((MANAGEMENT_METHODS as readonly string[]).includes(call.method)) return await this.requireManagement().call(call.grant, connection, call.method, call.args[0], call.operationId, () => assertAccess());
         if (["observeThreadInteractions", "unobserveThreadInteractions"].includes(call.method)) {
+          if (!this.interactions) throw new PeerError("unsupported", "此运行接口不提供原生审批订阅。");
           await this.readState(call.args[0]); this.assertThread(call.args[0]);
           const id = z.string().regex(/^[a-f0-9]{64}$/).parse(call.method === "observeThreadInteractions" ? call.operationId : call.args[1]);
           return await this.interactions.call(connection, call.method, call.args[0], id, () => {
@@ -197,12 +217,25 @@ export class PeerExecutionService {
             this.sharing.assert(call.grant, call.method, call.args);
           });
         }
+        if ((RUNTIME_METHODS as readonly string[]).includes(call.method)) {
+          if (!this.runtime) throw new PeerError("unsupported", "此设备未提供 runtimeContract: 1。");
+          const target = typeof call.args[0] === "string" ? call.args[0] : (call.args[0] as { threadId?: string })?.threadId;
+          const create = call.method === "runtimeLifecycle" && (call.args[0] as { action?: string })?.action === "create";
+          if (create) {
+            if (call.grant.scope !== "device" || call.grant.threadId || this.description.thread || call.grant.delegation)
+              throw new PeerError("scope", "固定资源或共享授权不能新建其他资源。");
+          } else this.assertThread(target);
+          if (call.grant.threadId && call.grant.threadId !== target) throw new PeerError("scope", "授权只适用于原资源。");
+          const result = await this.runtime.call(connection, call, () => assertAccess());
+          assertAccess(); return result;
+        }
         const result = await withDiagnosticContext({ hostId: this.options.nativeHostId ?? "local", operationId: call.operationId }, () => this.execute(connection, call));
         this.sharing.assert(call.grant, call.method, call.args);
         return result;
       }
       catch (error) {
         if (error instanceof PeerError) throw error;
+        if (error instanceof RuntimeError) throw new PeerError("runtime", error.message, { code: error.code, submission: error.submission });
         if (error instanceof CodexConnectionSetupError) throw new PeerError("native-setup", error.message, { reason: error.reason });
         if (error instanceof CodexNativeRequestError) throw new PeerError("native-request", error.publicMessage(), { operation: error.operation, rpcCode: error.rpcCode });
         if (error instanceof CodexCommunicationError) throw new PeerError("codex-communication", "Codex communication was not confirmed", {
@@ -224,20 +257,27 @@ export class PeerExecutionService {
       throw new PeerError("scope", "Only the locally selected thread is exported");
   }
   async close(): Promise<void> { await this.ide?.close(); }
-  private async readState(id: unknown, write = false, observation?: import("../codex/backend.js").CodexMetadataObservation): Promise<CodexThreadState & { cwd: string }> {
+  private async readState(id: unknown, write = false, observation?: import("../codex/backend.js").CodexMetadataObservation): Promise<CodexThreadState & { cwd: string; filesystemScope?: string }> {
     this.assertThread(id);
     const state = await this.options.backend.inspectThread(id, undefined, observation);
     if (state.threadId !== id || state.internal || !["active", "archived"].includes(state.persistence) || !state.cwd || !path.isAbsolute(state.cwd))
       throw new PeerError("scope", "The selected local session is unavailable");
-    if (write) assertCodexThreadRunnable(state);
-    return { ...state, cwd: state.cwd };
+    if (state.resource?.machine && !await this.filesystem?.host(id)) throw new PeerError("scope", "此资源目录位于另一台机器，不能访问本机同名路径。");
+    if (write && !state.resource) assertCodexThreadRunnable(state);
+    return { ...state, cwd: state.cwd, ...(state.resource ? { filesystemScope: runtimeFilesystemScope(state.resource) } : {}) };
   }
-  private async execute(connection: PeerConnection, call: z.infer<typeof callSchema>): Promise<unknown> {
-    const { method, args, operationId } = call, backend = this.options.backend;
-    const principalKey = crypto.createHash("sha256").update(JSON.stringify(call.grant.principal)).digest("hex");
-    const original = (id: string) => this.receipts.originalSource(id, principalKey);
-    if (!writes.has(method)) {
-      switch (method) {
+  private nativeBackend(): CodexBridgeBackend {
+    if (this.options.backend instanceof RuntimeResourceCatalog)
+      throw new PeerError("unsupported", "此资源是托管终端；不能调用原生会话、轮次或审批接口。");
+    return this.options.backend;
+  }
+  private requireManagement(): PeerManagement {
+    if (!this.management) throw new PeerError("unsupported", "此运行接口尚未提供该资源管理操作。");
+    return this.management;
+  }
+  private async catalogCall(call: z.infer<typeof callSchema>): Promise<unknown> {
+    const { args } = call, backend: AgentCatalog = this.options.backend;
+    switch (call.method) {
         case "listSessionCatalog": {
           if (call.grant.delegation) {
             const input = catalogSchema.parse(args[0] ?? {}), states = await Promise.all(this.sharing.catalog(call.grant).map(async g => { await this.sharing.verify(g, "inspectThread", [g.threadId]); return this.readState(g.threadId); }));
@@ -256,14 +296,14 @@ export class PeerExecutionService {
           }
           return { ...catalog, hostIds: [], threads: [...threads.values()].filter(state => !state.internal && this.sharing.visible(call.grant, state.threadId)
             && (input.persistence === "all" ? ["active", "archived"].includes(state.persistence) : state.persistence === (input.persistence ?? "active"))
-            && state.cwd && path.isAbsolute(state.cwd) && (!input.cwd || state.cwd === input.cwd)
+            && (state.resource || state.cwd && path.isAbsolute(state.cwd)) && (!input.cwd || state.cwd === input.cwd)
             && (!input.projectId || state.projectId === input.projectId) && (!input.unassigned || !state.projectId)) };
         }
         case "listProjects": {
           if (call.grant.delegation) return { backend: backend.backendInfo().id, projects: [] };
           if (call.grant.scope !== "device") throw new PeerError("access", "Project catalog requires a device grant");
           const catalog = await backend.listProjects(undefined, metadataObservation.parse(args[0] ?? undefined));
-          if ((this.options.nativeHostId ?? "local") !== "local") return catalog;
+          if (this.options.backend instanceof RuntimeResourceCatalog || (this.options.nativeHostId ?? "local") !== "local") return catalog;
           return { ...catalog, projects: catalog.projects.flatMap(project => {
             const roots = [...new Set(project.roots.flatMap(root => {
               if (!path.isAbsolute(root) || /[\r\n\0]/.test(root)) return [];
@@ -276,6 +316,22 @@ export class PeerExecutionService {
             return roots.length ? [{ ...project, roots, ...(!available ? { available: false } : {}) }] : [];
           }) };
         }
+        case "inspectThread": {
+          this.assertThread(args[0]);
+          const state = await backend.inspectThread(args[0], undefined, observationSchema.parse(args[2] ?? undefined));
+          if (state.threadId !== args[0] || state.internal) throw new PeerError("scope", "Native observation identity changed");
+          return state;
+        }
+    }
+    throw new PeerError("unsupported", "Unknown catalog operation");
+  }
+  private async execute(connection: PeerConnection, call: z.infer<typeof callSchema>): Promise<unknown> {
+    if (["listSessionCatalog", "listProjects", "inspectThread"].includes(call.method)) return this.catalogCall(call);
+    const { method, args, operationId } = call, backend = this.nativeBackend();
+    const principalKey = crypto.createHash("sha256").update(JSON.stringify(call.grant.principal)).digest("hex");
+    const original = (id: string) => this.receipts.originalSource(id, principalKey);
+    if (!writes.has(method)) {
+      switch (method) {
         case "serverIdentity": {
           if (call.grant.scope !== "device" || call.grant.delegation) throw new PeerError("scope", "Process diagnostics require a device grant");
           if (!backend.serverIdentity) throw new PeerError("unsupported", "Native process diagnostics unavailable");
@@ -306,12 +362,6 @@ export class PeerExecutionService {
           const state = await this.readState(args[1] ?? this.description.thread?.threadId, false,
             observation && { ...observation, includeTurns: false });
           return backend.getRuntimeInfo(state.cwd, state.threadId, undefined, observation);
-        }
-        case "inspectThread": {
-          this.assertThread(args[0]);
-          const state = await backend.inspectThread(args[0], undefined, observationSchema.parse(args[2] ?? undefined));
-          if (state.threadId !== args[0] || state.internal) throw new PeerError("scope", "Native observation identity changed");
-          return state;
         }
         default: this.assertThread(args[0]);
       }

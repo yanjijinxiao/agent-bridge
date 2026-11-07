@@ -9,6 +9,33 @@ import { CodexRunAdmissionError } from "../src/codex/backend.js";
 
 const message = { id: "provider-id", senderId: "actor", replyTargetId: "chat" };
 
+test("terminal handoff recovery checks original chat, actor and binding without generating native acceptance", async t => {
+  const f = fixture(t), scope = { sessionId: "session", hostId: "peer", threadId: "terminal" };
+  await assert.rejects(f.journal.handle(message, async () => {
+    f.journal.capture()!.submitting({ ...scope, runtimeInput: true }); throw Error("ack lost");
+  }));
+  const journal = f.restart(), original = journal.receipt(message.id)!;
+  const proof = { ...scope, clientUserMessageId: original.clientUserMessageId, actorId: "actor", conversationId: "chat" };
+  for (const field of ["sessionId", "hostId", "threadId", "actorId", "conversationId"])
+    assert.equal(journal.recoverRuntimeAccepted({ ...proof, [field]: "other" }), false);
+  assert.equal(journal.recoverRuntimeAccepted(proof), true); assert.equal(journal.recoverRuntimeAccepted(proof), false);
+  const after = journal.receipt(message.id)!;
+  assert.equal(after.phase, "accepted"); assert.equal(after.turnId, undefined); assert.equal(after.recoveredNativeInput, undefined);
+  assert.equal(f.restart().claim(message), false);
+});
+
+test("terminal receipt cannot be mixed with native turn or queue evidence, even before persistence", async t => {
+  const f = fixture(t);
+  await f.journal.handle(message, async () => {
+    const capture = f.journal.capture()!; capture.submitting({ runtimeInput: true });
+    assert.throws(() => capture.accepted("thread", "turn"), /native turn/);
+    assert.throws(() => f.journal.queued("thread", "queue"), /native queue/);
+    assert.throws(() => capture.submitting({ nativeInput: true }), /cannot be mixed/);
+    capture.runtimeUnconfirmed();
+  });
+  assert.equal(f.restart().receipt(message.id)?.phase, "unconfirmed");
+});
+
 test("definite busy admission can be re-evaluated after restart; accepted input never reopens", async t => {
   const f = fixture(t);
   await assert.rejects(f.journal.handle(message, async () => {

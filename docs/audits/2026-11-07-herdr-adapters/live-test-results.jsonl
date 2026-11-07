@@ -1,0 +1,2 @@
+{"kind": "test", "file": "test/herdr-live-connector.test.ts", "name": "herdr-tui: live production Connector handoff and SIGKILL recovery preserve the original terminal", "sha256": "b044dfe789ae34ab0c4693091f12666569c7689080065af1896c1c1071825eb4", "status": "passed"}
+{"kind": "test", "file": "test/herdr-live-connector.test.ts", "name": "herdr-app: live production Connector handoff and SIGKILL recovery preserve the original terminal", "sha256": "b044dfe789ae34ab0c4693091f12666569c7689080065af1896c1c1071825eb4", "status": "passed"}
