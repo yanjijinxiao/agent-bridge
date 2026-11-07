@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "date": "2026-11-08",
   "baseline": "37b2a2ca8b467528167bc62cd54ce3cfce8b287e",
-  "status": "real-channel-and-browser-validated-candidate",
+  "status": "deployed-and-verified",
   "scope": "Defined Herdr TUI/App adaptation; source tests, real endpoints and deployment acceptance are separate",
   "fullRegression": {
     "command": "node --test --test-concurrency=4 --test-timeout=120000 --import tsx test/*.test.ts (spec + audit reporters)",
@@ -568,20 +568,17 @@
     "真实多人跨群及移动端布局不在本次追加实测范围；不是 IM/浏览器核心验收的替代或前提。",
     "Herdr TUI 中断键仍需按其他 agent 明确配置；本轮真实业务代理使用 Codex CLI。",
     "完整主机断电、全部上游版本和所有运行组合未穷尽。",
-    "头头尚未切换；探探为候选验收部署；npm 尚未发布。",
-    "真实浏览器已覆盖 Mac 与 Linux 的编辑、Git、终端及刷新，未覆盖所有设备/浏览器。"
+    "真实浏览器已覆盖 Mac 与 Linux 的编辑、Git、终端及刷新，未覆盖所有设备/浏览器。",
+    "npm 尚未发布；源码与线上版本已在单独部署回执核对。"
   ],
   "deployment": {
-    "pushed": false,
+    "pushed": true,
     "npmPublished": false,
-    "tantanGatewayCandidate": "v14",
-    "macNativeConnectorCandidate": "v15",
-    "linuxNativeConnectorCandidate": "v13",
-    "herdrConnectorsCandidate": "v11",
-    "toutouChanged": false,
+    "codeCommit": "a8e4a72fbd9d12cc33c761af6a2efc2bdd23ecad",
+    "toutouChanged": true,
+    "productionDistWritten": true,
     "codexAppOrDaemonRestarted": false,
-    "productionDistWritten": false,
-    "note": "Candidates differ only in subsequent presentation/native file-approval enrichment; final uniform artifact activation remains separate."
+    "receipt": "deployment-verification.json"
   },
   "previousCheckpoint": "production-verification-before-e2e.json",
   "nativeCompatibility": {
@@ -766,6 +763,47 @@
       "path": "/private/tmp/managed-startup-after-20261108.log",
       "sha256": "2b6e804542a1d55d535fba798aafb22872a8d35f94de1a3ea37742feb730152b"
     },
-    "productionAttempt": "3d9f3a5 automatically rolled back on cold-start failure; fixed artifact activation pending"
+    "productionAttempt": "3d9f3a5 rolled back automatically; a8e4a72 verified live on both Gateways"
+  },
+  "sealedReleaseRegression": {
+    "root": {
+      "tests": 3735,
+      "pass": 3645,
+      "fail": 0,
+      "skip": 90
+    },
+    "taskboardTopLevel": {
+      "tests": 510,
+      "pass": 508,
+      "fail": 0,
+      "skip": 2
+    },
+    "note": "Release runs 510 top-level named Taskboard tests; earlier 515 records also counted 5 helper module loads. Both raw runs are retained; helper loads are not additional functional cases.",
+    "evidence": [
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/tests.log",
+        "sha256": "edbb34acb353c7767e1cf5031bc9b7d54df606154497416ab4b386a27cb06cf7"
+      },
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/taskboard-tests.log",
+        "sha256": "d463660696cddd5a37aea95b5039418ea5c86911485966b5c2db6dc2fca6f2f5"
+      },
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/typecheck.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/taskboard-typecheck.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/taskboard-build.log",
+        "sha256": "89437fa8dbc93e1b7747299934e6089eb9ab2b06b9c67ac703659514baf0ee9a"
+      }
+    ]
   }
 }

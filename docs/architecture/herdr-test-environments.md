@@ -100,3 +100,5 @@ Mac 配置的 App/core 仍可读取：core 0.1.18、generation 1，目录 0 个�
 ## 2026-11-08 真实探探与浏览器增量
 
 以上均为按时间保留的安装/隔离检查点。最新已完成两端真实探探 IM、Gateway/Connector 骤停、附件合并及卡片；Mac/Linux 浏览器编辑保存、Git、终端和刷新重连也已通过。原 Codex CLI/App 新建测试线程完成读写、审批、附件、steer、queue、停止与运行中双进程重启，原生执行器未重启。见 [真实验收](../audits/2026-11-07-herdr-adapters/acceptance-2026-11-08.md) 与 [Codex 兼容](../audits/2026-11-07-herdr-adapters/native-compat-e2e.md)。
+
+2026-11-08 最终部署：头头/探探 Gateway、Mac/Linux 原生 Codex Connector 与两种 Herdr 测试 Connector 均为 a8e4a72。Gateway 为独立重启，Mac Codex PID 23722、Linux Codex PID 9955、Herdr App/core PID 85344/85378 保持。头头 28 个浏览器授权与两端原绑定保留；见四层报告中的 deployment-verification.json。

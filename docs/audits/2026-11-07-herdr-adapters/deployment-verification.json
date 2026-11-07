@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-07T19:19:36.343456+00:00",
+  "codeCommit": "a8e4a72fbd9d12cc33c761af6a2efc2bdd23ecad",
+  "pushed": true,
+  "productVersion": "0.5.0",
+  "npmPublished": false,
+  "sourceHash": "5e96a82fc7b94291dc6bd2ba520b75d2029726804b0389b9aa0ea438de808c32",
+  "compiledTreeHash": "91625a0ea1f36564725d5756f46c0ebcd6cc1830da6720e1d52636ea002ec5a2",
+  "archiveSha256": "c4898bea9df432cf99ff6756b7efa5e063ed07722c1837e59c988d9e68212c23",
+  "gateways": {
+    "toutou": {
+      "pid": 59230,
+      "commit": "a8e4a72fbd9d12cc33c761af6a2efc2bdd23ecad",
+      "accounts": [
+        {
+          "id": "hermes-dingtalk",
+          "status": "running",
+          "connection": "connected"
+        }
+      ],
+      "bindingCount": 45,
+      "bindingsPreserved": true,
+      "ide": {
+        "running": true,
+        "ttlDays": 90,
+        "authorizationError": false
+      },
+      "connectors": [
+        {
+          "hostId": "local",
+          "online": true,
+          "commit": "a8e4a72fbd9d12cc33c761af6a2efc2bdd23ecad",
+          "pid": 61331
+        },
+        {
+          "hostId": "remote-ssh-discovered:11.158.199.43",
+          "online": true,
+          "commit": "a8e4a72fbd9d12cc33c761af6a2efc2bdd23ecad",
+          "pid": 61331
+        }
+      ],
+      "retainedBrowserGrants": 28
+    },
+    "tantan": {
+      "pid": 132285,
+      "commit": "a8e4a72fbd9d12cc33c761af6a2efc2bdd23ecad",
+      "accounts": [
+        {
+          "id": "tantan-test",
+          "status": "running",
+          "connection": "connected"
+        }
+      ],
+      "bindingCount": 19,
+      "bindingsPreserved": true,
+      "ide": {
+        "running": true,
+        "ttlDays": 90,
+        "authorizationError": false
+      },
+      "connectors": [
+        {
+          "hostId": "peer:device-f3ac1592-ab09-487b-a65c-81942aa298e0:herdr-tui",
+          "online": true,
+          "commit": "a8e4a72fbd9d12cc33c761af6a2efc2bdd23ecad",
+          "pid": 132746
+        },
+        {
+          "hostId": "peer:linux12:headless",
+          "online": true,
+          "commit": "a8e4a72fbd9d12cc33c761af6a2efc2bdd23ecad",
+          "pid": 132611
+        },
+        {
+          "hostId": "peer:device-2e58fd54-c0a1-401e-842b-cbd7f4a76e1d:herdr-app",
+          "online": true,
+          "commit": "a8e4a72fbd9d12cc33c761af6a2efc2bdd23ecad",
+          "pid": 64214
+        },
+        {
+          "hostId": "peer:xking-mac-regression:desktop",
+          "online": true,
+          "commit": "a8e4a72fbd9d12cc33c761af6a2efc2bdd23ecad",
+          "pid": 62714
+        }
+      ],
+      "admissionReopened": true
+    }
+  },
+  "codexAfterDeployment": [
+    {
+      "environment": "cli",
+      "nativeProcessId": 9955,
+      "unchangedUserInputs": 7,
+      "sameInputIdsAndTurns": true,
+      "evidence": {
+        "path": "/private/tmp/native-cli-after-release-a8e4a72.json",
+        "sha256": "b9df4a726e61ef5c6852dc0a1511d490cba4752f1cbcbb736dd6ebb8a3d43c9f"
+      }
+    },
+    {
+      "environment": "mac",
+      "nativeProcessId": 23722,
+      "unchangedUserInputs": 8,
+      "sameInputIdsAndTurns": true,
+      "evidence": {
+        "path": "/private/tmp/native-mac-after-release-a8e4a72.json",
+        "sha256": "4684f25f3c2b5d72c84ddbf7b10096bdea234947bb728b4a22094e906c4ac773"
+      }
+    }
+  ],
+  "herdrIndependentProcesses": {
+    "app": 85344,
+    "core": 85378,
+    "restarted": false
+  },
+  "sealedRegression": {
+    "root": {
+      "tests": 3735,
+      "pass": 3645,
+      "fail": 0,
+      "skip": 90
+    },
+    "taskboardTopLevel": {
+      "tests": 510,
+      "pass": 508,
+      "fail": 0,
+      "skip": 2
+    },
+    "note": "Release runs 510 top-level named Taskboard tests; earlier 515 records also counted 5 helper module loads. Both raw runs are retained; helper loads are not additional functional cases.",
+    "evidence": [
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/tests.log",
+        "sha256": "edbb34acb353c7767e1cf5031bc9b7d54df606154497416ab4b386a27cb06cf7"
+      },
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/taskboard-tests.log",
+        "sha256": "d463660696cddd5a37aea95b5039418ea5c86911485966b5c2db6dc2fca6f2f5"
+      },
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/typecheck.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/taskboard-typecheck.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/private/tmp/agent-bridge-release-a8e4a72-20261108/taskboard-build.log",
+        "sha256": "89437fa8dbc93e1b7747299934e6089eb9ab2b06b9c67ac703659514baf0ee9a"
+      }
+    ]
+  },
+  "channelSmoke": {
+    "commands": [
+      "/status",
+      "/sessions"
+    ],
+    "result": "received real DingTalk replies; original binding retained; idle snapshot synchronized; Linux catalog 18 sessions",
+    "messageIds": [
+      "msgwzyKlPKt+Eify3+sNFKL+A==",
+      "msgliOl7x5lfWSGng0xThZ9gw=="
+    ],
+    "evidence": {
+      "path": "/private/tmp/agent-bridge-a8e4a72-channel-smoke.json",
+      "sha256": "12d2ac4baca929d25dace54efb5f69b2f799407dec0cf2483a2383da45366b40"
+    }
+  },
+  "previousAttempt": {
+    "commit": "3d9f3a5a304df0997c0b1d048be7caf7e0af0b1a",
+    "result": "rolled back automatically; offline managed local/remote host startup error reproduced and fixed in a8e4a72",
+    "details": "managed-startup-recovery.md"
+  },
+  "limits": [
+    "Actual tests use dedicated private chat and test sessions, not a multi-user group or every provider/platform.",
+    "Herdr terminal state is not a native structured success receipt.",
+    "Commands use a summary plus /history; no native clickable folding widget or full per-command archival."
+  ]
+}

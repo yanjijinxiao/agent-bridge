@@ -1,6 +1,6 @@
 # 当前未完成工作（2026-11-03）
 
-2026-11-07 Herdr 更新：目录/无 cwd 绑定、生命周期、输入/回执/只读跟随、全命令目标、Web、Taskboard 能力分离及 App 远端文件/IDE 已落入源码。真实两端生命周期/中断、App→Linux 文件/共享/code-server 和生产 Connector 骤停链路的结果见 [四层检查](../audits/2026-11-07-herdr-adapters/production-checklist.md)。2026-11-08 探探真实钉钉往返、原 AI 卡终态及 Gateway/Connector 骤停已补验；探探和两套专用 Connector 已切换验收构建。用户处理证书后，Mac/Linux 完整浏览器 IDE 编辑、Git、终端和刷新已验；原 Codex CLI/App 真实探探兼容已补验；手机不是本轮通用前提。所有 agent 版本及主机断电仍不在已验证范围。以下历史 383 case 计数保持原检查点，Herdr 增量单独登记。
+2026-11-07 Herdr 更新：目录/无 cwd 绑定、生命周期、输入/回执/只读跟随、全命令目标、Web、Taskboard 能力分离及 App 远端文件/IDE 已落入源码。真实两端生命周期/中断、App→Linux 文件/共享/code-server 和生产 Connector 骤停链路的结果见 [四层检查](../audits/2026-11-07-herdr-adapters/production-checklist.md)。2026-11-08 探探真实钉钉往返、原 AI 卡终态及 Gateway/Connector 骤停已补验；头头、探探及相关 Connector 已统一上线 a8e4a72，部署回执与原任务未重启证据已记录。用户处理证书后，Mac/Linux 完整浏览器 IDE 编辑、Git、终端和刷新已验；原 Codex CLI/App 真实探探兼容已补验；手机不是本轮通用前提。所有 agent 版本及主机断电仍不在已验证范围。以下历史 383 case 计数保持原检查点，Herdr 增量单独登记。
 
 此表以当前源码和功能清单核对，不把旧pending-findings全部当成当前故障。原28项均已建立直接测试映射；后来确认的IM重复创建已修复并有实际HTTP/SQLite回归。当前383case：299项已有窄边界通过记录、84部分覆盖，全部有测试映射；部分覆盖不等于已确认bug。
 

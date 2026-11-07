@@ -14,7 +14,7 @@
 
 `@yanjijinxiao/agent-bridge` 把即时通信消息转发给选定设备上的 Codex，并将进展、审批和结果送回原聊天。现网已发布能力为 Codex；源码中的 Herdr 适配及其发布状态见下一段。桌面和纯 CLI 环境统一使用标准 Codex App Server 接口；Gateway 统一通过主动拨号的 Connector 接入；Connector 复用已有本机和远程主机连接。
 
-Herdr TUI / App 适配已接入源码，尚未发布：包括显式 Connector 配置、目录、终端新建/命名/关闭、输入/观察/只读恢复、文件共享和本机及 App 远端完整 IDE。IM/Web 共用资源与授权边界，Taskboard 按操作能力区分普通工作说明和结构化执行。终端画面不等于原生对话或任务成功回执；Herdr 未提供同等合同的模型设置、审批、原生消息队列不会被终端按键冒充。源码验收范围见 [Herdr 四层检查](docs/audits/2026-11-07-herdr-adapters/production-checklist.md)，探探及专用 Connector 已用于真实钉钉验收；尚未 npm 发布，头头未切换，Mac 与 Linux 的浏览器 IDE 编辑、Git、终端和刷新重连已实测。
+Herdr TUI / App 适配已接入源码并部署至头头、探探：包括显式 Connector 配置、目录、终端新建/命名/关闭、输入/观察/只读恢复、文件共享和本机及 App 远端完整 IDE。IM/Web 共用资源与授权边界，Taskboard 按操作能力区分普通工作说明和结构化执行。终端画面不等于原生对话或任务成功回执；Herdr 未提供同等合同的模型设置、审批、原生消息队列不会被终端按键冒充。源码验收范围见 [Herdr 四层检查](docs/audits/2026-11-07-herdr-adapters/production-checklist.md)，探探及专用 Connector 已用于真实钉钉验收；本次变更尚未发布至 npm，Mac 与 Linux 的浏览器 IDE 编辑、Git、终端和刷新重连已实测。
 
 | 执行位置 | 接入方式 |
 | --- | --- |

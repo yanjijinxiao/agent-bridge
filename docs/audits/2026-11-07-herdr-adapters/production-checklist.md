@@ -17,7 +17,7 @@
 
 | ID | 功能 | 用例与实际边界 |
 | --- | --- | --- |
-| HDR-01 | 配置与版本 | connector-runtime-config/process、runtime-versions；探探候选已验，头头未切换 |
+| HDR-01 | 配置与版本 | connector-runtime-config/process、runtime-versions；头头/探探与相关 Connector 同一制品已上线并核验 |
 | HDR-02 | 目录与项目 | agent-runtime、herdr-app-layout、runtime-channel；空项目、歧义、无 cwd、目录与绑定一致；远端完整性保守显示 |
 | HDR-03 | 配对及身份 | agent-peer、runtime-observation；原账号/聊天/用户、固定资源、委托隔离；真实多人跨群另验 |
 | HDR-04 | 输入交接 | agent-handoff、agent-peer、live-connector；持久意图、重复/未知/SIGKILL、不重发 |
@@ -35,9 +35,10 @@
 | HDR-16 | 既有 Codex | 57 端口显式分类与完整主库/Taskboard回归；原生设置/审批/queue 不迁为终端操作；默认跳过另列 |
 | HDR-18 | 终端展示 | 稳定阶段、bounded 活动、composer 与旧输入去除、命令摘要、段落和 IDE；真实卡片确认 |
 | HDR-19 | 原生审批完整性 | 接受回调屏障、实时 fileChange 关联、重连有界读取、缺失/截断明示；真实审批续卡 |
+| HDR-20 | 旧 host 冷启动 | local/remote-ssh-discovered/peer 三组合；绑定与订阅保留，未知能力不伪装；实机回退、隔离失败及重新上线证据 |
 | HDR-17 | 恢复事实隔离 | inbound-receipts/channel/web；runtimeInput 不进入原生 turn/queue 恢复，原 actor/chat/binding 固定 |
 
-这些是可审查的功能合同，不是把每个底层测试都当作整组集成通过。697 个选定用例包含共享既有测试；总数不代替反例和设备边界。
+这些是可审查的功能合同，不是把每个底层测试都当作整组集成通过。700 个选定用例包含共享既有测试；总数不代替反例和设备边界。
 
 ## 第三层：函数与代码
 
@@ -53,6 +54,6 @@
 - README 中英、探探现网教程、Herdr 配置说明、架构/功能/模块/命令/实机/剩余工作同步；历史阶段仍保留日期与范围，不替换旧散列冒充新验证。
 - Herdr 配置说明纳入 npm 打包文件清单；不改变产品版本，候选配置与生产配置分开，不输出设备凭据。
 - 根目录与 Taskboard typecheck 通过；独立临时构建、静态资源、两个编译后 CLI help 通过；npm 已有 3 项用例补验通过。
-- 未覆盖线上 dist；探探候选已重启验收；尚未 npm 发布，头头未切换。实际编译产物位置与日志摘要见 production-verification.json。
+- 通过发布脚本封存制品并统一上线头头/探探及相关 Connector；既有绑定、浏览器授权和独立原生进程已核对。源码已推送，npm 未发布；见 deployment-verification.json。
 
 真实探探平台往返、Gateway/Connector 骤停及 Codex CLI/App 兼容已补验；主机断电、真实多人跨群和移动布局另列。Herdr 原生没有的结构化合同属于能力边界；二者都不能冒充代码已缺省实现。

@@ -6,8 +6,8 @@
 
 | 验证 | 总数 | 通过 | 失败 | 跳过 |
 | --- | ---: | ---: | ---: | ---: |
-| 最终候选主库完整回归 | 3733 | 3643 | 0 | 90 |
-| Taskboard 完整回归（代码未再次改变） | 515 | 513 | 0 | 2 |
+| 已上线制品主库完整回归 | 3735 | 3645 | 0 | 90 |
+| Taskboard 发布回归 | 510 | 508 | 0 | 2 |
 | 原生 Codex 二进制专项，另行启用 | 220 | 220 | 0 | 0 |
 | 真实 Herdr + 生产 Connector 入口专项 | 2 | 2 | 0 | 0 |
 
@@ -24,7 +24,7 @@
 - 文件审批 RPC 只有 itemId，卡片遗漏修改范围：按相同 turn/item 关联实时 fileChange，重连时有界读取；未提供明细时明确提示。真实 v14 证明等待审批的修改尚不在历史里，v15 的实时事件路径已显示具体文件并完成原审批。
 - 输入完成与被动观察并发造成重复卡片、App done 状态参数不兼容、离线历史设备造成会话列表失败等此前实测修复继续保留，见模块文档和证据映射。
 
-- 头头真实冷启动发现旧 local/remote-ssh-discovered 标识被遗漏，已按通信语义修复并补三个启动恢复 case；详见 [冷启动复现](managed-startup-recovery.md)。完整回归表为此前候选的记录，新封存结果在上线回执中单独记录。
+- 头头真实冷启动发现旧 local/remote-ssh-discovered 标识被遗漏，已按通信语义修复并补三个启动恢复 case；详见 [冷启动复现](managed-startup-recovery.md)。修复后全量回归与实际重新部署均通过，详见 [上线回执](deployment-verification.json)。
 
 ## 文档与审查入口
 
@@ -32,7 +32,7 @@
 - production-requirements.json：功能、职责、实现散列、精确 case 名称和边界。
 - production-read-ledger.json：65 个源码/脚本的完整模块或修改函数审查范围；wholeRepositoryReviewed=false。
 - production-test-results.jsonl：700 个选定通过用例。root、taskboard、native、live-test-results 分别保留独立运行记录。
-- production-verification.json：实机证据、日志散列、历史失败、构建及候选部署状态。
+- production-verification.json：实机证据、日志散列、历史失败、构建及实际部署状态。
 - [模块与函数职责](../../architecture/modules/agent-runtime.md)、[终端展示](../../architecture/modules/terminal-presentation.md)、[命令正交性](../../architecture/agent-command-compatibility-2026-11-07.md)。
 
 before-e2e、before-completion 等文件是当时检查点，保留旧状态与散列；不能把它们当作当前结论。原始私聊/原生历史证据留在本机，仓库记录路径和散列，不发布连接凭据。
@@ -43,4 +43,4 @@ Herdr 的终端 idle/done 不等于结构化业务成功；没有的原生模型
 
 命令输出默认收成摘要，通过 /history 查看当前终端详情。当前模板没有原生点击折叠容器，也不声称有逐条命令归档。真实多人跨群、移动布局、所有 agent/浏览器/平台、主机断电不是本次实测范围。
 
-探探和专用 Connector 已部署候选构建；头头未切换，npm 尚未发布。代码推送和最终统一制品部署与上述测试分别记录。
+头头、探探及相关 Connector 已统一上线 a8e4a72，已推送 main；npm 尚未发布。原绑定和浏览器授权保留，Mac/Linux Codex 原进程未重启。发布脚本另跑 Taskboard 顶层 510 项（508 通过、2 跳过），此前目录运行的 515 条还包含 5 个 helper 文件的加载记录，分别保留；详见 [部署证据](deployment-verification.json)。

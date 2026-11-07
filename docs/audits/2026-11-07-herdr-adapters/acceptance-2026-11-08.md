@@ -13,4 +13,4 @@
 
 手机不是 IM 或浏览器核心验收的通用前提。真实多人跨群、移动布局和所有浏览器组合没有被这份记录认证。测试计数、隔离协议测试和真实平台结果分别列出，不相互替代。
 
-探探私聊原绑定及目录选择已恢复。头头与用户原任务未重启；Codex 原生服务始终独立运行。当前部署/推送状态见 production-verification.json。
+探探私聊原绑定及目录选择已恢复。上线只重启 Gateway 与 Connector；Codex/Herdr 原执行器与用户原任务未被停止。当前部署/推送状态见 production-verification.json。

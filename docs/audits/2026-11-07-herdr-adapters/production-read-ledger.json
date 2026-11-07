@@ -992,12 +992,12 @@
   "staticReview": [
     {
       "file": "README.en.md",
-      "sha256": "218da0bdad9761fa574fd5ee4192bfdfa451a8c86d708d5a0ed3943ca74e4dfc",
+      "sha256": "5e11b9b209925b7ef236f2fc1ae890bb2b6945bcc00d82c578db9a8adfcfb470",
       "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
     },
     {
       "file": "README.md",
-      "sha256": "4254269e21bc80ddd4b267c7d5e05c37ada60113d1d2d69ad1a63632e7d96963",
+      "sha256": "cb81b9a5e6c1e6da47e09b8cfd67793ed697ec4221b66f3ba11108cee2b19004",
       "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
     },
     {
@@ -1027,7 +1027,7 @@
     },
     {
       "file": "docs/architecture/herdr-test-environments.md",
-      "sha256": "b69caf10212c3cb07e19271c0725f44ad549a5d787542a544b3e59a1afddb858",
+      "sha256": "88d2108955ee3ff7dc29802322065ec5aae52dacff182941b6862b66ccb2d430",
       "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
     },
     {
@@ -1057,7 +1057,7 @@
     },
     {
       "file": "docs/architecture/remaining-work.md",
-      "sha256": "d6c01d0c3728a237720e945c9e820f5ae57a6b0b32983c827238936c0f810747",
+      "sha256": "665f54cbaec64c473732d062bba1a76353fea2cc5418e01eeb07cb65024d6c18",
       "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
     },
     {

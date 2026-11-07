@@ -10,7 +10,7 @@
     "git diff --check"
   ],
   "result": "passed",
-  "productionDistWritten": false,
+  "productionDistWritten": true,
   "wholeRepositoryReviewed": false,
-  "deploymentStatus": "candidate tested; final production switch recorded separately"
+  "deploymentStatus": "a8e4a72 pushed and both Gateways / related Connectors deployed; see deployment-verification.json"
 }
