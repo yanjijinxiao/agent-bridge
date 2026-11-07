@@ -752,5 +752,20 @@
         "sha256": "ad7d239fa21a087c49a96d22a816c097d93b0d87b21673fee5fb9d8f3f6e6bfb"
       }
     }
-  ]
+  ],
+  "startupRegression": {
+    "cases": 98,
+    "passed": 98,
+    "failed": 0,
+    "records": "managed-startup-test-results.jsonl",
+    "before": {
+      "path": "/private/tmp/managed-startup-before-20261108.log",
+      "sha256": "f08e5c5e3b75d8ce44c9f05211540db258862f4c14ebd1f1ef21c2682b98fab0"
+    },
+    "after": {
+      "path": "/private/tmp/managed-startup-after-20261108.log",
+      "sha256": "2b6e804542a1d55d535fba798aafb22872a8d35f94de1a3ea37742feb730152b"
+    },
+    "productionAttempt": "3d9f3a5 automatically rolled back on cold-start failure; fixed artifact activation pending"
+  }
 }

@@ -106,3 +106,7 @@ Herdr `RuntimeObservationController` 在读后身份核验之后调用 `projectT
 原生 `AppServerRunner.runWithLease` 负责所有启动路径的应用接受回调屏障；原生服务器很快发出审批时，必须等待 `onTurnStarted` 完成，保证参与者与原会话来源已保存。应用接受失败时，原生请求保持未决，不制造答案或重复启动。普通、queue、容量恢复共用这一边界；Herdr 输入不走该路径。
 
 文件审批 RPC 的 itemId 不是修改范围。原生适配器以相同 turnId + itemId 关联 item/started 的 fileChange 路径及操作类型；仅缓存有界展示元数据，在轮次/连接结束时清理。重连丢失事件时再用有界 thread/turns/list 读取，原生等待审批的 item 可能尚未进入历史，缺失必须明示。最多展示 20 项，不转发 diff/文件内容、不改变审批决策或 grantRoot。读取失败/身份不匹配明确显示明细不可用，仍由用户决定；读取后再次检查原连接和 pending 身份。IM 和 Web 使用同一不可变审批快照及版本。
+
+### Gateway 冷启动与旧 host 标识
+
+订阅枚举不以 host 名称前缀区分设备可用性。Connector 迁移可能保留 local 和 remote-ssh-discovered:*；它们与 peer:* 一样，冷启动时可能先有持久绑定、后有设备注册。明确未提交的通信读取失败保留订阅和不可用状态，待同一设备恢复；其他错误继续抛出，不选择备用执行器或重放输入。对应 HDR-20 三类启动恢复用例。

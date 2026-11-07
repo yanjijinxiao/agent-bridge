@@ -274,18 +274,23 @@ function setup(t: test.TestContext, options: { taskboardClient?: object; taskCar
   };
 }
 
-test("an offline historical Connector does not break the session list or impersonate native capabilities", t => {
+for (const offlineHost of ["peer:absent:work", "local", "remote-ssh-discovered:old-machine"]) test(`offline Connector ${offlineHost} preserves startup, subscriptions and session listing`, async t => {
   const f = setup(t);
   const store = new RuntimeStateStore(accountStatePaths(f.paths, "account-one"));
   const offline = store.createSession("offline-chat", f.root, "Offline", undefined, "session", undefined,
-    { hostId: "peer:absent:work" });
+    { hostId: offlineHost });
   store.setSessionThread(offline.id, "offline-thread");
-  const online = store.createSession("online-chat", f.root, "Online");
+  const online = store.createSession("online-chat", f.root, "Online", undefined, "session", undefined, { hostId: "peer:online:work" });
   let disconnected = true;
   Object.assign(f.runner, { backendInfo(host?: string) {
-    if (host === "peer:absent:work" && disconnected) throw new CodexCommunicationError("preflight", "peer/discover");
+    if (host === offlineHost && disconnected) throw new CodexCommunicationError("preflight", "peer/discover");
     return { id: "app-server", capabilities: APP_SERVER_BACKEND_CAPABILITIES };
   } });
+  await f.manager.startAll();
+  const subscriptions = (f.manager as any).threadSubscriptions();
+  assert.ok(subscriptions.some((s: any) => s.hostId === offlineHost && s.threadId === "offline-thread"), "offline binding remains subscribed for recovery");
+  assert.equal(store.getBoundSession("offline-chat")?.id, offline.id);
+  assert.equal(f.runs.length, 0, "startup never replays or replaces an input");
   const listed = f.manager.listSessions();
   assert.equal(listed.length, 2);
   assert.equal(listed.find(s => s.id === offline.id)?.executionUnavailable, true);

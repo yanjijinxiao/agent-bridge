@@ -626,11 +626,12 @@
     },
     {
       "file": "src/server/account-manager.ts",
-      "sha256": "e88c908615e819ee7c956d1204f1c673b3daf4d128656385e1d5bccf3db99579",
-      "lines": 3137,
+      "sha256": "ae11cc63113aeb21a93e7812753d05d926b707d8897d49260d7357d14a61b51c",
+      "lines": 3141,
       "review": "changed-functions-and-call-boundaries-only",
       "focus": [
-        "offline historical connector stays visible without sessions 500; capability separation"
+        "offline historical connector stays visible without sessions 500; capability separation",
+        "HDR-20: migrated host IDs preserve cold-start subscriptions on not-submitted communication failure"
       ]
     },
     {
@@ -1031,7 +1032,7 @@
     },
     {
       "file": "docs/architecture/modules/agent-runtime.md",
-      "sha256": "8cd1e114437837b80acaa3a80cad66cc7f3ba2752c797153007ed65e5257d6ba",
+      "sha256": "97c00809a608b48c3359b0542214694608c0a005aae329084e956dc061f1c798",
       "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
     },
     {

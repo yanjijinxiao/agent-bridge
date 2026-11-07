@@ -2302,8 +2302,12 @@ export class AccountManager {
           // A persisted binding can precede device registration after restart.
           // Keep its subscription/outage state; reads still fail closed until
           // the authenticated device returns, without choosing another core.
-          if (!hostId.startsWith("peer:") || !(error instanceof CodexCommunicationError)
-            || error.submission !== "not-submitted") throw error;
+          // Managed Connector routes retain legacy host IDs such as `local`
+          // and `remote-ssh-discovered:*`. Availability is a transport fact,
+          // not a host-name prefix: those bindings must also survive startup
+          // before their device reconnects. Do not hide programming errors or
+          // interpret an uncertain write as an offline read.
+          if (!(error instanceof CodexCommunicationError) || error.submission !== "not-submitted") throw error;
         }
         const managed = this.isSessionResponding(accountId, session.id);
         if (!session.threadId && !managed) continue;

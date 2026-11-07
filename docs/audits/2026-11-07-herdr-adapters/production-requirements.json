@@ -2906,7 +2906,7 @@
         },
         {
           "file": "src/server/account-manager.ts",
-          "sha256": "e88c908615e819ee7c956d1204f1c673b3daf4d128656385e1d5bccf3db99579"
+          "sha256": "ae11cc63113aeb21a93e7812753d05d926b707d8897d49260d7357d14a61b51c"
         }
       ],
       "tests": [
@@ -6891,7 +6891,7 @@
         },
         {
           "file": "src/server/account-manager.ts",
-          "sha256": "e88c908615e819ee7c956d1204f1c673b3daf4d128656385e1d5bccf3db99579"
+          "sha256": "ae11cc63113aeb21a93e7812753d05d926b707d8897d49260d7357d14a61b51c"
         },
         {
           "file": "src/web/app.js",
@@ -8375,7 +8375,7 @@
         },
         {
           "file": "src/server/account-manager.ts",
-          "sha256": "e88c908615e819ee7c956d1204f1c673b3daf4d128656385e1d5bccf3db99579"
+          "sha256": "ae11cc63113aeb21a93e7812753d05d926b707d8897d49260d7357d14a61b51c"
         },
         {
           "file": "src/web/app.js",
@@ -8674,7 +8674,7 @@
         },
         {
           "file": "src/server/account-manager.ts",
-          "sha256": "e88c908615e819ee7c956d1204f1c673b3daf4d128656385e1d5bccf3db99579"
+          "sha256": "ae11cc63113aeb21a93e7812753d05d926b707d8897d49260d7357d14a61b51c"
         }
       ],
       "tests": [
@@ -10202,7 +10202,7 @@
         },
         {
           "file": "src/server/account-manager.ts",
-          "sha256": "e88c908615e819ee7c956d1204f1c673b3daf4d128656385e1d5bccf3db99579"
+          "sha256": "ae11cc63113aeb21a93e7812753d05d926b707d8897d49260d7357d14a61b51c"
         }
       ],
       "tests": [
@@ -11097,6 +11097,42 @@
       "boundaries": [
         "真实私聊审批和确认后新卡已验；多人群聊 @ 以已有参数化用例为证，未另称真实多人验收。",
         "原生请求等待期间可能不在历史中；实时事件也丢失时显示清单不可用，不解析提示词猜测文件。"
+      ]
+    },
+    {
+      "id": "HDR-20",
+      "feature": "旧 host 标识的 Connector 冷启动恢复",
+      "status": "verified-boundary",
+      "contract": "Gateway 冷启动时 local、remote-ssh-discovered 与 peer 路由均可能尚未注册；保留原绑定/订阅并报告不可用，不按 host 前缀制造差异，不重发输入。",
+      "implementation": [
+        {
+          "file": "src/server/account-manager.ts",
+          "sha256": "ae11cc63113aeb21a93e7812753d05d926b707d8897d49260d7357d14a61b51c"
+        }
+      ],
+      "tests": [
+        {
+          "file": "test/account-manager.test.ts",
+          "name": "offline Connector peer:absent:work preserves startup, subscriptions and session listing",
+          "sha256": "590da21b943bad8400e5ff6f7b26b67602d942aeb7a8fa0ba39a64cc6ce102b2",
+          "result": "passed"
+        },
+        {
+          "file": "test/account-manager.test.ts",
+          "name": "offline Connector local preserves startup, subscriptions and session listing",
+          "sha256": "590da21b943bad8400e5ff6f7b26b67602d942aeb7a8fa0ba39a64cc6ce102b2",
+          "result": "passed"
+        },
+        {
+          "file": "test/account-manager.test.ts",
+          "name": "offline Connector remote-ssh-discovered:old-machine preserves startup, subscriptions and session listing",
+          "sha256": "590da21b943bad8400e5ff6f7b26b67602d942aeb7a8fa0ba39a64cc6ce102b2",
+          "result": "passed"
+        }
+      ],
+      "boundaries": [
+        "仅处理明确未提交的读取通信错误；程序错误和回执不明仍上抛。",
+        "完整上线结果另记 deployment-verification.json。"
       ]
     }
   ],
