@@ -1067,12 +1067,12 @@
     },
     {
       "file": "docs/herdr-connector-guide.md",
-      "sha256": "46e4f31ffb64d43309daedeab7df5d0d5d3de1fb191924020037ece25bed8cbd",
+      "sha256": "e9eaef98d450279162c351228e5e7a283540332dd33077feb9d65b13eab62723",
       "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
     },
     {
       "file": "docs/tantan-connector-guide.md",
-      "sha256": "f9eb5c26d8f34d2c702788247978c4089a6ae4f181478393d8d75c84741f4ca5",
+      "sha256": "d4bb8bccd2e363ce609c9864d7cb120dcafd33919088fbc898c8397ce34a1c86",
       "review": "modified feature descriptions, public configuration, links, version boundaries and current-vs-historical status"
     }
   ],

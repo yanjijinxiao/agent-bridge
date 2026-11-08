@@ -1,6 +1,8 @@
 # Herdr Connector：连接和使用
 
-本文对应已经实现、尚未 npm 发布的 Herdr 适配。探探及 Mac/Linux12 专用 Connector 已部署验收构建；头头与已发布 npm 包不自动获得这些功能。用户处理证书提示后，Mac 与 Linux 的真实浏览器已验证文件编辑、Git、集成终端与刷新重连。Gateway 与 Connector 都需支持 `runtimeContract: 1`。产品版本、Peer 协议和 Herdr 运行接口版本分别检查，不能只看软件名称。
+更新：2026-11-08。Herdr 适配已上线头头、探探及相关 Mac/Linux Connector，真实钉钉往返、卡片和重启恢复均有验收记录；本次改动尚未发布到 npm，**不能仅运行 npm 安装就认为新设备已支持 Herdr**。首次接入请使用管理员核验过的 Connector 构建；旧 Codex Connector 保留原配置即可。Gateway 与 Connector 都需支持 runtimeContract: 1，管理员通过 /api/versions 核对实际构建，不只看产品名称。Mac/Linux 浏览器已验证文件编辑、Git、集成终端与刷新重连。
+
+接入探探使用固定 Connector 地址：wss://11.158.199.29:49186/gateway/v1/peer。它是设备入口，不是浏览器 IDE 地址。个人准入、配对、共享所有者审批及 Web IDE 开通方法参见 [探探使用指南](tantan-connector-guide.md)。
 
 ## 1. 连接的是哪个服务
 
