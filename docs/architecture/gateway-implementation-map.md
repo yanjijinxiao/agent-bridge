@@ -6,6 +6,8 @@
 
 ## 主链路
 
+当前 Connector 负责到执行主机的连接与传输；Gateway 的来源、角色、绑定和投递职责共用。以下原生轮次链路描述 Codex 分支；Herdr App/TUI 的终端输入走同一 Bridge 入口后的运行适配器、RuntimeObservationController 和独立交接回执，不能套用 Codex turn/queue 或通过终端按键模拟审批。详见[运行接口模块](modules/agent-runtime.md)。
+
 平台事件 → AccountManager 账号运行代次与接收持久化 → ForwardingInbox 来源交接 → BridgeService 显式命令或普通输入 → TurnSubmission/SessionControl/NativeQueue → CodexAppServerGateway 主机路由 → AppServerCodexRunner 原生协议。
 
 原生接收回执恢复：原host/thread历史分页 → 精确clientUserMessageId → 来源journal CAS accepted与投递义务 → Hub排除误判历史baseline → 结果动作与原路投递 → 持久确认后结算。没有新的执行入口。
@@ -48,9 +50,21 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 
 ## 当前验证边界与历史记录
 
-当前342case全部有精确测试映射，236项仅在列明边界通过、106项部分覆盖；状态与人读功能清单以gateway-requirements.json对应的具体case为准。13项原先缺少边界说明的记录已逐条核对现有断言，未因此新增运行证据或升级状态。
+2026-11-08 按需求记录汇总：459case 全部有测试映射，364 项仅在列明边界通过、95 项部分覆盖。统计同步不更新历史测试的新鲜度或提升旧状态；具体边界以 gateway-requirements.json 为准。历史 13 项说明校准未因此新增运行证据或升级状态。
 
 [当前剩余清单](remaining-work.md)给出未实现、缺测与实机验收；[文档校准记录](../audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md)记录具体差异；首次阅读计数和旧失败保留于历史审计报告，不再当作当前结果。原检查点按行记录与140份精选函数合同不能证明全部模块行为或真实设备已验收。
+
+## 2026-11-08 修复的实现映射
+
+| 合同 | 实现及调用关系 | 必须保留的边界 |
+| --- | --- | --- |
+| IN-01.slash-forwarding | channel-commands 的 parseCommand / mayBeChannelCommand / classifyChannelInput → BridgeService 控制或普通输入 → 原交接流程 | 注册决定控制语义，授权另行检查；原文、附件和引用不改写，未知回执不重发 |
+| CTRL-05.runtime-help | runtime-help 的 entries / runtimeHelp → 同一注册表及 runtime-command-policy | 全量/主题/别名/扩展一致；参数错误或能力缺失不变成终端输入 |
+| IDE-14.webview-timeout | ide/link-entry 的页面脚本 → AccessServer 同源交换 → 原 workspace 路径 | 单次在途请求、定时器清理、过期手动取新证明；Origin、授权和项目范围不放宽 |
+| STATE-01.stage-dedup | ThreadEventHub 加载/归档/旧结果及迟到回执 → follow-checkpoint-compaction → 原同步原子保存 | 只删除当前已持有的完全相同阶段副本；不同回执、唯一副本、最终结果和附件动作保持 |
+| IDE-03.health-retry | RemoteIDEIngress.run → 自有 SSH connection 与独立 HTTPS probe | 连续三次失败才重建，成功清计数及 error；真实退出和取消仍清理，不影响 agent 任务 |
+
+本次登记十项精选函数的实际范围及散列；不批量更新其他历史函数散列，未重新核验的旧记录仍是原版本证据。[同步记录](../audits/2026-11-08-documentation-reconciliation.md)列出测试与验证边界。
 
 ## Connector 增量映射（2026-11-03）
 

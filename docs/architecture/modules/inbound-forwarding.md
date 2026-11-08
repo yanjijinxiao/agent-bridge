@@ -28,7 +28,7 @@ AccountManager 为同一账号复用 journal/inbox，不允许每次消息新建
 5. 真正提交前保存 submitting，再调用选定原生接口。原生确认由精确 thread/turn 或原生 queue ID 标识，不按相似文字推断。
 6. 确认接收后 inbox 可以移除正文并释放后续输入的转发顺序；执行和进展订阅仍继续，原任务无需等待下一条输入。
 
-普通消息仅显式斜杠命令才进入 Gateway 控制。运行中默认 steer；显式 /queue 使用原生队列，Gateway 不建立第二个执行队列。
+只有已注册的内置/扩展命令进入 Gateway 控制。未注册的 /xxx 先给简短文字提示，再按普通消息原文转发；路径、引用及正文不误当命令。注册查询失败、失效回调、注册命令的参数/能力/权限错误不能降级成输入。IN-01.slash-forwarding 覆盖分类与既有准入、绑定、角色、忙碌及去重边界，详见[斜杠合同](../slash-routing-and-runtime-help.md)。运行中默认 steer；显式 /queue 使用原生队列，Gateway 不建立第二个执行队列。
 
 ## 输入来源回执
 

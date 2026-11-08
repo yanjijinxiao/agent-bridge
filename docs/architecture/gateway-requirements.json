@@ -6369,7 +6369,7 @@
             },
             {
               "file": "src/bridge/runtime-command-policy.ts",
-              "sha256": "408723cd3b868dfc6e4e20515ff9fa93e43f75db336793a2d63aa1bca1aac147"
+              "sha256": "cd92b8b9a603bc1cc50bb1aa4a72458905dc3e6c112f37e428d17bfa9f967f64"
             }
           ],
           "verifiedBoundary": "覆盖命令/别名/参数、扩展、Taskboard 配置和动态中断能力；渠道展示上限由既有分页器处理。"

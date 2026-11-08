@@ -4,9 +4,9 @@
 
 ## 命令与帮助入口
 
-`classifyChannelInput` 按内置及扩展注册清单分流，`parseCommand` 保持纯语法职责。未知斜杠先提示，再走原有普通输入流程；路径、引用及正文不误当控制。共享权限、聊天角色、忙碌状态和回执去重仍独立生效；旧卡片回调不能变成输入。
+IN-01.slash-forwarding：`classifyChannelInput` 按内置及扩展注册清单分流，`parseCommand` 保持纯语法职责。未知斜杠先提示，再走原有普通输入流程；路径、引用及正文不误当控制。共享权限、聊天角色、忙碌状态和回执去重仍独立生效；旧卡片回调不能变成输入。
 
-`runtimeHelp` 使用全部命令登记、别名、同一能力拒绝策略及 Taskboard 状态，支持分项和单命令说明。`handleRuntimeCommand` 将帮助主题和扩展清单传入展示层，不另行维护执行逻辑。`buildPromptParts` 保留正文首尾空白与换行；格式化预览和命令语法解析不得改写实际输入。功能及检查矩阵见 [斜杠输入与终端帮助](../slash-routing-and-runtime-help.md)。
+CTRL-05.runtime-help：`runtimeHelp` 使用全部命令登记、别名、同一能力拒绝策略及 Taskboard 状态，支持分项和单命令说明。`handleRuntimeCommand` 将帮助主题和扩展清单传入展示层，不另行维护执行逻辑。`buildPromptParts` 保留正文首尾空白与换行；格式化预览和命令语法解析不得改写实际输入。功能及检查矩阵见 [斜杠输入与终端帮助](../slash-routing-and-runtime-help.md)。
 
 ## 职责
 

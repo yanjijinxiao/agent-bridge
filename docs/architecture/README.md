@@ -16,7 +16,7 @@
 
 ## 当前未完成工作
 
-[当前剩余清单](remaining-work.md)分开记录未实现功能、缺测组合与真实设备验收。当前 427 个 case 全部有测试映射，343 项已有窄边界通过记录、84 项部分覆盖。数字是已有记录汇总，不代表本次全库重新精读。最新[阶段展示与终态回归](../audits/2026-11-05-terminal-progress-regression.md)补齐 DEL-08.8–DEL-08.11 的相关文档入口。
+[当前剩余清单](remaining-work.md)分开记录未实现功能、缺测组合与真实设备验收。2026-11-08 按需求 JSON 汇总：96 项要求、459 个 case，364 项已有窄边界通过记录、95 项部分覆盖，全部有测试映射。数字不是本次全库重新验收结果；历史证据仍有版本和环境限制。最近命令、帮助及 IDE 修复的五项合同与十项函数记录见[文档同步记录](../audits/2026-11-08-documentation-reconciliation.md)。
 
 ## 阅读顺序
 
@@ -35,7 +35,7 @@
 | --- | --- |
 | 实验 Connector | [Peer 的接口适配、授权和验证边界](modules/peer-transport.md) |
 | 原生协议与连接 | [同一核心、权限继承、读写连接和生命周期](modules/native-protocol.md) |
-| 多 agent 运行接口（开发中） | [两套 Herdr 适配、输入交接及生产接入边界](modules/agent-runtime.md) |
+| 多 agent 运行接口 | [两套 Herdr 适配、输入交接、命令帮助及能力边界](modules/agent-runtime.md) |
 | 消息接收与交接 | [来源、提交、接收和未知回执](modules/inbound-forwarding.md) |
 | 持久状态与账号 | [版本、迁移、内存/磁盘一致性和特殊标识](modules/persistent-state.md) |
 | 绑定及准入 | [精确会话边、个人/群身份和撤权](modules/bindings-access.md) |
@@ -74,6 +74,11 @@
 
 | 功能点 | 功能与 case | 模块说明 |
 | --- | --- | --- |
+| 未注册斜杠提示后原文转发，注册控制及路径不误判 | IN-01.slash-forwarding | [输入合同](slash-routing-and-runtime-help.md)、[消息交接](modules/inbound-forwarding.md) |
+| Herdr 全量、分项和单命令帮助与实际能力一致 | CTRL-05.runtime-help | [运行接口](modules/agent-runtime.md) |
+| IDE 内置浏览器兼容、明确失败与手动重试，不自动循环 | IDE-14.webview-timeout | [IDE 访问](modules/ide-access.md) |
+| 相同承接阶段去重，保留所有不同回执和旧最终结果 | STATE-01.stage-dedup | [持久状态](modules/persistent-state.md) |
+| 短暂探测失败保留中继，持续失败恢复、成功清旧错误 | IDE-03.health-retry | [IDE 访问](modules/ide-access.md) |
 | 审批消息 @ 原参与者；原生确认批准后新 AI 卡继续同一任务 | INT-01.8、INT-04.4 | [原生审批与提问](modules/native-interactions.md) |
 | /sessions 按项目+session显示，保留空项目、置顶和稳定分页编号 | CAT-02.4 | [目录与历史](modules/catalog-history.md) |
 | 进行中及心跳卡保留 IDE 链接；远端重连不删除固定入口 | IDE-01、IDE-09.4 | [IDE访问](modules/ide-access.md)、[结果与渠道](modules/delivery-channels.md) |
@@ -91,9 +96,11 @@
 
 ## 当前检查点
 
-2026-11-05 阶段展示和终态回归：54 项定向检查通过，根回归 3336 项（3250 通过、86 条件跳过、0 失败）；b45af83 已推送并用于头头、探探。文档同步不改变运行代码，手机显示与附件实际可见性仍须按真实接收情况核对。
+2026-11-08 文档同步：功能合同、实现职责图、模块说明、case 汇总及函数索引对齐最近三个代码提交；只更新文档，不重启服务。最新代码回归为 3760 项（3669 通过、91 条件跳过、0 失败），不是本次文档维护新跑的全套测试。真实远程 IDE 打开与运行版本记录见[同步记录](../audits/2026-11-08-documentation-reconciliation.md)。三份有界检查分别为[命令与帮助](../audits/2026-11-08-slash-help.json)、[浏览器兼容](../audits/2026-11-08-ide-link-compatibility.json)、[远程 IDE 稳定性](../audits/2026-11-08-remote-ide-stability.json)。
 
 以下为历史增量检查点：
+
+2026-11-05 阶段展示和终态回归：54 项定向检查通过，根回归 3336 项（3250 通过、86 条件跳过、0 失败）；b45af83 当时已推送并用于头头、探探。手机显示与附件实际可见性仍须按真实接收情况核对。
 
 2026-11-04权限展示增量：/access默认本人和当前聊天，管理员跨聊天管理只在私聊显式进行；/connect明确现有三元授权范围。完整根回归3096通过、0失败、82环境跳过；其他未改功能保留既有有界证据。详细四层范围、函数比较、跳过项和上线回执见上述增量报告。
 

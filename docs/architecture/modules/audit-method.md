@@ -12,12 +12,12 @@ check-audit-evidence 是只读证据工具，只检查映射、hash、范围和�
 
 ## 原28项的补测维护
 
-原28项已绑定具体测试名称、文件和实现散列；当时的304case、59条直接命名测试与逐kind配置检查保留于[历史补测记录](../../audits/2026-11-01-four-layer-recheck/2026-11-02-gap-regressions.md)。当前374case全部有映射，268项仅在列明边界通过、106项部分覆盖。AUDIT-01的checker反例只证明元数据校验规则，不证明产品整体完整。
+原28项已绑定具体测试名称、文件和实现散列；当时的304case、59条直接命名测试与逐kind配置检查保留于[历史补测记录](../../audits/2026-11-01-four-layer-recheck/2026-11-02-gap-regressions.md)。2026-11-08 的需求记录共459case，364项仅在列明边界通过、95项部分覆盖；本次只同步已有记录，不提升旧状态。AUDIT-01的checker反例只证明元数据校验规则，不证明产品整体完整。
 
 ## 当前记录的一致性
 
 需求JSON的逐case状态是当前汇总依据。人读功能契约的case身份、场景和当前汇总必须同步，README与模块文档不得残留相反的旧实现描述。历史失败、修复、夹具错误、原生服务、本机假模型、JSONL/平台替身、隔离Chrome与手机验收分开，不用追加一段新状态掩盖首页旧结论。
 
-13项原缺少具体边界的partial已核对实际测试断言，分别登记verifiedBoundary、testGap、证据类型及读取文件SHA/行范围；这次只补说明，不将partial改成verified。具体见[校准记录](../../audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md)。当前174条精选函数合同仍只表示所列函数，未承诺全仓每个函数的语义证明。
+13项原缺少具体边界的partial已核对实际测试断言，分别登记verifiedBoundary、testGap、证据类型及读取文件SHA/行范围；这次只补说明，不将partial改成verified。具体见[校准记录](../../audits/2026-11-01-four-layer-recheck/2026-11-02-documentation-reconciliation.md)。精选函数合同仍只表示所列函数（当前数量与本次新增范围见[同步记录](../../audits/2026-11-08-documentation-reconciliation.md)），未承诺全仓每个函数的语义证明。
 
 维护先核职责和当前代码，再改需求/模块/功能说明；随后检查统计、链接、引用行和证据新鲜度。当前索引只展示当前事实；保留旧检查点必须明确标为历史。无业务改动的文档维护不冒充新发布或设备验收。
