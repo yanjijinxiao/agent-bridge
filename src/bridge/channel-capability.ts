@@ -47,10 +47,10 @@ export type ChannelCapabilityProvider = () =>
 export function channelCapabilityAliases(
   capabilities: readonly ChannelCommandCapability[]
 ): Readonly<Record<string, string>> {
-  const aliases: Record<string, string> = {};
+  const aliases: Record<string, string> = Object.create(null);
   for (const capability of capabilities) {
     for (const [alias, commandName] of Object.entries(capability.aliases)) {
-      if (!(alias in aliases)) aliases[alias] = commandName;
+      if (!Object.hasOwn(aliases, alias)) aliases[alias] = commandName;
     }
   }
   return aliases;

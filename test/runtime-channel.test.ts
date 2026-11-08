@@ -51,6 +51,26 @@ async function fixture(t: TestContext, kind: "herdr-app" | "herdr-tui") {
 }
 
 for (const kind of ["herdr-tui", "herdr-app"] as const) {
+  test(`${kind}: help topics and unsupported builtins stay controls while unknown slash is exact deduplicated input`, async t => {
+    const x = await fixture(t, kind);
+    await x.send("/help session", "session-help");
+    assert.ok(x.messages.some(m => m.includes("--agent 程序名 --name 名称")));
+    assert.ok(!x.messages.some(m => m.includes("/model")));
+    await x.send("/help input", "input-help");
+    assert.ok(x.messages.some(m => m.includes("/prompt")));
+    await x.send("/model unsupported", "model"); assert.equal(x.f.writes.length, 0);
+    const text = "  /compact  literal\nsecond line\n";
+    await x.send(text, "slash-input");
+    assert.equal(x.f.writes.length, 1); assert.equal(x.f.writes[0], text);
+    assert.equal(x.receipts.receipt("slash-input")?.runtimeInput, true);
+    assert.ok(x.messages.some(m => m.includes("未注册为 Gateway 命令")));
+    x.restart(); await x.send(text, "slash-input"); assert.equal(x.f.writes.length, 1);
+  });
+  test(`${kind}: unknown slash obeys busy-terminal refusal and never guesses steer/queue keystrokes`, async t => {
+    const x = await fixture(t, kind); x.f.resources[0].state = "working";
+    await x.send("/compact busy", "busy-slash").catch(error => assert.match(error.message, /运行|忙|输入|busy/));
+    assert.equal(x.f.writes.length, 0); assert.equal(x.f.stops.length, 0);
+  });
   test(`${kind}: missing cwd binds as unknown without manufacturing local workspace authority`, async t => {
     const x = await fixture(t, kind); x.f.resources[0].cwd = undefined;
     await x.send(`/session ${x.f.id} --host ${x.f.ticket.hostId}`, "bind-unknown");

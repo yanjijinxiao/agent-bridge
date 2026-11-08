@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-08",
+  "scope": "Herdr help and slash-command registration/forwarding increment",
+  "wholeRepositoryReviewed": false,
+  "layers": {
+    "architecture": "Registration owns controls; original backend/identity/receipt boundaries own execution and recovery. No new executor or setting store.",
+    "modules": "Bridge admission/shared roles, capabilities, buffered and busy input, Codex and both Herdr transports; old UI callbacks fail closed.",
+    "functions": "Changed functions and immediate callers; complete new classifier/help and dedicated tests. Fixed own-property alias lookup and exact prompt whitespace.",
+    "static": "README, both tutorials, requirement cases, command contract and module docs; relative links and fences checked; no runtime config change."
+  },
+  "tests": {
+    "full": {
+      "total": 3748,
+      "passed": 3658,
+      "skipped": 90,
+      "failed": 0,
+      "log": "/private/tmp/agent-bridge-slash-full-final.log",
+      "sha256": "3429ae6c1a7c4ce1601a434ab21babb16aa427cbf9c34b6671015800d24bb0b1"
+    },
+    "typecheck": "passed",
+    "focusedInitial": 126,
+    "limitations": [
+      "Peer/IM tests use isolated protocol fixtures, not a new real IM or browser acceptance run.",
+      "90 existing environment-gated checks skipped in default suite.",
+      "Existing unknown slash inbox rows retain conservative recovery classification; accepted or ambiguous inputs are not resent."
+    ]
+  },
+  "files": [
+    {
+      "file": "src/bridge/channel-commands.ts",
+      "sha256": "10fe4802974741af34208620af6716291b2b2a15565b0bc4663dc218c7f65923",
+      "scope": "changed functions and adjacent contracts"
+    },
+    {
+      "file": "src/bridge/channel-capability.ts",
+      "sha256": "e2dd2779e060f993bd0ff383e7f2c51b5bd7eb1ab2eb5ce5b8bfedbad9e20004",
+      "scope": "changed functions and adjacent contracts"
+    },
+    {
+      "file": "src/bridge/format.ts",
+      "sha256": "44549aacfdf5573c0ade0b91e3307af09e2c548b0e53129715be2166ed869f26",
+      "scope": "changed functions and adjacent contracts"
+    },
+    {
+      "file": "src/bridge/runtime-help.ts",
+      "sha256": "f02a5ec701b6c4ad8ca9cfa7784609ccb58c1160500107167e953b1c088c8fe8",
+      "scope": "current increment"
+    },
+    {
+      "file": "src/bridge/runtime-command-policy.ts",
+      "sha256": "cd92b8b9a603bc1cc50bb1aa4a72458905dc3e6c112f37e428d17bfa9f967f64",
+      "scope": "changed functions and adjacent contracts"
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "sha256": "1ccce220863b6034563c7b12565a0410c24390e374cf8aef90408d1a4abaf7cf",
+      "scope": "changed functions and adjacent contracts"
+    },
+    {
+      "file": "test/slash-forwarding.test.ts",
+      "sha256": "ae8754cf0edbf870f87921e773cbc4e56af16e785dc0b223fdb308c7058df5a9",
+      "scope": "current increment"
+    },
+    {
+      "file": "test/runtime-command-policy.test.ts",
+      "sha256": "09f934bc4819dda00c286c8735f4364e1fcbeb26fdc1769ceef7e3d3ce4a87e3",
+      "scope": "current increment"
+    },
+    {
+      "file": "test/runtime-channel.test.ts",
+      "sha256": "75cc152e0cdd5a0bbd4d2fa4abe2fd23272b1490fe43bcad9e5e9dfee7c89eea",
+      "scope": "current increment"
+    },
+    {
+      "file": "test/transparent-forwarding.test.ts",
+      "sha256": "d47708dfa3a410aa84ab2980da2f9d57448811fa47d9fb0fdf8a0dd47fe46e27",
+      "scope": "current increment"
+    },
+    {
+      "file": "test/format.test.ts",
+      "sha256": "4b4c6d8a78af6fd4399fc79e746254c58b166d06c32a508df3f8f89907dd321a",
+      "scope": "current increment"
+    },
+    {
+      "file": "test/bridge-service.test.ts",
+      "sha256": "3f6e06fd8d09146b16e6fdf0efdbfd1d448da9935824e3fe62ded34b67efe0a2",
+      "scope": "current increment"
+    },
+    {
+      "file": "README.md",
+      "sha256": "d712a0f1ff234d3704b0c2bfeb0d3aa2f2e33481f1ed6584915b885fb7bb1d72",
+      "scope": "current increment"
+    },
+    {
+      "file": "docs/architecture/gateway-requirements.json",
+      "sha256": "f57b40651803a9006ad458029bf65d0e2670ff1a230de0976d872afa89d715bc",
+      "scope": "current increment"
+    },
+    {
+      "file": "docs/architecture/slash-routing-and-runtime-help.md",
+      "sha256": "d42b9f368f10a286b7bb3291e1b5a724aa41e09a478b46279339497bc6aae6e8",
+      "scope": "current increment"
+    },
+    {
+      "file": "docs/architecture/modules/agent-runtime.md",
+      "sha256": "88157b1da69fde4f3c21c2b90f19974f6120ed8920bbb1c25e6afa0fb6f87b69",
+      "scope": "current increment"
+    },
+    {
+      "file": "docs/architecture/agent-command-compatibility-2026-11-07.md",
+      "sha256": "63d670e295d6588b3c7cc82e06c10c385b42126739905f6022bccecbb2dda360",
+      "scope": "current increment"
+    },
+    {
+      "file": "docs/tantan-connector-guide.md",
+      "sha256": "c9cd359385ee1e47f7a0d43d4214b98b600140c4aa7108304337d8960c596a9b",
+      "scope": "current increment"
+    },
+    {
+      "file": "docs/herdr-connector-guide.md",
+      "sha256": "7b54883ae5c92d742bc6f3805ff2f0058eea0c36f47c4f3efac7f0a0696161e3",
+      "scope": "current increment"
+    }
+  ]
+}

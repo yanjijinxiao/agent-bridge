@@ -18,7 +18,8 @@ import { resourceBindingId, bindingResourceRef } from "../agents/resource-catalo
 import { parseRuntimeCreateCommand, RUNTIME_CREATE_USAGE } from "./runtime-lifecycle-command.js";
 import type { RuntimeLifecycleInput } from "../agents/lifecycle.js";
 import { RuntimeObservationController, RuntimeObservationJournal, terminalScreenText, runtimeObservationPrincipal, type RuntimeObservationScope } from "./runtime-observation.js";
-import { runtimeCommandRestriction, runtimeCommandTarget, runtimeHelp } from "./runtime-command-policy.js";
+import { runtimeCommandRestriction, runtimeCommandTarget } from "./runtime-command-policy.js";
+import { runtimeHelp } from "./runtime-help.js";
 import { observeStatus, STATUS_RPC_BUDGET_MS } from "./status-observation.js";
 import { SessionControlJournal, SessionControlQueue } from "./session-control.js";
 import type { AcceptedPresentationInput } from "./input-presentation.js";
@@ -37,13 +38,14 @@ import { parseActionBlocks } from "./actions.js";
 import {
   assertNeverChannelCapabilityResolution,
   buildChannelCapabilityPrompt,
-  channelCapabilityAliases,
   resolveChannelCapabilityCommand,
   type ChannelCapabilityProvider,
   type ChannelCommandCapability
 } from "./channel-capability.js";
 import {
   channelHelpText,
+  classifyChannelInput,
+  mayBeChannelCommand,
   isReservedChannelCommandToken,
   parseCommand
 } from "./channel-commands.js";
@@ -551,7 +553,8 @@ export class BridgeService {
 
     // Dedicated personal authority, before chat ACL/session gating. Source actor
     // and provider-confirmed conversation kind must never be rewritten to a room.
-    const control = parseCommand(message.text);
+    const parsedControl = parseCommand(message.text);
+    const control = parsedControl && isReservedChannelCommandToken(parsedControl.name) ? parsedControl : undefined;
     if (control?.name === "join") {
       const sharing = this.options.peer?.sharing;
       if (!sharing) { await this.reply(replyTargetId, "此 Gateway 尚未启用会话共享。"); return; }
@@ -624,11 +627,16 @@ export class BridgeService {
     const builtIn = parseCommand(scopedMessage.text);
     // Core controls stay available even if installed-skill discovery stalls.
     // Help includes extension commands; other built-ins need no discovery.
-    const channelCapabilities = builtIn && (builtIn.name === "help" || !isReservedChannelCommandToken(builtIn.name))
+    const channelCapabilities = builtIn && mayBeChannelCommand(scopedMessage.text) && (builtIn.name === "help" || !isReservedChannelCommandToken(builtIn.name))
       ? await (this.options.channelCapabilities?.() ?? []) : [];
     assertSourceCurrent();
-    const slashCommand = builtIn && isReservedChannelCommandToken(builtIn.name) ? builtIn
-      : parseCommand(scopedMessage.text, channelCapabilityAliases(channelCapabilities));
+    const input = classifyChannelInput(scopedMessage.text, channelCapabilities);
+    const slashCommand = input.kind === "command" ? input.command : undefined;
+    // Shared grants authorize ordinary input to the original resource, not
+    // installed Gateway extensions with their own side effects.
+    if (slashCommand && !access.allowed && shared && !isReservedChannelCommandToken(slashCommand.name)) {
+      await this.reply(replyTargetId, "会话共享授权不包含 Gateway 扩展命令。"); return;
+    }
     const commands = slashCommand ? [slashCommand] : undefined;
     if (commands) {
       for (const command of commands) {
@@ -663,6 +671,10 @@ export class BridgeService {
       return;
     }
 
+    // Stale buttons/menu callbacks must never turn into terminal keystrokes.
+    if (scopedMessage.source || scopedMessage.interaction) {
+      await this.reply(replyTargetId, "此操作已不可用，请发送 /help 查看当前命令。"); return;
+    }
     if (!this.executionSession(replyTargetId)) {
       await this.replySessionRequired(replyTargetId);
       return;
@@ -675,6 +687,10 @@ export class BridgeService {
     if (!items) return;
     assertMessageCurrent();
 
+    if (input.kind === "message" && input.unknownCommand) {
+      await this.reply(replyTargetId, `/${input.unknownCommand} 未注册为 Gateway 命令，将按普通消息处理。`);
+      assertMessageCurrent();
+    }
     if (this.buffers.isActive(replyTargetId)) {
       this.conversationControlGuard(replyTargetId, "participant")();
       this.buffers.appendBatch(replyTargetId, items, scopedMessage.id, this.promptBufferScope(replyTargetId));
@@ -696,7 +712,7 @@ export class BridgeService {
     command: ChannelCommand,
     channelCapabilities: readonly ChannelCommandCapability[]
   ): Promise<void | false> {
-    if (await this.handleRuntimeCommand(message, command)) return;
+    if (await this.handleRuntimeCommand(message, command, channelCapabilities)) return;
     // These native-input paths own a later write-ahead boundary, after async
     // attachment preparation and the source guard. Marking them here would turn
     // a proven preparation refusal into an unknown native acknowledgement.
@@ -954,9 +970,9 @@ export class BridgeService {
         return;
         }
       default:
-        await this.replyActionCard(message.senderId, createMainMenuCard(
-          `未知命令：/${command.name}。发送 /help 查看可用命令。`
-        ));
+        // Registration was established before dispatch. A disappearing handler
+        // is an implementation error, never permission to send a control as input.
+        await this.reply(message.senderId, "此命令暂不可用，请发送 /help 查看当前命令。");
     }
   }
 
@@ -1636,7 +1652,7 @@ export class BridgeService {
 
   /** Common operation routing consumes declared semantics. Unrelated Gateway
    * controls remain usable while the execution device is disconnected. */
-  private async handleRuntimeCommand(message: ChannelMessage, command: ChannelCommand): Promise<boolean> {
+  private async handleRuntimeCommand(message: ChannelMessage, command: ChannelCommand, capabilities: readonly ChannelCommandCapability[]): Promise<boolean> {
     const route = runtimeCommandTarget(command);
     if (route === "gateway" || route === "record") return false;
     const session = this.executionSession(message.senderId);
@@ -1650,10 +1666,11 @@ export class BridgeService {
     const restriction = runtimeCommandRestriction(descriptor, command);
     if (restriction) { await this.reply(message.senderId, restriction); return true; }
     if (command.name === "help") {
-      await this.replyActionCard(message.senderId, createChoiceCard({ title: "Agent Bridge 终端入口", body: runtimeHelp(descriptor),
-        fallbackText: runtimeHelp(descriptor), choices: [{ label: "会话与终端", command: "sessions", arg: "" },
-          { label: "当前状态", command: "status", arg: "" }, { label: "终端画面", command: "history", arg: "" },
-          { label: "项目", command: "project", arg: "" }, { label: "过程展示", command: "stream", arg: "" }] }));
+      const help = runtimeHelp(descriptor, command.arg, { capabilities, taskboardAvailable: Boolean(this.options.taskboard) });
+      await this.replyActionCard(message.senderId, createChoiceCard({ title: "Agent Bridge · Herdr 帮助", body: help,
+        fallbackText: help, choices: [{ label: "会话帮助", command: "help", arg: "session" },
+          { label: "输入与进度", command: "help", arg: "input" }, { label: "权限与共享", command: "help", arg: "access" },
+          { label: "全部命令", command: "help", arg: "all" }, { label: "会话列表", command: "sessions", arg: "" }] }));
       return true;
     }
     if (command.name === "qa" || command.name === "mode" && command.arg.trim() === "qa") {

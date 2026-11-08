@@ -1,5 +1,6 @@
 import { splitCommandText } from "../channels/command-text.js";
 import {
+  channelCapabilityAliases,
   channelCapabilityHelpLines,
   type ChannelCommandCapability
 } from "./channel-capability.js";
@@ -104,6 +105,7 @@ const BUILT_IN_HELP_LINES = [
   "/help（/h）- 获取全部内置命令；/help session - 只看会话介入说明",
   "",
   ...SESSION_HELP_LINES,
+  "未注册的 /xxx 先给文字提示，再按普通消息处理；路径、引用和正文中的斜杠直接转发。已注册命令的参数或能力错误不会降级为普通输入。",
   "",
   "会话所有权与共享",
   "/share claim [--ide] - 在本机确认会话及可选目录所有权；/share invite - 邀请访问者",
@@ -158,12 +160,34 @@ export function parseCommand(
   if (!parts) return;
   const { name, argument } = parts;
   const rest = argument.trim().split(/\s+/).filter(Boolean);
-  const canonicalName = COMMAND_ALIASES[name] ?? (BUILT_IN_COMMAND_NAMES.has(name) ? name : capabilityAliases[name] ?? name);
+  const canonicalName = Object.hasOwn(COMMAND_ALIASES, name) ? COMMAND_ALIASES[name]
+    : BUILT_IN_COMMAND_NAMES.has(name) ? name : Object.hasOwn(capabilityAliases, name) ? capabilityAliases[name] : name;
   // Normalize before authorization and mode checks, including /s new.
   if (canonicalName === "session" && rest[0]?.toLowerCase() === "new") {
     return { name: "new", arg: argument.trim().replace(/^new(?:\s+|$)/i, "") };
   }
   return { name: canonicalName, arg: ["answer", "queue", "steer", "goal", "new"].includes(canonicalName) ? argument : rest.join(" ") };
+}
+
+/** Registration, not a leading slash, grants Gateway command semantics.
+ * Keep parseCommand syntax-only: old durable receipts deliberately use its
+ * conservative classification. Path separators/control characters cannot be
+ * extension aliases (the manifest enforces the same boundary). */
+export function mayBeChannelCommand(text: string): boolean {
+  const parts = splitCommandText(text);
+  return Boolean(parts && /^[^\s/\\\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]+$/u.test(parts.name));
+}
+
+export function classifyChannelInput(text: string, capabilities: readonly ChannelCommandCapability[] = []):
+  { kind: "command"; command: ChannelCommand } | { kind: "message"; unknownCommand?: string } {
+  if (!mayBeChannelCommand(text)) return { kind: "message" };
+  const command = parseCommand(text, channelCapabilityAliases(capabilities))!;
+  if (isReservedChannelCommandToken(command.name) || capabilities.some(item => item.commandName === command.name))
+    return { kind: "command", command };
+  // A filename, punctuation or prose after '/' is ordinary content. Registered
+  // extension aliases (including non-ASCII ones) have already been considered.
+  const name = splitCommandText(text)!.name;
+  return { kind: "message", ...(/^[a-z][a-z0-9_-]*$/i.test(name) ? { unknownCommand: name } : {}) };
 }
 
 export type ChannelHelpContext = {

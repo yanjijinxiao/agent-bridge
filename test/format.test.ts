@@ -29,6 +29,12 @@ test("separates Bridge policy from the app-server user message", () => {
   assert.doesNotMatch(parts.prompt, /WeChat bridge rule/);
 });
 
+test("native prompt retains outer and internal user whitespace, including buffered items", () => {
+  const text = "  /compact  a\n    b\n";
+  assert.equal(buildPromptParts(text).prompt, text);
+  assert.equal(buildPromptParts("", [{ kind: "text", text }]).prompt, text);
+});
+
 test("copy policy distinguishes actual handoffs from reference text and native form choices", () => {
   const parts = buildPromptParts("核对项目目录");
   assert.match(parts.developerInstructions, /reference-only project paths/);

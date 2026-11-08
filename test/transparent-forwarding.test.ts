@@ -13,9 +13,9 @@ import {APP_SERVER_BACKEND_CAPABILITIES} from "../src/codex/backend.js";
 for(const channel of ["dingtalk","weixin","feishu","wecom"] as const)test(`${channel}: project/session/review/skill/group requests stay intact in Codex`,async t=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),"gateway-transparent-"));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
  const store=new RuntimeStateStore(resolveStatePaths(dir)),p=store.createProject("Current",dir);store.activateProject("actor",p.id);
- const s=store.createSession("actor",dir,"Current",p.id);store.setSessionThread(s.id,"native");const inputs:any[]=[];let classifiers=0,discovery=0;
+ const s=store.createSession("actor",dir,"Current",p.id);store.setSessionThread(s.id,"native");const inputs:any[]=[],replies:string[]=[];let classifiers=0,discovery=0;
  const service=new BridgeService({config:{...defaultConfig(dir),allowedSenderIds:["actor"],streamReplies:false},stateStore:store,
-  channel:createChannelClient(channel,TEXT_CAPABILITIES,{async sendText(){return{messageId:"sent"};}}),
+  channel:createChannelClient(channel,TEXT_CAPABILITIES,{async sendText(input){replies.push(input.text);return{messageId:"sent"};}}),
   intentResolver:{async resolve(){classifiers++;return{kind:"command",command:{name:"project",arg:"switch Other"}};}},
   channelCapabilities:async()=>{discovery++;return[];},runner:{backendInfo(){return{id:"app-server",capabilities:APP_SERVER_BACKEND_CAPABILITIES};},
    async inspectThread(){return{threadId:"native",persistence:"active",runtimeStatus:"idle",activeFlags:[]};},
@@ -28,7 +28,9 @@ for(const channel of ["dingtalk","weixin","feishu","wecom"] as const)test(`${cha
  await service.handleMessage({id:"control",senderId:"actor",text:"/stream off",raw:{}});
  assert.equal(inputs.length,texts.length);assert.equal(store.getSession(s.id)?.streamReplies,false);
  await service.handleMessage({id:"unknown-control",senderId:"actor",text:"/unknown-command ordinary payload",raw:{}});
- assert.equal(inputs.length,texts.length);assert.equal(classifiers,0);
+ assert.equal(inputs.length,texts.length+1);assert.equal(classifiers,0);
+ assert.ok(inputs.at(-1).prompt.includes("/unknown-command ordinary payload"));
+ assert.equal(replies.filter(text=>text.includes("未注册为 Gateway 命令")).length,1);
 });
 
 for(const change of ["thread","role","access"] as const)test(`ordinary IM rechecks ${change} after attachment preparation`,{timeout:4000},async t=>{

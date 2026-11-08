@@ -1395,7 +1395,7 @@ test("authorized WeChat can add, list, and switch Codex projects", async (t) => 
   // Removed legacy channel commands are not retained as compatibility aliases.
   const manualWorkspace = path.join(tmpDir, "manual-path");
   await sendWithProjects("manual-bind", `/bind ${manualWorkspace}`);
-  assert.match(replies.at(-1) ?? "", /未知命令：\/bind/);
+  assert.match(replies.at(-1) ?? "", /绑定.*会话|选择.*会话|选择.*session/i);
   assert.equal(stateStore.listProjects().some((project) => project.workspace === manualWorkspace), false);
 
   await sendWithProjects("project-rename", `/p rn P${projectNumber}|嘉兴AI社区`);
@@ -1406,7 +1406,7 @@ test("authorized WeChat can add, list, and switch Codex projects", async (t) => 
   assert.equal(stateStore.getActiveProject("alice@im.wechat")?.id, addedProject?.id);
   assert.equal(stateStore.getActiveSession("alice@im.wechat"), undefined);
   await sendWithProjects("legacy-resume", "/resume R1");
-  assert.match(replies.at(-1) ?? "", /未知命令：\/resume/);
+  assert.match(replies.at(-1) ?? "", /绑定.*会话|选择.*会话|选择.*session/i);
 
   // Then a mode-specific session is created only when the user enters work.
   await sendWithProjects("project-new-session", "/new");

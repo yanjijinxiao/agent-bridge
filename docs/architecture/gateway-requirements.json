@@ -1693,7 +1693,7 @@
         2700,
         2711
       ],
-      "contract": "仅显式斜杠命令及可信原生交互走控制分发；普通自然语言、附件与引用完整交给选定会话。",
+      "contract": "只有已注册内置/扩展斜杠命令及可信原生交互走控制分发；未注册命令先给文字提示再按普通消息处理，路径/引用/正文不误判。普通消息保留原文、附件与引用，经过原有准入、绑定、角色、忙碌检查及回执去重。",
       "implementationReview": "partial; only named scenarios have fresh evidence; other responsibilities and files remain under review",
       "cases": [
         {
@@ -1834,6 +1834,52 @@
             "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
             "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
+        },
+        {
+          "id": "IN-01.slash-forwarding",
+          "scenario": "未知斜杠提示后原样转发，路径/原型属性/扩展别名/失效卡片/共享权限和重启去重正交验证",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/slash-forwarding.test.ts",
+              "name": "classification prioritizes built-ins and installed aliases; paths/prose are not unknown controls"
+            },
+            {
+              "file": "test/slash-forwarding.test.ts",
+              "name": "unknown slash produces only a short text notice then exact ordinary input; paths need no notice"
+            },
+            {
+              "file": "test/slash-forwarding.test.ts",
+              "name": "shared participant forwards unknown input without interpreting --host, but cannot run extensions"
+            },
+            {
+              "file": "test/runtime-channel.test.ts",
+              "name": "herdr-tui: help topics and unsupported builtins stay controls while unknown slash is exact deduplicated input"
+            },
+            {
+              "file": "test/runtime-channel.test.ts",
+              "name": "herdr-app: help topics and unsupported builtins stay controls while unknown slash is exact deduplicated input"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "10fe4802974741af34208620af6716291b2b2a15565b0bc4663dc218c7f65923"
+            },
+            {
+              "file": "src/bridge/channel-capability.ts",
+              "sha256": "e2dd2779e060f993bd0ff383e7f2c51b5bd7eb1ab2eb5ce5b8bfedbad9e20004"
+            },
+            {
+              "file": "src/bridge/format.ts",
+              "sha256": "44549aacfdf5573c0ade0b91e3307af09e2c548b0e53129715be2166ed869f26"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "1ccce220863b6034563c7b12565a0410c24390e374cf8aef90408d1a4abaf7cf"
+            }
+          ],
+          "verifiedBoundary": "隔离 Bridge 与 Herdr Peer 协议替身，不冒称真实 IM 平台验收；不重写旧收件记录的保守自动重试分类。"
         }
       ]
     },
@@ -6279,6 +6325,28 @@
             "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
             "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
+        },
+        {
+          "id": "CTRL-05.runtime-help",
+          "scenario": "Herdr 完整帮助和分项/单命令帮助使用同一命令注册与能力拒绝逻辑",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/runtime-command-policy.test.ts",
+              "name": "runtime help topics, aliases, extension usage and configured capabilities match dispatch"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/runtime-help.ts",
+              "sha256": "f02a5ec701b6c4ad8ca9cfa7784609ccb58c1160500107167e953b1c088c8fe8"
+            },
+            {
+              "file": "src/bridge/runtime-command-policy.ts",
+              "sha256": "408723cd3b868dfc6e4e20515ff9fa93e43f75db336793a2d63aa1bca1aac147"
+            }
+          ],
+          "verifiedBoundary": "覆盖命令/别名/参数、扩展、Taskboard 配置和动态中断能力；渠道展示上限由既有分页器处理。"
         }
       ]
     },

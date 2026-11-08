@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CHANNEL_COMMAND_REGISTRY, parseCommand } from "../src/bridge/channel-commands.js";
-import { RUNTIME_COMMAND_TARGETS, runtimeCommandTarget, runtimeCommandRestriction, runtimeHelp } from "../src/bridge/runtime-command-policy.js";
+import { RUNTIME_COMMAND_TARGETS, runtimeCommandTarget, runtimeCommandRestriction } from "../src/bridge/runtime-command-policy.js";
+import { runtimeHelp } from "../src/bridge/runtime-help.js";
 import { terminalOperations } from "../src/agents/contracts.js";
 import { parseRuntimeCreateCommand } from "../src/bridge/runtime-lifecycle-command.js";
 
@@ -34,4 +35,23 @@ test("help covers command families and capability rejection never captures origi
   for (const name of ["model", "effort", "plan", "goal", "balance", "steer"]) assert.match(runtimeCommandRestriction(descriptor, { name, arg: "" })!, /没有提供等价/);
   const help = runtimeHelp(descriptor);
   for (const name of CHANNEL_COMMAND_REGISTRY.map(c => c.name)) assert.ok(help.includes(`/${name}`), name);
+});
+
+test("runtime help topics, aliases, extension usage and configured capabilities match dispatch", () => {
+  const descriptor = { kind: "herdr-tui" as const, endpointId: "e", version: "v", protocol: { name: "test" }, operations: terminalOperations() };
+  const all = runtimeHelp(descriptor, "all", { taskboardAvailable: false });
+  for (const command of CHANNEL_COMMAND_REGISTRY) for (const alias of command.aliases) assert.ok(all.includes(`/${alias}`), alias);
+  assert.match(all, /需启用 Taskboard/); assert.match(all, /未注册.*文字提示/);
+  const session = runtimeHelp(descriptor, "session");
+  assert.match(session, /--agent 程序名 --name 名称/); assert.match(session, /\/history.*\n查看当前终端画面/);
+  assert.doesNotMatch(session, /\/model/);
+  const input = runtimeHelp(descriptor, "input"); assert.match(input, /\/prompt/); assert.match(input, /\/queue cancel/); assert.doesNotMatch(input, /\/new/);
+  const model = runtimeHelp(descriptor, "m"); assert.match(model, /\/model/); assert.match(model, /没有提供等价/); assert.doesNotMatch(model, /\/new/);
+  assert.match(runtimeHelp(descriptor, "unknown"), /帮助主题/);
+  const extension = { id: "x", commandName: "custom", aliases: { extra: "custom" }, helpLine: "/custom 参数 - 扩展用法", aiActions: [], resolve: () => ({ kind: "reply" as const, text: "ok" }) };
+  assert.match(runtimeHelp(descriptor, "extra", { capabilities: [extension] }), /\/custom 参数/);
+  descriptor.operations.interrupt = { supported: false, availability: "configuration-required", reason: "请配置中断键" };
+  assert.match(runtimeHelp(descriptor, "stop"), /尚未配置.*请配置中断键/);
+  descriptor.operations.interrupt = { supported: true, availability: "supported", reason: "configured" };
+  assert.doesNotMatch(runtimeHelp(descriptor, "stop"), /尚未配置|没有提供等价/);
 });

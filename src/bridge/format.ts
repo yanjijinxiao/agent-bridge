@@ -56,7 +56,7 @@ export function buildPromptParts(
 ): { prompt: string; developerInstructions: string } {
   const lines: string[] = [];
   if (text.trim()) {
-    lines.push(text.trim());
+    lines.push(text);
   }
   for (const attachment of attachments) {
     if (attachment.kind === "text") {
@@ -66,7 +66,9 @@ export function buildPromptParts(
     }
   }
   return {
-    prompt: lines.join("\n\n").trim(),
+    // Syntax detection may trim a copy; execution retains user whitespace,
+    // including terminal slash arguments, indented code and final newlines.
+    prompt: lines.join("\n\n"),
     developerInstructions: [BRIDGE_ACTION_INSTRUCTIONS.replaceAll("WeChat", attachmentSource), BRIDGE_COPY_INSTRUCTIONS,
       BRIDGE_IDE_INSTRUCTIONS].join("\n\n")
   };

@@ -1,6 +1,12 @@
 # 多 agent 运行接口
 
-状态：Herdr TUI / App 的资源目录、生命周期、输入交接、观察、文件/共享/完整 IDE、IM/Web 与 Taskboard 能力边界已接入源码。尚未 npm 发布；探探及两套专用测试 Connector 已部署同一验收构建，头头保持原版本。模块/函数方案见 [Herdr 设计](../herdr-adaptation-design.md)，命令目标见 [命令合同](../agent-command-compatibility-2026-11-07.md)，最新证据见 [四层检查](../../audits/2026-11-07-herdr-adapters/README.md)。
+状态：Herdr TUI / App 的资源目录、生命周期、输入交接、观察、文件/共享/完整 IDE、IM/Web 与 Taskboard 能力边界已接入源码。尚未 npm 发布；线上版本以 [部署证据](../../audits/2026-11-07-herdr-adapters/deployment-verification.json) 为准。模块/函数方案见 [Herdr 设计](../herdr-adaptation-design.md)，命令目标见 [命令合同](../agent-command-compatibility-2026-11-07.md)，检查范围见 [四层检查](../../audits/2026-11-07-herdr-adapters/README.md)。
+
+## 命令与帮助入口
+
+`classifyChannelInput` 按内置及扩展注册清单分流，`parseCommand` 保持纯语法职责。未知斜杠先提示，再走原有普通输入流程；路径、引用及正文不误当控制。共享权限、聊天角色、忙碌状态和回执去重仍独立生效；旧卡片回调不能变成输入。
+
+`runtimeHelp` 使用全部命令登记、别名、同一能力拒绝策略及 Taskboard 状态，支持分项和单命令说明。`handleRuntimeCommand` 将帮助主题和扩展清单传入展示层，不另行维护执行逻辑。`buildPromptParts` 保留正文首尾空白与换行；格式化预览和命令语法解析不得改写实际输入。功能及检查矩阵见 [斜杠输入与终端帮助](../slash-routing-and-runtime-help.md)。
 
 ## 职责
 
