@@ -1,84 +1,574 @@
-# Herdr Connector：连接和使用
+# 探探使用指南：连接 Herdr TUI 或 Herdr App
 
-更新：2026-11-08。Herdr 适配已上线头头、探探及相关 Mac/Linux Connector，真实钉钉往返、卡片和重启恢复均有验收记录；本次改动尚未发布到 npm，**不能仅运行 npm 安装就认为新设备已支持 Herdr**。首次接入请使用管理员核验过的 Connector 构建；旧 Codex Connector 保留原配置即可。Gateway 与 Connector 都需支持 runtimeContract: 1，管理员通过 /api/versions 核对实际构建，不只看产品名称。Mac/Linux 浏览器已验证文件编辑、Git、集成终端与刷新重连。
+这篇教程帮助你把自己设备上的 Herdr 接入探探，在钉钉选择终端、发送需求、查看进度和使用项目 Web IDE。你无需部署 Gateway，也无需提供机器人密钥。
 
-接入探探使用固定 Connector 地址：wss://11.158.199.29:49186/gateway/v1/peer。它是设备入口，不是浏览器 IDE 地址。个人准入、配对、共享所有者审批及 Web IDE 开通方法参见 [探探使用指南](tantan-connector-guide.md)。
+Herdr TUI 在终端中使用，适合没有桌面的服务器；Herdr App 是桌面应用。两者都按下面的“准备 → 配置 → 配对 → 选择 → 使用”流程接入，配置部分分别说明。
 
-## 1. 连接的是哪个服务
+**本教程连接的是 Herdr 正在管理的终端。** 如果希望直接使用 Codex 的完整历史会话、原生审批和消息队列，请使用 [Codex 接入教程](tantan-connector-guide.md)。即使 Herdr 里运行的是 Codex，经 Herdr 接入时也仍按终端方式工作。
 
-每个 Connector 配置明确选择一个执行入口，所有渠道使用相同的授权、目录、文件和 IDE 模块。
+## 1. 可以用探探做什么
 
-| 配置 | 连接目标 | 必要条件 |
-| --- | --- | --- |
-| backend = herdr-tui | 已运行的 Herdr TUI 公共 JSONL socket | 明确选择 TUI session，不能把默认 session 当作其他命名 session |
-| backend = herdr-app | Herdr App 的窗口 socket，以及该 App 使用的同一个 core socket | 固定 core 身份，窗口布局和终端记录交叉核验；不会启动第二套 core |
-| backend = app-server | 既有 Codex App Server | 保持原配置和行为，不因增加 Herdr 自动迁移 |
+| 你想做的事 | 使用方式 |
+| --- | --- |
+| 继续 Herdr 中已有的工作 | 配对设备，用 /sessions 选择终端，然后发需求 |
+| 开始一项新工作 | 指定 agent、终端名称和工作目录，新建终端 |
+| 查看当前进展 | 看 AI 卡，或用 /status、/history 查询 |
+| 把多条需求和附件一起提交 | 用 /prompt 收集，再一次提交 |
+| 查看和修改项目文件 | 开通 Web IDE，使用编辑器、Git 和终端 |
+| 在多个设备之间切换 | 先 /connect 选设备，再 /sessions 选终端 |
+| 邀请别人使用自己的终端 | 登记所有权、发邀请，由自己审批访问 |
 
-本轮实测版本为 TUI 0.9.5、App 0.1.13、App 的 core 0.1.18。这是兼容性证据，不要求把安装命令永久锁在某个 Git commit。TUI 当前校验 0.9.x 公共响应，App 校验 core generation 1 和响应结构；其他版本仍须实际验收。
+**建议第一次使用先私聊探探。** 同群共用当前绑定；独立做事可分别私聊，或使用不同专用群。
 
-只有被选中 Herdr 服务托管的终端会进入目录。CLI 磁盘上的历史会话、另一个 TUI session、其他 core 的终端不会被猜测合并。
+Herdr 接入时，/model、/effort、/plan、/steer、/queue 不会变成底层 agent 的对应操作。模型、工具审批和等待回答的问题，在原 agent 终端中处理；具体方法随 agent 而异。
 
-## 2. Connector 配置字段
+## 2. 准备并安装 Connector
 
-沿用自己的 Connector JSON 配置和 Gateway WSS 地址。地址由 Gateway 管理员提供，不能填写 App socket、IDE HTTPS 链接或他人的设备凭据。路径填写绝对路径，不使用 `~`。
+### 探探 Gateway 的连接地址
 
-| 字段 | 填写内容 | 要求 |
-| --- | --- | --- |
-| url | Gateway 的 WSS Connector 地址 | 沿用现有入口及 TLS 校验 |
-| label | 自己便于识别的设备名称 | 仅显示名称，不是授权依据 |
-| backend | herdr-tui 或 herdr-app | 与 runtime.kind 相同 |
-| runtime.version | 数字 1 | Bridge 运行配置格式版本 |
-| runtime.id | 自定稳定名称 | 1–80 位字母、数字、下划线或短横线；实际身份还包含 socket 与 core 等字段 |
-| runtime.kind | herdr-tui 或 herdr-app | 明确选择，不自动回退 |
-| runtime.socketPath | TUI 的实际 socket 路径 | 仅 TUI；通过所选 session 的连接信息确认 |
-| runtime.windowSocketPath | App 的实际窗口 socket 路径 | 仅 App |
-| runtime.coreSocketPath | 当前 App 使用的 core socket 路径 | 仅 App，不要另起 core 来凑路径 |
-| runtime.expectedCoreId | 该 core 的真实 core.id | 仅 App，读取其公共 hello 中的身份；不能填 PID、版本或自编名称 |
-| runtime.interruptKeys | 可选对象：准确 agent 名称映射到 esc 或 ctrl+c | 仅 TUI；例如 codex 对应 esc。只发送一个明确配置的键，不支持通配符或自动尝试多个键 |
-| stateDir | 可选的 Connector 私有状态目录 | 持久保存设备身份与交接回执；不要放临时目录或由多个实例共享 |
-| webIDE.enabled | 是否允许自己的浏览器使用完整 IDE | 显式启用；访客文本共享不能取得终端权限 |
-| webIDE.autoInstall | 是否允许安装官方 code-server 制品 | 可沿用已有安装；凭据和项目授权仍由 Gateway/Connector 检查 |
+Connector 入口：wss://11.158.199.29:49186/gateway/v1/peer
 
-App 窗口入口常见于用户配置目录下 herdr-app/herdr-app.sock；core 使用自己的状态目录。路径可能受平台、XDG 变量和启动方式影响，必须以当前服务为准。core 身份可通过 Connector 所用同一公共 JSON-RPC `hello` 获取；它是服务标识，设备认证 token 则是秘密，二者不同。
+后面的配置模板已经填好这个地址。设备需能访问该内网；浏览器 IDE 使用 /ide 返回的项目链接，不能用这个 WSS 地址打开网页。
 
-Herdr 配置不混入 codexHome、codexBin、appServerTransport 或 managedHosts。首次配置通常省略 nodeId/tokenFile，由程序生成并保存身份；既有迁移配置的 nodeId 与 tokenFile 必须成对保留。不要把设备凭据发到群里。
+### 准备自己的设备
 
-启动仍使用同一个 agent-bridge-connector 程序和 `--config` 参数，指向上述 JSON 文件。启动会验证本地 Herdr，再注册 Gateway。握手失败会退出并清理本进程资源，不改接其他执行器。运行路径变化会生成不同 endpoint 身份，不沿用旧资源授权。
+- 安装并打开 Herdr TUI 或 Herdr App，在其中确认自己的 agent 可以正常工作。
+- 完成 agent 自己的登录及模型配置。Connector 不代替 Codex、Claude Code 等程序的安装和登录。
+- 安装 Node.js 和 npm；Node.js 需满足 Agent Bridge 的运行要求。Git 用于源码安装和项目版本控制。
+- 用运行 Herdr 的同一系统账户启动 Connector，首次启动保留交互式终端，以便确认配对。
 
-## 3. 配对、选择和日常使用
+尚未安装 Herdr 时，从 [Herdr TUI 官方安装页](https://github.com/herdrdev/herdr#install) 或 [Herdr App 官方安装页](https://github.com/herdrdev/herdr-app#install) 按自己的系统安装。已有可用环境可以直接继续，不必为了接入探探重新安装。
 
-1. 在设备启动 Connector，按它实际显示的完整配对命令发送到目标聊天；在设备确认具体申请人和聊天。
-2. 使用 `/connect` 查看自己在当前聊天可用的设备，选择这个 Connector。选择目录设备和改变既有会话绑定是两件事。
-3. `/sessions` 按项目和终端展示；没有终端的项目仍保留。按实际输出选择资源进行绑定。没有可信工作目录的终端可以读、写、观察，但不能据此开放文件或 IDE。
-4. 普通消息只交接给已绑定的终端。正在工作、等待终端处理或身份不明时，不把聊天文字当作审批答案强行输入；也不会建立另一条任务队列。
-5. 进行中卡保留已稳定的阶段成果，当前活动限长刷新；最终卡按段落显示本次成果，不照搬输入回显、旧任务、命令全文和终端装饰。命令默认只显示条数与详情提示；当前模板尚无原生点击折叠控件，`/history` 显示当前终端快照（不是逐命令持久归档）；`/status` 显示观察状态；`/follow on/off/sync` 控制只读跟随。`/stream` 只改变展示，不改变执行状态或授权。
-6. `/new` 显式填写 agent、名称和目录，实际启动新终端。TUI 名称须以小写字母开头，长度 1–32，允许字母、数字、下划线和短横线。App 的 agent 为显式程序名。具体完整格式由 `/help` 或不带参数的 `/new` 显示。
-7. `/session rename 新名称` 重命名绑定资源。App 只允许独占 tab，避免连带修改其他终端；`/session close --confirm` 会结束目标终端，`/unbind` 只解绑聊天。
+### 取得支持 Herdr 的 Connector
 
-切换 Connector 后，可以用 `/new` 的 `--cwd` 明确指定新设备目录；上一个设备的项目不会被带过去。省略 `--cwd` 时，当前项目必须属于所选设备。重命名成功后，聊天绑定名称同步更新。
+请先向探探管理员取得支持 Herdr 的 Connector 程序或源码。当前 npm 发布包尚未包含 Herdr 适配；不要用 Codex 的安装结果判断 Herdr 是否可用。
 
-`/stop` 是请求中断。App 使用原生 terminal.interrupt；TUI 仅对匹配配置且正在工作的 agent 发单个中断键。返回“已请求”后继续观察，不能把写键成功当作已取消任务。blocked 状态不自动发送按键回答。
+有源码时，在设备终端依次执行以下命令。已经有仓库的用户进入自己的仓库即可，不重复克隆。
 
-## 4. 文件、共享和 IDE
+```sh
+git clone https://github.com/yanjijinxiao/agent-bridge.git
+```
 
-本机终端使用本机目录；App 远端终端从同一 core 的 machine.list 解析已连接的机器。目录、项目、endpoint、机器配置和权限变化后，旧传输或 IDE 租约不能继续套用。远端路径绝不回退为 Connector 本机同名路径。
+```sh
+cd agent-bridge
+```
 
-远端文件和 IDE 需要该机器可运行 Node；SSH 连接须已配置主机密钥和非交互认证，或使用该 Herdr machine 的显式 via 命令。这里不会借用 core 内部的密码输入或私有 ControlMaster 状态。只有 core 的密码会话可连接、外部 SSH/via 不可用时，终端功能仍可使用，文件/IDE 会明确报连接问题。
+```sh
+npm ci
+```
 
-code-server 复用统一安装、配置、访问控制和 socket 中继。远端 helper 使用登录账户的持久 HOME，socket 目录限本用户访问；每次新连接重新核对原资源。完整 IDE 的终端具有运行账户权限，项目列表不等于操作系统沙箱。所有者可授权文本共享；文本共享只授予选定目录读写，不包括完整 IDE 的 Git/终端。
+```sh
+npm run build:bridge
+```
 
-## 5. 原生接口边界与恢复
+下面的启动步骤使用这个源码目录内的 npm run peer。若管理员交付的是已编译、带 agent-bridge-connector 命令的安装包，按第 3 节使用该命令即可。
 
-Herdr 的终端画面不是 Codex 的原生对话。当前上游没有等价的模型/推理设置、结构化审批、原生消息队列、goal 或工具结果协议；Bridge 会说明不支持的具体操作，不输入 slash 命令或 yes 来假装实现。Taskboard 的任务 CRUD 和普通工作说明保留；依赖结构化最终答复的 AI 工作流节点、QA 明确检查所需能力。
+### 确认个人准入
 
-交接回执持久化后，Gateway/Connector 的重连只读核对原来源。已写入或结果未知的输入不自动重发，持续观察不阻止 Gateway 重启；Gateway 不拥有 Herdr 任务的生命期。Herdr 自身退出、终端被用户关闭仍会影响任务。
+探探面向 MaxCompute 部门及其下属部门开放。管理员按正式通讯录维护个人准入；已开通的人不需要再申请。收到“尚未准入”时，联系管理员核对自己的账号。
 
-输入参与者按原账户、聊天、用户保存；不同人的请求不猜测为同一个原生轮次。屏幕中的命令、附件动作块、审批文字都只是显示数据。idle 仅表示观察到空闲；无法据此宣称业务成功。轮询之间瞬间完成且没有变化序号的外部任务可能无法观测。
+设备首次连接会自行生成身份。你不需要领取 device.token、填写钉钉用户 ID 或机器人密钥；本文探探入口已内置公开 CA，也不需要填写 caFile。配对时仍需在设备确认具体申请人。
 
-源码审查与测试记录位于仓库 docs/audits/2026-11-07-herdr-adapters；实机环境与清理记录位于 docs/architecture/herdr-test-environments.md。源码回归通过、真实 Herdr 测试、手机展示及现网发布分别记录，不互相替代。
+### 选择 TUI 或 App，准备连接信息
 
-## 容器运行与崩溃恢复
+**使用 Herdr TUI：** 先在自己的终端中查看 session 列表：
 
-同一 Connector 状态目录必须只有一个写入进程；进程锁使用操作系统 PID 判断旧进程是否仍在。不要把该目录交给每次都在独立 PID namespace 中以 PID 1 运行的临时 Node 容器：重建后的 PID 1 会让旧锁保守地判为仍占用。容器部署应在该可信主机的稳定 PID namespace 中运行，或直接使用主机 Node；多个隔离容器不得同时共用状态目录。
+```sh
+herdr session list --json
+```
 
-本轮 Linux12 的临时 Node 包装器实际触发了该限制。专用验收 Connector 已改为共享所属开发容器的 PID namespace；先核对旧容器确已停止，再备份其精确旧锁，未清除其他实例的锁。后续 SIGKILL/restart 按真实非 1 PID 自动恢复，不再手工删锁。该部署要求不等于关闭独占保护，也不允许在无法核实旧进程时删除锁。
+找到你正在使用的那一项，核对 name、running 和 socket_path；把该项的完整 socket_path 填入配置的 runtime.socketPath。默认 session 和命名 session 是不同入口，不能因为默认项在线就选它。
+
+需要进入某个命名 session 时，使用下面的模板，先替换名称：
+
+```sh
+herdr --session <你的session名称>
+```
+
+如果尚未使用命名 session，直接打开 herdr 后，再查询列表取得默认项的路径。这里的 session 是 Herdr 整套工作区的入口，不是单个 agent 的聊天 ID。[官方 CLI 说明](https://herdr.dev/tui/docs/cli-reference/)
+
+**使用 Herdr App：** 打开 App，在本机空间中准备一个普通 shell 终端，再按附录的方法取得窗口 socket、core socket 和 core ID。它们必须属于这个 App；不用另行启动一套 core。
+
+在运行 App 的同一账户环境中检查窗口可访问：
+
+```sh
+herdr-app ls
+```
+
+结果应能对应 App 里看到的空间、标签页和终端。若命令找不到，先按 Herdr 安装提示把其命令目录加入 PATH。[官方 App 命令说明](https://github.com/herdrdev/herdr-app#for-agents)
+
+### 保存自己的配置
+
+创建配置目录：
+
+```sh
+mkdir -p "$HOME/.config/tantan-herdr"
+```
+
+从文末选用 **TUI 或 App 其中一份完整模板**，替换注明的设备值，保存为该目录内的 peer-client.json。两个环境同时接入时，分别使用不同配置目录、stateDir 和设备名称。
+
+JSON 中不要写 ~ 或 $HOME，它们不会自动展开。socket 填实际绝对路径；stateDir 可以保留 ./state，按配置文件所在目录解析。
+
+## 3. 启动设备连接，完成第一次配对
+
+如果按第 2 节从源码构建，在 agent-bridge 仓库目录的交互式终端执行：
+
+```sh
+npm run peer -- --config "$HOME/.config/tantan-herdr/peer-client.json"
+```
+
+如果使用管理员交付的已编译安装包，在任意目录执行：
+
+```sh
+agent-bridge-connector --config "$HOME/.config/tantan-herdr/peer-client.json"
+```
+
+**两种启动方式选一种，不同时运行。** 正常启动会检查所选 Herdr 接口，然后连接探探，显示设备名称和完整配对命令。
+
+1. 保持 Connector 终端运行，把它显示的完整 /connect 命令发给探探。
+2. 私聊直接发送；群聊从成员列表真正 @探探后发送。
+3. 回到设备终端，核对申请人、机器人、聊天及开放范围。
+4. 确认是自己的申请后，在设备终端回答：
+
+```text
+yes
+```
+
+5. 探探确认配对成功后，从返回的目录选择一个终端。
+
+配对码 5 分钟有效，使用后失效。过期时使用新显示的命令；不需要 curl 获取。配对限定具体用户、机器人和聊天，换群或换私聊需要在新的聊天完成配对。
+
+Connector 要保持运行。关闭其终端或按 Ctrl-C 会停止这个前台连接；需要长期运行时，由设备管理员配置系统服务。非交互式启动不会自动批准首次配对。
+
+## 4. 选择设备、项目与终端
+
+### 选择已有终端
+
+在钉钉查看本人在当前聊天可用的设备：
+
+```text
+/connect
+```
+
+点击自己 Herdr 设备的切换按钮，再查看它的目录：
+
+```text
+/sessions
+```
+
+目录按项目和终端组织，空项目也保留。TUI 显示所选 session 中的工作区及终端；App 显示所连接窗口、同一 core 中的资源。先核对名称、机器和工作目录，再点选择。
+
+绑定后检查：
+
+```text
+/status
+```
+
+确认是预期设备和终端后再发需求。只从 /connect 换了设备，还没有换绑时，普通消息仍发往原绑定终端；要完成换绑，还需从 /sessions 选中目标。
+
+### 为什么看不到 agent 的所有历史会话
+
+/sessions 这里列的是 Herdr 正在管理的终端，不扫描 agent 磁盘上的全部聊天历史。若要继续某段旧对话，先在目标 Herdr 终端内按该 agent 的 resume 方法打开，再到探探选择这个终端。
+
+TUI 的其他 session 不会混入当前列表。App 远端资源跟随该 App 已连接的机器；某台机器离线时先恢复它的连接，不能把缺失条目当作已删除。
+
+### 在项目中新建终端
+
+可以先查看并选择项目：
+
+```text
+/project
+```
+
+然后使用下面的 **命令模板**。把 agent、名称和目录替换为自己的实际值；目录必须已存在，含空格时保留双引号。
+
+```text
+/new --agent <程序名> --name <终端名称> --cwd "<项目绝对目录>"
+```
+
+例如程序名可用已安装且可运行的 codex；TUI 还要求它是 Herdr 已识别的 agent。TUI 名称以小写字母开头，长度 1–32，使用字母、数字、下划线或短横线。App 使用明确的程序名。
+
+已选中同一设备的项目时，可省略 --cwd，使用项目目录。切换设备后不要沿用上一台设备的目录。需要程序参数时，在命令末尾使用 --，后面的内容作为程序参数传递，不按 shell 展开。
+
+**Herdr 的 /new 会实际启动程序。** 它与 Codex 接口中仅创建会话上下文不同。若提示已经创建面板、后续启动失败，先到 Herdr 核对该面板，不要连续重发创建命令。
+
+### 改名称
+
+绑定目标终端后，使用模板：
+
+```text
+/session rename <新名称>
+```
+
+App 只允许重命名独占一个终端的标签页；多终端标签页请回到 App 调整，避免连带改动其他人的显示。
+
+## 5. 发送需求、附件与后续任务
+
+### 发送第一条需求
+
+终端就绪后，直接发自然语言，例如：请阅读这个项目的 README，说明启动步骤，先不要修改文件。
+
+探探把需求交给当前终端中的 agent，并持续观察结果。需要登录、首次确认或正在等待回答时，先在 Herdr 中处理，让 agent 回到可以接收新需求的状态。
+
+### 运行中能否继续插话或排队
+
+Herdr 没有与 Codex 原生 steer、queue 等价的接口。终端正忙、等待人工输入或状态不明时，探探不会把新消息直接敲进去，也不会自动创建另一条任务队列。
+
+此时先看实际回执。明确显示未提交的消息，等终端就绪后再处理；显示提交结果不明的消息，先通过 /inbox 和 Herdr 画面核对，不能直接重发。
+
+```text
+/inbox
+```
+
+### 发送图片和文件
+
+像普通钉钉消息一样附上图片或文件，并写清用途。探探将附件放到绑定终端所在机器，再把附件位置和需求交给 agent；能否理解图片等内容取决于该 agent 本身。
+
+附件转存需要能够确认终端的工作目录和机器。只有文字输入可用，不代表文件传输已经可用；转存失败时先处理连接或目录问题，查看 /inbox 确认这条消息是否提交。
+
+需要取回 agent 生成的文件，可在项目 Web IDE 的文件列表中下载。终端里出现一个文件路径或发送指令样例，不会自动变成钉钉附件发送操作。
+
+### 合并多条需求和附件
+
+开始收集：
+
+```text
+/prompt start
+```
+
+连续发送要合并的文字及附件，准备好且终端就绪后提交：
+
+```text
+/prompt done
+```
+
+放弃尚未提交的收集内容：
+
+```text
+/prompt cancel
+```
+
+/prompt 只是合并一次输入，不是运行中的队列。取消收集不会停止已提交的工作；多人群聊不要交叉使用同一个收集区。
+
+## 6. 进度、审批与任务控制
+
+### 如何看进度
+
+AI 卡保留阶段成果，当前活动只刷新最近一小段；阶段结束后留简短总结。卡片太长时，后续进展转到新卡，旧卡保留阶段记录。可用的项目 Web IDE 链接继续保留。
+
+终端装饰、输入回显和整段命令输出不会原样刷屏。命令活动用简短摘要显示；需要核对详情时查看当前画面：
+
+```text
+/history
+```
+
+/history 是当前终端快照，不是完整聊天历史，也不是每条命令的归档。当前卡片模板没有原生点击展开的命令折叠组件。
+
+| 看到的状态或提示 | 应该怎么做 |
+| --- | --- |
+| 正在工作 | 等待结果；需要中断时使用 /stop |
+| 等待人工处理 / blocked | 去原 Herdr 终端处理问题或审批 |
+| 空闲 / done | 阅读实际输出确认结果；空闲不等于任务成功 |
+| 状态不明 / 执行状态待确认 | 用 /status、/history、/inbox 核对，不重复提交 |
+| 终端退出或不可用 | 回 Herdr 检查进程，必要时选择或创建新的终端 |
+
+只想同步观察已有工作时，可使用 /follow on 开启跟随、/follow off 关闭、/follow sync 同步一次。它们不发送任务。/stream 控制进度显示，不改变终端执行状态。
+
+### 在哪里处理审批和修改模型
+
+**Herdr 中的工具审批在原 agent 终端处理。** 探探能显示它正在等你，但不会把聊天里的“同意”或 /approve 自动变成终端按键。终端中的审批文字也不会被包装成可点击的原生审批卡。
+
+模型、推理强度及计划模式同样使用 agent 自己的界面或命令。/model、/effort、/plan、/goal、/balance 通过 Herdr 不提供相应原生功能；/help 会说明当前入口的支持范围。
+
+设备配对和共享访问审批仍在第 3、8 节所述位置处理，它们与 agent 的工具审批是不同事项。
+
+### 停止当前工作
+
+确实要中断当前工作时发送：
+
+```text
+/stop
+```
+
+App 调用原生中断接口。TUI 需要预先为对应 agent 配置一个中断键；附录的 Codex 示例使用 Esc，不会把这个键套用给所有 agent。
+
+“已请求中断”表示请求已发出，仍需观察后续状态。它不表示程序已退出，也不能作为任务成功的证明。终端正在等审批时，探探不会尝试一串按键。
+
+### 解绑与关闭终端
+
+只解除当前聊天绑定：
+
+```text
+/unbind
+```
+
+这不会停止原终端、删除项目或撤销设备配对。
+
+如果你确定要结束所绑定的终端进程，才发送：
+
+```text
+/session close --confirm
+```
+
+App 会结束指定终端，TUI 会关闭对应面板；这会影响其中正在运行的程序。关闭终端与关闭一张钉钉卡片不是同一件事。
+
+## 7. 用 Web IDE 查看、编辑项目
+
+### 开通一次
+
+设备端在原 peer-client.json 中设置下列值，保留其他字段，再重启 Connector：
+
+| 配置项 | 设置值 |
+| --- | --- |
+| webIDE.enabled | true |
+| webIDE.binary | code-server |
+| webIDE.autoInstall | true |
+
+探探管理员还需启用设备 IDE 并配置浏览器入口。首次打开时，Connector 检查、下载并安装支持的 code-server 制品，无需另行手动安装；设备需要下载网络和受支持的系统。已有安装也可使用真实 binary 路径，并关闭 autoInstall。
+
+### 打开项目
+
+绑定具有明确项目和工作目录的终端后发送：
+
+```text
+/ide
+```
+
+点返回的项目链接进入，使用文件编辑、Git 和集成终端。进行中的卡片及最终回复也会显示已有项目入口。没有可信工作目录的终端仍可查看或发文字，但不能据此开放 IDE 或文件访问。
+
+同一项目使用固定链接。访问方式由管理员配置：可以是首次确认浏览器后进入，也可以是已授权项目持链接直达；不要求再设置一套 IDE 密码。个人浏览器授权最长 90 天，撤销或到期后重新确认。直达链接应只分享给允许使用该项目的人。
+
+### 设置和扩展
+
+主题、字体、字号从编辑器设置调整，GitLens 等扩展从扩展面板安装。扩展按当前 IDE 项目保存，桌面 VS Code 已安装不代表这里也已安装。
+
+需要复用已有设置，可由管理员导入 settings.json / JSONC、.vscode/extensions.json 或 .code-profile 中支持的设置和扩展；保存后应用，不要在这些文件里放令牌和密码。
+
+### 远端机器需要什么
+
+Herdr App 的远端终端使用实际远端目录，IDE 和文件也在该机器上操作。远端需要可运行 Node，并且 Connector 能通过已配置的非交互 SSH 或该机器的 via 命令连接。
+
+“App 能连上远端终端”不一定表示外部文件连接已准备好。如果只有 App 内部的密码会话可用，先配置 SSH 密钥、主机密钥等连接条件；不要把远端目录改成本机同名目录来绕过错误。
+
+仅获共享文本权限的访客使用共享 Web 编辑器，不包含完整 IDE 的 Git 和终端。完整 IDE 终端具有设备运行账户的权限，项目列表本身不是操作系统沙箱。
+
+## 8. 共享终端与多人群聊
+
+### 谁提供终端，谁批准访问
+
+先绑定自己的终端，登记所有权：
+
+```text
+/share claim
+```
+
+回到 Connector 终端核对身份和目标并确认。首次绑定并不自动登记所有者；登记后，其他人不能仅凭普通设备配对直接使用这个私人资源。
+
+生成邀请：
+
+```text
+/share invite
+```
+
+把返回的完整 /join 命令发给访问者。对方在目标私聊或群里发送，提交申请；邀请码不直接授予权限。
+
+所有者在仍选中该终端的聊天中查询：
+
+```text
+/share requests
+```
+
+核对后使用模板批准，把占位符换成真实申请 ID：
+
+```text
+/share approve <申请ID>
+```
+
+访问者重新发送原 /join 命令，完成绑定。授权限定用户、聊天和指定资源，默认 24 小时；所有者可用 --hours 指定 1–168 小时，用 /share list 查询、/share deny 拒绝申请、/share revoke 撤销授权。
+
+需要共享文本目录时，所有者用 /share claim --ide 在设备确认目录，再在批准命令中明确选择 --ide read 或 --ide write。文件权限通过 --files 另行授予。会话访问、文本编辑和完整 IDE 不是同一权限。
+
+### 同群怎么协作
+
+一个群共用当前绑定。符合准入及设备权限的成员可以换绑到自己的终端，后续群消息会发往新目标；原终端的任务不会因此停止。需要各自独立操作时，分别私聊探探或各建专用群。
+
+停止任务等控制操作还受聊天角色限制，可用 /role 查看。机器人管理员或聊天 controller 不会自动成为别人资源的所有者。群里已经发出的结果和附件对群成员可见。
+
+## 9. 常见问题与恢复
+
+| 现象 | 先检查什么 |
+| --- | --- |
+| 启动提示未知 backend 或 runtime | 使用的 Connector 是否包含 Herdr 适配；全局命令和源码构建可能不是同一份程序 |
+| socket 不存在或连接失败 | Herdr 是否运行、是否同一系统用户、路径是否绝对路径；TUI 是否选错 session |
+| App 窗口不可达 | App 是否打开，windowSocketPath 是否属于当前 App；core 在线不能代替窗口在线 |
+| core 身份不一致 | 按附录从当前 App 的本机终端重新核对 socket 和 core ID，不用 PID 或版本号代替 |
+| 报接口版本不兼容 | 把 Herdr 和 Connector 版本及错误交给管理员核对，不通过改配置字段伪装兼容 |
+| /connect 看不到设备 | Connector 是否在线、本人是否在当前机器人和聊天完成配对 |
+| /sessions 缺少某段历史聊天 | 先在所选 Herdr 终端恢复该 agent 的旧对话；目录不扫描全部磁盘历史 |
+| 普通消息提示终端未就绪 | 在 Herdr 处理登录、审批或正在等待的输入，确认状态后继续 |
+| /stop 提示未配置 | TUI 需为对应 agent 配置一个明确中断键；也可以回原终端手动中断 |
+| 卡片空闲但工作未达到预期 | 阅读实际输出，检查 agent 是否只是等输入；空闲不是业务验收 |
+| 附件失败但文字可以发送 | 核对工作目录、目标机器和文件连接条件；先查看原输入回执 |
+| /ide 没入口或被拒绝 | 核对项目归属、设备端 webIDE、探探侧开通和本人权限 |
+| App 里远端可用，IDE 连接失败 | 核对远端 Node、非交互 SSH 或 via 连接 |
+| stateDir 被占用 | 确认是否有另一个 Connector 使用同一目录；不要直接删锁或复制别人状态 |
+
+### 断线和重启
+
+单独重启 Gateway 后会重连原 Connector、同步原资源。已经写入终端或结果不明的输入不会自动重发。Gateway 等待结果，不会因此拥有或停止 Herdr 的任务。
+
+Connector 断线时先恢复连接，用 /status、/history 和 /inbox 核对。App 窗口关闭后，其 core 中的程序可以继续，但探探的 App 目录和控制需要窗口入口恢复。TUI 客户端退出与其后台服务停止也不同。
+
+Herdr 执行服务本身退出或机器关机，会影响其中的程序。重新出现布局或新 shell，不代表原任务仍在运行。[Herdr 恢复说明](https://herdr.dev/tui/docs/session-state/)
+
+### 更新自己的 Connector
+
+先准备好新的程序和依赖，再停止旧 Connector，用原配置启动。保留配置、stateDir、设备身份及 Herdr 数据，不删除授权或回执来“恢复连接”。不需要重建原有终端。
+
+同一 stateDir 同时只运行一个 Connector。容器部署的状态目录应由固定实例管理，并使用稳定的主机进程视图；每次都以隔离 PID 1 重建的容器可能无法判断旧锁，交由设备管理员处理。更新前保存浏览器未保存的文件，IDE 连接可能短暂断开。
+
+反馈问题时提供设备名称、时间和报错即可，不发设备凭据、完整配置中的秘密或不相关会话内容。
+
+## 10. 管理员交付时需要准备什么
+
+1. 核对用户个人准入及探探内网可达性，交付支持 Herdr 的 Connector 程序。
+2. 与用户确认使用 TUI 还是 App，取得实际连接信息，预填下方对应模板；保留固定探探地址。
+3. 在用户交互式终端启动，完成一次具体用户和聊天的配对，不分发设备 token。
+4. 核对 /sessions、/status 中的机器及目录，做一次普通需求往返，确认输出属于原终端。
+5. 需要 IDE 时，同时开通两侧配置，并实际打开项目检查编辑、Git 和终端。
+6. 说明工具审批在哪里处理、忙时输入的限制，以及共享访问由所有者批准。
+
+兼容版本、发布记录和验收证据供管理员在 [Herdr 适配记录](audits/2026-11-07-herdr-adapters/README.md) 核对，日常使用按本教程操作即可。
+
+## 附录：填写 peer-client.json
+
+### 哪些值要修改
+
+| 字段 | 你需要做什么 |
+| --- | --- |
+| url | 保留模板中的探探 WSS 地址 |
+| label | 改为自己能识别的设备名称，可用中文 |
+| profileId | 保留 default；不是 agent 模型配置名 |
+| backend | 按实际选 herdr-tui 或 herdr-app，与 runtime.kind 一致 |
+| runtime.version | 保留数字 1，它是配置格式版本 |
+| runtime.id | 自定稳定名称；1–80 位英文字母、数字、下划线或短横线 |
+| runtime.socketPath | TUI 专用；从 herdr session list --json 的目标项取得 |
+| runtime.windowSocketPath | App 专用；当前 App 的窗口 socket，方法见下文 |
+| runtime.coreSocketPath | App 专用；从当前 App 本机 shell 的 HC_TERMINAL_SOCKET 取得 |
+| runtime.expectedCoreId | App 专用；从该 socket 返回的 core.id 取得，不能自行编造 |
+| runtime.interruptKeys | TUI 可选；按准确 agent 名配置一个 esc 或 ctrl+c，不写通配符 |
+| stateDir | 可保留 ./state；每个 Connector 独立使用且长期保留 |
+| webIDE | 初次可以关闭，按第 7 节开通时修改 |
+
+Herdr 配置不填写 codexHome、codexBin、appServerTransport 或 managedHosts。新设备省略 nodeId/tokenFile；已有旧配置需成对保留二者。不要把别人的设备凭据、socket 或 core ID 拷进自己的配置。
+
+### TUI 完整配置模板
+
+**需要编辑：** label 和 socketPath。下面 socketPath 是示例，必须替换为第 2 节查询到的实际绝对路径。interruptKeys 只示范 Codex 的 Esc；不使用 Codex 可删除这一项，其他 agent 按实际停止键配置。
+
+```json
+{
+  "url": "wss://11.158.199.29:49186/gateway/v1/peer",
+  "label": "我的 Herdr TUI",
+  "profileId": "default",
+  "backend": "herdr-tui",
+  "runtime": {
+    "version": 1,
+    "id": "my-herdr-tui",
+    "kind": "herdr-tui",
+    "socketPath": "/home/你的用户名/.config/herdr/sessions/你的session/herdr.sock",
+    "interruptKeys": { "codex": "esc" }
+  },
+  "stateDir": "./state",
+  "webIDE": { "enabled": false, "binary": "code-server", "autoInstall": false }
+}
+```
+
+### App 的三个连接值从哪里取得
+
+**窗口 socket：** 默认是自己的 ~/.config/herdr-app/herdr-app.sock，填入 JSON 时展开为完整绝对路径。自定义过 HERDR_APP_HOME 时使用该目录；否则自定义过 XDG_CONFIG_HOME 时使用其中的 herdr-app 目录。以启动 App 的实际环境为准。
+
+**core socket 与 ID：** 在 Herdr App 的本机空间内打开一个普通 shell 终端，执行下面这条完整查询命令。不要在远端空间执行，也不要把命令发给正在处理任务的 agent。
+
+它只连接当前终端所属的既有 core，查询身份后退出，不启动另一个服务。终端没有提供 socket 时会报错停止；不要随意挑选机器上的其他 socket。
+
+```sh
+node --input-type=module <<'NODE'
+import net from 'node:net';
+const socketPath = process.env.HC_TERMINAL_SOCKET;
+if (!socketPath) throw new Error('请在 Herdr App 的本机普通 shell 终端执行');
+const socket = net.createConnection(socketPath);
+let buffer = '';
+let received = false;
+const timer = setTimeout(() => socket.destroy(new Error('查询超时')), 5000);
+socket.once('connect', () => socket.write(JSON.stringify({
+  jsonrpc: '2.0', id: 'tutorial-identity', method: 'hello',
+  params: { generation: 1, framed: false }
+}) + '\n'));
+socket.on('data', chunk => {
+  buffer += chunk.toString();
+  if (buffer.length > 1024 * 1024) return socket.destroy(new Error('响应过大'));
+  let end;
+  while ((end = buffer.indexOf('\n')) >= 0) {
+    const line = buffer.slice(0, end); buffer = buffer.slice(end + 1);
+    if (!line.trim()) continue;
+    let reply;
+    try { reply = JSON.parse(line); }
+    catch { return socket.destroy(new Error('响应格式错误')); }
+    if (reply.id !== 'tutorial-identity') continue;
+    if (reply.error || !reply.result?.core?.id) {
+      return socket.destroy(new Error('未取得 core ID，请核对 App 接口'));
+    }
+    received = true;
+    console.log(JSON.stringify({
+      coreSocketPath: socketPath, expectedCoreId: reply.result.core.id
+    }, null, 2));
+    socket.destroy(); return;
+  }
+});
+socket.once('error', error => { console.error(error.message); process.exitCode = 1; });
+socket.once('close', () => {
+  clearTimeout(timer);
+  if (!received && !process.exitCode) {
+    console.error('连接已关闭，未取得 core ID'); process.exitCode = 1;
+  }
+});
+NODE
+```
+
+把输出的两个值填回下方 JSON 的同名字段。core ID 是服务标识，不是设备凭据；不需要发送到群里。窗口和 core 必须对应，启动后再用 /sessions 对照 App 中的资源确认。
+
+### App 完整配置模板
+
+**需要编辑：** label、windowSocketPath、coreSocketPath 和 expectedCoreId。所有“替换为……”都是占位内容，不能原样启动。
+
+```json
+{
+  "url": "wss://11.158.199.29:49186/gateway/v1/peer",
+  "label": "我的 Herdr App",
+  "profileId": "default",
+  "backend": "herdr-app",
+  "runtime": {
+    "version": 1,
+    "id": "my-herdr-app",
+    "kind": "herdr-app",
+    "windowSocketPath": "/Users/你的用户名/.config/herdr-app/herdr-app.sock",
+    "coreSocketPath": "/替换为实际core的socket绝对路径",
+    "expectedCoreId": "替换为实际core.id"
+  },
+  "stateDir": "./state",
+  "webIDE": { "enabled": false, "binary": "code-server", "autoInstall": false }
+}
+```
+
+保存为 UTF-8 普通文本，保留英文双引号，不带 Markdown 代码框标记，不添加 JSON 注释或多余尾逗号。
+
+### 启动前核对
+
+1. Herdr 及目标 agent 可用，Connector 程序支持所选接口。
+2. 探探 URL 保留完整路径，当前账号已有准入。
+3. 已替换全部占位值；socket 属于自己的目标服务，不是猜测路径。
+4. backend 与 runtime.kind 一致，配置没有混入 Codex 专有字段。
+5. stateDir 独立、持久，没有另一个 Connector 同时写入。
+
+完成后回到第 3 节启动并配对。
