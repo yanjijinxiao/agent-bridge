@@ -15,6 +15,7 @@ import { followSyncFailure, type FollowSyncFailure, type SessionFollowStatus, ty
 import { readJsonObjectFile, isJsonObject, writeJsonFile } from "../state/json-store.js";
 import { isLegacyCommunicationNotice } from "../codex/communication-error.js";
 import { afterFollowBoundary, followBoundary, type FollowHistoryBoundary } from "./follow-history-boundary.js";
+import { compactArchivedSummaries } from "./follow-checkpoint-compaction.js";
 
 export type ThreadSubscription = {
   key: string;
@@ -173,6 +174,7 @@ export class ThreadEventHub {
           state.checkpoint = { ...checkpoint, finished: false, answerPreview: "" };
         }
       }
+      compactArchivedSummaries(state);
     }
   }
   private save(): void { writeJsonFile(this.options.filePath, this.states); }
@@ -1135,6 +1137,7 @@ export class ThreadEventHub {
         outcome: pending?.outcome ?? state.checkpoint?.terminal?.outcome,
         checkpoint: state.checkpoint
       };
+      compactArchivedSummaries(state);
     }
     delete state.terminalPending;
   }
@@ -1171,7 +1174,7 @@ export class ThreadEventHub {
         restore: pending.checkpoint, contextToken: sub.contextToken, onTextDelivered: sub.onTextDelivered, progressEnabled: sub.progressEnabled,
         save: checkpoint => {
           if (this.stopped || !this.isLive(sub) || state.pendingTerminals?.[turnId] !== pending) throw new Error("Old result binding changed");
-          pending.checkpoint = checkpoint; this.save();
+          pending.checkpoint = checkpoint; compactArchivedSummaries(state); this.save();
         }
       });
       try {
@@ -1230,7 +1233,7 @@ export class ThreadEventHub {
         // turn. The streamId is the transport-neutral presentation identity.
         if (this.streams.get(sub.key) !== stream) {
           const pending = Object.values(state.pendingTerminals ?? {}).find(item => item.checkpoint?.streamId === checkpoint.streamId);
-          if (pending) { pending.checkpoint = checkpoint; this.save(); }
+          if (pending) { pending.checkpoint = checkpoint; compactArchivedSummaries(state); this.save(); }
           return;
         }
         state.checkpoint = checkpoint; this.save();

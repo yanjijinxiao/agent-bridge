@@ -3190,6 +3190,32 @@
             "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
             "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
+        },
+        {
+          "id": "STATE-01.stage-dedup",
+          "scenario": "跨轮次阶段小结只保留一份相同承接记录，避免状态膨胀阻塞转发",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/follow-checkpoint-compaction.test.ts",
+              "name": "stage compaction preserves distinct receipts, text, old answers and the sole carried copy"
+            },
+            {
+              "file": "test/follow-checkpoint-compaction.test.ts",
+              "name": "follow journal migration and new turns retain historical results without multiplying carried stage payloads"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/server/follow-checkpoint-compaction.ts",
+              "sha256": "9a531001f21ada76deff81a1ba571754e8b4fee45ba4f283eaebeac738c3c5fd"
+            },
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "0ddcd360a6e6446cf56cd451c0a57fa9b43807c2d960af66becb7f0f8bae8b9a"
+            }
+          ],
+          "verifiedBoundary": "比较完整阶段记录而不是仅 ID；保留所有旧最终结果、附件动作、不同回执和重试状态；迁移沿用原格式，当前与归档共享对象不互相误删。"
         }
       ]
     },
@@ -11455,6 +11481,32 @@
           ],
           "verifiedBoundary": "公共ProcessIDEInstallerIO和真实测试子进程：兼容/不同版本/失败三种，配置0600、数据目录私有、清理且原只读坏配置不变；另用官方Linux x64/Mac ARM64二进制实测探测成功及工作台HTTP 200。",
           "remainingBoundary": "四平台完整包SHA已核对，实际ABI仅Linux x64与Mac ARM64。未验证Linux ARM64、Mac Intel或Windows实机，以及手机/完整终端和Git。"
+        },
+        {
+          "id": "IDE-03.health-retry",
+          "scenario": "短暂健康检查失败不得拆除仍存活的 SSH 中继，连续失败和真实断连仍恢复",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-ingress-health.test.ts",
+              "name": "isolated failed TLS probes preserve the relay and recovery clears the stale error"
+            },
+            {
+              "file": "test/ide-ingress-health.test.ts",
+              "name": "three consecutive probe failures reconnect without an endless unhealthy relay"
+            },
+            {
+              "file": "test/ide-ingress-health.test.ts",
+              "name": "a closed SSH owner reconnects immediately and shutdown stops probe retries"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/remote-ingress.ts",
+              "sha256": "b98e9b0de78d24db194ab158b05e2cd13009014a77b6f7ec338936a1010f73a6"
+            }
+          ],
+          "verifiedBoundary": "用可控探测与连接结束模拟单次、连续三次、成功清零、SSH 退出和关闭；真实 HTTPS 及编辑器验证另记，不更改 CA 校验或授权。"
         }
       ]
     },

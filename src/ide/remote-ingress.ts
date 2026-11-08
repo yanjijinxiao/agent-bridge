@@ -30,16 +30,23 @@ export class RemoteIDEIngress {
       let connection: IDEIngressConnection | undefined;
       try {
         connection = await this.io.connect(this.input, signal);
-        await this.io.probe(this.input, signal);
-        if (signal.aborted) break;
-        this.report({ state: "ready" }); attempt = 0;
         let ended = false;
         void connection.closed.then(() => { ended = true; });
-        // Verify the published path, not just whether an SSH process exists.
+        let failures = 0;
+        // A transient slow TLS probe is not proof that the SSH relay died.
+        // Keep established browser streams through isolated failures; only
+        // three consecutive failed probes replace this owned connection.
         while (!signal.aborted && !ended) {
+          try {
+            await this.io.probe(this.input, signal);
+            if (signal.aborted || ended) break;
+            failures = 0; attempt = 0;
+            this.report({ state: "ready", error: undefined });
+          } catch (error) {
+            if (signal.aborted || ended || ++failures >= 3) throw error;
+            this.report({ state: "reconnecting", error: "远程入口检查暂未通过，正在复核；现有转发连接保留。" });
+          }
           await Promise.race([connection.closed, delay(this.timing.probeMs, undefined, { signal, ref: false })]);
-          if (signal.aborted || ended) break;
-          await this.io.probe(this.input, signal);
         }
       } catch {
         if (!signal.aborted) this.report({ state: "error", error: "远程 HTTPS 转发或连通性检查失败；请检查 SSH、固定端口映射及远程监听占用。后台会自动重试，不修改项目或授权。" });

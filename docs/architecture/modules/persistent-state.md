@@ -8,6 +8,8 @@ RuntimeStateStore 是一个账号状态文件的内存写入者。账号启停�
 
 ## 保存与迁移
 
+ThreadEventHub 的当前 checkpoint 唯一承接跨轮次未完成阶段小结。归档最终结果、恢复旧结果回执及加载旧 journal 时，`compactArchivedSummaries` 只去掉与当前承接记录逐字段序列化完全一致的阶段副本；不同正文、重试状态和回执继续保留。最终结果、附件动作正文、输入去重和投递回执不删除。使用浅拷贝替换归档 checkpoint，避免共享对象同时擦掉当前唯一副本；沿用原文件格式和原子写入，不引入延迟落盘或重发。覆盖迁移、对象别名、连续轮次和重启；防止历史阶段随每个未送达结果重复复制，让同步状态写入拖慢全部 HTTP/TLS 请求。
+
 json-store 使用同目录私有临时文件、完整写入及原子 rename；要求 durable 的 journal 另做 fsync。RuntimeStateStore 保存前检查文件 revision；外部修改使旧快照刷新并拒绝当前旧写，不能覆盖别人的管理变更。磁盘提交失败重载已保存内容，调用者不得把抛错前的内存改动当作已生效。
 
 normalizeRuntimeState 校验顶层 map/数组形状，迁移项目与会话关联，不把明确独立会话重新按 cwd 归入项目。坏 JSON/非法结构保留原文件并报告，不初始化为空状态。个人、群和会话标识均是普通数据；live dictionary 使用无原型 map，避免 __proto__/constructor 等合法键变成对象属性。snapshot/磁盘仍为普通 JSON，不改变兼容格式，也不因 map 的实现原型触发每次读取保存。

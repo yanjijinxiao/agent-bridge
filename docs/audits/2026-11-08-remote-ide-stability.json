@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-08",
+  "scope": "Remote Web IDE stability and duplicated carried stage checkpoints",
+  "wholeRepositoryReviewed": false,
+  "evidence": [
+    "Correct-CA remote TLS root returned HTTP 200; another connection timed out in TLS.",
+    "Concurrent local-listener/remote probes both paused for seconds; Gateway CPU was 95.6 percent and native sampling showed synchronous UTF-8 file writes.",
+    "Read-only state copy contained 5164 exact duplicate stage records; no input or task was replayed for diagnosis.",
+    "Before deployment isolated Chrome eventually reached the actual odps_src_-_1 editor; the fault is intermittent latency/relay churn, not permanent certificate rejection."
+  ],
+  "compaction": {
+    "records": 25,
+    "removedExactDuplicates": 5164,
+    "allFinalsAndActionsPreserved": true,
+    "currentStagesUnchanged": true,
+    "before": {
+      "serializedBytes": 28957345,
+      "meanSerializeMs": 52.37590266666666
+    },
+    "after": {
+      "serializedBytes": 1399915,
+      "meanSerializeMs": 2.679013999999995
+    }
+  },
+  "layers": {
+    "architecture": "Delivery records retain synchronous atomic persistence and old schema; no native task ownership, certificate or authorization changes.",
+    "modules": "Hub owns final receipts; current presentation owns carried stages. Remote ingress owns SSH relay health independently of IDE and agent tasks.",
+    "functions": "Exact-content comparison; alias-safe replacement; migration, archive and late receipt handling. Three consecutive failed probes rebuild, success resets and clears stale error; owner exit/shutdown retained.",
+    "static": "Module and requirement docs updated; deployment config and browser script unchanged; current fixed project URL retained."
+  },
+  "tests": {
+    "focused": {
+      "passed": 5,
+      "failed": 0
+    },
+    "related": {
+      "passed": 58,
+      "failed": 0,
+      "skipped": 0
+    },
+    "full": {
+      "total": 3760,
+      "passed": 3669,
+      "skipped": 91,
+      "failed": 0,
+      "sha256": "501b15c4ca5e88695e16d1a57839d43f784e59cacfe0b4014e71a6d96fe359fa"
+    },
+    "typecheck": "passed",
+    "build": "passed"
+  },
+  "limits": [
+    "Only this fault path was reviewed at four layers; full suite is not a whole-repository semantic audit.",
+    "Health failure injection uses controlled IO; post-deployment real-project browser checks are separate runtime evidence.",
+    "Historical distinct failed deliveries remain stored; no pending answer is discarded for performance."
+  ],
+  "files": [
+    {
+      "file": "src/server/follow-checkpoint-compaction.ts",
+      "sha256": "9a531001f21ada76deff81a1ba571754e8b4fee45ba4f283eaebeac738c3c5fd"
+    },
+    {
+      "file": "src/server/thread-event-hub.ts",
+      "sha256": "0ddcd360a6e6446cf56cd451c0a57fa9b43807c2d960af66becb7f0f8bae8b9a"
+    },
+    {
+      "file": "src/ide/remote-ingress.ts",
+      "sha256": "b98e9b0de78d24db194ab158b05e2cd13009014a77b6f7ec338936a1010f73a6"
+    },
+    {
+      "file": "test/follow-checkpoint-compaction.test.ts",
+      "sha256": "23499f1e91debb170f00374655ef18cae69bbd67d1220e99ebf454ffaf82dcdd"
+    },
+    {
+      "file": "test/ide-ingress-health.test.ts",
+      "sha256": "d2e19444fcae668b9c602289f7b733cd0f1c2b1c6e534a0c4f2f3b9325e15866"
+    },
+    {
+      "file": "docs/architecture/gateway-requirements.json",
+      "sha256": "e34a898bf7c7aebbb3bda5e3cd74f6b0ed08d369dc6997b20f25704bbbcf7baf"
+    },
+    {
+      "file": "docs/architecture/modules/persistent-state.md",
+      "sha256": "bb2d37bf3b78dee924b4ac0b39d7e4e25acf6d4352639b4a6ef7bcd47f38ce9d"
+    },
+    {
+      "file": "docs/architecture/modules/ide-access.md",
+      "sha256": "729fb3a53578bed2a54fb225ddbe0abb4cf611e17fce579a1a4c8c5837dadc7b"
+    }
+  ]
+}
