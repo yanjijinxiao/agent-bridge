@@ -69,3 +69,9 @@ Connector 在线、代理 socket 仍存在，不等于后端 IDE lease 可用。
 ## HTTP 版本边界
 
 IDE 前置入口与共享目录入口使用 runtime/http-contract.ts，与管理 HTTP 共用版本响应头和请求关联。显式声明不兼容的 Gateway API 版本在授权或业务操作前拒绝；没有版本头的浏览器继续原访问流程。Code Server 原始响应、文件字节、WebSocket 流及其认证语义保持上游契约，不用 Gateway 的版本号改写。
+
+## 链接入口的内置浏览器兼容性
+
+`IDE_LINK_ENTRY_SCRIPT` 的职责仅为同源提交项目链接的短期请求证明，再导航到同一个 workspace；不能绕过 Origin、Cookie、目录范围或固定授权期限。浏览器实现不能依赖 `AbortSignal.timeout` 这类较新的静态 API：缺少它时甚至不会发出 POST。使用 `AbortController` 与可清理的定时器保留有界等待。
+
+失败停留原页面并恢复按钮，标题与状态都应显示失败，不再一直写“正在打开”。超时、网络/服务错误及请求过期分开提示。过期后仅在用户点击时重新读取原入口取得新请求，不自动刷新形成循环。测试必须执行实际页面脚本，包含缺少静态 timeout API 的浏览器路径；仅测试 HTTP 握手不覆盖客户端兼容性。

@@ -17770,6 +17770,36 @@
             }
           ],
           "verifiedBoundary": "隔离 HTTP、Unix 上游及全新 Chrome；未声称手机实机验证或全库重新逐行审计。"
+        },
+        {
+          "id": "IDE-14.webview-timeout",
+          "scenario": "持链接直接进入的脚本兼容内置浏览器，过期、网络和超时失败可重试且不自动跳转循环",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/ide-project-link.test.ts",
+              "name": "real fresh Chrome opens a project link directly without AbortSignal.timeout"
+            },
+            {
+              "file": "test/ide-link-entry-script.test.ts",
+              "name": "link entry without static timeout sends one same-origin proof and clears its deadline"
+            },
+            {
+              "file": "test/ide-link-entry-script.test.ts",
+              "name": "duplicate clicks do not issue concurrent proof exchanges; timeout exposes retry without navigation"
+            },
+            {
+              "file": "test/ide-link-entry-script.test.ts",
+              "name": "expired proof 403 stays put until a user requests a fresh entry"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/ide/link-entry.ts",
+              "sha256": "54ecb6ca7b40ce99ea202c69639ac51abd19638973fb0a81211c7bcf3bd0b542"
+            }
+          ],
+          "verifiedBoundary": "旧代码在禁用 AbortSignal.timeout 的真实 Chrome 中停留于同样错误页，修复后自动进入隔离编辑器；VM 验证 401/403、503、网络失败、超时、重复点击与异项目跳转。未冒称直接控制用户手机验收。"
         }
       ]
     },

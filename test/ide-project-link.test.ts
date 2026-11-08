@@ -129,11 +129,14 @@ test("turning link mode off and on revokes old cookies, while an expired link st
   const expired = await fetch(f.entry.url); assert.equal(expired.status, 403); assert.doesNotMatch(await expired.text(), /确认本人|data-ide-link-enter/);
 });
 
-test("real fresh Chrome opens a project link directly with no channel login or manual confirmation", {
+for (const legacy of [false, true]) test(`real fresh Chrome opens a project link directly ${legacy ? "without AbortSignal.timeout" : "with modern browser APIs"}`, {
   skip: !process.env.CODEX_CHROME_TEST_BIN, timeout: 45000,
 }, async t => {
   const f = await fixture(t), browser = await isolatedBrowser(t, f.root); t.after(() => browser.close());
   try {
+    if (legacy) await browser.call("Page.addScriptToEvaluateOnNewDocument", {
+      source: "Object.defineProperty(AbortSignal, 'timeout', {value: undefined, configurable: true});"
+    });
     await browser.call("Page.navigate", { url: f.entry.url });
     await eventually(async () => {
       try { return await browser.evaluate("document.querySelector('#editor')?.textContent === 'editor ready'"); }

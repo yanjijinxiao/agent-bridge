@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-08",
+  "scope": "IDE project-link browser compatibility and failure recovery",
+  "wholeRepositoryReviewed": false,
+  "reportedSymptom": "Project-link preparation page immediately shows a generic error in an embedded browser.",
+  "evidence": [
+    "Screenshot inspected; screenshot-time local IDE requests showed GET without corresponding link-exchange POST.",
+    "Old script reproduced the same stopped page in isolated Chrome with AbortSignal.timeout disabled.",
+    "Current session project resolves both repository roots and opens the actual code-server workbench in a modern browser."
+  ],
+  "layers": {
+    "architecture": "Link exchange remains same-origin and project-scoped; no server authorization/CSRF/Origin or directory trust changes.",
+    "modules": "Link entry JS, AccessServer exchange contract and IDE preparation navigation; modern/legacy browser capability paths.",
+    "functions": "Explicit AbortController deadline cleanup, single-flight submit, error states, user-triggered fresh proof on expiry and exact destination validation.",
+    "static": "Embedded script executes in actual Chrome; user tutorials, module notes and IDE-14 requirement case updated. No configuration changes."
+  },
+  "tests": {
+    "preFixLegacyChrome": "failed as expected; no automatic editor navigation",
+    "focused": {
+      "total": 12,
+      "passed": 12,
+      "skipped": 0,
+      "failed": 0
+    },
+    "ideRegressionWithChrome": {
+      "total": 164,
+      "passed": 162,
+      "skipped": 2,
+      "failed": 0
+    },
+    "full": {
+      "total": 3755,
+      "passed": 3664,
+      "skipped": 91,
+      "failed": 0,
+      "sha256": "29f87c875d6fd111cea162b1cbe811335be19b0add010b68c4118111a25f9fca"
+    },
+    "typecheck": "passed"
+  },
+  "limits": [
+    "A missing-API browser capability simulation is not direct testing on the user phone.",
+    "Two IDE regression cases need extra environment prerequisites; default full suite skips opt-in browser/integration tests."
+  ],
+  "files": [
+    {
+      "file": "src/ide/link-entry.ts",
+      "sha256": "54ecb6ca7b40ce99ea202c69639ac51abd19638973fb0a81211c7bcf3bd0b542"
+    },
+    {
+      "file": "test/ide-link-entry-script.test.ts",
+      "sha256": "7582edd433113de7d36e211cba52eb7e6489c2635f1a139fa23992be31f21f7a"
+    },
+    {
+      "file": "test/ide-project-link.test.ts",
+      "sha256": "4a9dbd5b29a4e47fb2893f3d3956b5d40c0b2d7fcac0a6b930860635b12e41ff"
+    },
+    {
+      "file": "docs/architecture/modules/ide-access.md",
+      "sha256": "503faa4ed09325ee910f79e85dede7e92f08c43d5252ff1b896f13fcbc463e6b"
+    },
+    {
+      "file": "docs/architecture/gateway-requirements.json",
+      "sha256": "faf92f3d74a2e7d103df3217079448dae52851848fad0e9741f49dc126436f77"
+    },
+    {
+      "file": "docs/tantan-connector-guide.md",
+      "sha256": "ee85f96e48df73b42898ebcdad6cdf24f5f72a05e7f7627c87b502b7bcb47b86"
+    },
+    {
+      "file": "docs/herdr-connector-guide.md",
+      "sha256": "7bb01394a50b3c84aa85a1a06df52ef8c64b68f77a10c964708609ebb703750f"
+    }
+  ]
+}
