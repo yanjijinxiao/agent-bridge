@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-09T07:20:42.499394+00:00",
+  "codeCommit": "5cb690c1f3a87ad190b27f98797b5971ef4caee8",
+  "productVersion": "0.6.1",
+  "npmPublished": false,
+  "sourceHash": "087dde8dc5bcb59ad3c26f7be64ad1d5168649f9373bdb13de57236c805e08bd",
+  "archiveSha256": "8a4a94e75f19dc38bb91417dae701a735a4ba08893b00799d3ff1bb0d9e66522",
+  "regression": {
+    "gateway": {
+      "tests": 3774,
+      "pass": 3683,
+      "skip": 91,
+      "fail": 0
+    },
+    "packageAndNative": {
+      "tests": 16,
+      "pass": 16,
+      "skip": 0,
+      "fail": 0
+    },
+    "typecheck": "passed",
+    "compiledArtifactRead": "three complete commentary messages; both CLI versions 0.6.1"
+  },
+  "preFix": {
+    "baselineCommit": "ef40cc3dde618c7710a42acdf9851e7e08c86005",
+    "failure": "normal and restarted follow retained only the first commentary; no full head read was performed",
+    "logSha256": "802337cb95106e80ac7558ec2eef03fe1e7df9a3e9a1bc6b0f2e39cd53edf656"
+  },
+  "logHashes": {
+    "native-phase-full-regression.log": "329b1bd63c72525defe719113071428073b835d24124bcd5a78b6d3d5546e260",
+    "native-phase-package-validation.log": "e7b6c4155aaf2935a72aec1353a2f9e63c19d2a926e53ba145acc12849b3082a",
+    "native-phase-final-typecheck.log": "749d2886d2f5d75770033e8ca312f1a1ff147d9658b97495fa2c8ebaa8089f53"
+  },
+  "gateways": {
+    "toutou": {
+      "pid": 48061,
+      "unchanged": true,
+      "bindings": 47,
+      "bindingEdgesPreserved": true,
+      "routes": [
+        {
+          "online": true,
+          "version": "0.6.1",
+          "commit": "5cb690c1f3a87ad190b27f98797b5971ef4caee8",
+          "pid": 88544
+        },
+        {
+          "online": true,
+          "version": "0.6.1",
+          "commit": "5cb690c1f3a87ad190b27f98797b5971ef4caee8",
+          "pid": 88544
+        }
+      ]
+    },
+    "tantan": {
+      "pid": 138815,
+      "unchanged": true,
+      "bindings": 19,
+      "bindingEdgesPreserved": true,
+      "routes": [
+        {
+          "online": true,
+          "version": "0.6.0",
+          "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+          "pid": 150006
+        },
+        {
+          "online": true,
+          "version": "0.6.1",
+          "commit": "5cb690c1f3a87ad190b27f98797b5971ef4caee8",
+          "pid": 151780
+        },
+        {
+          "online": true,
+          "version": "0.6.0",
+          "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+          "pid": 43346
+        },
+        {
+          "online": true,
+          "version": "0.6.1",
+          "commit": "5cb690c1f3a87ad190b27f98797b5971ef4caee8",
+          "pid": 89993
+        }
+      ]
+    }
+  },
+  "limits": [
+    "No real group test message was sent.",
+    "The screenshot native thread is archived; it was not resumed or rerun.",
+    "Gateways and Herdr Connectors remain on the existing 0.6.0 build; the three affected Codex Connectors run the 0.6.1 fix.",
+    "npm and GitHub formal releases remain 0.6.0."
+  ]
+}
