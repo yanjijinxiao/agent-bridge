@@ -69,7 +69,8 @@ export class HerdrTuiAdapter implements AgentRuntimeAdapter {
   async read(ref: ResourceRef): Promise<RuntimeOutput> {
     const before = await this.resolve(ref);
     const value = z.object({ type: z.literal("pane_read"), read: z.object({ text: z.string(), truncated: z.boolean(), pane_id: z.string() }).passthrough() })
-      .parse(await this.rpc.request("agent.read", { target: before.pane_id, source: "recent-unwrapped", lines: 512, format: "text", strip_ansi: true }));
+      // Public JSON uses serde snake_case; recent-unwrapped is only a CLI alias.
+      .parse(await this.rpc.request("agent.read", { target: before.pane_id, source: "recent_unwrapped", lines: 512, format: "text", strip_ansi: true }));
     if (value.read.pane_id !== before.pane_id) throw new RuntimeError("changed", "Herdr 返回了其他面板的画面");
     assertSameReadTarget(this.resource(before), await this.inspect(ref));
     return { kind: "terminal-screen", ref, text: value.read.text, complete: !value.read.truncated, source: "recent" };

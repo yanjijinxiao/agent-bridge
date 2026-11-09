@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-11-09T03:43:53.716440+00:00",
+  "recordedAt": "2026-11-09T03:54:54.386350+00:00",
   "baselineCommit": "a4bd9f664e3beebddd869acf2d185542e7b51252",
   "requirement": "Herdr single rolling terminal card, no semantic phase parsing or length-driven continuation; native Codex unchanged",
   "typecheck": {
@@ -18,7 +18,7 @@
       "skipped": 0,
       "todo": 0
     },
-    "logSha256": "54ad800f13d14f3427d9c4a9b816a7e332d89acc813d8f031c2636bce4a1b65a",
+    "logSha256": "f25b3f73eb1f4992ea6c2d6a7b673bb9869cc3cc6b71a656c2c2bc6c93b82ad1",
     "cases": [
       "App accepts a subsequent input after reported done without forcing a blocked terminal",
       "App done input refuses a working transition at the last write boundary",
@@ -322,7 +322,7 @@
   "inputs": [
     {
       "file": "src/agents/herdr/tui.ts",
-      "sha256": "7b8822fe7cf629dfa28b118fb5efad913a7b3082401c89db4dd5130d7a9ab092"
+      "sha256": "130f4b2fdd3fb255328958b929488e5be15b6e8dfbb83429b52ccd18c8fa5fbf"
     },
     {
       "file": "src/bridge/runtime-observation.ts",
@@ -362,7 +362,7 @@
     },
     {
       "file": "test/agent-runtime.test.ts",
-      "sha256": "dcbecab5167b2c6253c7b3ec27cdd4ab81e75ebb03bc8820f0021ab2b12d122d"
+      "sha256": "933472ebbd84741d38b2afb7f3fc725ac3a3c5d61d25ad461e85e889e858e146"
     },
     {
       "file": "test/runtime-observation.test.ts",
@@ -389,5 +389,24 @@
     "Isolated tests use fake RPC/network peers; HTTPS and SDK card serialization paths are real implementation code.",
     "Not a production rollout or DingTalk client visual acceptance record.",
     "Herdr App provides a screen snapshot; unavailable history is not synthesized."
-  ]
+  ],
+  "tuiProtocolPreflight": {
+    "version": "0.9.5",
+    "request": {
+      "method": "agent.read",
+      "source": "recent_unwrapped",
+      "lines": 512,
+      "format": "text",
+      "strip_ansi": true
+    },
+    "result": {
+      "bytes": 6989,
+      "lines": 160,
+      "truncated": false
+    },
+    "mutations": false,
+    "bodyOrCredentialsExported": false,
+    "priorCliAliasRejected": true,
+    "source": "Herdr src/api/schema/common.rs serde snake_case; src/cli/agent/bindings_tests.rs"
+  }
 }

@@ -34,7 +34,12 @@ function tuiFixture() {
       workspaces: [{ workspace_id: "workspace-uuid", label: "Project" }, { workspace_id: "empty", label: "Empty" }], agents: [a] } };
     if (method === "agent.get") { assert.equal(params.target, a.pane_id); return { type: "agent_info", agent: pane }; }
     if (method === "agent.prompt") return { type: "agent_prompted", agent: pane };
-    if (method === "agent.read") return { type: "pane_read", read: { text: "terminal text", truncated: true, pane_id: a.pane_id } };
+    if (method === "agent.read") {
+      // Herdr 0.9.5 src/api/schema/common.rs ReadSource uses serde snake_case.
+      // CLI accepts recent-unwrapped, but the public JSON endpoint rejects it.
+      assert.ok(["visible", "recent", "recent_unwrapped", "detection"].includes(String(params.source)));
+      return { type: "pane_read", read: { text: "terminal text", truncated: true, pane_id: a.pane_id } };
+    }
     throw Error(method);
   });
   return { a, rpc, adapter: new HerdrTuiAdapter("tui", rpc), replace: () => { pane = { ...a, terminal_id: "replacement" }; } };
@@ -177,7 +182,7 @@ test("TUI reads bounded recent text, preserves truncation, never claims transcri
   const output = await adapter.read(ref); assert.equal(output.kind, "terminal-screen"); assert.equal(output.complete, false);
   assert.equal(output.source, "recent");
   assert.deepEqual(rpc.calls.find(c => c.method === "agent.read")?.params,
-    { target: "w1:t1:p1", source: "recent-unwrapped", lines: 512, format: "text", strip_ansi: true });
+    { target: "w1:t1:p1", source: "recent_unwrapped", lines: 512, format: "text", strip_ansi: true });
 });
 test("TUI ambiguous prompt error never triggers a second write", async () => {
   const { adapter, rpc } = tuiFixture(), target = (await adapter.catalog()).resources[0], original = rpc.answer;

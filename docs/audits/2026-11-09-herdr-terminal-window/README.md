@@ -5,7 +5,7 @@
 ## 实现与边界
 
 - Herdr 观察器调用 terminalScreen，替换当前卡的有界窗口，不再按 agent 名称或终端行前缀判断助手、工具、阶段，也不因内容长度创建续卡。
-- TUI 读取最近 512 行 recent-unwrapped；App 仍只读 screen，避免为收集历史而滚动正在使用的应用。未被上游返回的历史不会被补造，窗口不是完整终端日志。
+- TUI 读取最近 512 行 recent_unwrapped；App 仍只读 screen，避免为收集历史而滚动正在使用的应用。未被上游返回的历史不会被补造，窗口不是完整终端日志。
 - 钉钉终端卡使用独立的 50,000 字节安全预算。计量同时覆盖原文转义、渠道 Markdown 转换、状态、停止控件、IDE 页脚及加载行预留。普通原生答复仍使用原有分页预算。
 - 保留换行和缩进，只移除 ANSI/控制字符。终端中的链接、代码围栏、HTML 与动作标记按文字展示，不生成额外复制控件或附件动作。
 - 窗口最多持久化 50,000 个 Unicode 码点；恢复沿用原卡 ID。旧阶段 checkpoint 在下一帧迁移为窗口，保留投递回执。已冻结的最终投递计划不重写。
@@ -29,8 +29,12 @@
 | terminal-presentation.test.ts | 最大可用末尾窗口、ASCII/中文/emoji/转义、超长单行、保留所有行类型、非交互文字、空值与状态控件预算 |
 | terminal-observation-presentation.test.ts | 8 组重启 × stream × agent 矩阵；旧阶段 checkpoint 迁移；每帧替换、断线保留、结束同卡、IDE/stop 生命周期 |
 | dingtalk-terminal-window.test.ts | HTTPS 与 SDK 两条真实渠道序列化路径；接近 50 KB 的正文、稳定小于 1 KiB 的流式页脚、恢复/阻塞/结束、不分页 |
-| agent-runtime.test.ts | TUI recent-unwrapped 512 行请求及截断信息；App screen-only；读前后资源身份核验 |
+| agent-runtime.test.ts | TUI recent_unwrapped 512 行请求及截断信息；App screen-only；读前后资源身份核验 |
 | stream-checkpoint.test.ts | 新窗口恢复、版本/类型/大小拒绝；旧状态兼容 |
 | 其他相邻回归 | RuntimeObservation、Codex 原生 item/App Server/peer、阶段卡、控件、IDE 页脚、公共进度及 Web runtime |
 
 类型检查及 297 项相关回归通过，0 失败、0 跳过。完整命令、测试清单和源码散列见 validation.json。发布状态另行记录，不能从本文件推断已上线。
+
+## 真实接口预检发现与修正
+
+发布前在 Linux 12 的 Herdr TUI 0.9.5 做只读调用，发现初版使用 CLI 别名 recent-unwrapped 时 JSON 请求被拒绝。上游 src/api/schema/common.rs 的 ReadSource 明确使用 serde snake_case，src/cli/agent/bindings_tests.rs 也明确生成 recent_unwrapped。已按原生 JSON 合同修正，并让回归 fixture 拒绝 CLI 别名；修正前用例失败。初版制品未切换线上。真实调用只输出版本、行数与字节数，不输出终端正文或配置凭据。
