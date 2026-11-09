@@ -1,0 +1,10 @@
+{
+  "version": "0.6.0",
+  "name": "@yanjijinxiao/agent-bridge",
+  "latest": "0.6.0",
+  "integrity": "sha512-3U/038105g5EqIaRrRxgBxQZCCCaVG9ICIDsIzljZRNCMLA8r7qPty/7tf96Lmvoowf14q2Rzfyy6Y43Bo1rIg==",
+  "sha256": "dd32362efc1a97755888a3fcf2e2026659eb889d9ecd0f801a66d809028e96d6",
+  "bytes": 2424646,
+  "tarball": "https://registry.npmjs.org/@yanjijinxiao/agent-bridge/-/agent-bridge-0.6.0.tgz",
+  "verifiedAt": "2026-11-09T04:57:00.074Z"
+}

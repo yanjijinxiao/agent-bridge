@@ -5,7 +5,7 @@
 - 产品版本：0.6.0；代码与 Git 标签：74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3 / v0.6.0。
 - sourceHash：6ea7de1e7bd2880de3c2c2b5300b28aaf229660c43f7171e231398264a4c12cd。
 - npm 制品：2,424,646 字节，993 文件；SHA-256：dd32362efc1a97755888a3fcf2e2026659eb889d9ecd0f801a66d809028e96d6。
-- GitHub Release 已正式发布，附件回下载并通过 SHA-256 核对。npm registry 尚待账号认证，不能把 GitHub 发布或线上升级当作 npm 发布成功。
+- GitHub Release 已正式发布，附件回下载并通过 SHA-256 核对。npm 0.6.0 已公开发布，latest=0.6.0，访问级别 public；官方 registry 下载完整性与干净安装验证均已完成。
 
 ## 四层核对范围
 
@@ -30,6 +30,15 @@
 
 探探 Mac Connector 首次 launchd 重载因旧服务退出尚未完成返回错误；核对旧 PID 已退出后重新 bootstrap 成功，最终在线。后续头头 Connector 明确等待旧 PID 退出后加载。此过程没有重启 Codex App 或 Herdr App。
 
-## 尚未完成
+## npm 发布过程
 
-npm 登录凭据失效返回 401；两次网页登录因用户未收到邮箱验证码而超时。第三次按用户通行密钥需求提供官方网页授权入口；用户截图确认账号正确，但 npm 实际页面仍只提供邮箱 OTP，没有设备验证按钮。不能根据以往发布成功推断当前账号已启用通行密钥登录，也不能通过反复换 CLI 链接解决邮箱投递问题。当前等待完成 npm 官方账号认证。认证后仍须发布同一 tarball，核对官方 registry 的 latest、integrity、下载和安装，再将 npm 状态标为完成。
+npm 登录凭据失效返回 401；两次网页登录因用户未收到邮箱验证码而超时。第三次按用户通行密钥需求提供官方网页授权入口；用户截图确认账号正确，但 npm 实际页面仍只提供邮箱 OTP，没有设备验证按钮。不能根据以往发布成功推断当前账号已启用通行密钥登录，也不能通过反复换 CLI 链接解决邮箱投递问题。用户随后在另一台机器通过通行密钥完成登录，本机 npm whoami 确认身份；这说明不能从单台浏览器的邮箱页面推断账号没有启用设备验证，具体浏览器差异尚未确认。用户完成独立的发布网页验证后，npm publish 成功接收同一 tarball，并提示正在处理新版本。随后已完成下述官方 registry 验证。
+
+
+## 官方 registry 安装验收
+
+2026-11-09 04:57 UTC 官方 registry 的 latest 已指向 0.6.0，独立版本接口和实际 tarball 下载成功。SHA-512 与发行前验证制品一致，SHA-256 为上述发布身份。公开索引短时仍命中旧 CDN 缓存，独立版本接口和带缓存区分参数的元数据交叉核对成功；没有重复发布或增加新版本绕过处理。
+
+从官方 registry 按包名安装到独立 prefix、使用全新缓存。第一次下载依赖遇到 ETIMEDOUT，记录为网络失败；降低并发后重试成功，安装 131 个包。没有将失败改记为通过。随后两条 CLI 的 help/version、Gateway /api/build 和网页、内嵌 Taskboard /health 与构建静态资源验证均通过，运行版本 0.6.0 / 提交 74c08b2 一致。见 registry-verification.json 与 registry-smoke.json。
+
+GitHub Release 已去掉待认证提示并恢复 npm 安装说明。本次 npm 发行与此前已上线的头头、探探、五个维护中 Connector 对齐，不需要为发布 npm 再重启同一线上版本。
