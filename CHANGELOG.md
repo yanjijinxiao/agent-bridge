@@ -2,7 +2,7 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
-## [Unreleased]
+## [0.6.1] - 2026-11-09
 
 - Restore complete Codex commentary during active-turn polling and reconnects by hydrating only the exact active turn; retain existing phases on failed or mismatched reads. Keep terminal-only Herdr cards independent.
 - Preserve commentary beyond 600 characters in all supported rollout event formats; the existing card budget and continuation logic handle long phases.
