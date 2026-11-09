@@ -1,0 +1,45 @@
+{
+  "gateway": {
+    "version": "0.6.0",
+    "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+    "pid": 138815
+  },
+  "connectors": [
+    {
+      "label": "Herdr TUI Linux12 · 验收",
+      "online": true,
+      "version": "0.6.0",
+      "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+      "pid": 150006
+    },
+    {
+      "label": "Linux 12（Codex CLI）",
+      "online": true,
+      "version": "0.6.0",
+      "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+      "pid": 149938
+    },
+    {
+      "label": "Herdr App Mac · 验收",
+      "online": true,
+      "version": "0.6.0",
+      "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+      "pid": 43346
+    },
+    {
+      "label": "Mac Connector 回归验证",
+      "online": true,
+      "version": "0.6.0",
+      "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+      "pid": 44548
+    }
+  ],
+  "accounts": [
+    {
+      "id": "tantan-test",
+      "status": "running",
+      "connection": "connected"
+    }
+  ],
+  "bindings": 19
+}

@@ -1,0 +1,35 @@
+# Agent Bridge 0.6.0 发布核对
+
+## 发布身份
+
+- 产品版本：0.6.0；代码与 Git 标签：74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3 / v0.6.0。
+- sourceHash：6ea7de1e7bd2880de3c2c2b5300b28aaf229660c43f7171e231398264a4c12cd。
+- npm 制品：2,424,646 字节，993 文件；SHA-256：dd32362efc1a97755888a3fcf2e2026659eb889d9ecd0f801a66d809028e96d6。
+- GitHub Release 已正式发布，附件回下载并通过 SHA-256 核对。npm registry 尚待账号认证，不能把 GitHub 发布或线上升级当作 npm 发布成功。
+
+## 四层核对范围
+
+1. 架构：产品发布号由根 package.json 提供，Gateway/Connector 共用包与源代码。HTTP、Peer、执行和日志合同版本独立；这次没有更改协议、任务执行入口或权限。
+2. 模块：核对 npm 发布清单、CLI 版本、build-info、内嵌 Taskboard 及程序更新目录。GitHub 附件和所有新 Connector 目录来自同一验证 tarball；头头 Gateway 使用同提交、同 sourceHash 的隔离全量构建。
+3. 文件与函数：publicationManifest/packageNpm 的静态文件装配、版本读取与运行身份相关 30 项回归通过。此次相对已验证的功能提交没有新增运行时逻辑；不声称重新逐行自检整个仓库。
+4. 静态与配置：根 package/lock 版本同步，更新中英文 README、Herdr 安装教程、CHANGELOG；CHANGELOG 进入 npm 包。制品排除 .git、.npmrc、设备令牌、私有部署状态及内部审计文件。
+
+## 验证
+
+- TypeScript 检查通过。
+- Gateway 全量：3,769 项，3,678 通过，91 项按环境条件跳过，0 失败。
+- Taskboard 全量：510 项，508 通过，2 跳过，0 失败。
+- 干净 prefix 安装真实 tarball；两个 CLI 的 help/version、隔离 Gateway /api/build、网页、Taskboard /health 与构建静态资源通过。见 smoke.json。
+- 跳过用例不计入已完成验收，本次没有新增真实群消息或浏览器操作测试；沿用功能修复时的接口与端到端证据。
+
+## 上线
+
+头头和探探 Gateway 已运行上述版本，维护的五个 Connector 同步到 0.6.0（头头 Mac、探探 Mac Codex、Mac Herdr App、Linux Codex CLI、Linux Herdr TUI）。头头的远程主机路由由同一个 Mac Connector 提供，不另算一个进程。版本、PID 与在线状态见同目录两份 online.json。
+
+头头保留 45 条绑定、32 份浏览器授权指纹、90 天授权期限及三个 IDE 端点；探探精确核对 19 条绑定与授权期限。两边钉钉连接恢复，发布交接入口已重新开放。程序更新不停止 Codex/Herdr 原生执行器，也不重放已经接收的输入。
+
+探探 Mac Connector 首次 launchd 重载因旧服务退出尚未完成返回错误；核对旧 PID 已退出后重新 bootstrap 成功，最终在线。后续头头 Connector 明确等待旧 PID 退出后加载。此过程没有重启 Codex App 或 Herdr App。
+
+## 尚未完成
+
+npm 登录凭据失效返回 401；两次网页登录因用户未收到邮箱验证码而超时。第三次按用户通行密钥需求提供官方网页授权入口，等待账号认证。认证后仍须发布同一 tarball，核对官方 registry 的 latest、integrity、下载和安装，再将 npm 状态标为完成。

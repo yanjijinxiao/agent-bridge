@@ -1,0 +1,11 @@
+{
+  "version": "0.6.0",
+  "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+  "cli": [
+    "agent-bridge",
+    "agent-bridge-connector"
+  ],
+  "gateway": true,
+  "taskboard": true,
+  "staticAsset": true
+}

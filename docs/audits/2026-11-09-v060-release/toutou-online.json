@@ -1,0 +1,31 @@
+{
+  "gateway": {
+    "version": "0.6.0",
+    "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+    "pid": 48061
+  },
+  "connectors": [
+    {
+      "label": "头头 · Mac 本机",
+      "online": true,
+      "version": "0.6.0",
+      "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+      "pid": 47721
+    },
+    {
+      "label": "11.158.199.43（经 头头 · Mac 本机）",
+      "online": true,
+      "version": "0.6.0",
+      "commit": "74c08b2ea4c4ceb9c6a94a9ffa0a32cfa8e673f3",
+      "pid": 47721
+    }
+  ],
+  "accounts": [
+    {
+      "id": "hermes-dingtalk",
+      "status": "running",
+      "connection": "connected"
+    }
+  ],
+  "bindings": 45
+}

@@ -8,7 +8,7 @@
 
 内嵌 Taskboard 位于 dist/vendor/codex-taskboard。编译入口只使用该制品，不回退到可变的源码工作区。旧 dist/node_modules 路径会被 npm 默认排除，不能作为发布布局。Taskboard 的内部独立包版本和上游 Codex 版本仍属各自领域，不伪装成产品发布号。
 
-发布包只包含 dist、公开 README/LICENSE、两份 peer 配置示例及安装/连接说明。不会复制 .git、.npmrc、私有部署目录、账号配置、凭据、聊天状态和内部审计记录。包内公开 CA 用于固定 Gateway 的 TLS 信任，不包含私钥。
+发布包只包含 dist、公开 README/LICENSE/CHANGELOG、两份 peer 配置示例及安装/连接说明。不会复制 .git、.npmrc、私有部署目录、账号配置、凭据、聊天状态和内部审计记录。包内公开 CA 用于固定 Gateway 的 TLS 信任，不包含私钥。
 
 ## 发布步骤
 
