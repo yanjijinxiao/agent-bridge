@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-09T08:03:05.129537+00:00",
+  "productVersion": "0.6.1",
+  "releaseCommit": "7fb8696ffdcc551f7fd689cf5d1ce6e89517ea0d",
+  "sourceHash": "790bcf8aae890ef7c186dd4ad2ea6de62b025129f484cad492ae29d64d405277",
+  "artifact": {
+    "files": 993,
+    "bytes": 2426042,
+    "integrity": "sha512-07VrxWr29AnfyzpR/QrRw+ReE/dXMXOkt6M59yzoaODax0LitRRkSuPDhqovpm/dA7rPG+nDMnYNlKIw6bjhGw==",
+    "sha256": "7976346465c214ba3217a555b5ef9da0bd5bca3e97eb9bb75a1b1efa61715ff0"
+  },
+  "registry": {
+    "version": "0.6.1",
+    "name": "@yanjijinxiao/agent-bridge",
+    "latest": "0.6.1",
+    "integrity": "sha512-07VrxWr29AnfyzpR/QrRw+ReE/dXMXOkt6M59yzoaODax0LitRRkSuPDhqovpm/dA7rPG+nDMnYNlKIw6bjhGw==",
+    "sha256": "7976346465c214ba3217a555b5ef9da0bd5bca3e97eb9bb75a1b1efa61715ff0",
+    "bytes": 2426042,
+    "tarball": "https://registry.npmjs.org/@yanjijinxiao/agent-bridge/-/agent-bridge-0.6.1.tgz",
+    "verifiedAt": "2026-11-09T08:00:36.431Z"
+  },
+  "cleanRegistryInstall": {
+    "version": "0.6.1",
+    "commit": "7fb8696ffdcc551f7fd689cf5d1ce6e89517ea0d",
+    "cli": [
+      "agent-bridge",
+      "agent-bridge-connector"
+    ],
+    "gateway": true,
+    "taskboard": true,
+    "staticAsset": true
+  },
+  "github": {
+    "url": "https://github.com/yanjijinxiao/agent-bridge/releases/tag/v0.6.1",
+    "tagName": "v0.6.1",
+    "isDraft": false,
+    "publishedAt": "2026-11-09T07:56:46Z"
+  },
+  "runtimeCodeMatchesDeployedFixCommit": "5cb690c1f3a87ad190b27f98797b5971ef4caee8",
+  "unchangedRuntimeInputs": "git diff 5cb690c 7fb8696 -- src scripts test package.json package-lock.json was empty",
+  "fullRegression": {
+    "tests": 3774,
+    "pass": 3683,
+    "skip": 91,
+    "fail": 0
+  }
+}
