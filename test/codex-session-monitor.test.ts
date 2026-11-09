@@ -12,6 +12,23 @@ import {
   type CodexSessionTask
 } from "../src/server/codex-session-monitor.js";
 
+test("all public commentary record formats retain phase text beyond 600 characters", async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "monitor-full-commentary-"));
+  fs.mkdirSync(path.join(root, "sessions"));
+  const activities: CodexSessionActivity[] = [];
+  const monitor = new CodexSessionCompletionMonitor({ codexHome: root, pollIntervalMs: 60000,
+    now: () => Date.parse("2026-08-01T08:00:00.000Z"), onCompletion() {}, onActivity: value => { activities.push(value); } });
+  monitor.start(); await monitor.ready();
+  t.after(async () => { await monitor.stop(); fs.rmSync(root, { recursive: true, force: true }); });
+  const texts = ["event", "response", "completed"].map(kind => `${kind}：${"阶段成果🙂".repeat(200)}末尾仍须保留`);
+  writeLines(path.join(root, "sessions", "phase.jsonl"), [sessionMeta("phase", root), taskStarted("new-turn"),
+    { type: "event_msg", timestamp: "2026-08-01T08:00:02.000Z", payload: { type: "agent_message", phase: "commentary", message: texts[0] } },
+    responseCommentary(texts[1]), completedCommentary(texts[2])]);
+  await monitor.scanNow();
+  assert.deepEqual(activities.map(item => item.text), texts);
+  assert.ok(activities.every(item => item.turnId === "new-turn"));
+});
+
 test("a watcher-triggered scan rejection is contained without crashing the host", t => {
   const root=fs.mkdtempSync(path.join(os.tmpdir(), "monitor-watch-rejection-"));
   t.after(()=>fs.rmSync(root,{recursive:true,force:true}));

@@ -2,6 +2,11 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
+## [Unreleased]
+
+- Restore complete Codex commentary during active-turn polling and reconnects by hydrating only the exact active turn; retain existing phases on failed or mismatched reads. Keep terminal-only Herdr cards independent.
+- Preserve commentary beyond 600 characters in all supported rollout event formats; the existing card budget and continuation logic handle long phases.
+
 ## [0.6.0] - 2026-11-09
 
 - Added Herdr TUI and App Connectors with explicit endpoint configuration, terminal catalogs and lifecycle operations, durable input handoff, read-only observation/recovery, file sharing, and full IDE access where supported.

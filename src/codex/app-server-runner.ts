@@ -1020,6 +1020,22 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       // Older incomplete reconstructions cannot close a historical task either;
       // omitting them from this bounded view does not settle any pending turn.
       const turns = history.filter(turn => !unconfirmedEnd(turn));
+      // Summary items may omit or abbreviate commentary. They locate turns,
+      // but cannot reconstruct the public phase history after missed events or
+      // compaction. Hydrate only the active head, not twenty turns of tool
+      // output on every follow tick. A different head is a read race, never
+      // permission to put that turn's words on the current card.
+      const phaseTurn = turns.find(turn => turn.id === (state.activeTurnId
+        ?? turns.filter(item => item.status === "inProgress").at(-1)?.id) && turn.status === "inProgress");
+      if (state.runtimeStatus === "active" && phaseTurn) {
+        const full = await this.nativeTurns({ threadId, limit: 1, sortDirection: "desc", itemsView: "full" }, timeoutMs);
+        const head = full.data[0];
+        if (!isRecord(head) || head.id !== phaseTurn.id || !Array.isArray(head.items) || head.itemsView === "notLoaded" || head.itemsView === "summary")
+          throw new CodexCommunicationError("observation", "thread/snapshot", threadId, phaseTurn.id);
+        // Only public user/assistant messages are projected below. Tool output
+        // and private reasoning remain outside the channel presentation.
+        Object.assign(phaseTurn, { items: head.items });
+      }
       // A native queue can advance after the initial metadata read. History
       // reconstruction alone can briefly label its new running turn interrupted;
       // recheck the owner after history before treating any turn as terminal.

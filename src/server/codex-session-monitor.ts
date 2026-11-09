@@ -326,7 +326,9 @@ export class CodexSessionCompletionMonitor {
       && payload.phase === "commentary"
       && typeof payload.message === "string"
     ) {
-      await this.emitActivity(cursor, boundedText(payload.message, 600), timestamp);
+      // Commentary is durable phase content; only transient reasoning/tool
+      // previews are truncated here. The presentation layer budgets/rotates it.
+      await this.emitActivity(cursor, payload.message, timestamp);
       return;
     }
     if (payload.type === "item_completed") {
@@ -400,7 +402,7 @@ export class CodexSessionCompletionMonitor {
     }
     if (payload.type === "message" && payload.phase === "commentary") {
       const commentary = messageContentText(payload.content);
-      if (commentary) await this.emitActivity(cursor, boundedText(commentary, 600), timestamp, itemTurnId);
+      if (commentary) await this.emitActivity(cursor, commentary, timestamp, itemTurnId);
       return;
     }
     if (payload.type === "custom_tool_call") {
@@ -436,7 +438,7 @@ export class CodexSessionCompletionMonitor {
     }
     if (type === "agentmessage" && String(item.phase).toLowerCase() === "commentary") {
       const commentary = typeof item.text === "string" ? item.text : messageContentText(item.content);
-      if (commentary) await this.emitActivity(cursor, boundedText(commentary, 600), timestamp, turnId);
+      if (commentary) await this.emitActivity(cursor, commentary, timestamp, turnId);
       return;
     }
     const completed = completedDesktopItemDescription(type, item);

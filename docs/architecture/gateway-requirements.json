@@ -9602,6 +9602,45 @@
           ],
           "verifiedBoundary": "真实编排/持久化/渲染组件，受控渠道与原生端口；不等同手机实机验收。",
           "report": "docs/audits/2026-11-05-terminal-progress-regression.md"
+        },
+        {
+          "id": "DEL-08.12",
+          "scenario": "活动轮完整阶段补读与三格式长正文保留；错轮、摘要回退、断连和重启不丢原阶段",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/native-phase-snapshot.test.ts",
+              "name": "native follow retains full commentary across summary snapshots and compaction (restart=false)"
+            },
+            {
+              "file": "test/native-phase-snapshot.test.ts",
+              "name": "native follow retains full commentary across summary snapshots and compaction (restart=true)"
+            },
+            {
+              "file": "test/native-phase-snapshot.test.ts",
+              "name": "native commentary hydration refuses mismatch instead of publishing incomplete or foreign text"
+            },
+            {
+              "file": "test/native-phase-snapshot.test.ts",
+              "name": "native commentary hydration refuses badView instead of publishing incomplete or foreign text"
+            },
+            {
+              "file": "test/codex-session-monitor.test.ts",
+              "name": "all public commentary record formats retain phase text beyond 600 characters"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "4fc0366bbff786ec38226edf8d9096c0c2a3f3956f2b4fda9391bc05d50e5a19"
+            },
+            {
+              "file": "src/server/codex-session-monitor.ts",
+              "sha256": "2645ebc7d6a2e2969ea893f2b7eddb0070260b79e3416b02aea88af808836b12"
+            }
+          ],
+          "verifiedBoundary": "真实原生适配/Hub/checkpoint/钉钉转换与隔离 JSONL 供应商；含重启、补读失败、错轮和摘要回退。截图旧轮次已归档，未重新执行其原生任务，不声称那次实际时序已完整重现。",
+          "report": "docs/audits/2026-11-09-native-phase-recovery.md"
         }
       ]
     },
