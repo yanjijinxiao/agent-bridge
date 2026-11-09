@@ -1336,6 +1336,6 @@ Gateway、Connector、原生适配、HTTP 与日志在统一契约清单登记�
 | HDR-15 | 完整 Web/Taskboard 能力表 | Web 快照和输入复用持久模块；管理身份只写显式托管 route；设置/展示独立。Taskboard CRUD/普通工作说明保留，结构化节点在副作用前明确拒绝。 |
 | HDR-16 | 原生 Codex 兼容与端口穷尽 | 57 facade 端口显式分类；5 个 typed runtime RPC；既有 Codex 原生设置/审批/queue/turn 保留。跳过的真实原生环境组合不计通过。 |
 | HDR-17 | 终端来源与原生恢复隔离 | runtimeInput 不混入 turn/queue/recoveredNativeInput；旧记录按原 scope 恢复，屏幕不执行附件动作。 |
-| HDR-18 | 终端阶段成果与有界命令展示 | 稳定助手段持续保留，活动窗口固定长度，原输入/工具全文/终端装饰不进入主卡；终态保留段落与 IDE，移除 stop；未知格式不制造业务成功。 |
+| HDR-18 | Herdr 终端单卡滚动窗口 | 同一 AI 卡尽量展示最新终端原文，按渠道容量覆盖最早内容，不分类阶段/命令、不累积成果、不因长度续卡；状态、有效停止控件和 IDE 独立保留，终态仍在原卡收尾。Codex 原生阶段逻辑不变。见[最新合同与回归](../audits/2026-11-09-herdr-terminal-window/README.md)。 |
 | HDR-19 | 原生审批回传、参与者接受屏障及文件范围展示 | 审批等待 onTurnStarted 来源持久化；文件清单取相同 turn/item 的实时事件，重连缺事件时有界只读查询；无明细明确提示，不推断授权。 |
 | HDR-20 | 旧 host 标识的 Connector 冷启动恢复 | Gateway 冷启动时 local、remote-ssh-discovered 与 peer 路由均可能尚未注册；保留原绑定/订阅并报告不可用，不按 host 前缀制造差异，不重发输入。 |

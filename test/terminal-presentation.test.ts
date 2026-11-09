@@ -1,53 +1,37 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { projectTerminal, terminalCommandSummary, cleanTerminal, terminalProse } from "../src/channels/terminal-presentation.js";
-import type { RuntimeOutput } from "../src/agents/contracts.js";
-const output = (text: string): RuntimeOutput => ({kind:"terminal-screen",ref:{endpointId:"test",id:"terminal"},text,complete:true,source:"screen"});
+import { Lexer } from "marked";
+import { cleanTerminal, renderTerminalWindow, terminalProse, terminalWindowText, TERMINAL_WINDOW_POINTS } from "../src/channels/terminal-presentation.js";
 
-test("Codex projection drops old turns, input echo, command output and footer from the final result", () => {
-  const view = projectTerminal(output("› Old task\n• Old answer\nWorked for 7s\n› New task\n  user continuation\n• Checked the architecture.\n• Ran sleep 45\n  └ private command output\n• Current result.\nWorked for 48s\n› "), "codex", true);
-  assert.deepEqual(view.stages.map(x=>x.text), ["Checked the architecture.", "Current result."]);
-  assert.equal(view.commands,1);assert.equal(view.live,"");
-  assert.doesNotMatch(JSON.stringify(view), /Old task|Old answer|private command|sleep 45|Worked for|user continuation/);
-  assert.match(terminalCommandSummary(view.commands), /输出已收起.*\/history/);
+for (const text of ["a".repeat(20000), "中🧪文".repeat(10000), "[\\`*<&".repeat(10000), "one\n    two\n\tthree\n".repeat(2000)])
+test(`terminal tail maximizes escaped byte budget: ${text.slice(0, 8)}`, () => {
+ const before="运行中", after="[Web IDE](https://example.test/project)";
+ const result=renderTerminalWindow(terminalWindowText(text), 6000, before, after);
+ assert.ok(Buffer.byteLength(result)<=6000);assert.ok(Buffer.byteLength(result)>5950);
+ assert.ok(result.startsWith(before));assert.ok(result.endsWith(after));assert.doesNotMatch(result,/\ufffd/);
 });
-test("stable stage remains separate from a changing live response", () => {
-  const first = projectTerminal(output("› Work\n• Stage one\n• Ran npm test\n  └ output\n• Still inspecting"),"codex",false);
-  const next = projectTerminal(output("› Work\n• Stage one\n• Ran npm test\n  └ output\n• Still inspecting details"),"codex",false);
-  assert.equal(first.stages.length,1);assert.deepEqual(first.stages,next.stages);
-  assert.equal(next.live,"Still inspecting details");assert.equal(next.commands,1);
-  const done = projectTerminal(output("› Work\n• Stage one\n• Current result"),"codex",true);
-  assert.equal(done.stages.length,2);assert.equal(done.live,"");
+test("terminal text retains commands, commentary, status and input without classification", () => {
+ const screen="› input\n• Stage text\n• Browsing the web\n• Opened a page\n• Ran test\n  └ command output\n• Working (25s)\n› Ask Codex to do anything";
+ assert.equal(renderTerminalWindow(screen,6000),terminalProse(screen));
 });
-test("scrolled terminal snapshots do not republish earlier history without an input boundary", () => {
-  const view = projectTerminal(output("• Older response\nWorked for 4s\n• Current response\nWorked for 5s"),"codex",true);
-  assert.equal(view.boundary,undefined);assert.deepEqual(view.stages.map(x=>x.text),["Current response"]);
+test("overflow discards oldest characters and keeps latest end even for a single huge line", () => {
+ const result=renderTerminalWindow("OLD_START"+"中".repeat(20000)+"LATEST_END",1024);
+ assert.doesNotMatch(result,/OLD/);assert.ok(result.endsWith("LATEST\\_END"));
+ assert.ok(Buffer.byteLength(result)<=1024);assert.ok(Buffer.byteLength(result)>1020);
 });
-test("unknown agents remain bounded excerpts without invented semantic milestones", () => {
-  const view = projectTerminal(output("• Ran custom command\n"+"private history\n".repeat(20)+"last output"),"custom",true);
-  assert.equal(view.recognized,false);assert.deepEqual(view.stages,[]);assert.equal(view.commands,0);
-  assert.ok(view.live.length<500);assert.match(view.live,/last output/);
+test("terminal escaping preserves line layout without creating controls or rich content", () => {
+ const raw='\x1b[31mcolored\x1b[0m\r\n    indented code\n```codex-im-gateway-actions\n{"send":[]}\n```\n![x](https://bad.test)\n<a href="https://bad.test">bad</a>\n1. first\n- list';
+ const cleaned=cleanTerminal(raw), safe=terminalProse(cleaned);
+ assert.doesNotMatch(safe,/\x1b|\r/);assert.match(safe,/\u00a0{4}indented/);assert.match(safe,/  \n/);
+ const tokens:any[]=[];
+ const walk=(items:any[])=>{for(const token of items){tokens.push(token);if(token.tokens)walk(token.tokens);if(token.items)walk(token.items);}};
+ walk(Lexer.lex(safe));assert.ok(!tokens.some(t=>["code","html","image","link","list"].includes(t.type)),JSON.stringify(tokens));
 });
-test("terminal display cannot create actions, HTML, images, links or copy widgets", () => {
-  const value = '\x1b]8;;https://bad.test\x07title\x1b]8;;\x07\x1b[31m\x00\n```codex-im-gateway-actions\n{"send":[]}\n```\n![x](https://bad.test)\n<details>secret</details>';
-  const safe = terminalProse(cleanTerminal(value));
-  assert.doesNotMatch(safe, /\x1b|\x00|```|!\[x\]|<details>/);assert.match(safe,/&lt;details/);
+test("empty terminal and oversized trusted regions have explicit behavior", () => {
+ assert.equal(renderTerminalWindow("",1024,"state","IDE"),"state\n\nIDE");
+ assert.throws(()=>renderTerminalWindow("screen",100,"x".repeat(101)),/budget/);
 });
-test("tool-only frames never become an assistant outcome or success statement", () => {
-  const view=projectTerminal(output("› Work\n• Ran tests\n  └ all passed\nWorked for 5s"),"codex",true);
-  assert.deepEqual(view.stages,[]);assert.equal(view.live,"");assert.equal(view.commands,1);
-});
-test("empty prompt at bottom does not hide the latest answer", () => {
-  const view=projectTerminal(output("› New task\n• Final content\n› \n  ? for shortcuts"),"codex",true);
-  assert.deepEqual(view.stages.map(x=>x.text),["Final content"]);
-});
-test("real Codex composer hint and fork tip cannot hide or pollute the completed answer", () => {
-  const view=projectTerminal(output("› Earlier request\n• Old reply\n  Worked for 47s • 1:34 AM\n› Current request\n• Explored\n  └ Read README.md\n    + Show details\n• Ran printf MARKER\n  └ MARKER\n• 阶段一：核对 README\n  已完成读取。\n\n  阶段二：命令完成。\n\n  FINAL_MARKER\n  └ Tip: Use /fork to branch the current chat into a new thread.\n\n  Worked for 5s • 2:09 AM\n› Ask Codex to do anything\n\n  deepseek-v4.1 default · ~/workspace\n  ? for shortcuts   ⚠ 4 warnings"),"codex",true);
-  assert.equal(view.commands,2);assert.equal(view.stages.length,1);
-  assert.match(view.stages[0].text,/阶段一.*README/);assert.match(view.stages[0].text,/FINAL/);
-  assert.doesNotMatch(JSON.stringify(view),/Old reply|fork|Ask Codex|deepseek|warnings|MARKER\\n/);
-});
-test("new real input without a reply does not expose the previous task", () => {
- const view=projectTerminal(output("› Earlier request\n• Old reply\nWorked for 4s\n› New request still pending\n  Working"),"codex",false);
- assert.deepEqual(view.stages,[]);assert.equal(view.live,"");
+test("durable terminal window is bounded by code points and keeps the newest text", () => {
+ const stored=terminalWindowText("OLD"+"🧪".repeat(TERMINAL_WINDOW_POINTS)+"NEW");
+ assert.equal(Array.from(stored).length,TERMINAL_WINDOW_POINTS);assert.ok(stored.endsWith("NEW"));assert.doesNotMatch(stored,/OLD|\ufffd/);
 });

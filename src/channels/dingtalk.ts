@@ -205,6 +205,7 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
       progress: account.cardTemplateId ? "available" : "not-configured",
       turnStatusHeader: account.cardTemplateId ? "available" : "not-configured",
       progressFooter: account.cardTemplateId ? "available" : "not-configured",
+      terminalWindowBytes: 50_000,
       resumableProgress: Boolean(account.cardTemplateId),
       streamBootstrapRecovery: !this.cardClient.deliver ? "not-implemented" : account.cardTemplateId ? "available" : "not-configured"
     }, this);
@@ -220,6 +221,11 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
   }
   deliveryRouteStatus(recipientId: string): "available" | "unconfirmed" {
     try { this.cardTarget(recipientId); return "available"; } catch { return "unconfirmed"; }
+  }
+  measureTerminalText(text: string): number {
+    // Count source and normalized body, reserving the adapter's loading row.
+    // UTF-8 bytes conservatively fit the existing 50,000-character card guard.
+    return Math.max(Buffer.byteLength(text), Buffer.byteLength(normalizeDingTalkCardContent(text))) + 64;
   }
   conversationIdentity(recipientId: string) {
     const route = this.cardRouting.get(recipientId);
@@ -1329,7 +1335,8 @@ function activeDingTalkLayout(input: DingTalkCardActivity & { contentKey: string
   // PUT data for its streaming key appears in API readback but not in clients.
   // Put the growing body in staticMsgContent, and initialize the small, stable
   // footer through streaming once. Body refreshes cannot rewrite copy widgets.
-  const body = dingTalkProgressContent(input.progressLayout.body);
+  const body = input.progressLayout.format === "terminal"
+    ? normalizeDingTalkCardContent(input.progressLayout.body) : dingTalkProgressContent(input.progressLayout.body);
   // The template appends its native cursor to the streaming component's last
   // paragraph. Give it an explicit task-state row: a link or copy widget at
   // the end would make the cursor look like IDE navigation or command output.

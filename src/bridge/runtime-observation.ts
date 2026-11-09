@@ -8,7 +8,6 @@ import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import type { ChannelStreamCheckpoint } from "../channels/progress.js";
 import { channelStreamCheckpointSchema } from "../channels/stream-checkpoint.js";
 import type { TurnReplyStream } from "../channels/turn-presentation.js";
-import { projectTerminal, terminalCommandSummary } from "../channels/terminal-presentation.js";
 
 const scopeSchema = z.object({ sessionId: z.string().min(1), conversationId: z.string().min(1), actorId: z.string().min(1),
   accountId: z.string().min(1), hostId: z.string().min(1), threadId: z.string().min(1), bindingStamp: z.string().min(1),
@@ -297,52 +296,26 @@ export class RuntimeObservationController {
       assertSameReadTarget(row.target, after);
       const latest = this.options.journal.get(row.id)!;
       latest.seenWorking ||= after.state === "working";
-      const changed = latest.lastState !== after.state;
+      // Legacy display hashes described heuristic stages. A terminal window
+      // replaces them; keep execution and delivery identities unchanged.
+      delete latest.display;
       latest.lastState = after.state; latest.lastSequence = after.observationSequence; latest.lastSyncedAt = this.now(); this.options.journal.put(latest);
       actual.state = after.state;
       const idle = actual.state === "idle" || actual.state === "done";
-      const view = projectTerminal(output, after.agent, idle || actual.state === "exited" || actual.state === "error");
-      const display = latest.display ?? { version: 1 as const, published: [] };
-      // A later prompt on the same terminal is display context, not permission
-      // to relabel this input's receipt or to manufacture a new native turn.
-      display.boundary = view.boundary ?? display.boundary;
-      for (const stage of view.stages) {
-        if (this.options.progressEnabled?.(row.scope) === false) break;
-        if (display.published.includes(stage.key)) continue;
-        const progress = `💬 ${stage.text}`;
-        const digest = crypto.createHash("sha256").update(progress).digest("hex");
-        // The card checkpoint is committed by progress() before the provider
-        // mutation. Reconcile a crash between that save and this display save.
-        const checkpoint = stream.checkpoint();
-        const recorded = checkpoint.progressReceipts?.includes(digest)
-          || checkpoint.segments?.previous.some(segment => segment.checkpoint.progressReceipts?.includes(digest));
-        if (!recorded) await stream.progress(progress);
-        display.published = [...display.published, stage.key].slice(-1024);
-        const saved = this.options.journal.get(row.id);
-        if (saved) this.options.journal.put({ ...saved, display });
-      }
       const status = actual.state === "working" ? "终端报告正在运行" : actual.state === "blocked" ? "终端正在等待人工处理，请在 Herdr 中查看"
         : actual.state === "idle" || actual.state === "done" ? "终端当前空闲" : actual.state === "exited" ? "终端进程已退出" : actual.state === "error" ? "终端报告错误" : "终端执行状态未确认";
       if (this.options.progressEnabled?.(row.scope) !== false) {
-        if (changed) await stream.progress(`🤔 ${status}。`);
-        if (view.live) await stream.progress(`🤔 ${view.recognized ? "" : "最近输出片段："}${view.live}`);
-        if (view.commands) await stream.progress(`🔎 正在读取命令记录：${terminalCommandSummary(view.commands)}`);
-        // Generic progress() marks activity running. Apply the actual terminal
-        // state last so a new screen cannot turn blocked/unknown into running.
         await stream.setActivity(actual.state === "blocked" ? "waiting-external" : actual.state === "working" ? "running" : "unconfirmed");
       }
+      // A snapshot replaces the same bounded card; no agent-specific parsing,
+      // phase accumulation or rotation. Even with /stream off retain the tail
+      // for the final result, without emitting ordinary per-frame messages.
+      await stream.terminalScreen(output.text, this.options.progressEnabled?.(row.scope) !== false);
       if (actual.state === "exited" || actual.state === "error" || idle && (latest.seenWorking || this.now() - row.startedAt >= 20000)) {
         const outcome = actual.state === "exited" ? "terminal-exited" : actual.state === "error" ? "terminal-error" : "terminal-idle";
         const evidence = row.following ? "这是只读跟随观察，未提交输入。"
           : row.phase === "confirmed" ? "输入交接已确认。" : "本次输入交接未确认，未自动重发。";
-        const phases = stream.checkpoint().phaseProgress;
-        // Progress uses compact bullets; final prose retains its paragraphs.
-        // Re-flattening it through markdownPreview both merged paragraphs and
-        // double-escaped URL punctuation in the real DingTalk client.
-        const results = phases?.phases.flatMap(phase => [phase.text.replace(/^💬\s*/, ""), phase.summary ?? ""].filter(Boolean)) ?? [];
-        for (const stage of view.stages) if (!phases?.phases.some(phase => phase.text === `💬 ${stage.text}`)) results.push(stage.text);
-        const body = [results.length ? results.join("\n\n") : view.live || "暂未读取到本次可展示的回复。",
-          terminalCommandSummary(view.commands), `${status}。${evidence}终端状态不代表任务成功验收。`].filter(Boolean).join("\n\n");
+        const body = `${status}。${evidence}终端状态不代表任务成功验收。`;
         if (await stream.finalize(body, false, { outcome })) await this.finish(row.id);
       }
     } catch {

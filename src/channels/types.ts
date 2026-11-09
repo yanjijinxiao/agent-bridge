@@ -12,7 +12,7 @@ export type ChannelMention = { userId: string; name?: string };
 /** Trusted view regions, never recovered by parsing model-authored Markdown.
  * status is the leading heading in body. A transport may stream only that
  * bounded heading and snapshot the complete remaining body plus its widgets. */
-export type ChannelProgressLayout = { body: string; footer: string; status?: string };
+export type ChannelProgressLayout = { body: string; footer: string; status?: string; format?: "terminal" };
 /** Provider-confirmed public conversation metadata, never inferred from IDs or session titles. */
 export type ChannelConversationIdentity = { kind: "direct" | "group"; name?: string };
 /** Trusted application intent, not part of model-authored card content. */
@@ -27,6 +27,8 @@ export type ChannelMentionInput = ChannelTextInput & {
 };
 
 export type ChannelTextClient = {
+  /** Pure terminal-window sizing after provider markup conversion. */
+  measureTerminalText?(text: string): number;
   conversationIdentity?(recipientId: string): ChannelConversationIdentity | undefined;
   /** Pure routing preflight; no provider calls and no guessed recipient type. */
   deliveryRouteStatus?(recipientId: string): "available" | "unconfirmed";
@@ -78,6 +80,8 @@ export type ChannelCapabilities = {
   readonly completionMentionCard?: Capability;
   /** Conservative UTF-8 budget for each complete-result page. */
   readonly resultPageBytes?: number;
+  /** Independent single-card terminal capacity; native answer paging is unchanged. */
+  readonly terminalWindowBytes?: number;
   /** Presentation supported by this adapter, independent of actionable buttons. */
   readonly tableLayout: ChannelTableLayout;
   /** Can render structured command cards without advertising native buttons. */

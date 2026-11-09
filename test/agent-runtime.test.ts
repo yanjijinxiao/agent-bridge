@@ -172,10 +172,12 @@ test("TUI source revocation before write propagates without submitting", async (
   await assert.rejects(adapter.send({ target, text: "hello", assertCurrent() { throw Error("revoked"); } }), /revoked/);
   assert.equal(rpc.calls.some(c => c.write), false);
 });
-test("TUI reads visible screen, preserves truncation, never claims transcript", async () => {
+test("TUI reads bounded recent text, preserves truncation, never claims transcript", async () => {
   const { adapter, rpc } = tuiFixture(), ref = (await adapter.catalog()).resources[0].ref;
   const output = await adapter.read(ref); assert.equal(output.kind, "terminal-screen"); assert.equal(output.complete, false);
-  assert.equal(rpc.calls.find(c => c.method === "agent.read")?.params.source, "visible");
+  assert.equal(output.source, "recent");
+  assert.deepEqual(rpc.calls.find(c => c.method === "agent.read")?.params,
+    { target: "w1:t1:p1", source: "recent-unwrapped", lines: 512, format: "text", strip_ansi: true });
 });
 test("TUI ambiguous prompt error never triggers a second write", async () => {
   const { adapter, rpc } = tuiFixture(), target = (await adapter.catalog()).resources[0], original = rpc.answer;

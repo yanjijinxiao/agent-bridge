@@ -17,6 +17,8 @@ type ProgressFacts = {
   answerPreview: string;
   notice?: string;
   phases?: PhaseProgress;
+  /** Already escaped terminal window; never classified as commentary/tools. */
+  terminalText?: string;
   /** Undefined preserves native task cancellation semantics. */
   interruptControl?: "request" | "hidden";
 };
@@ -68,6 +70,9 @@ function progressParts(input: ProgressFacts) {
   if (!input.phases && recent.length) sections.push(recent.map(entry => `- ${progressProse(entry, 140).replace(/\n/g, "\n  ")}`).join("\n"));
   if (!input.phases && tools.active) sections.push(progressProse(tools.active, 100));
   if (input.answerPreview) sections.push(`回复预览（尚未完成）\n\n${markdownPreview(input.answerPreview, 600)}`);
+  if (input.terminalText !== undefined) {
+    sections.splice(1, sections.length - 1, ...[input.notice && progressProse(input.notice, 360), input.terminalText].filter(Boolean) as string[]);
+  }
   // /stop targets the chat's current task, not the historical card. Once the
   // native state is unconfirmed, offering it here could interrupt a newer task.
   // Confirmed active states retain the exact-reply widget in a stable footer.

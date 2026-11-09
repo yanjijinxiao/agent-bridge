@@ -1,0 +1,174 @@
+{
+  "scope": "HDR-18 screenshot-derived terminal display regression; isolated tests only",
+  "baseline": "a4bd9f664e3beebddd869acf2d185542e7b51252",
+  "screenshotEvidence": "Local attachment inspected; test text transcribed from screenshot, not a production RPC capture.",
+  "redPhase": {
+    "file": "test/terminal-presentation.test.ts",
+    "existingPassed": 9,
+    "newFailed": 7,
+    "implementation": "baseline parser, before fix"
+  },
+  "testFiles": [
+    "test/terminal-presentation.test.ts",
+    "test/terminal-observation-presentation.test.ts",
+    "test/runtime-observation.test.ts",
+    "test/phase-progress.test.ts",
+    "test/stream-checkpoint.test.ts",
+    "test/turn-presentation.test.ts",
+    "test/native-public-item.test.ts",
+    "test/agent-runtime.test.ts",
+    "test/herdr-app-layout.test.ts"
+  ],
+  "initialRun": {
+    "command": "node --test --test-concurrency=4 --test-timeout=120000 --test-reporter=tap --import tsx test/terminal-presentation.test.ts test/terminal-observation-presentation.test.ts test/runtime-observation.test.ts test/phase-progress.test.ts test/stream-checkpoint.test.ts test/turn-presentation.test.ts test/native-public-item.test.ts test/agent-runtime.test.ts test/herdr-app-layout.test.ts",
+    "totals": {
+      "tests": 179,
+      "pass": 164,
+      "fail": 15,
+      "skipped": 0
+    },
+    "failures": [
+      {
+        "name": "JSONL correlates out-of-order responses and buffers split UTF-8 frames",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL lost write acknowledgement is unknown and never replayed",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL write timeout is unknown, read timeout is not a submitted task",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL malformed response fails pending writes without retry",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL wrong id cannot acknowledge a write",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "TUI JSONL uses a new connection per request even before the preceding socket close event",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL source revocation while connecting prevents any bytes, without claiming ambiguous delivery",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL async final guard cannot authorize a write",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL remote error body is absent from returned Error and cause",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL invalid UTF-8 is rejected instead of returning replacement characters",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL notification observer failure cannot consume matching response",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL oversized partial frame fails pending write without unbounded buffering",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL oversized request is rejected before any socket request",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL close ends an outstanding write as unknown and disallows future calls",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      },
+      {
+        "name": "JSONL guard closing its owner cannot enqueue a write after final authorization",
+        "reason": "listen EPERM creating a temporary Unix socket in the sandbox"
+      }
+    ]
+  },
+  "socketRetest": {
+    "command": "node --test --test-timeout=120000 --test-reporter=tap --import tsx test/agent-runtime.test.ts",
+    "environment": "approved execution outside filesystem/network sandbox; isolated temporary fixtures",
+    "totals": {
+      "tests": 67,
+      "pass": 67,
+      "fail": 0,
+      "skipped": 0
+    }
+  },
+  "resolvedResults": {
+    "uniqueTests": 179,
+    "passed": 179,
+    "failed": 0
+  },
+  "typecheck": {
+    "command": "npm run typecheck",
+    "exitCode": 0
+  },
+  "localDocumentLinksChecked": 53,
+  "sourceSha256": {
+    "src/channels/terminal-presentation.ts": "ecc5fe915ecd231cbd187e61bead57edbd1bf4a42f7d5f55eb4fdd7232175c70",
+    "src/bridge/runtime-observation.ts": "fd40e4353a9c67b64767d9dc02c85fc0ccf19cd46a206e1dc49499077b1c1d90",
+    "src/channels/phase-progress.ts": "5ea313031789827ee44b18d889af59c1b7d6608da8e4f7c19d39d96e4b47efeb",
+    "src/channels/turn-presentation.ts": "79bfd2bf9123f07cdebd3658a144233a0ca5b3432b09605f7251af3f25633160",
+    "src/agents/contracts.ts": "374270d6f4582e6052bdc0a0daea846ea03fdeed7c0d26a59efeffd8a8d3198f",
+    "src/agents/herdr/tui.ts": "9481cb11759c426fab977eb31ecae36608908f9661cfc0aeea86dc8358991fe3",
+    "src/agents/herdr/app.ts": "0d765d531cfe499676cda5c051a2e86fd917e64a6cb08b72880028be01ae9d6d",
+    "test/terminal-presentation.test.ts": "b134a921c149503b80c486f3095fe9dd11f1f529a8bd08708d13fb6dd2e48551",
+    "test/terminal-observation-presentation.test.ts": "e4607660c7afa4a901157ab78ed5573013bf357e4899d1d63da9e19197cf789f",
+    "test/runtime-observation.test.ts": "6fae19a07c44a36c57cbde9d8277cfeaad2937c007b7efb83608eda4264164d1",
+    "test/phase-progress.test.ts": "b474b6212a4864c9d13bd2ccd34f1c3c5efbe695d95186289cef60497a1b1474",
+    "test/stream-checkpoint.test.ts": "4e9adbceccbb3de47231404fc19d7aa9df2845f93e6d75bb80e4c59a5b331aa5",
+    "test/turn-presentation.test.ts": "8460efa26bbc3d297858c3d74343c69085431869fc5dd0a0d5f84d631d4e854c",
+    "test/native-public-item.test.ts": "8353eba2ada5b155496326a43e45f1c728db293d0b6db9d2b80c33d3620d6737",
+    "test/agent-runtime.test.ts": "dc1d801ec268f0969ffaac224460ea93c007dbaba5465d07703d32d48ef7c1ec",
+    "test/herdr-app-layout.test.ts": "0fdeccf47d1ced00277cc7c9ba311f6a99799e6b3717e6b2cc0122fcf58a231a"
+  },
+  "limits": [
+    "No real DingTalk delivery or live Herdr execution tested in this increment.",
+    "No production restart or deployment performed.",
+    "Terminal polling remains best-effort; unseen or ambiguous text cannot be recovered as native semantic events."
+  ],
+  "newCases": [
+    {
+      "name": "Herdr scrolled browser stages persist through redraw and card completion: restart=false",
+      "result": "passed"
+    },
+    {
+      "name": "Herdr scrolled browser stages persist through redraw and card completion: restart=true",
+      "result": "passed"
+    },
+    {
+      "name": "Herdr browser screenshot keeps commentary and hides tool/status rows: prompt=\"› 你好，你是 codex cli吗？\\\\n\"",
+      "result": "passed"
+    },
+    {
+      "name": "Herdr browser screenshot keeps commentary and hides tool/status rows: prompt=\"  › 你好，你是 codex cli吗？\\\\n\"",
+      "result": "passed"
+    },
+    {
+      "name": "Herdr browser screenshot keeps commentary and hides tool/status rows: prompt=\"\"",
+      "result": "passed"
+    },
+    {
+      "name": "scrolled frames keep all stable stages in the latest visible reply interval",
+      "result": "passed"
+    },
+    {
+      "name": "working decoration does not commit an incomplete streaming assistant paragraph",
+      "result": "passed"
+    },
+    {
+      "name": "tool-only scrolled reply does not resurrect an older completed response",
+      "result": "passed"
+    },
+    {
+      "name": "Codex prompt margin changes do not change its display identity",
+      "result": "passed"
+    }
+  ]
+}

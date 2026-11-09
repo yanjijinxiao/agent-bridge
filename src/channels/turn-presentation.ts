@@ -5,7 +5,7 @@ import type { TurnActivity } from "./turn-status.js";
 import { phaseParagraphs } from "./phase-progress.js";
 
 export type TurnReplyStream = Pick<ChannelTurnTextStream, "supported" | "checkpoint" | "deliveryState" | "suspend"
-  | "flush" | "synchronize" | "progress" | "answer" | "finalize" | "fail" | "setActivity" | "waitForBackend" | "waitForRecovery" | "reportTerminalFailure">;
+  | "flush" | "synchronize" | "progress" | "answer" | "terminalScreen" | "finalize" | "fail" | "setActivity" | "waitForBackend" | "waitForRecovery" | "reportTerminalFailure">;
 type Persistence = NonNullable<ConstructorParameters<typeof ChannelTurnTextStream>[2]>;
 type Segment = NonNullable<ChannelStreamCheckpoint["segments"]>["previous"][number];
 type Boundary = { id: string; kind: "answer" | "steer" | "approval" };
@@ -198,6 +198,9 @@ export class ChannelTurnPresentation implements TurnReplyStream {
       ? text.slice(prefix.length) : text;
     return this.current.answer(current);
   }); }
+  terminalScreen(text: string, publish = true): Promise<boolean> {
+    return this.run(() => this.suspended ? Promise.resolve(true) : this.current.terminalScreen(text, publish));
+  }
   finalize(text: string, error = false, recovery: Parameters<ChannelTurnTextStream["finalize"]>[2] = {}): Promise<boolean> {
     return this.run(() => this.suspended ? Promise.resolve(false) : this.current.finalize(text, error, recovery));
   }

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ChannelStreamCheckpoint } from "./progress.js";
+import { TERMINAL_WINDOW_POINTS } from "./terminal-presentation.js";
 
 const count = z.number().int().nonnegative();
 const failure = z.object({ operation: z.enum(["create", "deliver", "update"]), code: z.string(), httpStatus: count.optional(),
@@ -18,6 +19,7 @@ export const channelStreamCheckpointSchema: z.ZodType<ChannelStreamCheckpoint> =
   bootstrap: bootstrap.optional(), presentationFailure: failure.optional(), startedAt: count,
   progressEntries: z.array(z.string()), progressReceipts: z.array(z.string().regex(/^[a-f0-9]{64}$/)).optional(),
   phaseProgress: phaseProgress.optional(), thought: z.string(), answerPreview: z.string(), finished: z.boolean(),
+  terminalWindow: z.object({ version: z.literal(1), text: z.string().max(TERMINAL_WINDOW_POINTS * 2) }).strict().optional(),
   communicationNotice: z.string().optional(), recoveryNotice: z.string().optional(),
   presentationCorrection: z.object({ text: z.string(), delivered: z.boolean() }).strict().optional(),
   toolActivity: z.object({ completed: count, failed: count, active: z.string().optional(), last: z.string().optional() }).strict().optional(),

@@ -10,6 +10,7 @@ import { TURN_STATUS_BYTES, turnStatusHeading, withTurnStatus, type TurnActivity
 import { renderTurnProgressCard, renderTurnProgressLayout } from "./turn-progress-card.js";
 import { restoredBootstrap, canRetryUnsentCreation, type ChannelStreamBootstrap, type ChannelStreamFailure } from "./stream-bootstrap.js";
 import { applyPhaseProgress, emptyPhaseProgress, phaseParagraphs, activitySummary, splitPhaseCommentary, type PhaseProgress } from "./phase-progress.js";
+import { renderTerminalWindow, terminalWindowText } from "./terminal-presentation.js";
 
 const MAX_RECOVERY_PROBES = 3;
 
@@ -25,6 +26,8 @@ export type ChannelStreamCheckpoint = {
   progressReceipts?: string[];
   /** Durable commentary history, independent of the bounded activity window. */
   phaseProgress?: PhaseProgress;
+  /** A bounded replaceable terminal snapshot, independent of native phases. */
+  terminalWindow?: { version: 1; text: string };
   thought: string;
   answerPreview: string;
   finished: boolean;
@@ -94,6 +97,7 @@ export class ChannelTurnTextStream {
   private opening?: Promise<boolean>;
   private readonly progressEntries: string[] = [];
   private phaseProgress = emptyPhaseProgress();
+  private terminalWindow?: ChannelStreamCheckpoint["terminalWindow"];
   private thought = "正在理解任务并规划下一步…";
   private readonly progressReceipts = new Set<string>();
   private answerPreview = "";
@@ -140,6 +144,7 @@ export class ChannelTurnTextStream {
       this.progressEntries.push(...meaningfulProgress(saved.progressEntries));
       if (saved.phaseProgress?.version === 1) this.phaseProgress = structuredClone(saved.phaseProgress);
       else for (const entry of saved.progressEntries) applyPhaseProgress(this.phaseProgress, entry);
+      this.terminalWindow = saved.terminalWindow && { ...saved.terminalWindow };
       for (const receipt of (Array.isArray(saved.progressReceipts) ? saved.progressReceipts : []).slice(-128))
         if (/^[a-f0-9]{64}$/.test(receipt)) this.progressReceipts.add(receipt);
       this.toolActivity = saved.toolActivity ? { ...saved.toolActivity } : {
@@ -169,6 +174,7 @@ export class ChannelTurnTextStream {
       ...(this.presentationFailure ? { presentationFailure: this.presentationFailure } : {}),
       progressEntries: [...this.progressEntries], thought: this.thought,
       phaseProgress: structuredClone(this.phaseProgress),
+      ...(this.terminalWindow ? { terminalWindow: { ...this.terminalWindow } } : {}),
       ...(this.progressReceipts.size ? { progressReceipts: [...this.progressReceipts] } : {}),
       answerPreview: this.answerPreview, finished: this.finished,
       ...(this.communicationNotice ? { communicationNotice: this.communicationNotice } : {}),
@@ -285,6 +291,19 @@ export class ChannelTurnTextStream {
     return this.publish(this.render());
   }
 
+  /** Replace the visible terminal, never append it as native commentary.
+   * Retain the card handle/transport receipts when migrating older snapshots. */
+  async terminalScreen(text: string, publish = true): Promise<boolean> {
+    if (this.finished || this.terminal || this.suspended) return true;
+    this.terminalWindow = { version: 1, text: terminalWindowText(text) };
+    this.phaseProgress = emptyPhaseProgress(); this.progressEntries.length = 0;
+    this.progressReceipts.clear(); this.thought = ""; this.answerPreview = "";
+    this.toolActivity = { completed: 0, failed: 0 };
+    this.communicationNotice = undefined; this.recoveryNotice = undefined;
+    this.persistence?.save(this.checkpoint());
+    return publish ? this.publish(this.render()) : true;
+  }
+
   /** Reserve room for the bounded live window, answer preview and static
    * controls. Rollover is presentation-only and requires a known old handle. */
   progressWouldOverflow(text: string): boolean {
@@ -327,7 +346,10 @@ export class ChannelTurnTextStream {
   }
 
   async finalize(text: string, error = false, recovery: { recoverBootstrap?: boolean; confirmUncertainDelivery?: boolean; existingOnly?: boolean; outcome?: TurnOutcome } = {}): Promise<boolean> {
-    const content = text.trim();
+    const content = this.terminalWindow && !this.terminal
+      ? renderTerminalWindow(this.terminalWindow.text,
+        this.terminalBudget() - (this.statusHeader ? TURN_STATUS_BYTES : 0), "", text.trim(), value => this.measureTerminal(value))
+      : text.trim();
     if (this.finished) return true;
     // A shutdown-detached writer must not poison the checkpoint that its
     // replacement follower will resume while the Codex task is still running.
@@ -351,7 +373,7 @@ export class ChannelTurnTextStream {
     await this.opening;
     await this.chain.catch(() => undefined);
     if (this.suspended || this.terminalBlocked) return false;
-    this.resultPageBytes ??= this.client.capabilities?.resultPageBytes ?? DEFAULT_RESULT_PAGE_BYTES;
+    this.resultPageBytes ??= this.terminalWindow ? this.terminalBudget() : this.client.capabilities?.resultPageBytes ?? DEFAULT_RESULT_PAGE_BYTES;
     this.resultPresentation ??= this.supported ? "card" : "native-text";
     const pages = resultPages(this.terminal!.text, this.resultPageBytes, this.statusHeader ? TURN_STATUS_BYTES : 0)
       .map(page => this.statusHeader ? { ...page, text: withTurnStatus(page.text,
@@ -611,6 +633,15 @@ export class ChannelTurnTextStream {
 
   private render(): string {
     this.latestLayout = undefined;
+    if (this.terminalWindow) {
+      const skeleton = renderTurnProgressLayout({ ...this.progressFacts(), terminalText: "" });
+      try { skeleton.footer = this.persistence?.decorateProgress?.(skeleton.footer) ?? skeleton.footer; }
+      catch { /* Optional IDE metadata cannot prevent terminal display. */ }
+      const body = renderTerminalWindow(this.terminalWindow.text, this.terminalBudget(), skeleton.body, "",
+        text => this.measureTerminal([text, skeleton.footer].filter(Boolean).join("\n\n")));
+      if (this.client.capabilities?.progressFooter === "available") this.latestLayout = { ...skeleton, body, format: "terminal" };
+      return [body, skeleton.footer].filter(Boolean).join("\n\n");
+    }
     // A frozen legacy terminal page plan does not pin the active layout.
     if (this.activityMetadata && this.client.capabilities?.progressFooter === "available") {
       const layout = renderTurnProgressLayout(this.progressFacts());
@@ -622,6 +653,14 @@ export class ChannelTurnTextStream {
     const text = this.renderBody();
     try { return this.persistence?.decorateProgress?.(text) ?? text; }
     catch { return text; } // Optional entry metadata must not stop task progress.
+  }
+
+  private terminalBudget(): number {
+    return (this.supported ? this.client.capabilities?.terminalWindowBytes : undefined)
+      ?? this.client.capabilities?.resultPageBytes ?? DEFAULT_RESULT_PAGE_BYTES;
+  }
+  private measureTerminal(text: string): number {
+    return Math.max(Buffer.byteLength(text), this.client.measureTerminalText?.(text) ?? 0);
   }
 
   private renderBody(): string {

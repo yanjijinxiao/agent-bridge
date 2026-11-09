@@ -29,6 +29,7 @@ function fixture(t: TestContext) {
     presentation(row, save) {
       let checkpoint: ChannelStreamCheckpoint = row.checkpoint ?? { messageId: "existing-card", startedAt: now, progressEntries: [], thought: "", answerPreview: "", finished: false };
       const stream = { supported: true, checkpoint: () => checkpoint, async progress(text: string) { progress.push(text); },
+        async terminalScreen(text: string, publish: boolean) { if (publish) progress.push(text); },
         async synchronize() { return checkpoint.terminal ? "finished" : "updated"; },
         async setActivity(activity: string) { activities.push(activity); }, async waitForBackend(text: string) { progress.push(text); }, async suspend() {},
         async finalize(text: string, error: boolean, options: { outcome: string; confirmUncertainDelivery?: boolean }) {

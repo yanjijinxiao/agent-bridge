@@ -92,7 +92,7 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 | HDR-03、HDR-10 | peer/registry、runtime-filesystem、files、sharing、IDE service | 来源角色与文件主机各有权威；旧租约不扩大到新目录或机器 |
 | HDR-04、HDR-05、HDR-17 | peer/runtime-service、设备交接账本、bridge/runtime-observation | 来源及输入指纹持久化、只读回执恢复；不挪用原生 turn/queue 恢复、不重放未知输入 |
 | HDR-07、HDR-12 | agents/herdr/app、tui；Connector 资源清理 | 中断按真实能力；退出只清自有连接，清理失败不跳过其余资源，不停止独立任务 |
-| HDR-09、HDR-14、HDR-18 | bridge/runtime-observation、ChannelTurnPresentation、终端展示模块 | 被动跟随与输入观察正交；阶段保留、有界命令区、原参与者通知；屏幕文字不产生附件动作或业务成功 |
+| HDR-09、HDR-14、HDR-18 | bridge/runtime-observation、ChannelTurnPresentation、终端展示模块 | 被动跟随与输入观察正交；Herdr 单卡滚动窗口、原参与者通知；屏幕文字不产生附件动作或业务成功，原生 Codex 阶段路径独立 |
 | HDR-11、HDR-15、HDR-16 | bridge/runtime-command-policy、runtime-help；Web/Taskboard 能力入口；Peer facade 分类 | 命令子操作、通用业务和原生特性分别判断；保留 Codex 审批/队列/设置能力及完整兼容回归 |
 | HDR-19、HDR-20 | 原生交互路由、来源接受屏障、AccountManager 路由恢复 | 审批按原参与者/请求及文件范围；冷启动路由未登记不删绑定，不因 host 前缀改变恢复语义 |
 

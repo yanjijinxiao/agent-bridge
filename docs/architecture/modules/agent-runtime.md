@@ -107,7 +107,7 @@ Herdr 新建、命名及生命周期已接入独立生命周期账本。TUI 创�
 
 ### 真实 IM 展示与原生审批兼容增量（2026-11-08）
 
-Herdr `RuntimeObservationController` 在读后身份核验之后调用 `projectTerminal`，不会用画面文本改变交接回执或任务成功状态。Codex composer 占位符与 `/fork` 提示属于终端装饰，不能把它们作为新输入清空结果。稳定阶段经过原卡 checkpoint 去重，最终正文不再次经过进度列表压平。详见 [终端展示](terminal-presentation.md)。
+Herdr `RuntimeObservationController` 在读后身份核验通过后调用 `terminalScreen` 替换同一张卡的窗口，不再猜测 Codex CLI 阶段或工具类型。最新终端尾部按渠道容量展示，旧文字可以滚出；checkpoint 保存最近窗口与原卡句柄，最终也只在原卡收尾。终端状态与输入回执仍独立。Codex 原生阶段保留/续卡路径不变。详见[终端展示](terminal-presentation.md)。
 
 原生 `AppServerRunner.runWithLease` 负责所有启动路径的应用接受回调屏障；原生服务器很快发出审批时，必须等待 `onTurnStarted` 完成，保证参与者与原会话来源已保存。应用接受失败时，原生请求保持未决，不制造答案或重复启动。普通、queue、容量恢复共用这一边界；Herdr 输入不走该路径。
 
