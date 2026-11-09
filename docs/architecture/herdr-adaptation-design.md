@@ -1,6 +1,6 @@
 # Herdr 两套适配：模块、函数与代码契约
 
-状态：本文规定的 Herdr TUI / App 业务适配已落入源码，处于发布前验证阶段，探探已切到未发布的专用验收构建，头头保持原版本。包含目录、生命周期、输入与只读恢复、IM/Web、公共文件/共享/完整 IDE 和 Taskboard 能力分离；原生未提供的模型/审批/队列等强语义不伪造。改前基线 Agent Bridge 37b2a2c（0.5.0）。固定上游快照 TUI 0.9.5 / ee5bfb5、App 0.1.13 / cfcf836、App 依赖 core 0.1.18 / c6b316f。最新证据见 [四层清单](../audits/2026-11-07-herdr-adapters/production-checklist.md)，环境见 [实机记录](herdr-test-environments.md)。
+状态：本文规定的 Herdr TUI / App 业务适配已随 Agent Bridge 0.6.0 发布到 npm 和 GitHub，头头、探探及五个维护中的 Connector 已同步上线，见 [发行和部署核对](../audits/2026-11-09-v060-release/README.md)。包含目录、生命周期、输入与只读恢复、IM/Web、公共文件/共享/完整 IDE 和 Taskboard 能力分离；原生未提供的模型/审批/队列等强语义不伪造。改前基线 Agent Bridge 37b2a2c（0.5.0）仅用于历史比较。固定上游快照 TUI 0.9.5 / ee5bfb5、App 0.1.13 / cfcf836、App 依赖 core 0.1.18 / c6b316f。功能证据见 [四层清单](../audits/2026-11-07-herdr-adapters/production-checklist.md)，终端展示以 [单卡窗口合同](modules/terminal-presentation.md) 为准，环境见 [实机记录](herdr-test-environments.md)。
 
 ## 1. 范围与事实源
 
@@ -21,6 +21,7 @@ Connector 的路由、三元授权、文件、IDE、凭据和版本协商继续�
 | TUI `src/app/api/agents.rs` | `validate_agent_prompt` 拒绝 blocked、启动未就绪、前台 agent 已换；提交等待 PTY 写入 | 普通消息只走 `agent.prompt`；不能在拒绝后退回 send_keys 绕过对话框 |
 | core `templates.rs` | `Template`、`first_message`；ready/report、submit/stop/paste gap | agent 的启动/键位留在 Herdr 模板中；Bridge 不按 Claude/Codex/OpenCode 写启动分支 |
 | core `status.rs` | OSC 7501 原样状态；离开 working 就增加 turn，包含 blocked/error | core.turn 只能作为观察序号；不能填入 Codex turnId |
+| TUI `src/api/schema/agents.rs` 与 core `api/types.rs` 的读取合同 | TUI 提供 state_change_seq/completion_seq；正文按 source/lines 读取，core 按 terminal/lines 读取 | 有轮次相关状态，但没有“按 turn 返回最后一轮正文”参数；终端卡可能包含窗口内旧问答 |
 | core `terminals.rs` | address、pid、foreground、keep、reason；PRIVATE 会删除 holder/program_started_ms | 地址可保留而程序替换；公开协议只能核验可观察身份，不能读取内部字段假装有原子实例校验 |
 | App `mirror.rs`、`mirror_sync.rs` | spaces/tabs/layout 文档及 CAS | 空空间必须保留；UI 布局不等于执行目录；修改布局需要原生命令或 CAS |
 

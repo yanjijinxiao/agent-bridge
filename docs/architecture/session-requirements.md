@@ -6,12 +6,14 @@
 
 2026-11-09 后续用户决定（不在上面 894 条历史编号内）：Herdr 不再要求 Codex 的阶段逻辑；单张 AI 卡尽量显示终端文字，超出容量滚动覆盖旧内容。Codex 原生阶段保留要求继续有效。合同为 HDR-18，见[终端窗口模块](modules/terminal-presentation.md)及[最新 case](../audits/2026-11-09-herdr-terminal-window/README.md)。
 
+同日发布后澄清：Herdr 有状态与轮次相关计数，但当前输出接口不能按 turn 精确读取最后一轮正文，终端窗口可能包含旧问答。用户接受保留现有窗口方式，随后要求核对新版文档；不将这次问答扩展为差分切片开发或修改 Codex 原生轮次逻辑。0.6.0 的发行、部署与文档同步分别留证。
+
 ## 文档与证据的唯一入口
 
 | 内容 | 权威记录 | 使用方式 |
 | --- | --- | --- |
 | Gateway 共用功能及 Codex 行为 | [需求与 case](gateway-requirements.json)、[人读功能合同](gateway-contracts.md) | 96 项要求、459 个 case；逐 case 的状态、测试名和边界优先于汇总段落 |
-| Herdr TUI / App 适配 | [Herdr 功能与测试](../audits/2026-11-07-herdr-adapters/production-requirements.json)、[实现及实测清单](../audits/2026-11-07-herdr-adapters/production-checklist.md) | 20 项 HDR 合同，沿用其精确测试名和环境边界；与前一份清单的粒度不同，不相加成“116 项全部验收” |
+| Herdr TUI / App 适配 | [Herdr 功能与测试基线](../audits/2026-11-07-herdr-adapters/production-requirements.json)、[实现及实测清单](../audits/2026-11-07-herdr-adapters/production-checklist.md)；HDR-18 由 [单卡窗口合同与 case](../audits/2026-11-09-herdr-terminal-window/README.md) 取代 | 20 项 HDR 合同；基线 JSON 中 HDR-18 的阶段分类和旧测试名是历史记录，不代表当前实现。沿用各自精确测试名和环境边界，不混加为“116 项全部验收” |
 | 模块、函数和调用关系 | [实现职责图](gateway-implementation-map.md)、各模块说明、[精选函数合同](function-contracts.jsonl) | 函数记录只证明所列版本/范围；不能批量换 hash 冒充重读 |
 | 待办与取消范围 | [剩余清单](remaining-work.md)、本文决定表 | 部分覆盖、已确认缺陷、未开发、用户取消分别表示 |
 | 用户操作方法 | [探探 Codex 教程](../tantan-connector-guide.md)、[Herdr 教程](../herdr-connector-guide.md)、[README](../../README.md) | 教程解释使用步骤和真实功能，不承担长篇发布日志或内部审计 |
@@ -109,7 +111,7 @@
 | 8 小时／15 天授权、额外密码、重复确认、钉钉 OAuth | 90 天；个人确认模式保留，探探明确接受持链接模式 | 不取消实际访问检查，不把 IDE grant 升为管理员 |
 | 固定网页扩展选择、手工领取 device.token/CA | 原生配置/扩展管理，设备自助登记及连接信任 | 不删除设备认证或全局禁用 TLS |
 | Gateway 长期记忆、执行设置覆盖值 | U0778 删除自建记忆；U0810 原生设置唯一权威 | 不删业务回执/绑定/目录选择等必要持久化，不损坏旧附件恢复 |
-| 一张卡永远滚动最新固定长度文字 | U0345 按接受事件分段，U0803 保留成果＋有界活动区＋容量续卡 | 不丢阶段成果，不把排队成功或分段当任务成功 |
+| Codex 一张卡永远滚动最新固定长度文字；Herdr 复用同样阶段逻辑 | Codex 按 U0345/U0803 分段保留成果；Herdr 按 2026-11-09 后续决定使用单张滚动终端窗口 | Codex 不丢阶段成果；Herdr 不再猜测正文类型，也不承诺只显示最后一轮；两者均不以画面或分段冒充任务成功 |
 | 工作流四类扩展列为待办 | U0732 明确取消本轮开发/验收 | 不从旧“未完成”清单自动重启开发，也不改成已完成 |
 | CLI 一键 curl 安装、未来多个 agent 的调研 | U0742 本轮先改权限展示；U0860 起其他 agent 仅作接口设计参考 | 不将讨论/可行性问题直接算实现承诺 |
 | 只停某个 Linux Connector、单次群测试、某次证书点击授权 | 当次运维或测试授权，留在对应审计 | 不变成永久取消平台、任意发消息或普遍绕过浏览器权限 |

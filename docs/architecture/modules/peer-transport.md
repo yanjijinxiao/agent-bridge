@@ -25,7 +25,7 @@
 - `writeGuard: 1`：所有写操作的最低版本要求。旧设备缺失此标识时明确拒绝写入。
 - `nativeContract: 1`：队列、恢复、Skills/MCP、原生设置、动态工具和新线程执行。Gateway 不静默丢弃这些参数。
 - `interactions: 1`：独立原生审批/问答观察；按 thread + consumer 管理订阅。
-- `runtimeContract: 1`：资源 read/send/interrupt/receipt/lifecycle；独立于 nativeContract。只读 receipt 核对原来源及指纹，不发送输入；screen 不是原生消息历史。五个端口使当前 facade 显式分类总数为 57；源码已部署的记录与尚未发布的 npm 包分开核对，见[Herdr 部署证据](../../audits/2026-11-07-herdr-adapters/deployment-verification.json)。
+- `runtimeContract: 1`：资源 read/send/interrupt/receipt/lifecycle；独立于 nativeContract。只读 receipt 核对原来源及指纹，不发送输入；screen 不是原生消息历史。五个端口使当前 facade 显式分类总数为 57；此适配已随 0.6.0 发布，npm 制品与线上实例仍分别核对，见[发行和部署证据](../../audits/2026-11-09-v060-release/README.md)。
 - `files.version: 1`、`management.version: 1`、`sharing.version: 2`：分别约束文件、管理和资源授权协议。
 - 后端本身不支持的能力保留原生 capability 错误。固定 thread 和资源委托限制的是授权范围，不是备用执行器选择。
 

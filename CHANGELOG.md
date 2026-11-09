@@ -10,7 +10,7 @@ All notable changes to Agent Bridge are documented in this file.
 - Fixed remote IDE entry compatibility and reconnect handling, and retained legacy managed Connector routes across Gateway cold starts.
 - Included current Codex/Herdr tutorials and public installation instructions in the npm distribution. Product version, CLI output, build metadata, npm, and Git tag use 0.6.0.
 
-Herdr terminal output does not supply native conversation turns, approvals, model settings, or queue receipts. The new terminal display checkpoint is readable by this release; older strict checkpoint readers require a separate display-state migration before a code downgrade. Existing device identities, bindings, and access grants are retained during upgrade.
+Herdr exposes status and turn-related counters, but its output readers do not associate text with individual conversation turns. Rolling terminal cards may therefore include earlier exchanges still in the screen or recent scrollback; they do not promise only the latest turn's output. Native approvals, model settings, and queue receipts are not emulated through terminal input. The new terminal display checkpoint is readable by this release; older strict checkpoint readers require a separate display-state migration before a code downgrade. Existing device identities, bindings, and access grants are retained during upgrade.
 
 ## [0.5.0] - 2026-11-06
 

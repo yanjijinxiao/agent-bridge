@@ -16,6 +16,8 @@
 
 Herdr TUI / App 支持显式 Connector 配置、目录、终端新建/命名/关闭、输入/观察/只读恢复、文件共享和本机及 App 远端完整 IDE。IM/Web 共用资源与授权边界，Taskboard 按操作能力区分普通工作说明和结构化执行。终端画面不等于原生对话或任务成功回执；Herdr 未提供同等合同的模型设置、审批、原生消息队列不会被终端按键冒充。按 [Herdr 教程](docs/herdr-connector-guide.md) 安装及配置。源码中的 [四层检查记录](docs/audits/2026-11-07-herdr-adapters/production-checklist.md) 另行说明真实钉钉与 Mac/Linux 浏览器验收范围。
 
+Herdr 接口提供状态和轮次相关计数，但正文读取没有按轮次提取输出的参数。终端卡会保留读取窗口内的旧问答，不保证只显示最后一轮；详情见教程的进度说明。发布功能与升级注意事项见 [CHANGELOG](CHANGELOG.md)，操作教程不固定安装版本。
+
 | 执行位置 | 接入方式 |
 | --- | --- |
 | Gateway 所在电脑 | 同机独立运行 Connector，由它连接该电脑已配置的原生 App Server |

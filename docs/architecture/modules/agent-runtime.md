@@ -1,6 +1,6 @@
 # 多 agent 运行接口
 
-状态：Herdr TUI / App 的资源目录、生命周期、输入交接、观察、文件/共享/完整 IDE、IM/Web 与 Taskboard 能力边界已接入源码。尚未 npm 发布；线上版本以 [部署证据](../../audits/2026-11-07-herdr-adapters/deployment-verification.json) 为准。模块/函数方案见 [Herdr 设计](../herdr-adaptation-design.md)，命令目标见 [命令合同](../agent-command-compatibility-2026-11-07.md)，检查范围见 [四层检查](../../audits/2026-11-07-herdr-adapters/README.md)。
+状态：Herdr TUI / App 的资源目录、生命周期、输入交接、观察、文件/共享/完整 IDE、IM/Web 与 Taskboard 能力边界已随 0.6.0 发布到 npm 和 GitHub，并上线头头、探探及五个维护中的 Connector；发行与运行身份见 [0.6.0 发布证据](../../audits/2026-11-09-v060-release/README.md)。模块/函数方案见 [Herdr 设计](../herdr-adaptation-design.md)，命令目标见 [命令合同](../agent-command-compatibility-2026-11-07.md)，检查范围见 [四层检查](../../audits/2026-11-07-herdr-adapters/README.md)。发布不扩大既有测试的验收边界。
 
 ## 命令与帮助入口
 
@@ -46,7 +46,7 @@ Gateway 在输入交接前保存原来源 ID 和输入指纹；Connector 提供�
 | BridgeService.runRuntimeInput | 复用角色、绑定代次和附件转存，保存来源/观察意图，再交接输入；交接完成后释放短锁，不等待终端任务 |
 | handleRuntimeCommand / runtimeCommandRestriction | 按声明的操作语义路由状态、终端画面和中断；区分未适配和无等价原生操作；不能把模型/审批命令打入终端 |
 | RuntimeObservationController | 只读重连；按原 actor/chat/bindingStamp 恢复权限；读取后再次检查旧目标，换程序不泄漏新画面；不调用 send/stop |
-| ChannelTurnPresentation | 保留阶段记录、有限实时区域、IDE footer、复制行为；终端 idle/error/exited 是观察结果，不生成任务成功回执；阻塞状态在画面刷新后应用 |
+| ChannelTurnPresentation | Herdr 使用单张滚动终端窗口，保留 IDE footer 与有效复制控件；Codex 保留结构化阶段记录和有限活动区。终端 idle/error/exited 是观察结果，不生成任务成功回执；阻塞状态在画面刷新后应用 |
 | RuntimeObservationJournal | 原卡片 checkpoint 及 @ 尝试留证；未知卡片不另建替代卡；@ 无供应商幂等回执时不自动重发 |
 | runtimeReceipt / recoverRuntimeAccepted | 从当前 grant 派生原 send 身份，核对目标/指纹；只更新原来源事实，无 prompt 或原生 turn |
 | closeConnectorResources | 顺序尝试自有 transport/readline/IDE/host/backend/lock；单个失败不能跳过其余，汇总错误；不停止独立 agent |

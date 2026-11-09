@@ -18,6 +18,8 @@ RuntimeObservationController 在读前后身份复核通过后替换窗口；每
 
 Codex 原生路径继续按 agentMessage/commandExecution 等事件分区。Herdr 的运行状态报告不等同于正文类型分类，本模块不再进行这种猜测。
 
+App/Core 的 `turn` 是根状态离开 working 的计数，进入 blocked/error 也会增加；TUI 的 `state_change_seq` 与 `completion_seq` 分别描述状态变化及完成转换。它们是结构化状态证据，不能表述成“Herdr 完全没有 turn”。当前两套读取接口均无按这些计数提取某轮正文的参数：TUI 读取最近 512 行，App 读取当前屏幕；两者均可能包含旧问答。观察器传递整段快照，展示层只按容量裁剪末尾，不执行按输入切片或画面差分。本次用户接受保留这一边界，不新增“精准最后一轮”功能。
+
 ## 四层检查与 case
 
 - 架构：展示策略与执行、状态和渠道投递正交；Codex 不进入终端窗口策略。

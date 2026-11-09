@@ -2,6 +2,8 @@
 
 本次按[完整历史要求](session-requirements.md)纠正工作流和权限等旧描述；没有新增代码验收。Herdr 的 20 项合同与下方通用 Gateway/Codex 的 459 个 case 分开记账，不能遗漏前者或混加通过数。
 
+发行状态：0.6.0 已完成 npm、GitHub 发布与头头/探探及五个维护中 Connector 的部署核对，见[发布记录](../audits/2026-11-09-v060-release/README.md)。Herdr 展示采用 [单卡窗口](modules/terminal-presentation.md)，取代下方历史检查点的阶段分类；当前不承诺按最后一轮裁剪正文，用户已接受此限制，不列为待开发功能。历史 case 的部分覆盖及未测环境仍保留。
+
 当前需求清单共459case：364项有列明边界的验证记录、95项部分覆盖，全部有测试映射。最近五项修复的合同、函数记录及已知限制见[文档同步记录](../audits/2026-11-08-documentation-reconciliation.md)。下方按日期保留既有调查结果，不将旧检查点的数量或部署版本当作当前状态。
 
 2026-11-07 Herdr 更新：目录/无 cwd 绑定、生命周期、输入/回执/只读跟随、全命令目标、Web、Taskboard 能力分离及 App 远端文件/IDE 已落入源码。真实两端生命周期/中断、App→Linux 文件/共享/code-server 和生产 Connector 骤停链路的结果见 [四层检查](../audits/2026-11-07-herdr-adapters/production-checklist.md)。2026-11-08 探探真实钉钉往返、原 AI 卡终态及 Gateway/Connector 骤停已补验；头头、探探及相关 Connector 已统一上线 a8e4a72，部署回执与原任务未重启证据已记录。用户处理证书后，Mac/Linux 完整浏览器 IDE 编辑、Git、终端和刷新已验；原 Codex CLI/App 真实探探兼容已补验；手机不是本轮通用前提。所有 agent 版本及主机断电仍不在已验证范围。以下历史 383 case 计数保持原检查点，Herdr 增量单独登记。
