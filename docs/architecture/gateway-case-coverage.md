@@ -1,5 +1,7 @@
 # 需求与 case 核对表
 
+本表只统计通用 Gateway/Codex 的需求 JSON。Herdr 的 20 项 HDR 合同及精确测试有独立 schema，统一从 [session 需求索引](session-requirements.md)进入；不能把本表当作全部后端的完整功能清单。2026-11-09 文档复核只补索引与场景文字，不修改下表状态或新增运行通过记录。
+
 最近五项合同的代码、模块、测试及教程映射见[2026-11-08 文档同步记录](../audits/2026-11-08-documentation-reconciliation.md)。下表统计已有记录；后文按日期保留历史增量，不代表本次重新运行或逐行复核全部场景。
 
 2026-11-06 本地目录增量 CAT-01.7：已有原生 socket 复用、残留/权限边界、安全错误阶段、跨 provider 分页、真实远端标签及部分结果展示，7 个新增测试与相关回归共 197 项通过。知游 Mac 的 Connector 更新及现场目录复验仍未确认，故保留部分覆盖。见[检查记录](../audits/2026-11-06-connector-local-catalog.md)。

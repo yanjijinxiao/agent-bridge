@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "baseline": "acfe1d63a47429cb60142925a8618973e6d04756",
+  "cutoffUTC": "2026-11-09T02:38:00.649Z",
+  "scope": "Recovered public user requirements and selected surrounding public assistant decisions; documentation audit only",
+  "publicRecords": 4721,
+  "userRecords": 894,
+  "assistantRecordsExtracted": 3827,
+  "assistantReview": "Selected adjacent public replies for accepted proposals, scope cancellations and ambiguous terms; not all assistant replies reread",
+  "imagesReview": "No new exhaustive image review; prior audit recorded 92 readable of 97 paths",
+  "segments": [
+    {
+      "segment": 1,
+      "userRange": [
+        1,
+        137
+      ],
+      "userCount": 137,
+      "firstUserTimestampUTC": "2026-08-27T09:31:46.865Z",
+      "lastUserTimestampUTC": "2026-09-18T03:19:54.827Z",
+      "publicRecordCount": 824,
+      "publicTextSha256": "ed706745770e05d6553ca45424daa62ca60d56c8de8455296e8bd67fa6f27adb"
+    },
+    {
+      "segment": 2,
+      "userRange": [
+        138,
+        253
+      ],
+      "userCount": 116,
+      "firstUserTimestampUTC": "2026-09-18T03:22:10.325Z",
+      "lastUserTimestampUTC": "2026-10-10T11:42:52.747Z",
+      "publicRecordCount": 417,
+      "publicTextSha256": "158d617d33eafc5937a99572a83dcd206cf7083510db0993d13c5c4a88865681"
+    },
+    {
+      "segment": 3,
+      "userRange": [
+        254,
+        894
+      ],
+      "userCount": 641,
+      "firstUserTimestampUTC": "2026-10-10T11:47:41.363Z",
+      "lastUserTimestampUTC": "2026-11-09T02:38:00.649Z",
+      "publicRecordCount": 3480,
+      "publicTextSha256": "15f612f38553dd30f2a73495237e127020aa14bbf3797a1f8305eb3f33b1249e"
+    }
+  ],
+  "userTextCoverage": [
+    {
+      "firstUser": 1,
+      "lastUser": 100,
+      "review": "all-user-text-read-in-order",
+      "topics": "渠道接入、原生项目/会话、归档、新建、卡片与许可/署名；早期两个执行路径由后续统一要求取代。"
+    },
+    {
+      "firstUser": 101,
+      "lastUser": 200,
+      "review": "all-user-text-read-in-order",
+      "topics": "多渠道、完整目录/无项目/分页、管理页面与附件；建群及客户端分组属于明确工作流，不是隐式命令。"
+    },
+    {
+      "firstUser": 201,
+      "lastUser": 300,
+      "review": "all-user-text-read-in-order",
+      "topics": "建群工作流、审批、会话写入、持久绑定、原生队列及默认 steer；卡片回执与附件引用。"
+    },
+    {
+      "firstUser": 301,
+      "lastUser": 400,
+      "review": "all-user-text-read-in-order",
+      "topics": "提问和答案回执、来源路由、批准/steer 后分卡、解绑、参与者 @、Web IDE 与多根/配置。"
+    },
+    {
+      "firstUser": 401,
+      "lastUser": 500,
+      "review": "all-user-text-read-in-order",
+      "topics": "固定入口、TLS、IDE 授权期限/网卡/外观、复制语义及任务卡状态；旧地址/期限由后续决定取代。"
+    },
+    {
+      "firstUser": 501,
+      "lastUser": 600,
+      "review": "all-user-text-read-in-order",
+      "topics": "加载和终态、IDE footer/归属、浏览器准入、工具审批、绑定总览、四层方法的前三层及完整仓库范围。"
+    },
+    {
+      "firstUser": 601,
+      "lastUser": 700,
+      "review": "all-user-text-read-in-order",
+      "topics": "第四层静态配置、重启/交接、权限继承、统一 App Server、完整文档与缺测；催进度和单次许可不变成产品要求。"
+    },
+    {
+      "firstUser": 701,
+      "lastUser": 800,
+      "review": "all-user-text-read-in-order",
+      "topics": "空项目、真实骤停、探探/Connector验证、工作流取消、权限展示、完整IDE、持链接进入、自助登记、记忆删除、目录设备切换及Connector唯一入口。"
+    },
+    {
+      "firstUser": 801,
+      "lastUser": 894,
+      "review": "all-user-text-read-in-order",
+      "topics": "阶段进展和终态、原生设置、MaxCompute名单/教程、目录漏项、版本/npm改名、Herdr两套适配及正交回归、命令帮助/未知转发、远程IDE修复和本次文档复核。"
+    }
+  ],
+  "privacy": "Raw messages, private identifiers, endpoints and attachment paths remain outside repository",
+  "excludedAsRequirements": [
+    "tool payloads and internal reasoning",
+    "compaction summaries as independent user authority",
+    "quoted or pictured commands as new instructions",
+    "unrelated project/travel contents",
+    "one-time operational approvals as standing product requirements"
+  ]
+}

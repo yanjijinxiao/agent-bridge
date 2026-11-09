@@ -2,6 +2,8 @@
 
 这些文档同时记录目标行为、当前实现和未验证项。存在文档、读过文件、测试通过是三种不同的事实，不能互相替代。
 
+[整个 session 的需求与决定索引](session-requirements.md)按历史要求定位当前功能、模块和 case，并标明被后续要求取代或取消的方案。2026-11-09 已重新核对三段历史中的 894 条用户记录；补齐功能总文档缺少的条目、Herdr 合同入口及相反的旧待办描述，范围见[本次复核](../audits/2026-11-09-session-documentation/README.md)。这是文档审计，不是新一轮全部代码验收。
+
 ## 接口调研与设计提案
 
 [Herdr 两套适配的模块、函数与代码设计](herdr-adaptation-design.md)：列出真实调用链的 Codex 假设、Herdr 多 agent 源码依据、身份/交接/观察边界和实施验收清单。开发状态与上线状态分开记录。
@@ -33,7 +35,7 @@
 
 | 模块 | 说明 |
 | --- | --- |
-| 实验 Connector | [Peer 的接口适配、授权和验证边界](modules/peer-transport.md) |
+| Connector 唯一执行入口 | [Peer 的接口适配、授权和验证边界](modules/peer-transport.md) |
 | 原生协议与连接 | [同一核心、权限继承、读写连接和生命周期](modules/native-protocol.md) |
 | 多 agent 运行接口 | [两套 Herdr 适配、输入交接、命令帮助及能力边界](modules/agent-runtime.md) |
 | 消息接收与交接 | [来源、提交、接收和未知回执](modules/inbound-forwarding.md) |
@@ -50,8 +52,9 @@
 | 知识与 QA | [只读工具、实际文件边界和独立 MCP 所有权](modules/knowledge-qa.md) |
 | 构建与重启 | [同一交接门禁、制品和实际运行版本核验](modules/release-lifecycle.md) |
 | 四层检查与证据 | [历史、意图、逐行范围、反例和验收限制](modules/audit-method.md) |
+| 文档与教程维护 | [需求变更、教程结构、同步和正交验收](modules/documentation-maintenance.md) |
 
-上述说明覆盖主分支17个职责模块和新增Connector模块，其中紧密关联的绑定/准入、进展/渠道合并解释跨模块边界。详细程度按真实职责组织，不建立空模板冒充完成。机器清单中的状态和设备验收限制仍独立保留。
+上述说明按职责组织，其中绑定/准入、进展/渠道合并解释跨模块边界。Connector 与多 agent 运行接口已是当前架构的一部分，不能沿用早期“实验 Connector”身份遗漏它们。文档维护是开发流程职责，不新增运行模块。机器清单中的状态和设备验收限制仍独立保留。
 
 ## 注释约定
 

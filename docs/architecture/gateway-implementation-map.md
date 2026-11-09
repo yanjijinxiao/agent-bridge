@@ -4,11 +4,13 @@
 
 配套文件：gateway-contracts.md 记录历史要求；gateway-requirements.json 记录每个场景及证据；本文件定位实际入口和状态写入者。下列是实现关系，不是“已经检查通过”的清单。关键函数的输入、状态义务和异步边界另记 function-contracts.jsonl，仅包含已有明确逐函数记录的部分，不以全文件读过冒充全部函数行为均已验证。逐行范围、内容散列、未读文件在本轮 read-ledger.jsonl 和只读报告中单独保留。
 
+历史要求及取消/取代关系从 [session 索引](session-requirements.md)追溯。除通用 Gateway/Codex 清单外，Herdr 的 HDR-01～HDR-20 使用独立精确测试清单，下方补充其职责映射，不另建业务状态权威。
+
 ## 主链路
 
 当前 Connector 负责到执行主机的连接与传输；Gateway 的来源、角色、绑定和投递职责共用。以下原生轮次链路描述 Codex 分支；Herdr App/TUI 的终端输入走同一 Bridge 入口后的运行适配器、RuntimeObservationController 和独立交接回执，不能套用 Codex turn/queue 或通过终端按键模拟审批。详见[运行接口模块](modules/agent-runtime.md)。
 
-平台事件 → AccountManager 账号运行代次与接收持久化 → ForwardingInbox 来源交接 → BridgeService 显式命令或普通输入 → TurnSubmission/SessionControl/NativeQueue → CodexAppServerGateway 主机路由 → AppServerCodexRunner 原生协议。
+平台事件 → AccountManager 账号运行代次与接收持久化 → ForwardingInbox 来源交接 → BridgeService 显式命令或普通输入 → TurnSubmission/SessionControl/NativeQueue → Connector 后端/RPC → 设备侧 CodexAppServerGateway 主机路由 → AppServerCodexRunner 原生协议。Gateway 不在 Connector 失联后启用直连本机/SSH 执行分支。
 
 原生接收回执恢复：原host/thread历史分页 → 精确clientUserMessageId → 来源journal CAS accepted与投递义务 → Hub排除误判历史baseline → 结果动作与原路投递 → 持久确认后结算。没有新的执行入口。
 
@@ -45,7 +47,7 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 - CapacityRecovery checking/settling 与 SystemErrorRecovery pending 已按实际反例拆开只读等待与交接。实际原生RPC由transport保护；渠道文本/卡片/媒体每次写入独立持lease。stop退休journal writer，补偿义务仍持久保存，见恢复模块说明。
 - Taskboard AI、自动处理器及额度现已复用同一原生适配器；嵌入服务借用根实例，独立包默认 daemon。旧 Cron 管理和窗口嵌入属于 Desktop UI 集成，不是另一执行器；标准原生 schema 没有 scheduler 管理方法，未编造该 API。详见 taskboard-native-execution 模块。
 - 原生不同项目 ID 不再按 cwd 合并；已知旧别名按当前 host/home 映射或完整根集合解析，未知明确 ID 拒绝替换，新建携带全部根。新绑定 unknown 不伪造 none；原 IDE grant/管理身份未改写。
-- Taskboard IM表单经taskboard-submissions.json与SQLite/D1事务回执处理跨重启未知写（TB-09.5）；浏览器部分附件由独立提交记录处理（TB-03.4、TB-09.1/.2/.4）。Codex workflow交接未知与真实骤停另列TB-09.6，不能继续写成“仅内存去重未解决”。原生idle队列历史一次观察失败仍未查明。
+- Taskboard IM表单经taskboard-submissions.json与SQLite/D1事务回执处理跨重启未知写（TB-09.5）；浏览器部分附件由独立提交记录处理（TB-03.4、TB-09.1/.2/.4）。Codex workflow交接未知与真实骤停另列TB-09.6，不能继续写成“仅内存去重未解决”。原生队列早到历史终态、晚到最终通知的确定时序已按 CTRL-03.5 复现修复；未覆盖所有并发消费/落盘组合，不能继续笼统写成旧故障完全未查明。
 - 历史引用97个不同图片路径中，92张仍存在且已逐张打开，5张早期临时图丢失；本轮实际 Chrome 组件测试不替代钉钉/微信/手机真实客户端验收。
 
 ## 当前验证边界与历史记录
@@ -66,7 +68,7 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 
 本次登记十项精选函数的实际范围及散列；不批量更新其他历史函数散列，未重新核验的旧记录仍是原版本证据。[同步记录](../audits/2026-11-08-documentation-reconciliation.md)列出测试与验证边界。
 
-## Connector 增量映射（2026-11-03）
+## Connector 端口职责（基于 2026-11-03 映射更新）
 
 | 入口/责任 | 实现 | 对应契约 |
 | --- | --- | --- |
@@ -75,8 +77,23 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 | 末次来源核验、原生队列来源与补偿 | codex/write-guard、peer/write-guard、receipts、recovery-journal；原NativeQueue与AccountManager | PEER-03 |
 | 原session管理、附件、所有者与共享浏览器入口 | peer/management、files、sharing-*、workspace-* | PEER-02、PEER-04 |
 
-非peer路径直接委托原facade。新端口没有新的业务调度器；渠道卡片、复制、审批和结果投递继续由原模块处理。`peer/channel`是可组合Channel适配器，未增加第二套渠道业务处理，也没有自动启用远端Channel入口。
+设备侧本地/SSH 路径委托原 facade，Gateway 侧则统一经 Connector；早期“非 peer 路径直接委托”不能被解释成当前 Gateway 的备用执行器。新端口没有新的业务调度器；渠道卡片、复制、审批和结果投递继续由原模块处理。`peer/channel`是可组合 Channel 适配器，未增加第二套渠道业务处理，也没有自动启用远端 Channel 入口。
 
 [当前增量验收](../audits/2026-11-03-peer-contract-review/merge-completion.md)单列本地、真实SSH、真实Codex及协议夹具；原main的partial和真实设备待办不因Connector回归被升级。
 
 2026-11-04 增量：REL-02.11 的 HTTP 收尾及 GitLens 实际验证见 [验证收尾记录](../audits/2026-11-04-verification-boundaries/README.md)。历史总数不作为本次测试总数。
+
+## Herdr 与共用业务的职责映射
+
+| 合同 | 实现职责 | 必须保留的边界 |
+| --- | --- | --- |
+| HDR-01、HDR-08 | agents/config、agents/herdr 的 App/TUI 适配；peer/config、runtime-service、运行版本契约 | 显式后端、严格反序列化与错误分类；断连不切执行器，写入未知不改成未发送 |
+| HDR-02、HDR-06、HDR-13 | agents/herdr/app、tui、app-layout、app-view、agents/lifecycle | 资源/空间/主机身份，准确创建命名关闭；终端画面不等于原生会话历史 |
+| HDR-03、HDR-10 | peer/registry、runtime-filesystem、files、sharing、IDE service | 来源角色与文件主机各有权威；旧租约不扩大到新目录或机器 |
+| HDR-04、HDR-05、HDR-17 | peer/runtime-service、设备交接账本、bridge/runtime-observation | 来源及输入指纹持久化、只读回执恢复；不挪用原生 turn/queue 恢复、不重放未知输入 |
+| HDR-07、HDR-12 | agents/herdr/app、tui；Connector 资源清理 | 中断按真实能力；退出只清自有连接，清理失败不跳过其余资源，不停止独立任务 |
+| HDR-09、HDR-14、HDR-18 | bridge/runtime-observation、ChannelTurnPresentation、终端展示模块 | 被动跟随与输入观察正交；阶段保留、有界命令区、原参与者通知；屏幕文字不产生附件动作或业务成功 |
+| HDR-11、HDR-15、HDR-16 | bridge/runtime-command-policy、runtime-help；Web/Taskboard 能力入口；Peer facade 分类 | 命令子操作、通用业务和原生特性分别判断；保留 Codex 审批/队列/设置能力及完整兼容回归 |
+| HDR-19、HDR-20 | 原生交互路由、来源接受屏障、AccountManager 路由恢复 | 审批按原参与者/请求及文件范围；冷启动路由未登记不删绑定，不因 host 前缀改变恢复语义 |
+
+函数细节沿用[运行模块](modules/agent-runtime.md)、[终端展示](modules/terminal-presentation.md)及[20 项精确需求](../audits/2026-11-07-herdr-adapters/production-requirements.json)。本次补索引未重新验证这些文件的全部行或所有环境。

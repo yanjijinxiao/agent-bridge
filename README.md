@@ -33,7 +33,7 @@ Gateway 本机管理页监听 `127.0.0.1`，不作为多人登录门户。Connec
 | 在钉钉使用探探 | [探探 Connector 与使用教程](./docs/tantan-connector-guide.md)，包含配对、命令、群聊和管理员开通条件 |
 | 自己部署机器人和 Gateway | 下方「部署自己的 Gateway」及 [渠道配置](./docs/channel-setup.md) |
 | 开通浏览器编辑、Git 和终端 | [Web IDE 配置与访问模式](./docs/web-ide.md) |
-| 查看架构、功能要求和验证范围 | [架构文档](./docs/architecture/README.md) 与 [需求及 case 核对表](./docs/architecture/gateway-case-coverage.md) |
+| 查看架构、功能要求和验证范围 | [架构文档](./docs/architecture/README.md)、[历史需求与现行决定](./docs/architecture/session-requirements.md)、[需求及 case 核对表](./docs/architecture/gateway-case-coverage.md) |
 
 ### 运行中消息与原生队列
 

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "baseline": "acfe1d63a47429cb60142925a8618973e6d04756",
+  "scope": "documentation consistency only; no product execution or new acceptance evidence",
+  "status": "passed",
+  "checks": {
+    "explicitGatewayCaseIdsPresent": 459,
+    "gatewayRequirements": 96,
+    "herdrContractsPresent": 20,
+    "brokenRelativeLinks": [],
+    "relativeLinkOccurrencesChecked": 266,
+    "unknownContractIds": [],
+    "userRangeContiguous": [
+      1,
+      894
+    ],
+    "publicRecordsReconciled": 4721,
+    "userSourceReferencesChecked": 240,
+    "machineContractDescriptionsReconciled": [
+      "PEER-01",
+      "PEER-02"
+    ],
+    "all459CaseRecordsIdenticalToBaseline": true,
+    "unchangedEvidenceFiles": [
+      "docs/architecture/function-contracts.jsonl",
+      "docs/audits/2026-11-07-herdr-adapters/production-requirements.json"
+    ],
+    "caseStatusUnchanged": {
+      "verified": 364,
+      "partial": 95
+    },
+    "productSourceOrConfigurationModified": false
+  },
+  "limits": [
+    "All 894 recovered user records read; only selected adjacent assistant decisions reread.",
+    "No new exhaustive screenshot review, code line review, runtime regression, deployment or Yuque update.",
+    "Existing case hashes and verification status preserved; metadata consistency does not certify product behavior."
+  ]
+}

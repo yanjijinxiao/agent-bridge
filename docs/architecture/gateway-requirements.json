@@ -16763,7 +16763,7 @@
       "title": "同一后端接口的 Connector 传输",
       "sourceRecords": [],
       "sourceRequest": "2026-11-03 用户要求补齐接口/文档、拆分无关功能、完整回归后准备合入main",
-      "contract": "peer: host 显式路由；51个公共端口分类穷尽，非 peer host 复用主分支参数和接收者，不启用隐式执行回退。",
+      "contract": "Gateway 执行统一经 Connector 显式路由；设备侧复用原本地/SSH facade 的完整参数与回调，端口分类穷尽当前接口，不启用隐式执行回退。",
       "implementationReview": "current-connector-contract-review; exact verification boundaries retained",
       "cases": [
         {
@@ -16962,7 +16962,17 @@
             "report": "docs/audits/2026-11-04-native-config-enrollment/README.md"
           }
         }
-      ]
+      ],
+      "contractReconciliation": {
+        "date": "2026-11-09",
+        "previousContract": "peer: host 显式路由；51个公共端口分类穷尽，非 peer host 复用主分支参数和接收者，不启用隐式执行回退。",
+        "currentAuthority": [
+          "NAT-07",
+          "HDR-16"
+        ],
+        "reason": "完整 session 文档核对：旧文字未跟随后续 Connector-only 及配对后目录展示要求同步。只更新功能描述，原 case、测试、源码散列和验证状态不变。",
+        "report": "docs/audits/2026-11-09-session-documentation/README.md"
+      }
     },
     {
       "id": "PEER-02",
@@ -16970,7 +16980,7 @@
       "title": "配对、绑定与所有者准入",
       "sourceRecords": [],
       "sourceRequest": "2026-11-03 用户要求补齐接口/文档、拆分无关功能、完整回归后准备合入main",
-      "contract": "设备主动连接；/connect 确认设备后由用户选择session，不自动展开全部会话；资源所有者审批访问，操作权限复用现有角色。",
+      "contract": "设备主动连接；配对成功后展示该设备当前有权读取的会话，由用户选择绑定，不枚举其他设备或其他人的目录；资源所有者审批访问，操作权限复用现有角色。",
       "implementationReview": "current-connector-contract-review; exact verification boundaries retained",
       "cases": [
         {
@@ -17057,7 +17067,17 @@
             "report": "docs/audits/2026-11-03-full-four-layer/README.md"
           }
         }
-      ]
+      ],
+      "contractReconciliation": {
+        "date": "2026-11-09",
+        "previousContract": "设备主动连接；/connect 确认设备后由用户选择session，不自动展开全部会话；资源所有者审批访问，操作权限复用现有角色。",
+        "currentAuthority": [
+          "IDE-13.2",
+          "CAT-05"
+        ],
+        "reason": "完整 session 文档核对：旧文字未跟随后续 Connector-only 及配对后目录展示要求同步。只更新功能描述，原 case、测试、源码散列和验证状态不变。",
+        "report": "docs/audits/2026-11-09-session-documentation/README.md"
+      }
     },
     {
       "id": "PEER-03",
