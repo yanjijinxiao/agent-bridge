@@ -12,9 +12,9 @@
   <strong>通过个人微信、企业微信、飞书和钉钉连接你的 Agent。</strong>
 </p>
 
-`@yanjijinxiao/agent-bridge` 把即时通信消息转发给选定设备上的 Codex，并将进展、审批和结果送回原聊天。现网已发布能力为 Codex；源码中的 Herdr 适配及其发布状态见下一段。桌面和纯 CLI 环境统一使用标准 Codex App Server 接口；Gateway 统一通过主动拨号的 Connector 接入；Connector 复用已有本机和远程主机连接。
+`@yanjijinxiao/agent-bridge` 把即时通信消息转发给选定设备上的 Codex 或 Herdr 托管终端，并将进展和结果送回原聊天。npm 发行包包含 Gateway、Codex 和 Herdr TUI / App Connector。Codex 桌面和纯 CLI 环境统一使用标准 App Server 接口；Gateway 统一通过主动拨号的 Connector 接入；Connector 复用已有本机和远程主机连接。
 
-Herdr TUI / App 适配已接入源码并部署至头头、探探：包括显式 Connector 配置、目录、终端新建/命名/关闭、输入/观察/只读恢复、文件共享和本机及 App 远端完整 IDE。IM/Web 共用资源与授权边界，Taskboard 按操作能力区分普通工作说明和结构化执行。终端画面不等于原生对话或任务成功回执；Herdr 未提供同等合同的模型设置、审批、原生消息队列不会被终端按键冒充。源码验收范围见 [Herdr 四层检查](docs/audits/2026-11-07-herdr-adapters/production-checklist.md)，探探及专用 Connector 已用于真实钉钉验收；本次变更尚未发布至 npm，Mac 与 Linux 的浏览器 IDE 编辑、Git、终端和刷新重连已实测。
+Herdr TUI / App 支持显式 Connector 配置、目录、终端新建/命名/关闭、输入/观察/只读恢复、文件共享和本机及 App 远端完整 IDE。IM/Web 共用资源与授权边界，Taskboard 按操作能力区分普通工作说明和结构化执行。终端画面不等于原生对话或任务成功回执；Herdr 未提供同等合同的模型设置、审批、原生消息队列不会被终端按键冒充。按 [Herdr 教程](docs/herdr-connector-guide.md) 安装及配置。源码中的 [四层检查记录](docs/audits/2026-11-07-herdr-adapters/production-checklist.md) 另行说明真实钉钉与 Mac/Linux 浏览器验收范围。
 
 | 执行位置 | 接入方式 |
 | --- | --- |
@@ -29,7 +29,7 @@ Gateway 本机管理页监听 `127.0.0.1`，不作为多人登录门户。Connec
 | 你的目标 | 阅读入口 |
 | --- | --- |
 | 使用别人提供的 Gateway，把自己的电脑接进去 | 下方「连接已有 Gateway」，以及 [Connector 连接指南](./docs/gateway-peers.md) |
-| 配置源码中的 Herdr TUI / App Connector | [Herdr 连接与功能说明](./docs/herdr-connector-guide.md) |
+| 配置 Herdr TUI / App Connector | [Herdr 连接与功能说明](./docs/herdr-connector-guide.md) |
 | 在钉钉使用探探 | [探探 Connector 与使用教程](./docs/tantan-connector-guide.md)，包含配对、命令、群聊和管理员开通条件 |
 | 自己部署机器人和 Gateway | 下方「部署自己的 Gateway」及 [渠道配置](./docs/channel-setup.md) |
 | 开通浏览器编辑、Git 和终端 | [Web IDE 配置与访问模式](./docs/web-ide.md) |

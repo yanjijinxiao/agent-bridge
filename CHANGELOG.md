@@ -1,8 +1,23 @@
 # Changelog
 
-All notable changes to Codex IM Gateway are documented in this file.
+All notable changes to Agent Bridge are documented in this file.
 
-## Unreleased
+## [0.6.0] - 2026-11-09
+
+- Added Herdr TUI and App Connectors with explicit endpoint configuration, terminal catalogs and lifecycle operations, durable input handoff, read-only observation/recovery, file sharing, and full IDE access where supported.
+- Display Herdr terminal text in one rolling AI Card. Keep the latest text within the channel budget, preserve status/stop/IDE regions, and leave native Codex phase cards unchanged.
+- Expanded backend-specific help and forward unregistered slash commands after a text notice; ordinary paths remain ordinary input.
+- Fixed remote IDE entry compatibility and reconnect handling, and retained legacy managed Connector routes across Gateway cold starts.
+- Included current Codex/Herdr tutorials and public installation instructions in the npm distribution. Product version, CLI output, build metadata, npm, and Git tag use 0.6.0.
+
+Herdr terminal output does not supply native conversation turns, approvals, model settings, or queue receipts. The new terminal display checkpoint is readable by this release; older strict checkpoint readers require a separate display-state migration before a code downgrade. Existing device identities, bindings, and access grants are retained during upgrade.
+
+## [0.5.0] - 2026-11-06
+
+- Published the scoped `@yanjijinxiao/agent-bridge` package with both Gateway and Connector commands, prebuilt Web assets, and the embedded Taskboard.
+- Kept product release identity separate from protocol compatibility versions, with runtime build/commit reporting and clean-prefix installation verification.
+
+## Earlier development history
 
 This section retains changes accumulated across earlier implementations. Its
 references to exec fallback, Desktop follower IPC, and disabled Desktop queue

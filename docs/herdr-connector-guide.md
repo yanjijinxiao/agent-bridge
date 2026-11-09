@@ -41,9 +41,15 @@ Connector 入口：wss://11.158.199.29:49186/gateway/v1/peer
 
 ### 取得支持 Herdr 的 Connector
 
-请先向探探管理员取得支持 Herdr 的 Connector 程序或源码。当前 npm 发布包尚未包含 Herdr 适配；不要用 Codex 的安装结果判断 Herdr 是否可用。
+在运行 Herdr 的设备上安装 npm 发行包，内含 Gateway 和 Connector。接入探探时只需启动 Connector，不需要另开 Gateway：
 
-有源码时，在设备终端依次执行以下命令。已经有仓库的用户进入自己的仓库即可，不重复克隆。
+```sh
+npm install -g @yanjijinxiao/agent-bridge
+```
+
+升级已有安装也使用这条命令。安装后重启自己的 Connector 才会加载新程序；安装不会重启 Herdr 或正在执行的 agent。
+
+需要从源码构建时，在设备终端依次执行以下命令。已通过 npm 安装的用户跳过这组命令；已经有仓库的用户进入自己的仓库即可，不重复克隆。
 
 ```sh
 git clone https://github.com/yanjijinxiao/agent-bridge.git
@@ -61,7 +67,7 @@ npm ci
 npm run build:bridge
 ```
 
-下面的启动步骤使用这个源码目录内的 npm run peer。若管理员交付的是已编译、带 agent-bridge-connector 命令的安装包，按第 3 节使用该命令即可。
+第 3 节分别给出 npm 安装和源码构建的启动命令，按自己的安装方式选择一个即可。
 
 ### 确认个人准入
 
@@ -111,16 +117,16 @@ JSON 中不要写 ~ 或 $HOME，它们不会自动展开。socket 填实际绝�
 
 ## 3. 启动设备连接，完成第一次配对
 
-如果按第 2 节从源码构建，在 agent-bridge 仓库目录的交互式终端执行：
-
-```sh
-npm run peer -- --config "$HOME/.config/tantan-herdr/peer-client.json"
-```
-
-如果使用管理员交付的已编译安装包，在任意目录执行：
+通过 npm 或管理员提供的发行包安装时，在设备的交互式终端执行：
 
 ```sh
 agent-bridge-connector --config "$HOME/.config/tantan-herdr/peer-client.json"
+```
+
+如果按第 2 节从源码构建，在 agent-bridge 仓库目录执行：
+
+```sh
+npm run peer -- --config "$HOME/.config/tantan-herdr/peer-client.json"
 ```
 
 **两种启动方式选一种，不同时运行。** 正常启动会检查所选 Herdr 接口，然后连接探探，显示设备名称和完整配对命令。
