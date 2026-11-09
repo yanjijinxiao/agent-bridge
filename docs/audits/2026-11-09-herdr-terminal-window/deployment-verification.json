@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-09T04:04:32.102751+00:00",
+  "codeCommit": "dcf12677ab44cdfb304ab420e1371953689d6271",
+  "pushed": true,
+  "productVersion": "0.5.0",
+  "npmPublished": false,
+  "sourceHash": "5e44822b06fa4cf441df528eece133755e036cd97eec1a4243abc81ac2c3ae31",
+  "compiledTreeHash": "ebe605e4708fdb606b39cc20f692a5113151b555e2c4b24738341862fa15b7ce",
+  "archiveSha256": "d5b031492ec31bfca2cdd7253cf4584de10c69ebf1ce8c322da70f45d4c678c9",
+  "fullRegression": {
+    "gateway": {
+      "tests": 3769,
+      "pass": 3678,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 91
+    },
+    "taskboard": {
+      "tests": 510,
+      "pass": 508,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 2
+    },
+    "logHashes": {
+      "tests.log": "6953efb205130d3cdc9ea73bbfd0f6bbb3452a40cf4399330fc0822126acb8f2",
+      "taskboard-tests.log": "a138a28704e45fd9aa430f12adbb07c43e61b58176e76ef17e57690a0b7174da",
+      "typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "taskboard-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "taskboard-build.log": "adc64a7328f6f82dbad29208480cea3f8adbf1569b09d8c49f3c46c9abf4d9f4"
+    }
+  },
+  "gateways": {
+    "toutou": {
+      "pid": 9012,
+      "commit": "dcf12677ab44cdfb304ab420e1371953689d6271",
+      "channel": "connected",
+      "bindings": 45,
+      "bindingEdgesPreserved": true,
+      "retainedBrowserGrants": 32,
+      "ttlDays": 90,
+      "admissionReopened": true,
+      "codexConnectorPidBeforeAndAfter": 61331
+    },
+    "tantan": {
+      "pid": 138277,
+      "commit": "dcf12677ab44cdfb304ab420e1371953689d6271",
+      "channel": "connected",
+      "bindings": 19,
+      "bindingEdgesPreserved": true,
+      "ttlDays": 90,
+      "authorizationParseError": false,
+      "browserGrantFingerprintsIndividuallyCompared": false,
+      "admissionReopened": true,
+      "knownTestConnectorsOnline": 4,
+      "unchangedConnectorPids": {
+        "codexDesktop": 62714,
+        "codexCLI": 132611,
+        "herdrApp": 64214
+      },
+      "tuiConnector": {
+        "pid": 149406,
+        "commit": "dcf12677ab44cdfb304ab420e1371953689d6271"
+      },
+      "additionalRouteObservation": "An unversioned default profile was visible before restart and absent afterward; it is not included in the four verified test Connectors."
+    }
+  },
+  "liveTuiRead": {
+    "version": "0.9.5",
+    "source": "recent",
+    "lines": 160,
+    "bytes": 6989,
+    "complete": true,
+    "verifiedBeforeAndAfterConnectorRestart": true,
+    "inputSubmitted": false,
+    "terminalBodyExported": false
+  },
+  "limits": [
+    "No new test card was sent to a real DingTalk chat in this change; HTTPS and SDK serialization were covered with isolated provider fixtures.",
+    "Herdr App history not returned by its screen API is not synthesized.",
+    "Older strict checkpoint readers do not recognize the new optional terminalWindow field; code-only downgrade is not claimed compatible with newly written display checkpoints."
+  ]
+}

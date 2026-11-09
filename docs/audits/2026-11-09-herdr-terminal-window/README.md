@@ -38,3 +38,9 @@
 ## 真实接口预检发现与修正
 
 发布前在 Linux 12 的 Herdr TUI 0.9.5 做只读调用，发现初版使用 CLI 别名 recent-unwrapped 时 JSON 请求被拒绝。上游 src/api/schema/common.rs 的 ReadSource 明确使用 serde snake_case，src/cli/agent/bindings_tests.rs 也明确生成 recent_unwrapped。已按原生 JSON 合同修正，并让回归 fixture 拒绝 CLI 别名；修正前用例失败。初版制品未切换线上。真实调用只输出版本、行数与字节数，不输出终端正文或配置凭据。
+
+## 上线验证
+
+最终代码 dcf1267 已推送并上线头头、探探；Linux Herdr TUI Connector 同步更新。45 / 19 个绑定保持一致，头头 32 份浏览器授权指纹保留，渠道恢复连接。真实 TUI 在 Connector 重启前后均返回 160 行终端内容。全量回归 Gateway 3,678 通过 / 91 跳过，Taskboard 508 通过 / 2 跳过，均无失败。详细证据和未验证边界见 deployment-verification.json。
+
+新版本读取旧 checkpoint 已覆盖；旧版严格 schema 不认识 terminalWindow，不能将代码回退等同于展示状态的向后兼容迁移。此次没有执行降级，也没有修改原生输入回执。
