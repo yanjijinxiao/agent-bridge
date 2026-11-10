@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "productVersion": "0.6.2",
+  "status": "preparing",
+  "fullRegression": {
+    "tests": 3784,
+    "pass": 3693,
+    "skip": 91,
+    "fail": 0,
+    "logSha256": "944a4f1333822155017b83c83ab9326b0e3cffa02f196d3a2ddb655b3423d3b9"
+  },
+  "typecheck": "passed",
+  "quoteAudit": "docs/audits/2026-11-10-dingtalk-quotes.json",
+  "publication": {
+    "npm": "not-published",
+    "github": "not-published"
+  },
+  "deployment": "not-performed; package publication only"
+}

@@ -10,6 +10,26 @@ function record(value: unknown): RecordValue {
 }
 function string(value: unknown): string { return typeof value === "string" ? value.trim() : ""; }
 
+/** Card bodies are element trees, not arbitrary JSON text. Never inspect action/credential fields. */
+function cardText(value: unknown): string | undefined {
+  let nodes = 0, characters = 0;
+  const visit = (item: unknown, depth: number): string => {
+    // On overflow discard the projection, rather than calling a partial quote complete.
+    if (++nodes > 2000 || depth > 16) throw new RangeError("Card projection limit");
+    if (Array.isArray(item)) return item.map(child => visit(child, depth + 1)).join("");
+    if (!item || typeof item !== "object") return "";
+    const node = item as RecordValue;
+    if (node.elementType === "TEXT" && typeof node.value === "string") {
+      characters += node.value.length;
+      if (characters > 100_000) throw new RangeError("Card projection limit");
+      return node.value;
+    }
+    const text = Array.isArray(node.children) ? visit(node.children, depth + 1) : "";
+    return node.elementType === "RICHTEXT" && text ? `${text}\n` : text;
+  };
+  try { return visit(value, 0).trim(); } catch { return undefined; }
+}
+
 /** Decode provider data only here; download credentials stay in opaque items. */
 export function decodeDingTalkInbound(body: RecordValue, depth = 0): {
   text: string; attachments: ChannelAttachment[]; references: ChannelReference[]; supported: boolean;
@@ -42,7 +62,8 @@ export function decodeDingTalkInbound(body: RecordValue, depth = 0): {
         reason: "钉钉未提供可下载凭据，本轮无法读取文件正文。" });
     }
   } else if (type === "richText") {
-    const parts = Array.isArray(content.richText) ? content.richText : [];
+    const legacy = record(body.richText).richTextList;
+    const parts = Array.isArray(content.richText) ? content.richText : Array.isArray(legacy) ? legacy : [];
     for (const raw of parts) {
       const part = record(raw);
       if (typeof part.text === "string") result.text += part.text;
@@ -51,7 +72,8 @@ export function decodeDingTalkInbound(body: RecordValue, depth = 0): {
     }
   } else if (type === "interactiveCard" || type === "actionCard") {
     const url = string(content.biz_custom_action_url ?? body.biz_custom_action_url);
-    result.text = [string(content.title), string(content.text), /^https:\/\//i.test(url) ? url : ""].filter(Boolean).join("\n");
+    const text = string(content.text) || cardText(content.cardContent);
+    if (text !== undefined) result.text = [string(content.title), text, /^https:\/\//i.test(url) ? url : ""].filter(Boolean).join("\n");
     result.supported = Boolean(result.text);
   } else result.supported = false;
 
@@ -65,7 +87,8 @@ export function decodeDingTalkInbound(body: RecordValue, depth = 0): {
     result.references.push({ messageId: id || undefined, senderId: string(quoted.senderId) || undefined,
       type: quotedType, text: decoded?.text || decoded?.references.find(item => item.type === quotedType)?.text,
       attachments, availability: attachments.length || decoded?.text ? "available" : "metadata-only",
-      ...(!attachments.length && !decoded?.text ? { reason: decoded?.references[0]?.reason ?? "仅收到引用元信息，未取得原消息正文或附件下载凭据。" } : {}) });
+      // Empty parsing is not evidence that DingTalk omitted the original body.
+      ...(!attachments.length && !decoded?.text ? { reason: decoded?.references[0]?.reason ?? "尚未取得可读的引用正文或附件下载凭据；可按原消息 ID 进一步查询核对。" } : {}) });
     if (decoded) result.references.push(...decoded.references.filter(item => item.messageId));
     result.supported = true;
   }

@@ -2781,6 +2781,65 @@
               "sha256": "c2a675046169b4ec774d70becfc4535cf0e2ff3eae43d15440c573e463420de8"
             }
           ]
+        },
+        {
+          "id": "IN-05.6",
+          "scenario": "DingTalk 卡片可见文本树及旧富文本正文不漏失；引用与当前命令分离，凭据不进入模型；未知/超限引用只报告未取得可读内容，不推断平台只下发元信息。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/dingtalk-quoted-content.test.ts",
+              "name": "DingTalk quoted cardContent retains visible paragraphs without action data (json=false)"
+            },
+            {
+              "file": "test/dingtalk-quoted-content.test.ts",
+              "name": "DingTalk quoted cardContent retains visible paragraphs without action data (json=true)"
+            },
+            {
+              "file": "test/dingtalk-quoted-content.test.ts",
+              "name": "DingTalk keeps rich text and opaque media across provider containers (quote=false, legacy=false)"
+            },
+            {
+              "file": "test/dingtalk-quoted-content.test.ts",
+              "name": "DingTalk keeps rich text and opaque media across provider containers (quote=false, legacy=true)"
+            },
+            {
+              "file": "test/dingtalk-quoted-content.test.ts",
+              "name": "DingTalk keeps rich text and opaque media across provider containers (quote=true, legacy=false)"
+            },
+            {
+              "file": "test/dingtalk-quoted-content.test.ts",
+              "name": "DingTalk keeps rich text and opaque media across provider containers (quote=true, legacy=true)"
+            },
+            {
+              "file": "test/dingtalk-quoted-content.test.ts",
+              "name": "DingTalk distinguishes an unread quote from proof that the provider omitted its body"
+            },
+            {
+              "file": "test/dingtalk-quoted-content.test.ts",
+              "name": "DingTalk bounds card traversal without presenting a partial body as complete"
+            },
+            {
+              "file": "test/dingtalk-quoted-content.test.ts",
+              "name": "DingTalk preserves supported text quote variants and direct card links"
+            },
+            {
+              "file": "test/dingtalk.test.ts",
+              "name": "DingTalk Stream passes quoted card trees and legacy rich text as reference data"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/channels/dingtalk-inbound.ts",
+              "sha256": "f7151559d346cf1f17a12e19754df350c717d13100e4c2168e49374de71646b1"
+            }
+          ],
+          "verifiedBoundary": "九项解码测试及一项真实 Stream 适配器组合测试；四个文件 120 项通过。引用原文通过个人 dws 手动找回，不代表机器人可自动补查，也未确定历史截图的原始回调形态。",
+          "implementationRecheck": {
+            "date": "2026-11-10",
+            "scope": "本次引用解析、相邻调用链与静态 fixture 的四层检查；未重新审查全库。",
+            "report": "docs/audits/2026-11-10-dingtalk-quotes.md"
+          }
         }
       ]
     },

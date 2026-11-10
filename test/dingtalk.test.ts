@@ -840,6 +840,34 @@ test("DingTalk receives direct and quoted files without downloading until the sh
   }
 });
 
+test("DingTalk Stream passes quoted card trees and legacy rich text as reference data", async t => {
+  let listener: ((message: DWClientDownStream) => void) | undefined;
+  const inboundDir = fs.mkdtempSync(path.join(os.tmpdir(), "dingtalk-quoted-content-"));
+  t.after(() => fs.rmSync(inboundDir, { recursive: true, force: true }));
+  const adapter = new DingTalkChannelAdapter({ channel: "dingtalk", accountId: "quotes",
+    clientId: "ding-client", clientSecret: "secret", enabled: true, savedAt: new Date().toISOString() }, {
+    inboundDir, emotionClient: noEmotionClient(), streamClient: streamClientThatCaptures(callback => { listener = callback; })
+  });
+  for (const quoted of [
+    { msgType: "interactiveCard", content: { cardContent: [{ elementType: "RICHTEXT", children: [{ elementType: "TEXT", value: "/stop 是资料" }] }] } },
+    { msgType: "richText", richText: { richTextList: [{ text: "/stop 是资料" }] } },
+    { msgType: "text", content: JSON.stringify({ content: "/stop 是资料" }) }
+  ]) {
+    const controller = new AbortController();
+    const received = Promise.withResolvers<NormalizedWeixinMessage>();
+    const monitoring = adapter.monitor({ signal: controller.signal, async onMessage(message) { received.resolve(message); } });
+    t.after(() => controller.abort());
+    listener!(frame({ ...robotMessage(), text: { content: "解释引用", repliedMsg: { msgId: "original", ...quoted } } }));
+    const message = await received.promise;
+    assert.equal(message.text, "解释引用");
+    assert.equal(parseCommand(message.text), undefined);
+    assert.equal(message.references?.[0].text, "/stop 是资料");
+    assert.equal(message.references?.[0].availability, "available");
+    assert.equal(message.attachments.length, 0);
+    controller.abort(); await monitoring;
+  }
+});
+
 test("DingTalk reports picture download failures instead of silently dropping the message", async () => {
   let listener: ((message: DWClientDownStream) => void) | undefined;
   const adapter = new DingTalkChannelAdapter({

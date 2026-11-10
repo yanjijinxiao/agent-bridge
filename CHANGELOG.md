@@ -2,6 +2,12 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
+## [0.6.2] - 2026-11-10
+
+- Read DingTalk quoted card bodies from visible text elements and support legacy rich-text containers, preserving paragraph boundaries and keeping quoted slash commands separate from current input.
+- Bound card projection by depth, node count and text length; do not include action metadata or download credentials in quoted text, or present an over-budget body as complete.
+- Report unreadable quotes without claiming DingTalk omitted the body. Clarify reference-cache limits and the distinction between manual user-authorized history lookup and automatic bot retrieval, which is not implemented.
+
 ## [0.6.1] - 2026-11-09
 
 - Restore complete Codex commentary during active-turn polling and reconnects by hydrating only the exact active turn; retain existing phases on failed or mismatched reads. Keep terminal-only Herdr cards independent.

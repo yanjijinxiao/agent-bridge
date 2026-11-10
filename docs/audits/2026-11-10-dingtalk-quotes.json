@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-10",
+  "scope": "DingTalk quoted-content investigation and bounded parser corrections",
+  "case": "IN-05.6",
+  "manualReadOnlyQuery": {
+    "lookup": "current-user dws messages-mget and message list-by-ids; exact reply and quoted IDs",
+    "replyFound": true,
+    "originalFound": true,
+    "conversationMatched": true,
+    "quotedTextMatchesOriginal": true,
+    "rawStreamAvailable": false,
+    "robotAutomaticHistoryLookupImplemented": false,
+    "businessContentOrCredentialsStored": false
+  },
+  "before": {
+    "tests": 9,
+    "passed": 4,
+    "failed": 5,
+    "logSha256": "58aff019a2bd76f757b0f74ed92d3812237bc2cc15211879747b4710b90af859"
+  },
+  "after": {
+    "tests": 120,
+    "passed": 120,
+    "failed": 0,
+    "skipped": 0,
+    "logSha256": "c0a0ac613c883895ca5d9c8babbf65a2e86d775d2a906e72e018e1074f1b5d2b",
+    "files": [
+      "test/dingtalk-quoted-content.test.ts",
+      "test/inbound-references.test.ts",
+      "test/dingtalk.test.ts",
+      "test/dingtalk-inbound-ack.test.ts"
+    ]
+  },
+  "newTests": [
+    "DingTalk quoted cardContent retains visible paragraphs without action data (json=false)",
+    "DingTalk quoted cardContent retains visible paragraphs without action data (json=true)",
+    "DingTalk keeps rich text and opaque media across provider containers (quote=false, legacy=false)",
+    "DingTalk keeps rich text and opaque media across provider containers (quote=false, legacy=true)",
+    "DingTalk keeps rich text and opaque media across provider containers (quote=true, legacy=false)",
+    "DingTalk keeps rich text and opaque media across provider containers (quote=true, legacy=true)",
+    "DingTalk distinguishes an unread quote from proof that the provider omitted its body",
+    "DingTalk bounds card traversal without presenting a partial body as complete",
+    "DingTalk preserves supported text quote variants and direct card links",
+    "DingTalk Stream passes quoted card trees and legacy rich text as reference data"
+  ],
+  "files": {
+    "src/channels/dingtalk-inbound.ts": "f7151559d346cf1f17a12e19754df350c717d13100e4c2168e49374de71646b1",
+    "test/dingtalk-quoted-content.test.ts": "a267a29f116bb6f144f3184e9e30eb1277a0828b1adb1394b6d5b4fdbd4753ae",
+    "test/dingtalk.test.ts": "5259c637eeb4502750ad9cdfdb3d0923e6dc4710346dad43e1716c5b7176f1b9"
+  },
+  "publication": "not-published-or-deployed",
+  "limits": [
+    "Historical callback not reconstructed; parser gaps are independently reproduced.",
+    "Personal dws access is not the bot identity.",
+    "No complete repository regression or live group rendering in this investigation."
+  ],
+  "typecheck": "passed"
+}

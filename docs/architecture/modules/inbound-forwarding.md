@@ -30,6 +30,14 @@ AccountManager 为同一账号复用 journal/inbox，不允许每次消息新建
 
 只有已注册的内置/扩展命令进入 Gateway 控制。未注册的 /xxx 先给简短文字提示，再按普通消息原文转发；路径、引用及正文不误当命令。注册查询失败、失效回调、注册命令的参数/能力/权限错误不能降级成输入。IN-01.slash-forwarding 覆盖分类与既有准入、绑定、角色、忙碌及去重边界，详见[斜杠合同](../slash-routing-and-runtime-help.md)。运行中默认 steer；显式 /queue 使用原生队列，Gateway 不建立第二个执行队列。
 
+## 引用正文的来源与缺失判断
+
+DingTalk 入站适配器将本轮正文与 repliedMsg 引用分开；引用中的斜杠只作为资料。正文兼容 content 对象及 JSON 字符串；富文本兼容 content.richText 和旧 richText.richTextList；卡片从 cardContent 的 TEXT.value 提取可见段落，只沿 children 遍历，不收集 action、下载凭据或任意 JSON 字符串。树投影受节点、深度和正文长度预算限制，超限时保留当前输入但不发布残缺引用。IN-05.6 覆盖这些边界及真实适配器的 Stream 回调路径。
+
+通过准入后，共享层按同账号、同 conversationId、原 messageId 查询 InboundReferenceStore；缓存只含曾处理的本轮正文和已解析本地附件，保留最多 200 条、7 天，不是完整群聊历史。附件下载仍在原授权及来源守卫之后。ForwardingInbox 清除带凭据的 raw 回调，因此不能事后用缓存缺失或解码为空推断“钉钉没有下发正文”。缺失提示只陈述尚未取得可读内容。
+
+2026-11-10 排查已用当前用户的 dws 只读接口按精确消息 ID 找回截图中的引用原文；这不等于机器人的 Stream 凭据拥有同样的查询能力。DingTalk driver 当前没有自动补查原消息实现，不能把运维人员的个人登录作为全体用户的后台查询身份。历史原回调未保留，本次未确定该截图究竟缺少正文还是漏解析字段，详见[调查及反例](../../audits/2026-11-10-dingtalk-quotes.md)。
+
 ## 输入来源回执
 
 | phase | 含义 | 中断/异常后的处理 |
