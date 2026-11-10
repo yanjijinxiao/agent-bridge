@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productVersion": "0.6.2",
-  "status": "preparing",
+  "status": "published-and-verified",
   "fullRegression": {
     "tests": 3784,
     "pass": 3693,
@@ -12,8 +12,58 @@
   "typecheck": "passed",
   "quoteAudit": "docs/audits/2026-11-10-dingtalk-quotes.json",
   "publication": {
-    "npm": "not-published",
-    "github": "not-published"
+    "npm": "published; latest=0.6.2; actual download and clean install verified",
+    "github": "published; public asset download verified"
   },
-  "deployment": "not-performed; package publication only"
+  "deployment": "not-performed; package publication only",
+  "verifiedAt": "2026-11-10T07:24:00.575847+00:00",
+  "releaseCommit": "7221cb85fd2e1ccd9c8631554de9936be5cd69d5",
+  "sourceHash": "3d6b72bc8a2b1587e70bb153c995da9ba318232c40a7667f9c919dcc602a998d",
+  "artifact": {
+    "files": 993,
+    "bytes": 2427797,
+    "integrity": "sha512-gPLVvya43YL7AUIcbqyVTlB9AfUvTzTtc8xfiojbCmH1C8242n62vbKfXID63xXdem2znfI0bu/o+ekFSBqUdw==",
+    "sha256": "5a6cce2904996626bdd22e803cdf968159b749879ead31aa5df91d5eb9b13cff"
+  },
+  "registry": {
+    "version": "0.6.2",
+    "name": "@yanjijinxiao/agent-bridge",
+    "latest": "0.6.2",
+    "integrity": "sha512-gPLVvya43YL7AUIcbqyVTlB9AfUvTzTtc8xfiojbCmH1C8242n62vbKfXID63xXdem2znfI0bu/o+ekFSBqUdw==",
+    "sha256": "5a6cce2904996626bdd22e803cdf968159b749879ead31aa5df91d5eb9b13cff",
+    "bytes": 2427797,
+    "tarball": "https://registry.npmjs.org/@yanjijinxiao/agent-bridge/-/agent-bridge-0.6.2.tgz",
+    "verifiedAt": "2026-11-10T07:20:47.007Z"
+  },
+  "cleanRegistryInstall": {
+    "version": "0.6.2",
+    "commit": "7221cb85fd2e1ccd9c8631554de9936be5cd69d5",
+    "cli": [
+      "agent-bridge",
+      "agent-bridge-connector"
+    ],
+    "gateway": true,
+    "taskboard": true,
+    "staticAsset": true
+  },
+  "github": {
+    "isDraft": false,
+    "publishedAt": "2026-11-10T07:16:48Z",
+    "tagName": "v0.6.2",
+    "url": "https://github.com/yanjijinxiao/agent-bridge/releases/tag/v0.6.2",
+    "anonymousDownload": true,
+    "sha256": "5a6cce2904996626bdd22e803cdf968159b749879ead31aa5df91d5eb9b13cff",
+    "bytes": 2427797
+  },
+  "yuque": {
+    "documentId": 590977164,
+    "url": "https://yuque.antfin.com/go/doc/590977164",
+    "title": "探探使用指南：连接自己的设备，在钉钉使用 Codex 与 Herdr",
+    "contentUpdatedAt": "2026-11-10T07:20:54.000Z",
+    "normalizedBodySha256": "9b57f4e22ed56cb5e303b9e2a9e8aa373cc5839ce6dac5502d40852d4845d242",
+    "preparedBodyMatchesReadback": true,
+    "existingTitlePreserved": true,
+    "changes": "Codex and Herdr quote guidance only; eight added source lines, no removed lines",
+    "cliObservation": "yuque-cli 1.0.24 returned an updated document even with --plan on a plain-text-only update; fresh show confirmed the authorized change, so no duplicate apply was performed."
+  }
 }

@@ -48,11 +48,12 @@
     "test/dingtalk-quoted-content.test.ts": "a267a29f116bb6f144f3184e9e30eb1277a0828b1adb1394b6d5b4fdbd4753ae",
     "test/dingtalk.test.ts": "5259c637eeb4502750ad9cdfdb3d0923e6dc4710346dad43e1716c5b7176f1b9"
   },
-  "publication": "not-published-or-deployed",
+  "publication": "package-published-0.6.2; production-deployment-not-performed",
   "limits": [
     "Historical callback not reconstructed; parser gaps are independently reproduced.",
     "Personal dws access is not the bot identity.",
     "No complete repository regression or live group rendering in this investigation."
   ],
-  "typecheck": "passed"
+  "typecheck": "passed",
+  "releaseReport": "docs/audits/2026-11-10-v062-release.json"
 }

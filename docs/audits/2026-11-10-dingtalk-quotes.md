@@ -17,7 +17,7 @@
 
 新增九项纯解码测试在修改前五项失败、四项通过：两种卡片对象/JSON、直接/引用旧富文本和缺失措辞失败；已有富文本对照、预算拒绝和文本/链接兼容通过。修复后九项及新增一项真实 Stream 适配器组合测试通过。卡片正文保持内联文本和段落边界，预算超限不发布部分正文；动作、任意 metadata 和 downloadCode 不混入模型引用。Stream 网络是替身，适配器解码、命令分离和投影使用真实代码。
 
-定向运行 dingtalk-quoted-content、inbound-references、dingtalk、dingtalk-inbound-ack 四个测试文件：120 项通过，0 失败、0 跳过；类型检查通过。未运行本次全库回归，未在群里发测试卡，未重启 Gateway 或 Connector；代码修复尚未作为新版本发布上线。日志和散列见[结构化证据](2026-11-10-dingtalk-quotes.json)。
+定向运行 dingtalk-quoted-content、inbound-references、dingtalk、dingtalk-inbound-ack 四个测试文件：120 项通过，0 失败、0 跳过；类型检查通过。本调查阶段未运行全库回归，后续发行阶段的完整回归另行留证；未在群里发测试卡，未重启 Gateway 或 Connector；调查结束时修复尚未发行；后续已完成 [0.6.2 npm / GitHub 正式发行](2026-11-10-v062-release.md)，生产实例未在本次发布中重启升级。日志和散列见[结构化证据](2026-11-10-dingtalk-quotes.json)。
 
 ## 尚存边界
 
