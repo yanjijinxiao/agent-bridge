@@ -55,10 +55,22 @@ export async function sharedNativeCore(t, respond = (_body, n) => message(`DONE_
     'name="Local isolated shared-core test"', `base_url="http://127.0.0.1:${model.address().port}/v1"`,
     'wire_api="responses"', 'requires_openai_auth=false'
   ].join("\n"));
-  core = spawn(process.env.CODEX_NATIVE_QUEUE_TEST_BIN, ["app-server", "--listen", `unix://${endpoint}`], {
-    env: { ...process.env, CODEX_HOME: root }, detached: true, stdio: ["ignore", "ignore", "pipe"]
-  });
-  core.stderr.resume(); await until(() => fs.existsSync(endpoint));
+  const startCore = async () => {
+    core = spawn(process.env.CODEX_NATIVE_QUEUE_TEST_BIN, ["app-server", "--listen", `unix://${endpoint}`], {
+      env: { ...process.env, CODEX_HOME: root, CODEX_ROLLOUT_TRACE_ROOT: path.join(root, "traces"),
+        NO_PROXY: "127.0.0.1,localhost", no_proxy: "127.0.0.1,localhost" },
+      detached: true, stdio: ["ignore", "ignore", "pipe"]
+    });
+    core.stderr.resume(); await until(() => fs.existsSync(endpoint));
+  };
+  await startCore();
+  const restart = async () => {
+    // Only this fixture's owned core is stopped. Keep its native storage and
+    // fake model; a replacement Connector alone would only test warm rejoin.
+    const stopped = new Promise(resolve => core.once("exit", resolve));
+    process.kill(-core.pid, "SIGTERM"); await stopped;
+    fs.rmSync(endpoint, { force: true }); await startCore();
+  };
   const transport = mode => ({ command: process.execPath, args: ["-e", APP_SERVER_SOCKET_RELAY, endpoint], mode });
   const runner = (options = {}) => {
     const value = new AppServerCodexRunner({ codexHome: root, catalogSource: "native", requestTimeoutMs: 5000,
@@ -87,5 +99,5 @@ export async function sharedNativeCore(t, respond = (_body, n) => message(`DONE_
     await request("initialize", { clientInfo: { name: `gateway_isolated_${name}`, version: "1" }, capabilities: { experimentalApi: true } });
     send({ method: "initialized" }); return { request, send, events, requests, methods, close: () => child.kill() };
   };
-  return { root, endpoint, calls, transport, runner, rpc };
+  return { root, endpoint, calls, transport, runner, rpc, restart };
 }

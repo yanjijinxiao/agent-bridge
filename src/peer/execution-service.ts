@@ -294,10 +294,14 @@ export class PeerExecutionService {
           for (const id of this.receipts.createdThreads()) if (!threads.has(id)) {
             try { threads.set(id, await backend.inspectThread(id)); } catch { /* Native catalog remains usable. */ }
           }
+          // Device owners may filter the display catalog by its legacy group.
+          // Project scope spans worktrees; cwd alone remains an exact filter.
+          // Delegated readers above use fresh native membership, never this hint.
           return { ...catalog, hostIds: [], threads: [...threads.values()].filter(state => !state.internal && this.sharing.visible(call.grant, state.threadId)
             && (input.persistence === "all" ? ["active", "archived"].includes(state.persistence) : state.persistence === (input.persistence ?? "active"))
-            && (state.resource || state.cwd && path.isAbsolute(state.cwd)) && (!input.cwd || state.cwd === input.cwd)
-            && (!input.projectId || state.projectId === input.projectId) && (!input.unassigned || !state.projectId)) };
+            && (state.resource || state.cwd && path.isAbsolute(state.cwd)) && (!input.cwd || Boolean(input.projectId) || state.cwd === input.cwd)
+            && (!input.projectId || state.projectId === input.projectId || state.workspaceProjectId === input.projectId)
+            && (!input.unassigned || !state.projectId)) };
         }
         case "listProjects": {
           if (call.grant.delegation) return { backend: backend.backendInfo().id, projects: [] };

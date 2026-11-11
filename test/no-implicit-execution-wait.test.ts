@@ -62,7 +62,7 @@ test("a rejected second start cannot remove the original turn's approval and que
   wire.ensureConnected = async () => {}; wire.recyclePrivateTransportIfIdle = async () => {};
   wire.inspectThread = async () => ({ threadId: "thread", persistence: "active", runtimeStatus: "idle", activeFlags: [] });
   wire.request = async (method: string) => {
-    if (method === "thread/resume") return { thread: { id: "thread" } };
+    if (method === "thread/resume" || method === "thread/read") return { thread: { id: "thread", status: { type: "idle" } } };
     if (method === "turn/start") throw Error("thread already has an active turn");
     return {};
   };

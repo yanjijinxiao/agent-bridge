@@ -2023,7 +2023,7 @@ export class BridgeService {
         await this.reply(senderId, [
           `会话详情 · R${detail[1]}（列表快照，不切换会话）`,
           `标题：${compactTableCell(state.title ?? state.preview ?? "未命名", 400)}`,
-          `归属：${group?.name ?? "无项目"}${state.workspaceProjectId && !state.projectId ? "（CLI 工作目录分组，非原生项目绑定）" : ""}`,
+          `归属：${group?.name ?? "无项目"}${state.workspaceProjectId && !state.projectId ? "（展示分组，非原生项目绑定）" : ""}`,
           `主机：${hostId}`, `目录：${state.cwd}`, `ID：${state.threadId}`,
           `状态：${projectSessionChoiceStateLabel({ title: state.title ?? "", updatedAt: state.updatedAt ?? "", candidate: codexThreadStateCandidate(state, state.cwd ?? "") })}`,
           `更新：${state.updatedAt ? formatSessionTime(state.updatedAt) : "时间未知"}`,

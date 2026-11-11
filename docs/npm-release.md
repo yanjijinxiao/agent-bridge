@@ -30,6 +30,12 @@ npm publish /absolute/release/package.tgz --access public --registry=https://reg
 6. npm 可能要求账号的浏览器/双因素确认，凭据和验证码不能发到群聊。发布后从官方 registry 核对 name/version/dist.integrity、latest 标签，并用实际安装验证；发布成功不等于线上实例已经重启。
 7. 部署时核对每个 Gateway/Connector 的 productVersion、commit、instanceId 和实际连接。状态、授权和原生执行器不随程序版本重置。
 
+## 当前待发布候选
+
+0.6.3 包含 Herdr 被动跟随去重、Codex 冷恢复权限保留，以及旧 App 会话展示分组和 Connector 项目筛选修复。待发布号不代表 npm latest 已更新。正式发布前应核对候选 receipt 与安装验证，发布后再从 registry 确认；不要把已上线的修复构建称为已发布 npm 版本。
+
+此次 Codex 修复在 Connector 中执行，因此管理员需分别核对 Gateway 和受维护设备的程序版本。升级 Connector 保留其配置、设备身份、回执及 stateDir，只重启 Connector；无需为了更新转发程序重启 Codex、Herdr 或用户任务。
+
 ## 统一版本的含义
 
 npm version = package.json version = CLI --version = build-info.productVersion = runtime.productVersion。Git 标签为 v 加相同版本，源码 commit 另行记录。HTTP、Peer、执行适配和日志 schema 的兼容版本独立演进；包发布不自动修改它们。

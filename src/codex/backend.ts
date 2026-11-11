@@ -72,7 +72,7 @@ export type CodexThreadState = {
   /** Explicit membership, distinct from a legacy cwd-derived display group.
    * Unknown observations must not grant IDE access or erase a known binding. */
   projectMembership?: "assigned" | "none" | "unknown";
-  /** CLI's derived workspace catalog key, for display grouping only; not native membership. */
+  /** Legacy workspace/App catalog group, for display only; never native membership or access authority. */
   workspaceProjectId?: string;
   title?: string;
   preview?: string;

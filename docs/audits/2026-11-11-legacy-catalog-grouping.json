@@ -1,0 +1,473 @@
+{
+  "date": "2026-11-11",
+  "case": "CAT-02.6",
+  "scope": "旧App目录展示兼容、Connector项目过滤及原生身份/权限隔离；非全仓重审",
+  "status": "verified-listed-scenarios",
+  "implementation": [
+    {
+      "file": "src/codex/desktop-catalog-groups.ts",
+      "symbol": "record",
+      "sha256": "c92a41823efcee538ce50a00237fa98996acd2ddc3016aa7fa966c3f3e4bb6e4",
+      "bodySha256": "c84a23392efa4545521a32f53d5973e4d0f8086776a7b792e5967f6774c2f859",
+      "lines": [
+        9,
+        9
+      ],
+      "intent": "只将非数组对象当作当前App记录，拒绝标量和数组。",
+      "review": "只将非数组对象当作当前App记录，拒绝标量和数组。 本次逐行核对新增模块或该函数的目录变动及相邻边界；未宣称重审整个大文件。",
+      "cases": [
+        "CAT-02.6"
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-legacy-catalog-grouping"
+    },
+    {
+      "file": "src/codex/desktop-catalog-groups.ts",
+      "symbol": "readDesktopCatalogGroups",
+      "sha256": "c92a41823efcee538ce50a00237fa98996acd2ddc3016aa7fa966c3f3e4bb6e4",
+      "bodySha256": "bd843318c97d6ec17a8661c639813e86fd4800de4f6a5d2d8603ef60ff5290fe",
+      "lines": [
+        15,
+        62
+      ],
+      "intent": "只读当前注册表和精确host发布证据；同步/无项目/跨host/备份均不回补，不修改执行事实。",
+      "review": "只读当前注册表和精确host发布证据；同步/无项目/跨host/备份均不回补，不修改执行事实。 本次逐行核对新增模块或该函数的目录变动及相邻边界；未宣称重审整个大文件。",
+      "cases": [
+        "CAT-02.6"
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-legacy-catalog-grouping"
+    },
+    {
+      "file": "src/codex/desktop-catalog-groups.ts",
+      "symbol": "add",
+      "sha256": "c92a41823efcee538ce50a00237fa98996acd2ddc3016aa7fa966c3f3e4bb6e4",
+      "bodySha256": "307bf31561b9e136f56dec2e0de784d75291685ad87f79926617a9069761310a",
+      "lines": [
+        29,
+        33
+      ],
+      "intent": "旧项目必须完整登记绝对根；别名只取当前host/home命名空间，不从会话cwd推断。",
+      "review": "旧项目必须完整登记绝对根；别名只取当前host/home命名空间，不从会话cwd推断。 本次逐行核对新增模块或该函数的目录变动及相邻边界；未宣称重审整个大文件。",
+      "cases": [
+        "CAT-02.6"
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-legacy-catalog-grouping"
+    },
+    {
+      "file": "src/codex/desktop-catalog-groups.ts",
+      "symbol": "publishedThreads",
+      "sha256": "c92a41823efcee538ce50a00237fa98996acd2ddc3016aa7fa966c3f3e4bb6e4",
+      "bodySha256": "dd66fc87386b201ef9df25004d7da260f2bf5620387d73976b5d908d8ad401bd",
+      "lines": [
+        67,
+        85
+      ],
+      "intent": "只核对所有现存App目录的可见性共识；readOnly/query_only，无账户猜选、历史或原生身份替换。",
+      "review": "只核对所有现存App目录的可见性共识；readOnly/query_only，无账户猜选、历史或原生身份替换。 本次逐行核对新增模块或该函数的目录变动及相邻边界；未宣称重审整个大文件。",
+      "cases": [
+        "CAT-02.6"
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-legacy-catalog-grouping"
+    },
+    {
+      "file": "src/codex/desktop-catalog-groups.ts",
+      "symbol": "desktopCatalogGroupId",
+      "sha256": "c92a41823efcee538ce50a00237fa98996acd2ddc3016aa7fa966c3f3e4bb6e4",
+      "bodySha256": "9f4e6a50c03b842f9d33a9100fcf315c18b6a0c8b3f97fe77b8c3122a810b82a",
+      "lines": [
+        90,
+        100
+      ],
+      "intent": "优先已知且存在的身份；完整根只允许唯一展示匹配，失效别名和歧义不猜选，不修改输入状态。",
+      "review": "优先已知且存在的身份；完整根只允许唯一展示匹配，失效别名和歧义不猜选，不修改输入状态。 本次逐行核对新增模块或该函数的目录变动及相邻边界；未宣称重审整个大文件。",
+      "cases": [
+        "CAT-02.6"
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-legacy-catalog-grouping"
+    },
+    {
+      "file": "src/codex/desktop-catalog-groups.ts",
+      "symbol": "rootsKey",
+      "sha256": "c92a41823efcee538ce50a00237fa98996acd2ddc3016aa7fa966c3f3e4bb6e4",
+      "bodySha256": "42da9143a3ca0ea67bd20509eb218677bbf94f609a06e062b6174c7b138b4669",
+      "lines": [
+        102,
+        106
+      ],
+      "intent": "验证完整非空绝对根集合，跨平台正规化、去重排序；不接受相对路径或NUL。",
+      "review": "验证完整非空绝对根集合，跨平台正规化、去重排序；不接受相对路径或NUL。 本次逐行核对新增模块或该函数的目录变动及相邻边界；未宣称重审整个大文件。",
+      "cases": [
+        "CAT-02.6"
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-legacy-catalog-grouping"
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "listSessionCatalog",
+      "sha256": "03bd4d17095592ff98283f19f276a60bdde9334994e4213b11111043d4ff57cd",
+      "bodySha256": "b5eaa244c3a8b42e676c698330c9628b70df5ca2e96912aad4a371b526a4788b",
+      "lines": [
+        648,
+        697
+      ],
+      "intent": "仅native目录快照投影workspaceProjectId，原生list/inspect/缓存不变；项目过滤和限量在投影后，CLI原路径与失败保留。",
+      "review": "仅native目录快照投影workspaceProjectId，原生list/inspect/缓存不变；项目过滤和限量在投影后，CLI原路径与失败保留。 本次逐行核对新增模块或该函数的目录变动及相邻边界；未宣称重审整个大文件。",
+      "cases": [
+        "CAT-02.6"
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-legacy-catalog-grouping"
+    },
+    {
+      "file": "src/peer/execution-service.ts",
+      "symbol": "catalogCall",
+      "sha256": "ccf4b8bdf9fb37af13dab364f5af38fb3fe885bffabb767ea1b2913ae9c0e2e6",
+      "bodySha256": "36e9eb93ed4610b8d046a2ad1f765aaab1e1d4a46f8f174017ec8560f4f1db39",
+      "lines": [
+        278,
+        331
+      ],
+      "intent": "仅设备所有者目录过滤接受展示组并允许项目跨worktree；委派分支仍精确授权及原生归属，未扩大执行权限。",
+      "review": "仅设备所有者目录过滤接受展示组并允许项目跨worktree；委派分支仍精确授权及原生归属，未扩大执行权限。 本次逐行核对新增模块或该函数的目录变动及相邻边界；未宣称重审整个大文件。",
+      "cases": [
+        "CAT-02.6"
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-legacy-catalog-grouping"
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "handleSessionCatalog",
+      "sha256": "5645203b73f09e5983b136016000018e4b04f28c64b01ffcb64752643ef396e0",
+      "bodySha256": "fe372a3bbcd3bc0fd999d196de1f86fe08c3f01fe27998b85969d78d25795364",
+      "lines": [
+        1976,
+        2179
+      ],
+      "intent": "旧展示组沿用目录快照、稳定编号和详情；仅修改详情说明，普通列表/绑定及IDE入口职责不变。",
+      "review": "旧展示组沿用目录快照、稳定编号和详情；仅修改详情说明，普通列表/绑定及IDE入口职责不变。 本次逐行核对新增模块或该函数的目录变动及相邻边界；未宣称重审整个大文件。",
+      "cases": [
+        "CAT-02.6"
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-legacy-catalog-grouping"
+    }
+  ],
+  "validation": [
+    {
+      "label": "neighbor-integration",
+      "log": "/private/tmp/agent-bridge-legacy-catalog-integration.tap",
+      "sha256": "77112bad8838dfaa9c98208d570c19af0acccfaba9133d2e9b35b297f385e830",
+      "counts": {
+        "tests": 99,
+        "pass": 99,
+        "fail": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "label": "full",
+      "log": "/private/tmp/agent-bridge-legacy-catalog-full.tap",
+      "sha256": "10f3dbb8eefa4a092fd4b78e864b9fe80708df3bbb0adf30a619357010612eb5",
+      "counts": {
+        "tests": 3867,
+        "pass": 3766,
+        "fail": 0,
+        "skipped": 101
+      }
+    },
+    {
+      "label": "app-native",
+      "log": "/private/tmp/agent-bridge-legacy-catalog-native.tap",
+      "sha256": "86174dc2bcfaed4d8e2662aaa57b3bd59467ff9ec01bbc479a7462cade460e6f",
+      "counts": {
+        "tests": 13,
+        "pass": 13,
+        "fail": 0,
+        "skipped": 0
+      }
+    }
+  ],
+  "newTests": 27,
+  "tests": [
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: current legacy App assignment supplies a display group without changing native membership"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: native-synced does not revive a legacy App group"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: other-synced-host does not revive a legacy App group"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: projectless does not revive a legacy App group"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: explicit-none does not revive a legacy App group"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: other-assignment-host does not revive a legacy App group"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: other-project-host does not revive a legacy App group"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: sidebar-only does not revive a legacy App group"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: cwd-only does not revive a legacy App group"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: backup-only does not revive a legacy App group"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: relative-roots does not revive a legacy App group"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: explicit alias beats root ambiguity and a deleted alias cannot change to a same-root project"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: ambiguous or partial root sets stay ungrouped; complete root sets preserve independent projects"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: local multi-root legacy groups match the whole registered root set independently of thread cwd"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: absent App catalog evidence cannot revive a global-state-only assignment"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: missing App catalog evidence cannot revive a global-state-only assignment"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: other-host App catalog evidence cannot revive a global-state-only assignment"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: exec App catalog evidence cannot revive a global-state-only assignment"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: stable and dev App catalogs must agree; no account or database is guessed"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: old remote conversation remains beside its native project peer in the rendered tree"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: project catalog filters and limits run after display grouping while native lists keep their scope"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: project lookup failure retains native rows with a precise display warning"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: a CLI without an App registry needs no additional project request"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: a later native membership synchronization retires the old display group on refresh"
+    },
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "name": "CAT-02.6: malformed current App data never falls back to a stale assignment backup"
+    },
+    {
+      "file": "test/peer-execution.test.ts",
+      "name": "CAT-02.6: device Connector preserves display grouping through project filtering without granting native membership"
+    },
+    {
+      "file": "test/peer-sharing.test.ts",
+      "name": "CAT-02.6: a delegated thread cannot gain project catalog membership from a display-only group"
+    }
+  ],
+  "regressionBefore": {
+    "runnerCommit": "b00aa34",
+    "outcome": "failed-as-expected",
+    "test": "CAT-02.6: old remote conversation remains beside its native project peer in the rendered tree",
+    "log": "/private/tmp/agent-bridge-legacy-catalog-before.tap",
+    "sha256": "58ee0761a5bca05e4ad22a94723f18ae39e96dcf111b596772069ef7168880f3",
+    "actual": "workspaceProjectId=undefined",
+    "expected": "native-project display group"
+  },
+  "liveReadOnly": {
+    "log": "/private/tmp/agent-bridge-legacy-catalog-live-proof.json",
+    "sha256": "fb34e051909c1aca241621a5fac3756d0d5118e3d7f7327115052f8cb3f91349",
+    "host": "11.158.199.43",
+    "result": {
+      "warnings": [],
+      "rows": [
+        {
+          "threadId": "01a023a7-2522-7000-8a54-f52b2ac1d30c",
+          "title": "优化 ANTLR4 内存使用",
+          "projectId": null,
+          "projectMembership": "none",
+          "displayProject": "01a15dac-49e0-7b23-b36f-f3cd3a21dfac",
+          "folder": "odps_src_-_1"
+        },
+        {
+          "threadId": "01a15d87-223f-7071-81fe-8f28453c5933",
+          "title": "show create table测试框架",
+          "projectId": "01a15dac-49e0-7b23-b36f-f3cd3a21dfac",
+          "projectMembership": "assigned",
+          "displayProject": null,
+          "folder": "odps_src_-_1"
+        }
+      ],
+      "nativeProjectAfter": null,
+      "methods": [
+        "initialize",
+        "thread/list",
+        "project/list",
+        "project/list",
+        "thread/read"
+      ]
+    },
+    "boundary": "只读原生方法；无输入/归属/配置修改，不代表线上DingTalk已更新"
+  },
+  "adjacentReadBoundaries": [
+    {
+      "file": "src/bridge/service.ts",
+      "symbol": "bindCatalogSession",
+      "sha256": "5645203b73f09e5983b136016000018e4b04f28c64b01ffcb64752643ef396e0",
+      "bodySha256": "38dabc076ce6edb9ca3fa6bc5ba3d44dc8212df63f78a1182909542ec5ea108f",
+      "lines": [
+        2181,
+        2264
+      ]
+    },
+    {
+      "file": "src/peer/ide-service.ts",
+      "symbol": "validateCurrent",
+      "sha256": "d9baab1e33e0fdad0875dc9fc63ebf3338bc2358152ea46b097a87316556da19",
+      "bodySha256": "30c9bdfd130c8b43c54298cb829a2d06ae8e4c2016c1d18f93948eb6aad345c5",
+      "lines": [
+        73,
+        109
+      ]
+    }
+  ],
+  "preservedPermissionFunctions": [
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "runNativeTurn",
+      "bodySha256": "4191800a1b23433cb76221132c54f9bc022d32272ee30a33f58c84d65c02c706"
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "recoverSystemError",
+      "bodySha256": "604d9514cacc61990cb8f117318f242b965cd41647bb630d4896ae51707b210b"
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "addQueuedSubmission",
+      "bodySha256": "99f24899185316f4c0567baa80ab598bf54e3d0d99ad450148196a033c0ccf5f"
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "adoptQueuedTurn",
+      "bodySha256": "8e3303a8516d3a8ae527d0badbdd182cdfaec52ed38d1887634b6b7ccbc0e1a8"
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "updateThreadSettings",
+      "bodySha256": "e29f4290304a314ffdee78c9db73821dc5f27149b82c17559574853c73db41e4"
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "observeThreadInteractions",
+      "bodySha256": "b04064141119a5cc7106e3f1a161e53d0d88f67858a7f183807100f9d0a29ef1"
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "resumeThread",
+      "bodySha256": "b3986a708323c3591f04bf07d8af9dc44db36ab76d81f8c26b9462b0d14fc6cf"
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "record",
+      "bodySha256": "5b1e18836c724af1cf9e30b135af57560561a3b1c35eba6542fb636098ac5e5e"
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "absolute",
+      "bodySha256": "ffa1ed9f9e583291fd6a3677d9649d0c4745b60bd4dfaa10311d7f7d27464851"
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "invalid",
+      "bodySha256": "4f4328374ab06176e733d21756f0e4fe675f29f47ffa600bdfe75a9232280f56"
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "nativePermissionResume",
+      "bodySha256": "ce69a3d684baf34f39aeaae8b43a6ec383c2378696f3ab34d1edcf4c1999c5e4"
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "legacyPolicy",
+      "bodySha256": "b51d124e6444f60487783dc4b275af4f8bb1d8d4d9ed0ac35cec5e428b907bfc"
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "profilePolicy",
+      "bodySha256": "b55173db97d13c6dc9bc98d5713c5e991a07a28c2162af4c40d76b494057cceb"
+    }
+  ],
+  "sourceNote": "完整回归后仅调整两处注释，运行行为未变；最终源码通过隔离编译、diff和元数据核对。",
+  "limits": [
+    "App私有存储以当前形态为限；未知格式或多个目录不一致不补分组",
+    "单次快照非跨系统原子事务，后续刷新读当前证据",
+    "原生none及unassigned语义不变；展示组不是原生归属",
+    "无真实钉钉投递或视觉验收"
+  ],
+  "push": "not-pushed",
+  "deployment": "not-deployed",
+  "npm": "0.6.2",
+  "sourceVersion": "0.6.3-Unreleased",
+  "typecheck": "passed",
+  "isolatedBuild": {
+    "status": "passed",
+    "outDir": "/private/tmp/agent-bridge-legacy-catalog-build-final/dist",
+    "liveDistModified": false
+  },
+  "diffCheck": "passed",
+  "metadataCheck": "passed-source-and-log-hashes-unique-functions-case-mapping-doc-links",
+  "testSources": [
+    {
+      "file": "test/legacy-desktop-catalog.test.ts",
+      "sha256": "0b914398a2709cb9e6ef172d31920d0862f0283c637a61d77c8836373e6b64ef"
+    },
+    {
+      "file": "test/peer-execution.test.ts",
+      "sha256": "ae3d946077b135a76f0fd49bd8ba33994a5a5a938ca8a466cbc374730fbbb391"
+    },
+    {
+      "file": "test/peer-sharing.test.ts",
+      "sha256": "f188fde212362b38f3bf9e54ad2450f6732a2dc7feac1f2f177c06372369560f"
+    }
+  ]
+}

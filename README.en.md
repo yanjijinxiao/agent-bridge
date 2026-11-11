@@ -253,6 +253,10 @@ The Taskboard AI panel and issue automation also use this native adapter. Embedd
 
 Lists preserve native pin order, then native project order, then other sessions. Groups use native manual or activity order. Page numbers remain stable until refresh/search or a 15-minute expiry. App includes sessions from known remote hosts, with explicit partial-results warnings for unavailable hosts. Archived, internal child and unavailable sessions are excluded.
 
+Old App conversations whose native project membership has not yet synchronized can retain their current explicitly registered and published App display group. Details distinguish display grouping from native membership. This does not grant project IDE access, change membership, or restore a conversation explicitly removed from its project.
+
+After a cold Codex server restart, Connector restores permissions from that thread's latest complete native record, including networking, extra writable roots, temporary-directory rules, and named permission profiles. Loaded threads keep their current native settings. Unverifiable evidence fails before submitting input rather than replaying older broader permissions. Device-side fixes require restarting Connector; restarting Gateway alone does not update it.
+
 ## Long tasks, progress, and session lifecycle
 
 - Work accepted by an independent native core continues through a Gateway observation disconnect; inputs are not replayed and task lifetime does not depend on activity renewal. Private stdio has a host-owned lifecycle and does not provide the independent core's restart guarantee.

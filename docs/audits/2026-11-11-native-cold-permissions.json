@@ -1,0 +1,489 @@
+{
+  "date": "2026-11-11",
+  "case": "NATIVE-02.8",
+  "scope": "冷恢复权限投影、六个恢复入口与队列提交前清理；不是全仓重新审查",
+  "implementation": [
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "runNativeTurn",
+      "intent": "续聊通过统一冷恢复入口继承原生权限；新建、显式UI及已订阅路径保持原行为，接收/输入回执不合并。",
+      "review": "续聊通过统一冷恢复入口继承原生权限；新建、显式UI及已订阅路径保持原行为，接收/输入回执不合并。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "03bd4d17095592ff98283f19f276a60bdde9334994e4213b11111043d4ff57cd",
+      "bodySha256": "4191800a1b23433cb76221132c54f9bc022d32272ee30a33f58c84d65c02c706",
+      "lines": [
+        290,
+        528
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "recoverSystemError",
+      "intent": "恢复同一失败身份和持久状态时保留原生权限，不生成新输入或抢活动目标。",
+      "review": "恢复同一失败身份和持久状态时保留原生权限，不生成新输入或抢活动目标。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "03bd4d17095592ff98283f19f276a60bdde9334994e4213b11111043d4ff57cd",
+      "bodySha256": "604d9514cacc61990cb8f117318f242b965cd41647bb630d4896ae51707b210b",
+      "lines": [
+        1108,
+        1187
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "addQueuedSubmission",
+      "intent": "空闲所有者附着复用权限恢复；提交前失败释放本次来源，queue/add开始后的未知接收继续保留。",
+      "review": "空闲所有者附着复用权限恢复；提交前失败释放本次来源，queue/add开始后的未知接收继续保留。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "03bd4d17095592ff98283f19f276a60bdde9334994e4213b11111043d4ff57cd",
+      "bodySha256": "99f24899185316f4c0567baa80ab598bf54e3d0d99ad450148196a033c0ccf5f",
+      "lines": [
+        1308,
+        1360
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "adoptQueuedTurn",
+      "intent": "重新附着已接收精确轮次时使用同一恢复边界，绝不重发其输入。",
+      "review": "重新附着已接收精确轮次时使用同一恢复边界，绝不重发其输入。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "03bd4d17095592ff98283f19f276a60bdde9334994e4213b11111043d4ff57cd",
+      "bodySha256": "8e3303a8516d3a8ae527d0badbdd182cdfaec52ed38d1887634b6b7ccbc0e1a8",
+      "lines": [
+        1421,
+        1441
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "updateThreadSettings",
+      "intent": "模型/effort/Plan更新先恢复最新权限，再只提交显式设置字段并等待生效回执。",
+      "review": "模型/effort/Plan更新先恢复最新权限，再只提交显式设置字段并等待生效回执。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "03bd4d17095592ff98283f19f276a60bdde9334994e4213b11111043d4ff57cd",
+      "bodySha256": "e29f4290304a314ffdee78c9db73821dc5f27149b82c17559574853c73db41e4",
+      "lines": [
+        1532,
+        1589
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "observeThreadInteractions",
+      "intent": "暖订阅不回放设置，冷订阅恢复原生记录；观察者退休后不继续恢复或提交。",
+      "review": "暖订阅不回放设置，冷订阅恢复原生记录；观察者退休后不继续恢复或提交。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "03bd4d17095592ff98283f19f276a60bdde9334994e4213b11111043d4ff57cd",
+      "bodySha256": "b04064141119a5cc7106e3f1a161e53d0d88f67858a7f183807100f9d0a29ef1",
+      "lines": [
+        1798,
+        1828
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "symbol": "resumeThread",
+      "intent": "核对加载状态、同服务原生路径、128MiB解码和完整记录，异步读后复核来源；只执行单个恢复请求。",
+      "review": "核对加载状态、同服务原生路径、128MiB解码和完整记录，异步读后复核来源；只执行单个恢复请求。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "03bd4d17095592ff98283f19f276a60bdde9334994e4213b11111043d4ff57cd",
+      "bodySha256": "b3986a708323c3591f04bf07d8af9dc44db36ab76d81f8c26b9462b0d14fc6cf",
+      "lines": [
+        1944,
+        1973
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "record",
+      "intent": "只把非数组对象识别为原生记录。",
+      "review": "只把非数组对象识别为原生记录。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+      "bodySha256": "5b1e18836c724af1cf9e30b135af57560561a3b1c35eba6542fb636098ac5e5e",
+      "lines": [
+        5,
+        5
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "absolute",
+      "intent": "按来源平台的绝对路径校验，拒绝相对路径和NUL。",
+      "review": "按来源平台的绝对路径校验，拒绝相对路径和NUL。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+      "bodySha256": "ffa1ed9f9e583291fd6a3677d9649d0c4745b60bd4dfaa10311d7f7d27464851",
+      "lines": [
+        6,
+        7
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "invalid",
+      "intent": "不可完整核对权限时显式拒绝，不倒退至旧的宽授权。",
+      "review": "不可完整核对权限时显式拒绝，不倒退至旧的宽授权。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+      "bodySha256": "4f4328374ab06176e733d21756f0e4fe675f29f47ffa600bdfe75a9232280f56",
+      "lines": [
+        8,
+        8
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "nativePermissionResume",
+      "intent": "校验线程身份并按文件顺序取最新完整原生权限，保留具名profile与审批粒度，禁止模型等设置混入。",
+      "review": "校验线程身份并按文件顺序取最新完整原生权限，保留具名profile与审批粒度，禁止模型等设置混入。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+      "bodySha256": "ce69a3d684baf34f39aeaae8b43a6ec383c2378696f3ab34d1edcf4c1999c5e4",
+      "lines": [
+        13,
+        76
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "legacyPolicy",
+      "intent": "只转换已知传统沙箱形状，不忽略未知权限字段。",
+      "review": "只转换已知传统沙箱形状，不忽略未知权限字段。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+      "bodySha256": "b51d124e6444f60487783dc4b275af4f8bb1d8d4d9ed0ac35cec5e428b907bfc",
+      "lines": [
+        81,
+        92
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    },
+    {
+      "file": "src/codex/native-permission-resume.ts",
+      "symbol": "profilePolicy",
+      "intent": "检查每条文件系统规则和网络状态，只无损转换传统workspace/read-only/full-access策略。",
+      "review": "检查每条文件系统规则和网络状态，只无损转换传统workspace/read-only/full-access策略。 逐行核对本次新增代码/变动边界及相邻来源、交接和失败清理；未宣称重新审查Runner其余未改正文。",
+      "cases": [
+        "NATIVE-02.8"
+      ],
+      "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+      "bodySha256": "b55173db97d13c6dc9bc98d5713c5e991a07a28c2162af4c40d76b494057cceb",
+      "lines": [
+        94,
+        127
+      ],
+      "status": "reviewed-listed-scenarios-only",
+      "reviewPass": "2026-11-11-native-cold-permissions",
+      "sameBodyAsAuditBaseline": true
+    }
+  ],
+  "status": "verified-listed-scenarios",
+  "deployment": "not-deployed",
+  "validation": [
+    {
+      "label": "full",
+      "counts": {
+        "tests": 3840,
+        "pass": 3739,
+        "fail": 0,
+        "skipped": 101
+      },
+      "log": "/private/tmp/agent-bridge-permission-release-check.tap",
+      "sha256": "7394c925bc5620670be643cf9ba997faef693995633547537814ea33904c2aeb"
+    },
+    {
+      "label": "mac-cli",
+      "counts": {
+        "tests": 29,
+        "pass": 29,
+        "fail": 0,
+        "skipped": 0
+      },
+      "log": "/private/tmp/agent-bridge-permission-final-cli.tap",
+      "sha256": "8f4045655b03d8c799dd1c483f802c3e7971da30a8a1d98849c706b5e0efc6b5"
+    },
+    {
+      "label": "mac-app-core",
+      "counts": {
+        "tests": 21,
+        "pass": 21,
+        "fail": 0,
+        "skipped": 0
+      },
+      "log": "/private/tmp/agent-bridge-permission-release-app.tap",
+      "sha256": "b73077bcba56be7b1f3943fef717c06ff1e9506f11c36eee880b7f8c05a82511"
+    },
+    {
+      "label": "linux-native-core",
+      "counts": {
+        "tests": 10,
+        "pass": 10,
+        "fail": 0,
+        "skipped": 0
+      },
+      "log": "/private/tmp/agent-bridge-permission-release-linux43.tap",
+      "sha256": "61d4391589511c84b7ca91af0ed60c3d1232131f5fc84d7a53444af6512c074d"
+    },
+    {
+      "label": "permission-units",
+      "counts": {
+        "tests": 32,
+        "pass": 32,
+        "fail": 0,
+        "skipped": 0
+      },
+      "log": "/private/tmp/agent-bridge-permission-unit-final.tap",
+      "sha256": "68005e384c7c9bd43b26df220db794be01d222264f779756519378065fff4376"
+    }
+  ],
+  "regressionBefore": {
+    "runnerCommit": "b00aa34",
+    "test": "NATIVE-02.8: real core restart retains permissions through interaction (remote=false)",
+    "outcome": "failed-as-expected",
+    "actualSandbox": {
+      "type": "readOnly",
+      "networkAccess": false
+    },
+    "expected": "workspaceWrite, networkAccess=true, explicit .git root, both temporary exclusions=true",
+    "source": "/private/tmp/agent-bridge-permission-before.tap",
+    "sha256": "847782cd9fe4a03e97a5c2117815a654eef1d8dc1b46969d04bca445931b40bd"
+  },
+  "testArtifact": {
+    "file": "/private/tmp/agent-bridge-permission-cold-bundle.mjs",
+    "sha256": "bf3a27e6eaecbb1ac27f951f5b11906f543906ec919680bef41a5e890716ddb6",
+    "note": "仅隔离回归；用户明确授权复制到开发机/tmp，未修改线上服务或配置。"
+  },
+  "environmentFailures": [
+    "最初本机端口被工具沙箱EPERM阻止；获工具许可后同用例运行。",
+    "最初继承的trace目录不在测试Home，已把fixture trace固定到临时Home。",
+    "旧替身缺少thread/read响应或只断言写调用，已补真实加载状态/路径和只读步骤，未削弱输入/所有权断言。",
+    "具名profile夹具起初未设原生要求的default_permissions，修为有效原生配置。",
+    "Linux代理拦截本机模拟模型，fixture为localhost设置NO_PROXY；目录deny触发上游bwrap目录占位错误，具名规则测试使用实际文件deny。"
+  ],
+  "typecheck": "passed",
+  "isolatedBuild": "passed",
+  "diffCheck": "passed",
+  "push": "not-pushed",
+  "sourceRecheck": {
+    "date": "2026-11-11",
+    "report": "docs/audits/2026-11-11-legacy-catalog-grouping.md",
+    "note": "目录修复后13个权限函数AST正文与原审计完全相同；更新文件摘要/位置不表示重审未改文件其余正文。原日志保持原来源，新增组合回归另列。",
+    "previousImplementation": [
+      {
+        "file": "src/codex/app-server-runner.ts",
+        "symbol": "runNativeTurn",
+        "sha256": "fba59c3c923826891dcc2c5c40f55682ef1ba1965439df0e2b62219216c2c4ab",
+        "bodySha256": "4191800a1b23433cb76221132c54f9bc022d32272ee30a33f58c84d65c02c706",
+        "lines": [
+          289,
+          527
+        ]
+      },
+      {
+        "file": "src/codex/app-server-runner.ts",
+        "symbol": "recoverSystemError",
+        "sha256": "fba59c3c923826891dcc2c5c40f55682ef1ba1965439df0e2b62219216c2c4ab",
+        "bodySha256": "604d9514cacc61990cb8f117318f242b965cd41647bb630d4896ae51707b210b",
+        "lines": [
+          1083,
+          1162
+        ]
+      },
+      {
+        "file": "src/codex/app-server-runner.ts",
+        "symbol": "addQueuedSubmission",
+        "sha256": "fba59c3c923826891dcc2c5c40f55682ef1ba1965439df0e2b62219216c2c4ab",
+        "bodySha256": "99f24899185316f4c0567baa80ab598bf54e3d0d99ad450148196a033c0ccf5f",
+        "lines": [
+          1283,
+          1335
+        ]
+      },
+      {
+        "file": "src/codex/app-server-runner.ts",
+        "symbol": "adoptQueuedTurn",
+        "sha256": "fba59c3c923826891dcc2c5c40f55682ef1ba1965439df0e2b62219216c2c4ab",
+        "bodySha256": "8e3303a8516d3a8ae527d0badbdd182cdfaec52ed38d1887634b6b7ccbc0e1a8",
+        "lines": [
+          1396,
+          1416
+        ]
+      },
+      {
+        "file": "src/codex/app-server-runner.ts",
+        "symbol": "updateThreadSettings",
+        "sha256": "fba59c3c923826891dcc2c5c40f55682ef1ba1965439df0e2b62219216c2c4ab",
+        "bodySha256": "e29f4290304a314ffdee78c9db73821dc5f27149b82c17559574853c73db41e4",
+        "lines": [
+          1507,
+          1564
+        ]
+      },
+      {
+        "file": "src/codex/app-server-runner.ts",
+        "symbol": "observeThreadInteractions",
+        "sha256": "fba59c3c923826891dcc2c5c40f55682ef1ba1965439df0e2b62219216c2c4ab",
+        "bodySha256": "b04064141119a5cc7106e3f1a161e53d0d88f67858a7f183807100f9d0a29ef1",
+        "lines": [
+          1773,
+          1803
+        ]
+      },
+      {
+        "file": "src/codex/app-server-runner.ts",
+        "symbol": "resumeThread",
+        "sha256": "fba59c3c923826891dcc2c5c40f55682ef1ba1965439df0e2b62219216c2c4ab",
+        "bodySha256": "b3986a708323c3591f04bf07d8af9dc44db36ab76d81f8c26b9462b0d14fc6cf",
+        "lines": [
+          1919,
+          1948
+        ]
+      },
+      {
+        "file": "src/codex/native-permission-resume.ts",
+        "symbol": "record",
+        "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+        "bodySha256": "5b1e18836c724af1cf9e30b135af57560561a3b1c35eba6542fb636098ac5e5e",
+        "lines": [
+          5,
+          5
+        ]
+      },
+      {
+        "file": "src/codex/native-permission-resume.ts",
+        "symbol": "absolute",
+        "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+        "bodySha256": "ffa1ed9f9e583291fd6a3677d9649d0c4745b60bd4dfaa10311d7f7d27464851",
+        "lines": [
+          6,
+          7
+        ]
+      },
+      {
+        "file": "src/codex/native-permission-resume.ts",
+        "symbol": "invalid",
+        "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+        "bodySha256": "4f4328374ab06176e733d21756f0e4fe675f29f47ffa600bdfe75a9232280f56",
+        "lines": [
+          8,
+          8
+        ]
+      },
+      {
+        "file": "src/codex/native-permission-resume.ts",
+        "symbol": "nativePermissionResume",
+        "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+        "bodySha256": "ce69a3d684baf34f39aeaae8b43a6ec383c2378696f3ab34d1edcf4c1999c5e4",
+        "lines": [
+          13,
+          76
+        ]
+      },
+      {
+        "file": "src/codex/native-permission-resume.ts",
+        "symbol": "legacyPolicy",
+        "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+        "bodySha256": "b51d124e6444f60487783dc4b275af4f8bb1d8d4d9ed0ac35cec5e428b907bfc",
+        "lines": [
+          81,
+          92
+        ]
+      },
+      {
+        "file": "src/codex/native-permission-resume.ts",
+        "symbol": "profilePolicy",
+        "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+        "bodySha256": "b55173db97d13c6dc9bc98d5713c5e991a07a28c2162af4c40d76b494057cceb",
+        "lines": [
+          94,
+          127
+        ]
+      }
+    ]
+  },
+  "combinedRegression": [
+    {
+      "label": "combined-full",
+      "log": "/private/tmp/agent-bridge-legacy-catalog-full.tap",
+      "sha256": "10f3dbb8eefa4a092fd4b78e864b9fe80708df3bbb0adf30a619357010612eb5",
+      "counts": {
+        "tests": 3867,
+        "pass": 3766,
+        "fail": 0,
+        "skipped": 101
+      }
+    },
+    {
+      "label": "combined-app-native",
+      "log": "/private/tmp/agent-bridge-legacy-catalog-native.tap",
+      "sha256": "86174dc2bcfaed4d8e2662aaa57b3bd59467ff9ec01bbc479a7462cade460e6f",
+      "counts": {
+        "tests": 13,
+        "pass": 13,
+        "fail": 0,
+        "skipped": 0
+      }
+    }
+  ]
+}

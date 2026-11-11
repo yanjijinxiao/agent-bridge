@@ -6,7 +6,7 @@ for(const existing of [false,true])for(const explicit of [false,true])test(`nati
  const wire=new AppServerCodexRunner() as any,calls:Array<{method:string;params:any}>=[];
  wire.ensureConnected=async()=>{};wire.recyclePrivateTransportIfIdle=async()=>{};wire.unsubscribeThread=async()=>{};
  wire.inspectThread=async()=>({threadId:'thread',persistence:'active',runtimeStatus:'idle',activeFlags:[]});
- wire.request=async(method:string,params:any)=>{calls.push({method,params});return method==='turn/start'?{turn:{id:'turn'}}:{thread:{id:'thread'}};};
+ wire.request=async(method:string,params:any)=>{calls.push({method,params});return method==='turn/start'?{turn:{id:'turn'}}:{thread:{id:'thread',status:{type:'idle'}}};};
  wire.waitForTurn=async()=>({threadId:'thread',turnId:'turn',text:'done',raw:''});
  const settings={sandbox:'workspace-write',approvalPolicy:'on-request',approvalsReviewer:'auto_review',runtimeWorkspaceRoots:['/selected','/selected-sibling']};
  await wire.run({cwd:'/selected',prompt:'Selected original input',...(existing?{threadId:'thread'}:{}),...(explicit?{nativeSettings:settings,imagePaths:['/tmp/selected.png']}:{})});

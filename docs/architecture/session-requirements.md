@@ -18,13 +18,17 @@
 
 | 内容 | 权威记录 | 使用方式 |
 | --- | --- | --- |
-| Gateway 共用功能及 Codex 行为 | [需求与 case](gateway-requirements.json)、[人读功能合同](gateway-contracts.md) | 96 项要求、459 个 case；逐 case 的状态、测试名和边界优先于汇总段落 |
+| Gateway 共用功能及 Codex 行为 | [需求与 case](gateway-requirements.json)、[人读功能合同](gateway-contracts.md) | 96 项要求、463 个 case；逐 case 的状态、测试名和边界优先于汇总段落 |
 | Herdr TUI / App 适配 | [Herdr 功能与测试基线](../audits/2026-11-07-herdr-adapters/production-requirements.json)、[实现及实测清单](../audits/2026-11-07-herdr-adapters/production-checklist.md)；HDR-18 由 [单卡窗口合同与 case](../audits/2026-11-09-herdr-terminal-window/README.md) 取代 | 20 项 HDR 合同；基线 JSON 中 HDR-18 的阶段分类和旧测试名是历史记录，不代表当前实现。沿用各自精确测试名和环境边界，不混加为“116 项全部验收” |
 | 模块、函数和调用关系 | [实现职责图](gateway-implementation-map.md)、各模块说明、[精选函数合同](function-contracts.jsonl) | 函数记录只证明所列版本/范围；不能批量换 hash 冒充重读 |
 | 待办与取消范围 | [剩余清单](remaining-work.md)、本文决定表 | 部分覆盖、已确认缺陷、未开发、用户取消分别表示 |
 | 用户操作方法 | [探探 Codex 教程](../tantan-connector-guide.md)、[Herdr 教程](../herdr-connector-guide.md)、[README](../../README.md) | 教程解释使用步骤和真实功能，不承担长篇发布日志或内部审计 |
 
 ## 执行入口与后端职责
+
+2026-11-11 补充 NATIVE-02.8：根据会话 01a15d9b-5264-78e0-ac21-8ba577ada051 的交接，修复 Codex 核心进程冷重启时权限回退。原生最新记录为唯一事实源，保留网络/额外根/临时目录限制及具名权限，暖重连与桌面后改不被旧值覆盖。通用清单从 461 增至 462 case；原 NATIVE-02.2 的暖重连矩阵保留，不能当作已经验证冷恢复。见[范围与证据](../audits/2026-11-11-native-cold-permissions.md)。
+
+2026-11-11 补充 CAT-02.6（清单增至 463 case）：截图中的两条会话均由远端原生目录返回，旧会话尚无原生项目归属。按当前 App 已发布的显式旧分组补展示，保留原生身份/无项目/权限含义；同时修复 Connector 再次按原生项目过滤导致的遗漏。新增 27 项正反例及设备/委派接口检查，真实源只读复核，见[四层记录](../audits/2026-11-11-legacy-catalog-grouping.md)。
 
 | 历史来源 | 现行要求与边界 | 功能／模块 |
 | --- | --- | --- |

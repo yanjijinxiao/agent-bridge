@@ -12,6 +12,19 @@ import { PeerRegistry } from "../src/peer/registry.js";
 import { withPeerBackend } from "../src/peer/backend.js";
 import { peerFixture, principal } from "./peer-fixture.js";
 
+test("CAT-02.6: device Connector preserves display grouping through project filtering without granting native membership", async t => {
+  const f = await peerFixture(t, { device: true }); await f.bind();
+  f.thread.cwd = "/different/worktree";
+  f.backend.listSessionCatalog = async () => ({ backend: "app-server", source: "app-server-storage",
+    threads: [{ ...f.thread, workspaceProjectId: "display-group" }], hostIds: [], complete: true, warnings: [] });
+  const result = await f.as(() => f.facade.listSessionCatalog({ projectId: "display-group", cwd: "/project/root" }, f.ticket.hostId));
+  assert.deepEqual(result.threads.map(s => s.threadId), [f.thread.threadId]);
+  assert.equal(result.threads[0].workspaceProjectId, "display-group");
+  const native = await f.as(() => f.facade.inspectThread(f.thread.threadId, f.ticket.hostId));
+  assert.equal(native.projectId, undefined); assert.equal(native.projectMembership, "none"); assert.equal(native.workspaceProjectId, undefined);
+  assert.equal(f.runs.length, 0); assert.equal(f.management.length, 0);
+});
+
 test("one-use pairing requires device confirmation and scopes grants to bot, chat and actor", async t => {
   const f = await peerFixture(t);
   const target = await f.bind(); assert.equal(target.hostId, f.ticket.hostId);

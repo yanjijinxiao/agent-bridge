@@ -4,6 +4,8 @@ All notable changes to Agent Bridge are documented in this file.
 
 ## [0.6.3] - Unreleased
 
+- Keep old App-assigned conversations in their displayed project when native membership has not been synchronized. Corroborate the current host/thread in App catalogs, preserve native membership and access checks, and retain grouping through Connector project filtering.
+- Preserve the latest native permissions when cold-resuming Codex after its server restarts, including workspace networking, extra writable roots, temporary-directory exclusions, and named permission profiles. Keep loaded-owner edits authoritative and reject incomplete permission evidence before submitting input.
 - Keep passive Herdr follow silent when only an idle/done counter changes and the normalized terminal screen is unchanged. Persist display comparison evidence across reconnects, seed legacy baselines quietly, and retain real working/blocked/error/exit activity and changed-screen fast completions.
 - Preserve input-owned result delivery during passive reads and share the last verified screen baseline after completion, preventing duplicate result cards without sending or stopping agent input.
 - Render terminal timestamps and punctuation without HTML entity dependencies while keeping URLs, mentions, markup, and action examples inert.

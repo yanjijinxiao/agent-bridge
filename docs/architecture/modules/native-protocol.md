@@ -6,7 +6,17 @@ Gateway 的业务端口是 src/codex/backend.ts。Gateway 通过 connectorOnlyBa
 
 原生核心保存线程、队列、目标、执行权限和运行事实。Connector 的主连接、元数据读连接、大历史读连接指向同一核心；读端口超时可以退休自身，但不停止执行核心。显式 stdio 是宿主拥有的私有连接，退出宿主会结束它，不具有独立 daemon 的重启保证。嵌入 Taskboard 借用 AccountManager 的原适配器，close 不拥有核心；独立 Taskboard 创建一个选定适配器，不启动 exec 回退。
 
-普通续聊省略 nativeSettings 并继承已有 sandbox、审批策略和 reviewer。只有拥有设置的 UI 明确提交 nativeSettings 才覆盖。onApproval 回调存在不构成改权限的理由。thread/start/resume 的返回身份、turn/start 的接收、运行终态与投递状态分开；有界 RPC 超时不能结束一个已接收的长任务。
+普通续聊省略 nativeSettings 并继承已有 sandbox、审批策略和 reviewer。只有拥有设置的 UI 明确提交 nativeSettings 才主动选择新设置；冷恢复按下述边界恢复最新原生权限事实。onApproval 回调存在不构成改权限的理由。thread/start/resume 的返回身份、turn/start 的接收、运行终态与投递状态分开；有界 RPC 超时不能结束一个已接收的长任务。
+
+## 冷恢复权限
+
+NATIVE-02.8 区分 Connector/Gateway 客户端重连与原生核心进程重启。0.167.0 的裸 thread/resume 冷加载会丢失网络和额外写目录；原先保持同一 native PID 的 NATIVE-02.2 不覆盖此缺陷。
+
+六个恢复调用统一经过 resumeThread。先 thread/read 核对精确身份和加载状态；已加载线程只附着，不回放权限。notLoaded 时，通过同一 App Server 的 fs/readFile 读取该线程的原生路径，按顺序选取最新 thread_settings_applied 或 turn_context。nativePermissionResume 不建缓存、不回滚到更早的宽授权、不读取同名本机文件。模型、effort、Plan、指令与项目归属不进入恢复投影。
+
+具名权限使用原生 active_permission_profile.id，域名、deny 和后续配置变更继续由原服务解释。传统 workspace-write 恢复网络、额外可写目录及两个临时目录排除标志，并核对所有 runtime roots 都已具有相应写权限；只读与 full-access 保持已记录的模式。无法无损表示的匿名复杂权限、缺失状态/路径、半写或损坏记录明确失败，不猜测默认值或扩权。读取完成后重新校验来源/绑定或观察者；只发一个恢复请求，不补设置写入、占位任务或原始输入。
+
+fs/readFile 当前没有分段参数，本次限制解码为 128 MiB；内容只在设备侧解析，不进入日志或 Gateway。原生权限记录不可用时须在 Codex 核对，不能自动恢复已经丢失的更早授权。队列在提交前失败则释放本次来源；实际开始 queue/add 后的未知回执继续保留，不自动重发。真实 CLI、桌面内置核心和 Linux 隔离验证分别见[四层记录](../../audits/2026-11-11-native-cold-permissions.md)，不是重启用户线上核心的验收。
 
 Bridge 的渠道规则与原生执行权限也分开。新线程通过 thread/start 的 developerInstructions 设置创建规则；续接已有线程时，用 turn/start.additionalContext 中稳定的 codex-im-gateway application 项传入本轮规则。不能假定 thread/resume.developerInstructions 会更新已加载线程，也不能因为已经订阅、改走 thread/read 就漏掉规则。每轮规则更新不替换原线程的 developer instructions 或权限，不混入用户输入/会话标题。Mac 0.166 与 Linux 0.163 均提供该原生实验字段；初始化须启用 experimentalApi。
 

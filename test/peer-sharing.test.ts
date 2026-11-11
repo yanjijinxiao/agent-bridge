@@ -34,6 +34,19 @@ async function fixture(t: test.TestContext, approve = true) {
   });
 }
 
+test("CAT-02.6: a delegated thread cannot gain project catalog membership from a display-only group", async t => {
+  const f = await fixture(t); await f.share("claim");
+  const invitation = await f.invite(); await f.share(`approve ${invitation.id}`); await f.join(invitation.code);
+  f.backend.listSessionCatalog = async () => ({ backend: "app-server", source: "app-server-storage",
+    threads: [{ ...f.thread, workspaceProjectId: "display-group" }], hostIds: [], complete: true, warnings: [] });
+  const result = await f.as(() => f.facade.listSessionCatalog({ projectId: "display-group" }, f.target.hostId), visitor);
+  assert.equal(result.threads.length, 0);
+  const unfiltered = await f.as(() => f.facade.listSessionCatalog({}, f.target.hostId), visitor);
+  assert.deepEqual(unfiltered.threads.map(s => s.threadId), [f.thread.threadId]);
+  assert.equal(unfiltered.threads[0].workspaceProjectId, undefined);
+  assert.equal(f.runs.length, 0);
+});
+
 test("new native activity reads recheck a delegated grant after the device await", async t => {
   const f = await fixture(t); await f.share("claim");
   const invitation = await f.invite(); await f.share(`approve ${invitation.id}`);

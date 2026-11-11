@@ -99,7 +99,7 @@ test("a rejected owned admission releases its subscription and origin before ret
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),"gateway-owned-rejection-")),file=path.join(dir,"methods");t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
  const runner=new AppServerCodexRunner({codexHome:dir,transport:{command:process.execPath,args:[path.resolve("test/fixtures/fake-external-queue.mjs"),file,"--owned"],mode:"stdio"},requestTimeoutMs:1000});t.after(()=>runner.close());
  await assert.rejects(runner.addQueuedSubmission({threadId:"native",prompt:"next",clientUserMessageId:"im",assertCurrent(){throw Error("binding changed");}}),CodexQueueAdmissionError);
- assert.deepEqual(fs.readFileSync(file,"utf8").trim().split("\n"),["initialize","thread/resume","thread/unsubscribe"]);
+ assert.deepEqual(fs.readFileSync(file,"utf8").trim().split("\n"),["initialize","thread/read","thread/resume","thread/unsubscribe"]);
 });
 
 test("fresh non-runnable queue target is a definite admission rejection with no native mutation",async t=>{

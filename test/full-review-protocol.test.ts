@@ -18,7 +18,7 @@ test("an unconfirmed start keeps its subscription and approval owner without a b
   const failure = new CodexCommunicationError("submission", "turn/start", "thread", undefined, Error("timeout"));
   let starts = 0, unsubscribes = 0;
   wire.request = async (method: string) => {
-    if (method === "thread/resume") return { thread: { id: "thread" } };
+    if (method === "thread/resume" || method === "thread/read") return { thread: { id: "thread", status: { type: "idle" } } };
     if (method === "thread/unsubscribe") { unsubscribes++; return {}; }
     starts++; throw failure;
   };

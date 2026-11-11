@@ -434,7 +434,7 @@
               "name": "NATIVE-02.2: native permission inheritance {\"callback\":true,\"reconnect\":true,\"explicit\":true}"
             }
           ],
-          "testGap": "真实0.166 macOS及0.163 Linux均补有/无审批回调×连接重建×默认/显式8组合。旧配置所有迁移格式、实际自动审核器的执行行为与供应商审批投递未由本矩阵证明，仍partial。",
+          "testGap": "真实0.166 macOS及0.163 Linux均补有/无审批回调×连接重建×默认/显式8组合。旧配置所有迁移格式、实际自动审核器的执行行为与供应商审批投递未由本矩阵证明，仍partial。 2026-11-11确认此处连接重建只替换客户端且保持原生PID，不覆盖核心进程冷重启；网络/额外根丢失另见NATIVE-02.8。",
           "verifiedBoundary": "真实peer以never/auto_review/workspace-write创建线程；Gateway默认配置read-only但续聊未传nativeSettings且带onApproval回调，peer再次resume仍返回原审批策略、审核者和可写sandbox。 追加真实核心8组合：同一PID/线程、精确输入一次、原生读取三项权限及实际adapter写参数；默认不降权，只有明确UI选择改变已加载线程权限。",
           "boundaryReview": {
             "date": "2026-11-02",
@@ -770,6 +770,202 @@
             "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           },
           "previousTestGap": "原测试直接在 runQueuedSubmission 观察阶段给 developerInstructions；queue/add 已自动执行，注入过晚。新测试经实际 Bridge /queue 入口并检查模型请求；旧实现同用例失败，修复后通过。"
+        },
+        {
+          "id": "NATIVE-02.8",
+          "scenario": "原生核心冷重启后恢复最新原生权限；暖附着、桌面后改、具名profile及失败前交接保持正交",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: latest native permission record preserves network, extra roots and temp exclusions without replaying model"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: later native tightening and emptied roots supersede earlier broader grants"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: named native profile retains its identity instead of discarding domain or deny rules"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: native temporary-directory grants stay independent (tmpdir=false, slashTmp=false)"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: native temporary-directory grants stay independent (tmpdir=false, slashTmp=true)"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: native temporary-directory grants stay independent (tmpdir=true, slashTmp=false)"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: native temporary-directory grants stay independent (tmpdir=true, slashTmp=true)"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: old turn context, modern applied settings and empty native threads retain their ordering"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete deny never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete glob never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete read-scope never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete unknown-profile never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete external never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete unknown-approval never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete unknown-reviewer never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete relative-root never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete missing-cwd never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete writable-outside-cwd never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: nonrepresentable or incomplete runtime-root-not-writable never falls back to an older broad grant"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: foreign-header native source cannot authorize restoration"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: foreign-settings native source cannot authorize restoration"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: internal native source cannot authorize restoration"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: torn native source cannot authorize restoration"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: malformed native source cannot authorize restoration"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: missing-settings native source cannot authorize restoration"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: cold restoration uses the native host file and checks revoked source before its only resume"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: loaded idle owner is attached without cached or stored overrides"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: loaded active owner is attached without cached or stored overrides"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: loaded systemError owner is attached without cached or stored overrides"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: explicit owning UI bypasses historical grants and unreadable native records never submit"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: missing load status or native path cannot silently fall back to defaults"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.8: a definite permission preflight failure releases an owned queue origin without submitting input"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.8: real core restart retains permissions through interaction (remote=false)"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.8: real core restart retains permissions through model (remote=false)"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.8: real core restart retains permissions through turn (remote=false)"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.8: real core restart retains permissions through interaction (remote=true)"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.8: real core restart retains permissions through model (remote=true)"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.8: real core restart retains permissions through turn (remote=true)"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.8: real later tightening survives cold restore and does not revive a wider earlier grant"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.8: real cold restore retains permitted native temporary directories"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.8: racing native owner tightening wins over a cold reader's earlier snapshot"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.8: real cold restore reselects a named native profile without losing deny or domain configuration"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "03bd4d17095592ff98283f19f276a60bdde9334994e4213b11111043d4ff57cd",
+              "previousSha256": "fba59c3c923826891dcc2c5c40f55682ef1ba1965439df0e2b62219216c2c4ab"
+            },
+            {
+              "file": "src/codex/native-permission-resume.ts",
+              "sha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66",
+              "previousSha256": "fd86feb788a53d3ef2ca32ed0b36e0bbabb1bd7305abebe08b714dfa78c39c66"
+            }
+          ],
+          "previousTestGap": "旧NATIVE-02.2只换Gateway客户端并保持native PID，未覆盖冷重启或网络/额外写目录。修改前相同隔离用例复现回退。",
+          "verifiedBoundary": "32个权限投影/来源/失败清理命名单测；真实CLI 0.167.0共29项相邻矩阵、桌面内置0.167.0-alpha.3.2共21项、Linux 0.167.0开发机10项。冷重启确实更换核心PID，网络/.git额外根/临时排除与允许/收紧竞争/具名deny及domain保留，恢复不创建占位输入。仅所列版本与隔离条件，非真实自动审核器或平台投递验收。",
+          "remainingBoundary": "不重启线上用户核心、不回滚已经丢失的旧授权；任意未具名复杂策略不能被当前resume API无损表示时明确失败；fs/readFile解码限128MiB。真实自动审核器及平台审批投递不由本矩阵证明。",
+          "implementationRecheck": {
+            "date": "2026-11-11",
+            "scope": "权限恢复投影、全部六个resume调用及队列提交前清理；其余原生函数未宣称重审",
+            "report": "docs/audits/2026-11-11-native-cold-permissions.md",
+            "note": "目录修复后13个权限函数正文摘要未变；原审计证据保留，补当前组合完整及原生回归，详见同名审计JSON。"
+          }
         }
       ]
     },
@@ -4849,6 +5045,151 @@
             "date": "2026-11-05",
             "scope": "命令展示预算；只读核验当前Mac原生列表返回范围。",
             "report": "docs/audits/2026-11-05-command-density.md"
+          }
+        },
+        {
+          "id": "CAT-02.6",
+          "scenario": "当前App显式旧分组在原生归属未同步时保留目录展示；设备Connector筛选不遗漏，原生无项目/绑定/委派权限独立。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: current legacy App assignment supplies a display group without changing native membership"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: native-synced does not revive a legacy App group"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: other-synced-host does not revive a legacy App group"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: projectless does not revive a legacy App group"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: explicit-none does not revive a legacy App group"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: other-assignment-host does not revive a legacy App group"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: other-project-host does not revive a legacy App group"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: sidebar-only does not revive a legacy App group"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: cwd-only does not revive a legacy App group"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: backup-only does not revive a legacy App group"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: relative-roots does not revive a legacy App group"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: explicit alias beats root ambiguity and a deleted alias cannot change to a same-root project"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: ambiguous or partial root sets stay ungrouped; complete root sets preserve independent projects"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: local multi-root legacy groups match the whole registered root set independently of thread cwd"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: absent App catalog evidence cannot revive a global-state-only assignment"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: missing App catalog evidence cannot revive a global-state-only assignment"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: other-host App catalog evidence cannot revive a global-state-only assignment"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: exec App catalog evidence cannot revive a global-state-only assignment"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: stable and dev App catalogs must agree; no account or database is guessed"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: old remote conversation remains beside its native project peer in the rendered tree"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: project catalog filters and limits run after display grouping while native lists keep their scope"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: project lookup failure retains native rows with a precise display warning"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: a CLI without an App registry needs no additional project request"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: a later native membership synchronization retires the old display group on refresh"
+            },
+            {
+              "file": "test/legacy-desktop-catalog.test.ts",
+              "name": "CAT-02.6: malformed current App data never falls back to a stale assignment backup"
+            },
+            {
+              "file": "test/peer-execution.test.ts",
+              "name": "CAT-02.6: device Connector preserves display grouping through project filtering without granting native membership"
+            },
+            {
+              "file": "test/peer-sharing.test.ts",
+              "name": "CAT-02.6: a delegated thread cannot gain project catalog membership from a display-only group"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/desktop-catalog-groups.ts",
+              "sha256": "c92a41823efcee538ce50a00237fa98996acd2ddc3016aa7fa966c3f3e4bb6e4"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "03bd4d17095592ff98283f19f276a60bdde9334994e4213b11111043d4ff57cd"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "ccf4b8bdf9fb37af13dab364f5af38fb3fe885bffabb767ea1b2913ae9c0e2e6"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "5645203b73f09e5983b136016000018e4b04f28c64b01ffcb64752643ef396e0"
+            },
+            {
+              "file": "src/codex/backend.ts",
+              "sha256": "78b01116bd3659da632d338568fa37b1a6a317fddfbb7b0e99c13ff231a5334e"
+            }
+          ],
+          "previousTestGap": "原有none不被覆盖反例保护原生身份，但未覆盖旧显式分组的展示投影及Connector二次过滤；修改前同用例失败。",
+          "verifiedBoundary": "新增27项正反例；8模块99项通过，含本机Connector设备/委派RPC。真实远端原生只读复核两条同组且原projectId仍null。完整3867项3766通过101跳过；另13项隔离原生检查通过。",
+          "remainingBoundary": "App私有存储未知格式及多个目录不一致时保留原生显示；跨来源非原子快照以刷新收敛。未验证真实钉钉视觉、未上线，不从展示组授予IDE或执行权限。",
+          "implementationRecheck": {
+            "date": "2026-11-11",
+            "scope": "旧分组帮助函数、Runner投影/筛选、Connector设备/委派分支和详情说明；未重审未改代码",
+            "report": "docs/audits/2026-11-11-legacy-catalog-grouping.md"
           }
         }
       ]
@@ -19514,6 +19855,20 @@
           "REL-01.2"
         ]
       }
+    },
+    {
+      "date": "2026-11-11",
+      "priorSummary": {
+        "audit": "2026-11-05-documentation-sync",
+        "requirements": 93,
+        "cases": 427,
+        "mappedCases": 427,
+        "recordedNarrowVerified": 343,
+        "partialCases": 84,
+        "selectedFunctionContracts": 261,
+        "note": "本次仅重新汇总已登记记录；保留各 case 的来源版本、散列和验证限制，不代表本次重新验收全库。最新运行证据见 2026-11-05-terminal-progress-regression。"
+      },
+      "note": "保存先前汇总，当前按逐case重新计数；不追改历史验收范围。"
     }
   ],
   "documentationUpdate": {
@@ -19577,14 +19932,14 @@
     }
   },
   "currentSummary": {
-    "audit": "2026-11-05-documentation-sync",
-    "requirements": 93,
-    "cases": 427,
-    "mappedCases": 427,
-    "recordedNarrowVerified": 343,
-    "partialCases": 84,
-    "selectedFunctionContracts": 261,
-    "note": "本次仅重新汇总已登记记录；保留各 case 的来源版本、散列和验证限制，不代表本次重新验收全库。最新运行证据见 2026-11-05-terminal-progress-regression。"
+    "audit": "2026-11-11-legacy-catalog-grouping",
+    "requirements": 96,
+    "cases": 463,
+    "mappedCases": 463,
+    "recordedNarrowVerified": 368,
+    "partialCases": 95,
+    "selectedFunctionContracts": 325,
+    "note": "本轮新增CAT-02.6，保留NATIVE-02.8及其余案例各自证据；不代表本轮重新验收全库。"
   },
   "connectorIDEUpdate": {
     "date": "2026-11-04",

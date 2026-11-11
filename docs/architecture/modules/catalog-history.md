@@ -10,6 +10,10 @@ prepareTurnSubmission 携带所选项目的完整 projectRoots。resolveProjectI
 
 ## IM 会话目录展示
 
+CAT-02.6：旧 App 会话可能有显式 App 项目分组，但尚无原生 projectId。设备侧 `desktop-catalog-groups` 只读当前注册表和已发布 App 目录：同 host 的显式归属、已登记旧项目、缺少 membership-host 同步标记，且每个现存 stable/dev 目录都确认该 host/thread 可见，才提供展示候选。备份、cwd、侧栏顺序、已同步或明确无项目记录均不构成候选；多个 App 目录不一致时不猜选账户。原生 thread/list 仍决定会话是否存在及持久状态。
+
+候选只在 `listSessionCatalog` 中投影为既有 workspaceProjectId；明确旧别名优先，否则要求完整根集合唯一匹配同 host 原生项目，已删除别名和歧义不补。投影后再按项目筛选及限量，Connector 设备目录的二次过滤保留同一展示分组，项目可跨 worktree。原生 `listThreads`、`inspectThread` 和 unassigned 仍按原生归属；委派会话只查精确授权线程的原生事实。绑定重新 inspect，IDE 仍要求 assigned 原生项目，展示候选不进入执行缓存或持久权限。CLI 无 App 数据维持原路径，异常保留原生行并提示展示不完整。见[实现、反例与验证](../../audits/2026-11-11-legacy-catalog-grouping.md)。
+
 目录入口先按 [当前 Connector](connector-selection.md) 解析本人当前聊天的持久来源。默认查询、搜索和项目目录使用该来源；显式 all 聚合，显式 --host 临时筛选，翻页沿用快照。卡片标明实际 host，切换使本人旧目录失效；缓存和异步返回仍检查角色与设备授权。目录偏好不参与普通输入的执行路由。
 
 `handleSessionCatalog` 先取得未归档普通会话和原生项目目录，再由 `orderSessionCatalog` 固定会话顺序和 R 编号。`sessionCatalogItems` 是纯展示投影：置顶区 → 按原生目录排列的项目及缩进会话 → 其他会话。项目来自完整项目目录，不再以“当前有会话”为出现条件；仅有归档会话的项目也显示“暂无未归档会话”。所有成员已在置顶区显示时明确提示，不重复会话，也不误报为空。目录缺失时保留已有可读结果及警告，不根据 cwd 虚构项目身份。

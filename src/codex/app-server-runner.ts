@@ -25,6 +25,8 @@ import { NativeAsyncQuestions } from "./native-async-questions.js";
 import { codexFailureCode, lastCodexTurnFailure, type CodexFailureCode } from "./turn-failure.js";
 import { codexTurnRecovery, codexRecoverySummary, type CodexTurnRecovery } from "./turn-recovery.js";
 import { readDesktopSessionCatalog, isDesktopCatalogThread } from "./desktop-session-catalog.js";
+import { nativePermissionResume } from "./native-permission-resume.js";
+import { readDesktopCatalogGroups, desktopCatalogGroupId } from "./desktop-catalog-groups.js";
 
 import { resolveCodexCommand } from "./codex-command.js";
 import { parseAccountRateLimits, type CodexAccountBalance } from "./account-balance.js";
@@ -323,9 +325,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       // A missing start receipt can leave this client's subscription alive.
       // Read our subscription instead of acquiring the same writer twice.
       const alreadySubscribed = Boolean(input.threadId && !input.nativeSettings && this.subscribedThreads.has(input.threadId));
-      threadResponse = await guardNativeWrite(input.assertCurrent, () => this.request(
-        alreadySubscribed ? "thread/read" : input.threadId ? "thread/resume" : "thread/start",
-        compactObject({
+      const params = compactObject({
           ...(alreadySubscribed ? { includeTurns: false } : {}),
           ...(input.threadId && !alreadySubscribed ? { excludeTurns: true } : {}),
           ...(input.threadId ? { threadId: input.threadId } : {}),
@@ -341,8 +341,10 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
           ...(!input.threadId && nativeProjectId ? { projectId: nativeProjectId } : {}),
           ...(!input.threadId && input.projectBinding === "none" ? { projectId: null } : {}),
           ...(!input.threadId && input.dynamicTools ? { dynamicTools: input.dynamicTools } : {})
-        })
-      )) as Record<string, unknown>;
+        });
+      threadResponse = await (input.threadId && !alreadySubscribed
+        ? this.resumeThread(params, undefined, input.assertCurrent)
+        : guardNativeWrite(input.assertCurrent, () => this.request(alreadySubscribed ? "thread/read" : "thread/start", params))) as Record<string, unknown>;
     } catch (error) {
       if (input.threadId) throw normalizeThreadOperationError(error, input.threadId);
       throw error;
@@ -644,10 +646,34 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   async listSessionCatalog(input: CodexThreadListInput = {}): Promise<CodexSessionCatalog> {
-    if (this.options.catalogSource === "native") return {
-      backend: this.id, source: "app-server-storage", hostIds: [this.options.hostId ?? "local"], complete: true,
-      threads: await this.listThreads({ persistence: "active", ...input }), warnings: []
-    };
+    if (this.options.catalogSource === "native") {
+      const { groups, warning } = readDesktopCatalogGroups(this.options.codexHome, this.options.hostId);
+      const warnings = warning ? [warning] : [];
+      let threads: CodexThreadState[];
+      if (!groups.size) threads = await this.listThreads({ persistence: "active", ...input });
+      else {
+        // Catalog filters run AFTER the optional display projection. The
+        // execution list/inspect paths retain their native membership semantics.
+        threads = await this.listThreads({ persistence: "active", ...input, projectId: undefined,
+          cwd: input.projectId ? undefined : input.cwd, limit: undefined });
+        if (threads.some(t => !t.projectId && groups.has(t.threadId))) {
+          try {
+            const { projects } = await this.listProjects(), canonical = this.projectIdentity();
+            let unresolved = false;
+            threads = threads.map(state => {
+              const id = desktopCatalogGroupId(state, groups, projects);
+              if (!id && !state.projectId && !state.workspaceProjectId && groups.has(state.threadId)) unresolved = true;
+              return id ? { ...state, workspaceProjectId: canonical(id) } : state;
+            });
+            if (unresolved) warnings.push("部分 App 旧项目分组无法唯一对应原生项目；这些会话保留在其他会话中，未修改归属。");
+          } catch { warnings.push("原生项目目录暂不可用；App 旧分组未补齐，会话仍按原生归属显示。"); }
+        }
+        const selected = input.projectId ? this.projectIdentity()(input.projectId) : undefined;
+        threads = threads.filter(state => !selected || (state.projectId ?? state.workspaceProjectId) === selected)
+          .slice(0, input.limit === undefined ? undefined : Math.max(1, input.limit));
+      }
+      return { backend: this.id, source: "app-server-storage", hostIds: [this.options.hostId ?? "local"], complete: true, threads, warnings };
+    }
     // Do not load threads or start a second app-server just to discover what
     // Desktop already indexes, including hosts with no saved project.
     const catalog = readDesktopSessionCatalog(this.options.codexHome, this.options.hostId, input);
@@ -1148,7 +1174,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         return { status: "deferred", reason: "awaiting-unload", state: before.state };
         }
       }
-      const response = await guardNativeWrite(input.assertCurrent, () => this.request("thread/resume", { threadId: input.threadId, excludeTurns: true }, 5_000)) as { thread?: { id?: string } };
+      const response = await this.resumeThread({ threadId: input.threadId, excludeTurns: true }, 5_000, input.assertCurrent) as { thread?: { id?: string } };
       if (response?.thread?.id !== input.threadId) return { status: "deferred", reason: "unconfirmed" };
       this.subscribedThreads.add(input.threadId);
       input.assertCurrent();
@@ -1298,22 +1324,26 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     this.nativeQueueOrigins.set(input.clientUserMessageId, input);
     this.operationLeases++;
     let result: { queuedSubmission?: CodexQueuedSubmission };
+    let submissionStarted = false;
     try {
       await this.ensureConnected();
       // thread/resume subscribes without submitting a prompt. An idle loaded
       // thread can auto-consume add, so subscribe before that external write.
       // Never reconfigure an already running turn to attach its queue.
       if (!this.subscribedThreads.has(input.threadId)) {
-        await guardNativeWrite(inheritWriteCheck(input.assertCurrent, () => {}), () => this.request("thread/resume", { threadId: input.threadId, excludeTurns: true }));
+        await this.resumeThread({ threadId: input.threadId, excludeTurns: true }, undefined, inheritWriteCheck(input.assertCurrent, () => {}));
         this.subscribedThreads.add(input.threadId);
       }
-      result = await guardNativeWrite(inheritWriteCheck(input.assertCurrent, () => assertQueueAdmissionCurrent(input)), () => this.queueRequest("thread/queue/add", {
-        threadId: input.threadId, clientUserMessageId: input.clientUserMessageId,
-        input: [{ type: "text", text: input.prompt, text_elements: [] }]
-      })) as { queuedSubmission?: CodexQueuedSubmission };
+      result = await guardNativeWrite(inheritWriteCheck(input.assertCurrent, () => assertQueueAdmissionCurrent(input)), () => {
+        submissionStarted = true;
+        return this.queueRequest("thread/queue/add", {
+          threadId: input.threadId, clientUserMessageId: input.clientUserMessageId,
+          input: [{ type: "text", text: input.prompt, text_elements: [] }]
+        });
+      }) as { queuedSubmission?: CodexQueuedSubmission };
     }
     catch (error) {
-      if (error instanceof CodexBackendCapabilityError || error instanceof CodexQueueAdmissionError) {
+      if (!submissionStarted || error instanceof CodexBackendCapabilityError || error instanceof CodexQueueAdmissionError) {
         this.nativeQueueOrigins.delete(input.clientUserMessageId);
         if (this.subscribedThreads.has(input.threadId) && !this.activeTurns.has(input.threadId)
           && ![...this.nativeQueueOrigins.values()].some(origin => origin.threadId === input.threadId)) {
@@ -1401,7 +1431,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       if (input.onItem) this.itemHandlersByThread.set(input.threadId, input.onItem);
       if (input.onApproval) this.approvalHandlersByThread.set(input.threadId, input.onApproval);
       this.bindUserInputHandlers(input.threadId, input);
-      await this.request("thread/resume", { threadId: input.threadId, excludeTurns: true });
+      await this.resumeThread({ threadId: input.threadId, excludeTurns: true }, undefined, input.assertCurrent);
       this.subscribedThreads.add(input.threadId);
       const refreshed = await this.findQueuedTurn(input.threadId, undefined, String(turn.id));
       if (!refreshed) throw new Error("已接收的轮次无法核对，未重复启动。");
@@ -1512,7 +1542,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const deadline = Date.now() + 5000;
       for (;;) {
         try {
-          response = await guardNativeWrite(assertCurrent, () => this.request("thread/resume", { threadId, excludeTurns: true })) as Record<string, unknown>;
+          response = await this.resumeThread({ threadId, excludeTurns: true }, undefined, assertCurrent) as Record<string, unknown>;
           break;
         } catch (error) {
           if (!/no rollout found for thread id/i.test(String(error)) || Date.now() >= deadline) throw error;
@@ -1762,8 +1792,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       && this.interactionObservers.has(threadId) && !this.interactionRefreshThreads.has(threadId);
   }
 
-  /** Native resume subscribes to the SAME loaded core and replays its pending
-   * requests. No settings override and no user input are sent. */
+  /** Subscribe to the SAME native core and replay pending interactions, never
+   * user input. Loaded owners receive a bare attach; cold owners restore only
+   * their latest native permission record through the shared resume boundary. */
   async observeThreadInteractions(threadId: string, observer: NativeInteractionObserver): Promise<void> {
     if (this.options.metadataOnly || this.options.historyOnly) throw new Error("Read-only observers cannot subscribe to interactions");
     const previous = this.interactionObservers.get(threadId);
@@ -1773,7 +1804,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     await this.ensureConnected();
     this.interactionRefreshThreads.delete(threadId);
     try {
-      const result = await this.request("thread/resume", { threadId, excludeTurns: true }, 5_000, true) as { thread?: { id?: string } };
+      const result = await this.resumeThread({ threadId, excludeTurns: true }, 5_000, () => {
+        if (this.interactionObservers.get(threadId) !== observer) throw new Error("Native interaction observer retired before resume");
+      }) as { thread?: { id?: string } };
       if (result.thread?.id !== threadId) throw new Error("Native interaction subscription identity mismatch");
       if (this.interactionObservers.get(threadId) !== observer) return;
       this.subscribedThreads.add(threadId);
@@ -1900,6 +1933,43 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       this.failTransport(error instanceof Error ? error : new Error(String(error)), true);
       throw error;
     }
+  }
+
+  /** Resume is also a cold-load operation. Native 0.167 reconstructs custom
+   * sandbox fields from config defaults unless supplied on that load. Read the
+   * exact native rollout through the same server (including SSH hosts); never
+   * keep a second permissions store or use a same-named local file. Loaded
+   * owners receive a bare attach, so later Desktop changes remain authoritative.
+   * Explicit owning-UI overrides intentionally bypass historical restoration. */
+  private async resumeThread(params: Record<string, unknown>, timeoutMs?: number,
+    assertCurrent?: import("./write-guard.js").CodexWriteGuard): Promise<unknown> {
+    assertCurrent?.();
+    let restored: Record<string, unknown> = {};
+    if (!["sandbox", "permissions", "approvalPolicy", "approvalsReviewer", "runtimeWorkspaceRoots"].some(k => Object.hasOwn(params, k))) {
+      const threadId = String(params.threadId);
+      const thread = nativeThread(await this.request("thread/read", { threadId, includeTurns: false }, timeoutMs, true), threadId);
+      const status = isRecord(thread.status) ? thread.status.type : thread.status;
+      if (!["notLoaded", "idle", "active", "systemError"].includes(String(status)))
+        throw new Error("无法核对原生会话加载状态，未恢复或提交输入。");
+      const notLoaded = status === "notLoaded";
+      if (notLoaded) {
+        if (typeof thread.path !== "string" || !thread.path) throw new Error("原生冷恢复缺少权限记录路径，未恢复或提交输入。");
+        assertCurrent?.();
+        const result = await this.request("fs/readFile", { path: thread.path }, timeoutMs ?? 15_000, true);
+        // This native API has no range-read parameter. Bound decoding and never
+        // log its payload, expose history to Gateway, or fall back to shell/SSH.
+        const maxBytes = 128 * 1024 * 1024;
+        if (!isRecord(result) || typeof result.dataBase64 !== "string" || result.dataBase64.length > Math.ceil(maxBytes / 3) * 4
+          || result.dataBase64.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(result.dataBase64))
+          throw new Error("原生权限记录无法完整读取，未恢复或提交输入。");
+        const contents = new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(result.dataBase64, "base64"));
+        restored = nativePermissionResume(contents, threadId);
+      }
+    }
+    // Recheck actor/binding after the asynchronous native reads and immediately
+    // before the only write. A racing loaded owner ignores resume overrides;
+    // never follow this with settings/update or a permission-bearing turn.
+    return guardNativeWrite(assertCurrent, () => this.request("thread/resume", { ...restored, ...params }, timeoutMs));
   }
 
   private request(

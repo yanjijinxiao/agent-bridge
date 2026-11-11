@@ -20,6 +20,8 @@ function native() {
   wire.getGoal = async () => undefined;
   wire.request = async (method: string) => {
     calls.push(method);
+    if (method === "thread/read") return { thread: { id: "thread", status: { type: state.state.runtimeStatus }, path: "/native/empty.jsonl" } };
+    if (method === "fs/readFile") return { dataBase64: Buffer.from(JSON.stringify({ type: "session_meta", payload: { id: "thread" } }) + "\n").toString("base64") };
     if (method === "thread/archive") {
       state.state.persistence = "archived"; state.state.runtimeStatus = "notLoaded";
       if (archiveFailure) throw Error("archive acknowledgement lost");
@@ -41,7 +43,7 @@ function native() {
 test("retained native runtime resets through a durable lifecycle and restores original persistence", async () => {
   const n = native(); const result = await n.wire.recoverSystemError(n.input);
   assert.equal(result.status, "recovered"); assert.equal(n.pending(), false);
-  assert.deepEqual(n.calls, ["thread/archive", "thread/unarchive", "thread/resume"]);
+  assert.deepEqual(n.calls, ["thread/archive", "thread/unarchive", "thread/read", "fs/readFile", "thread/resume"]);
   assert.equal(n.state.turns[0].status, "failed"); assert.equal(n.state.state.persistence, "active");
 });
 test("lost archive acknowledgement still compensates an observed archive without sending a task", async () => {
