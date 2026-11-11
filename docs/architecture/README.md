@@ -6,6 +6,8 @@
 
 这两处修复的最终 push、两套 Gateway/受维护 Connector 上线及 npm 0.6.3 候选准备结果见[发布核验](../audits/2026-11-11-v063-preparation.md)。npm 正式发布与线上构建分别记载。
 
+npm 0.6.3 随后已正式发布并完成公开下载、干净安装及 GitHub Release 对照；见[正式发行记录](../audits/2026-11-11-v063-release.md)。
+
 2026-11-11 Codex 原生核心冷恢复权限缺失的修复与测试范围见[四层检查记录](../audits/2026-11-11-native-cold-permissions.md)；原生进程重启与客户端暖重连分开验证，上线状态另记。
 
 2026-11-11 Herdr 被动跟随误推与终端标点修复见[四层检查及上线记录](../audits/2026-11-11-herdr-idle-follow/README.md)。修复构建 0.6.3 的代码、验证和部署分别留证，npm 正式发行状态不由此推断。

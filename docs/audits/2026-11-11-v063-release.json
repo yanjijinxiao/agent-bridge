@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "productVersion": "0.6.3",
+  "status": "published-and-verified",
+  "releaseCommit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+  "sourceHash": "80132c8330c23358d4571909a653d660fc12782b1e3c578bdab62be45a51f0cc",
+  "tag": {
+    "name": "v0.6.3",
+    "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+    "pushed": true
+  },
+  "artifact": {
+    "files": 999,
+    "bytes": 2442423,
+    "integrity": "sha512-3VVa1ChZZJ7zEuTnrQVnbVivzf4XzLyoxijopaRqDpvsGwbOtLbx7wJMikQLvIskBzSQbMWcgfAgL6kxkX7LLw==",
+    "sha256": "89c47e54d60607ef96f4f40d8af70029dcebd74dc6dfc0d8e4559348e58dfaed"
+  },
+  "npm": {
+    "status": "published",
+    "login": "renewed-by-user-on-official-site",
+    "publish2FA": "completed-by-user-on-official-site",
+    "publicDownload": "verified",
+    "duplicatePublish": false,
+    "registry": {
+      "name": "@yanjijinxiao/agent-bridge",
+      "version": "0.6.3",
+      "latest": "0.6.3",
+      "integrity": "sha512-3VVa1ChZZJ7zEuTnrQVnbVivzf4XzLyoxijopaRqDpvsGwbOtLbx7wJMikQLvIskBzSQbMWcgfAgL6kxkX7LLw==",
+      "sha256": "89c47e54d60607ef96f4f40d8af70029dcebd74dc6dfc0d8e4559348e58dfaed",
+      "bytes": 2442423,
+      "tarball": "https://registry.npmjs.org/@yanjijinxiao/agent-bridge/-/agent-bridge-0.6.3.tgz",
+      "verifiedAt": "2026-11-11T10:12:23.269Z"
+    }
+  },
+  "github": {
+    "isDraft": false,
+    "tagName": "v0.6.3",
+    "publishedAt": "2026-11-11T10:06:32Z",
+    "url": "https://github.com/yanjijinxiao/agent-bridge/releases/tag/v0.6.3",
+    "anonymousDownload": {
+      "githubPublicDownload": true,
+      "bytes": 2442423,
+      "sha256": "89c47e54d60607ef96f4f40d8af70029dcebd74dc6dfc0d8e4559348e58dfaed",
+      "verifiedAt": "2026-11-11T10:08:41.774Z"
+    }
+  },
+  "validation": {
+    "preparation": "docs/audits/2026-11-11-v063-preparation.md",
+    "gateway": {
+      "tests": 3867,
+      "pass": 3766,
+      "skipped": 101,
+      "fail": 0
+    },
+    "embedded": {
+      "tests": 510,
+      "pass": 508,
+      "skipped": 2,
+      "fail": 0
+    },
+    "candidateCleanInstall": "passed",
+    "registryCleanInstall": {
+      "version": "0.6.3",
+      "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+      "cli": [
+        "agent-bridge",
+        "agent-bridge-connector"
+      ],
+      "gateway": true,
+      "taskboard": true,
+      "staticAsset": true
+    }
+  },
+  "deployment": "not-restarted-during-publication; 285cea1 already deployed and verified",
+  "documentationNote": "Tarball retains the verified preparation snapshot; final source documentation records the publication date and receipts without changing package bytes.",
+  "verifiedAt": "2026-11-11T10:14:28.852Z"
+}

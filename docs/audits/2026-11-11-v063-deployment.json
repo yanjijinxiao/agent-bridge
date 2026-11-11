@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "verifiedAt": "2026-11-11T09:59:21.236Z",
-  "status": "deployed-npm-candidate-prepared",
+  "status": "deployed-and-npm-published",
   "productVersion": "0.6.3",
   "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
   "sourceHash": "80132c8330c23358d4571909a653d660fc12782b1e3c578bdab62be45a51f0cc",
@@ -103,8 +103,8 @@
     "nativePriorChecks": 13
   },
   "npm": {
-    "status": "prepared-not-published",
-    "registryLatest": "0.6.2",
+    "status": "published-and-verified",
+    "registryLatest": "0.6.3",
     "verifiedTarball": "/private/tmp/agent-bridge-npm-0.6.3-20261111/yanjijinxiao-agent-bridge-0.6.3.tgz",
     "receipt": {
       "productVersion": "0.6.3",
@@ -129,8 +129,15 @@
       "taskboard": true,
       "staticAsset": true
     },
-    "githubRelease": "not-created",
-    "formalTag": "not-created"
+    "githubRelease": "published",
+    "formalTag": "v0.6.3",
+    "originalPreparationStatus": "prepared-not-published",
+    "publicationVerification": {
+      "report": "docs/audits/2026-11-11-v063-release.json",
+      "registryIntegrity": "sha512-3VVa1ChZZJ7zEuTnrQVnbVivzf4XzLyoxijopaRqDpvsGwbOtLbx7wJMikQLvIskBzSQbMWcgfAgL6kxkX7LLw==",
+      "verifiedAt": "2026-11-11T10:14:28.852Z",
+      "note": "程序未重新构建或重启；正式发行的是此前已核验且已部署的同一制品。"
+    }
   },
   "yuque": {
     "url": "https://aliyuque.antfin.com/odps/cm8be7/kfh7pk75ggvpno42",

@@ -2,7 +2,7 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
-## [0.6.3] - Unreleased
+## [0.6.3] - 2026-11-11
 
 - Keep old App-assigned conversations in their displayed project when native membership has not been synchronized. Corroborate the current host/thread in App catalogs, preserve native membership and access checks, and retain grouping through Connector project filtering.
 - Preserve the latest native permissions when cold-resuming Codex after its server restarts, including workspace networking, extra writable roots, temporary-directory exclusions, and named permission profiles. Keep loaded-owner edits authoritative and reject incomplete permission evidence before submitting input.
