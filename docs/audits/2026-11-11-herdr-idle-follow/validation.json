@@ -103,8 +103,25 @@
     "test/terminal-presentation.test.ts": "3af1482566e06cd9a33821f2217a673a50df88d1500e2433b9e6ea0169225d0c",
     "test/dingtalk-terminal-window.test.ts": "d186814e1e5304ddd583d4ce2855c7636ca58cea28d46f85a4b01887d7ff0a13"
   },
-  "fullRegression": "pending release preparation",
-  "deployment": "not-performed-yet",
+  "fullRegression": {
+    "gateway": {
+      "tests": 3798,
+      "pass": 3707,
+      "skip": 91,
+      "fail": 0,
+      "logSha256": "e842b72a95745b9989e0d56763a4fd1de1d6ca923ee30a133c22ec81c3de2db6"
+    },
+    "taskboard": {
+      "tests": 510,
+      "pass": 508,
+      "skip": 2,
+      "fail": 0,
+      "logSha256": "30585070cf855b85a51df9725f62deec40ea1c0c27a777fdaf4984bdad5191d1"
+    },
+    "typecheck": "passed",
+    "taskboardTypecheck": "passed"
+  },
+  "deployment": "both Gateways verified; see deployment-verification.json",
   "limits": [
     "The comparison detects only changes inside the existing normalized display window, not native turns.",
     "Invisible fast tasks with identical output cannot be distinguished from repeated status reports.",

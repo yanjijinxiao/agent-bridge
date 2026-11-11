@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-11T04:57:28.777150+00:00",
+  "productVersion": "0.6.3",
+  "commit": "1c39549b946d4d251ed818341fc161bac330bebb",
+  "sourceHash": "ca179eaaae0ddada3303f3120de7cd07aedf68c41e0a2c0b5a83fd86fce00a10",
+  "compiledHash": "b4aaff5a1c79d4543524bfd61815a811d0ca8f2e87cdda1670903e5091204fdf",
+  "toutou": {
+    "pid": 78557,
+    "previousPid": 48061,
+    "bindings": 47,
+    "retainedGrants": 33,
+    "ttlDays": 90,
+    "endpoints": 3,
+    "bindingsAndPermissionsPreserved": true,
+    "admissionReopened": true
+  },
+  "tantan": {
+    "version": "0.6.3",
+    "commit": "1c39549b946d4d251ed818341fc161bac330bebb",
+    "pid": 147118,
+    "previousPid": 138815,
+    "bindings": 19,
+    "bindingsAndPermissionsPreserved": true,
+    "retainedGrants": 2,
+    "ttlDays": 90,
+    "admissionReopened": true
+  },
+  "maintainedConnectors": [
+    {
+      "label": "Linux 12（Codex CLI）",
+      "version": "0.6.1",
+      "pid": 151780,
+      "online": true,
+      "processIdentityPreserved": true
+    },
+    {
+      "label": "Herdr TUI Linux12 · 验收",
+      "version": "0.6.0",
+      "pid": 150006,
+      "online": true,
+      "processIdentityPreserved": true
+    },
+    {
+      "label": "Herdr App Mac · 验收",
+      "version": "0.6.0",
+      "pid": 43346,
+      "online": true,
+      "processIdentityPreserved": true
+    },
+    {
+      "label": "Mac Connector 回归验证",
+      "version": "0.6.1",
+      "pid": 89993,
+      "online": true,
+      "processIdentityPreserved": true
+    }
+  ],
+  "liveHerdrFollow": {
+    "durableBaselinePresent": true,
+    "oldScreenStayedQuiet": true,
+    "subscriptionStartUnchanged": true,
+    "lastSequence": 9
+  },
+  "legacy060Reader": {
+    "previousProduction060ReadsNewBaseline": true,
+    "rows": 1
+  },
+  "yuque": {
+    "url": "https://aliyuque.antfin.com/odps/cm8be7/kfh7pk75ggvpno42",
+    "contentUpdatedAt": "2026-11-11T04:55:14.000Z",
+    "preparedBodyMatchesReadback": true,
+    "existingTitlePreserved": true
+  },
+  "npmPublication": "not-performed; this is the deployed fix build, not a formal npm release"
+}
