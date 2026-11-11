@@ -4,6 +4,8 @@
 
 2026-11-11 App 旧会话在 `/sessions` 项目中遗漏的展示兼容及 Connector 过滤修复见[四层检查记录](../audits/2026-11-11-legacy-catalog-grouping.md)。展示分组不参与原生归属、绑定及授权判断，验证与上线状态分别记录。
 
+这两处修复的最终 push、两套 Gateway/受维护 Connector 上线及 npm 0.6.3 候选准备结果见[发布核验](../audits/2026-11-11-v063-preparation.md)。npm 正式发布与线上构建分别记载。
+
 2026-11-11 Codex 原生核心冷恢复权限缺失的修复与测试范围见[四层检查记录](../audits/2026-11-11-native-cold-permissions.md)；原生进程重启与客户端暖重连分开验证，上线状态另记。
 
 2026-11-11 Herdr 被动跟随误推与终端标点修复见[四层检查及上线记录](../audits/2026-11-11-herdr-idle-follow/README.md)。修复构建 0.6.3 的代码、验证和部署分别留证，npm 正式发行状态不由此推断。

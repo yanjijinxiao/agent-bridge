@@ -444,8 +444,8 @@
     "原生none及unassigned语义不变；展示组不是原生归属",
     "无真实钉钉投递或视觉验收"
   ],
-  "push": "not-pushed",
-  "deployment": "not-deployed",
+  "push": "pushed",
+  "deployment": "deployed",
   "npm": "0.6.2",
   "sourceVersion": "0.6.3-Unreleased",
   "typecheck": "passed",
@@ -469,5 +469,11 @@
       "file": "test/peer-sharing.test.ts",
       "sha256": "f188fde212362b38f3bf9e54ad2450f6732a2dc7feac1f2f177c06372369560f"
     }
-  ]
+  ],
+  "originalDeploymentStatus": "not-deployed",
+  "deploymentVerification": {
+    "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+    "report": "docs/audits/2026-11-11-v063-deployment.json",
+    "note": "原始验证日志保留；最终部署与npm正式发布区分。"
+  }
 }

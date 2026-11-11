@@ -239,7 +239,7 @@
     }
   ],
   "status": "verified-listed-scenarios",
-  "deployment": "not-deployed",
+  "deployment": "deployed",
   "validation": [
     {
       "label": "full",
@@ -324,7 +324,7 @@
   "typecheck": "passed",
   "isolatedBuild": "passed",
   "diffCheck": "passed",
-  "push": "not-pushed",
+  "push": "pushed",
   "sourceRecheck": {
     "date": "2026-11-11",
     "report": "docs/audits/2026-11-11-legacy-catalog-grouping.md",
@@ -485,5 +485,11 @@
         "skipped": 0
       }
     }
-  ]
+  ],
+  "originalDeploymentStatus": "not-deployed",
+  "deploymentVerification": {
+    "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+    "report": "docs/audits/2026-11-11-v063-deployment.json",
+    "note": "原始验证日志保留；最终部署与npm正式发布区分。"
+  }
 }

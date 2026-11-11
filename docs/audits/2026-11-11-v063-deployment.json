@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-11T09:59:21.236Z",
+  "status": "deployed-npm-candidate-prepared",
+  "productVersion": "0.6.3",
+  "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+  "sourceHash": "80132c8330c23358d4571909a653d660fc12782b1e3c578bdab62be45a51f0cc",
+  "headGateway": {
+    "pid": 85347,
+    "bindingsPreserved": true,
+    "retainedGrants": 33,
+    "ttlDays": 90,
+    "endpoints": 3,
+    "admissionReopened": true
+  },
+  "tantanGateway": {
+    "pid": 149505,
+    "bindings": 19,
+    "bindingsAndPermissionsPreserved": true,
+    "retainedGrants": 2,
+    "ttlDays": 90,
+    "admissionReopened": true,
+    "ide": []
+  },
+  "maintainedConnectors": [
+    {
+      "hostId": "local",
+      "label": "头头 · Mac 本机",
+      "online": true,
+      "version": "0.6.3",
+      "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+      "instanceId": "618cee41-fb68-4819-ad10-2e687b9651c3",
+      "pid": 92201
+    },
+    {
+      "hostId": "peer:linux12:headless",
+      "label": "Linux 12（Codex CLI）",
+      "online": true,
+      "version": "0.6.3",
+      "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+      "instanceId": "786afb91-0586-4902-909c-9081843531ea",
+      "pid": 179843
+    },
+    {
+      "hostId": "peer:device-f3ac1592-ab09-487b-a65c-81942aa298e0:herdr-tui",
+      "label": "Herdr TUI Linux12 · 验收",
+      "online": true,
+      "version": "0.6.3",
+      "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+      "instanceId": "90739be8-ab71-4914-a8a0-469eedaecc39",
+      "pid": 179970
+    },
+    {
+      "hostId": "peer:device-2e58fd54-c0a1-401e-842b-cbd7f4a76e1d:herdr-app",
+      "label": "Herdr App Mac · 验收",
+      "online": true,
+      "version": "0.6.3",
+      "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+      "instanceId": "4f80d574-bf3d-44cf-aad8-c404b602f7a5",
+      "pid": 93125
+    },
+    {
+      "hostId": "peer:xking-mac-regression:desktop",
+      "label": "Mac Connector 回归验证",
+      "online": true,
+      "version": "0.6.3",
+      "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+      "instanceId": "ec5f365f-d56c-404e-bbcd-77c00834ce2c",
+      "pid": 93114
+    }
+  ],
+  "connectorCount": 5,
+  "remote43ViaMaintainedMac": true,
+  "thirdPartyConnector": {
+    "label": "知游的 Mac",
+    "online": true,
+    "modified": false
+  },
+  "nativeMacPidsPreserved": [
+    1681,
+    56270,
+    85378
+  ],
+  "linuxConnectorOnlyContainers": true,
+  "configurationsRetained": true,
+  "regression": {
+    "gateway": {
+      "tests": 3867,
+      "pass": 3766,
+      "skipped": 101,
+      "fail": 0,
+      "logSha256": "8ed0a3fbea867bbc319aca59826b12067b4bcd917ef85ea94b9a32b8c2eb940d"
+    },
+    "embedded": {
+      "tests": 510,
+      "pass": 508,
+      "skipped": 2,
+      "fail": 0,
+      "logSha256": "98e4ba7cda5fb2768d20eaebec5f41782908a7934c12d44954d0e3b32bd0c4db"
+    },
+    "typecheck": "passed",
+    "isolatedBuild": "passed",
+    "nativePriorChecks": 13
+  },
+  "npm": {
+    "status": "prepared-not-published",
+    "registryLatest": "0.6.2",
+    "verifiedTarball": "/private/tmp/agent-bridge-npm-0.6.3-20261111/yanjijinxiao-agent-bridge-0.6.3.tgz",
+    "receipt": {
+      "productVersion": "0.6.3",
+      "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+      "sourceHash": "80132c8330c23358d4571909a653d660fc12782b1e3c578bdab62be45a51f0cc",
+      "builtAt": "2026-11-11T09:50:09.755Z",
+      "name": "@yanjijinxiao/agent-bridge",
+      "path": "/private/tmp/agent-bridge-npm-0.6.3-20261111/yanjijinxiao-agent-bridge-0.6.3.tgz",
+      "integrity": "sha512-3VVa1ChZZJ7zEuTnrQVnbVivzf4XzLyoxijopaRqDpvsGwbOtLbx7wJMikQLvIskBzSQbMWcgfAgL6kxkX7LLw==",
+      "files": 999,
+      "size": 2442423
+    },
+    "sha256": "89c47e54d60607ef96f4f40d8af70029dcebd74dc6dfc0d8e4559348e58dfaed",
+    "cleanInstall": {
+      "version": "0.6.3",
+      "commit": "285cea1e378c22f8497a001f0cfadc5bbb32d804",
+      "cli": [
+        "agent-bridge",
+        "agent-bridge-connector"
+      ],
+      "gateway": true,
+      "taskboard": true,
+      "staticAsset": true
+    },
+    "githubRelease": "not-created",
+    "formalTag": "not-created"
+  },
+  "yuque": {
+    "url": "https://aliyuque.antfin.com/odps/cm8be7/kfh7pk75ggvpno42",
+    "title": "探探使用指南：连接自己的设备，在钉钉使用 Codex 与 Herdr",
+    "contentUpdatedAt": "2026-11-11T09:49:38.000Z",
+    "preparedBodyMatchesReadback": true,
+    "change": "Two Codex usage paragraphs added; original tutorial and title retained"
+  },
+  "limits": [
+    "未通过真实IM发送测试消息或验收手机视觉",
+    "发布准备不等于npm公开发布；应发布已验证的同一tarball",
+    "第三方设备需其所有者自行升级"
+  ]
+}
