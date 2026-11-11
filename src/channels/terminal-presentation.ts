@@ -17,9 +17,12 @@ export function terminalWindowText(value: string): string {
  * Nonbreaking leading spaces prevent indentation becoming a copyable code
  * block; escaped fences/links/HTML remain inert terminal characters. */
 export function terminalProse(value: string): string {
-  return value.split("\n").map(line => line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/[.:@]/g, char => `&#${char.charCodeAt(0)};`)
-    .replace(/[\\`*_{}\[\]()#+.!|~\-]/g, "\\$&")
+  // Native IM Markdown does not consistently decode HTML entities. Leave
+  // clock colons readable, break automatic URI/domain/mention recognition
+  // with invisible separators, and escape rich-content syntax as Markdown.
+  return value.split("\n").map(line => line.replace(/([a-z][a-z0-9+.-]*):(?=\/\/)/gi, "$1:\u200b")
+    .replace(/[.@]/g, "$&\u200b")
+    .replace(/[\\`*_{}\[\]()#+.!|~\-&<>]/g, "\\$&")
     .replace(/^[ \t]+/, space => space.replace(/ /g, "\u00a0").replace(/\t/g, "\u00a0\u00a0\u00a0\u00a0")))
     .join("  \n");
 }

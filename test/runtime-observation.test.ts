@@ -15,7 +15,7 @@ function fixture(t: TestContext) {
   const target: RuntimeResource = { ref: { endpointId: "runtime", id: "terminal" }, kind: "terminal", title: "fixture", cwd: "/fixture", state: "idle",
     evidence: "program-report", incarnation: "first", identityStrength: "observed" };
   let current = true, reads = 0, now = 100, offline = false, followEnabled = true, progressEnabled = true;
-  let blockFinal = false;
+  let blockFinal = false, screen = "screen sample";
   let onRead: (() => void) | undefined, onNotify: (() => Promise<void>) | undefined;
   let lookup: (() => Promise<RuntimeHandoffRecord | null>) | undefined, recover: (() => void) | undefined;
   const final: Array<{ text: string; outcome: string; scope: RuntimeObservationScope }> = [], progress: string[] = [], activities: string[] = [];
@@ -24,7 +24,7 @@ function fixture(t: TestContext) {
   const create = () => new RuntimeObservationController({ journal,
     current: scope => current && !deniedActors.has(scope.actorId), followEnabled: () => followEnabled, progressEnabled: () => progressEnabled, now: () => now,
     inspect: async () => { if (offline) throw Error("offline"); return structuredClone(target); },
-    read: async () => { reads++; onRead?.(); return { kind: "terminal-screen", ref: target.ref, text: "screen sample", source: "screen", complete: true }; },
+    read: async () => { reads++; onRead?.(); return { kind: "terminal-screen", ref: target.ref, text: screen, source: "screen", complete: true }; },
     receipt: async () => lookup?.() ?? null, recovered: () => recover?.(), notify: async row => { notified.push(structuredClone(row.scope)); await onNotify?.(); },
     presentation(row, save) {
       let checkpoint: ChannelStreamCheckpoint = row.checkpoint ?? { messageId: "existing-card", startedAt: now, progressEntries: [], thought: "", answerPreview: "", finished: false };
@@ -44,6 +44,7 @@ function fixture(t: TestContext) {
   const begin = (fingerprint?: string) => observer.begin(scope, structuredClone(target), "source", fingerprint);
   return { file, scope, target, final, progress, activities, notified, deniedActors, begin, get observer() { return observer; }, get journal() { return journal; }, get reads() { return reads; },
     set blockFinal(value: boolean) { blockFinal = value; },
+    set screen(value: string) { screen = value; },
     set followEnabled(value: boolean) { followEnabled = value; }, set progressEnabled(value: boolean) { progressEnabled = value; },
     set current(value: boolean) { current = value; }, set now(value: number) { now = value; }, set offline(value: boolean) { offline = value; },
     set onRead(value: () => void) { onRead = value; }, set onNotify(value: () => Promise<void>) { onNotify = value; },
@@ -154,7 +155,7 @@ test("terminal rendering escapes action fences, images, links, ANSI and controls
 
 test("passive follow keeps an idle baseline then observes consecutive external runs without submitting", async t => {
   const f = fixture(t); f.observer.follow(f.scope, structuredClone(f.target)); await f.observer.tick();
-  assert.equal(f.reads, 0); assert.equal(f.final.length, 0); assert.equal(f.progress.length, 0);
+  assert.equal(f.reads, 1); assert.equal(f.final.length, 0); assert.equal(f.progress.length, 0);
   for (let cycle = 0; cycle < 2; cycle++) {
     f.target.state = "working"; await f.observer.tick();
     f.target.state = "idle"; await f.observer.tick();
@@ -180,7 +181,7 @@ test("follow off preserves pending input recovery and never converts it to a sub
 test("passive following yields to an input result instead of duplicating terminal output", async t => {
   const f = fixture(t); f.observer.follow(f.scope, structuredClone(f.target)); await f.observer.tick();
   const id = f.begin(); f.confirm(id); f.target.state = "working"; await f.observer.tick();
-  assert.equal(f.reads, 1); f.target.state = "idle"; await f.observer.tick(); await f.observer.tick();
+  assert.equal(f.reads, 2); f.target.state = "idle"; await f.observer.tick(); await f.observer.tick();
   assert.equal(f.final.filter(x => x.outcome === "terminal-idle").length, 1);
 });
 for (const restart of [false, true]) test(`terminal completion between passive and input reads does not create a second result card, restart=${restart}`, async t => {
@@ -192,7 +193,9 @@ for (const restart of [false, true]) test(`terminal completion between passive a
   assert.equal(f.journal.get(follow)?.lastSequence, 3);
   if (restart) f.reload(); await f.observer.tick(); assert.equal(f.final.length, 1);
   // A genuinely later external cycle remains visible; do not suppress follow.
-  f.onRead = () => {}; f.target.observationSequence = 5;
+  f.onRead = () => {}; f.target.observationSequence = 4;
+  await f.observer.tick(); assert.equal(f.final.length, 1, "an unchanged screen is not a new external result");
+  f.screen = "a genuinely later external result"; f.target.observationSequence = 5;
   await f.observer.tick(); assert.equal(f.final.length, 2); assert.match(f.final[1].text, /只读跟随/);
 });
 test("stream off suppresses progress while preserving input outcome", async t => {
@@ -203,20 +206,90 @@ test("stream off suppresses progress while preserving input outcome", async t =>
 test("passive follow reconnect records only fresh read evidence", async t => {
   const f = fixture(t); const id = f.observer.follow(f.scope, structuredClone(f.target)); await f.observer.tick();
   f.offline = true; f.now = 500; f.target.state = "working"; await f.observer.tick();
-  assert.equal(f.journal.get(id)?.lastSyncedAt, 100); assert.equal(f.reads, 0);
-  f.offline = false; await f.observer.tick(); assert.equal(f.journal.get(id)?.lastSyncedAt, 500); assert.equal(f.reads, 1);
+  assert.equal(f.journal.get(id)?.lastSyncedAt, 100); assert.equal(f.reads, 1);
+  f.offline = false; await f.observer.tick(); assert.equal(f.journal.get(id)?.lastSyncedAt, 500); assert.equal(f.reads, 2);
 });
 test("a sequence change may reveal an offline terminal cycle but never manufactures a task result", async t => {
   const f = fixture(t); f.target.observationSequence = 4;
   f.observer.follow(f.scope, structuredClone(f.target)); await f.observer.tick(); f.reload();
-  f.target.observationSequence = 5; await f.observer.tick();
+  f.screen = "new output while disconnected"; f.target.observationSequence = 5; await f.observer.tick();
   assert.equal(f.final.length, 1); assert.match(f.final[0].text, /只读跟随/);
   await f.observer.tick(); assert.equal(f.final.length, 1);
 });
 test("unknown and unchanged idle states do not produce passive follow cards", async t => {
   const f = fixture(t); f.target.state = "unknown";
   f.observer.follow(f.scope, structuredClone(f.target)); await f.observer.tick(); await f.observer.tick();
-  f.target.state = "idle"; await f.observer.tick(); assert.equal(f.reads, 0); assert.equal(f.final.length, 0);
+  f.target.state = "idle"; await f.observer.tick(); assert.equal(f.reads, 1); assert.equal(f.final.length, 0);
+});
+
+for (const restart of [false, true]) test(`passive idle counter changes never replay an unchanged screen, restart=${restart}`, async t => {
+  const f = fixture(t); f.target.observationSequence = 4;
+  const id = f.observer.follow(f.scope, structuredClone(f.target)); await f.observer.tick();
+  if (restart) f.reload();
+  f.target.state = "done"; f.target.observationSequence = 5; await f.observer.tick();
+  f.target.observationSequence = 9; await f.observer.tick();
+  assert.equal(f.final.length, 0); assert.equal(f.progress.length, 0); assert.equal(f.notified.length, 0);
+  assert.equal(f.journal.get(id)?.lastSequence, 9);
+  assert.match(f.journal.get(id)?.display?.boundary ?? "", /^terminal-window-v1:sha256:[a-f0-9]{64}$/);
+  f.target.state = "working"; await f.observer.tick(); f.target.state = "idle"; await f.observer.tick();
+  assert.equal(f.final.length, 1, "an observed real activity still finishes even with identical output");
+});
+test("legacy phase hashes seed a quiet baseline instead of replaying a historical completion", async t => {
+  const f = fixture(t); f.target.observationSequence = 5; f.target.state = "done";
+  const id = f.observer.follow(f.scope, structuredClone(f.target));
+  f.journal.put({ ...f.journal.get(id)!, lastState: "idle", lastSequence: 4,
+    display: { version: 1, boundary: "legacy-phase", published: ["a".repeat(64)] } });
+  await f.observer.tick(); assert.equal(f.final.length, 0); assert.equal(f.progress.length, 0);
+  f.screen = "fresh external answer"; f.target.observationSequence = 6; await f.observer.tick();
+  assert.equal(f.final.length, 1); assert.ok(f.progress.includes("fresh external answer"));
+});
+test("failed passive baseline reads do not advance evidence or create a card", async t => {
+  const f = fixture(t); f.target.observationSequence = 4;
+  const id = f.observer.follow(f.scope, structuredClone(f.target)); f.onRead = () => { throw Error("read offline"); };
+  await f.observer.tick(); assert.equal(f.journal.get(id)?.lastSyncedAt, undefined); assert.equal(f.final.length, 0);
+  f.onRead = () => {}; f.reload(); await f.observer.tick();
+  assert.match(f.journal.get(id)?.display?.boundary ?? "", /^terminal-window-v1:sha256:/);
+  assert.equal(f.final.length, 0); assert.equal(f.progress.length, 0);
+});
+for (const change of ["permission", "incarnation", "reference"] as const) test(`passive baseline rejects ${change} changes during its read`, async t => {
+  const f = fixture(t); const id = f.observer.follow(f.scope, structuredClone(f.target));
+  f.onRead = () => { if (change === "permission") f.current = false;
+    else if (change === "incarnation") f.target.incarnation = "replacement";
+    else f.target.ref = { endpointId: "other-runtime", id: "other-terminal" }; };
+  await f.observer.tick(); assert.equal(f.reads, 1); assert.equal(f.journal.get(id)?.display, undefined);
+  assert.equal(f.final.length, 0); assert.equal(f.progress.length, 0);
+});
+test("an activity beginning during the quiet baseline read is followed immediately", async t => {
+  const f = fixture(t); f.observer.follow(f.scope, structuredClone(f.target));
+  f.onRead = () => { f.target.state = "working"; };
+  await f.observer.tick(); assert.equal(f.progress.length, 1); assert.equal(f.final.length, 0);
+  f.onRead = () => {}; f.target.state = "idle"; await f.observer.tick(); assert.equal(f.final.length, 1);
+});
+for (const state of ["error", "exited"] as const) test(`a verified ${state} transition during baseline capture remains visible`, async t => {
+  const f = fixture(t); f.observer.follow(f.scope, structuredClone(f.target));
+  f.onRead = () => { f.target.state = state; };
+  await f.observer.tick(); assert.equal(f.final.length, 1); assert.equal(f.final[0].outcome, state === "error" ? "terminal-error" : "terminal-exited");
+});
+test("passive screen comparison ignores ANSI redraws and line ending changes", async t => {
+  const f = fixture(t); f.target.observationSequence = 1; f.screen = "\x1b[31mold\x1b[0m\r\nanswer";
+  f.observer.follow(f.scope, structuredClone(f.target)); await f.observer.tick();
+  f.target.observationSequence = 2; f.screen = "old\nanswer"; await f.observer.tick();
+  assert.equal(f.final.length, 0); assert.equal(f.progress.length, 0);
+});
+test("a fast unseen external completion still delivers with stream off", async t => {
+  const f = fixture(t); f.target.observationSequence = 1; f.progressEnabled = false;
+  f.observer.follow(f.scope, structuredClone(f.target)); await f.observer.tick();
+  f.screen = "new visible answer"; f.target.observationSequence = 2; await f.observer.tick();
+  assert.equal(f.final.length, 1); assert.equal(f.progress.length, 0); assert.equal(f.notified.length, 0);
+});
+test("an input arriving during a passive baseline read owns the only result card", async t => {
+  const f = fixture(t); f.target.observationSequence = 1;
+  const id = f.observer.follow(f.scope, structuredClone(f.target)); let input: string | undefined;
+  f.onRead = () => { input = f.begin(); f.confirm(input, true); };
+  await f.observer.tick(); assert.ok(input); assert.equal(f.final.length, 0); assert.equal(f.progress.length, 0);
+  assert.equal(f.journal.get(id)?.following?.active, false);
+  f.onRead = () => {}; await f.observer.tick(); await f.observer.tick();
+  assert.equal(f.final.length, 1); assert.match(f.final[0].text, /输入交接已确认/);
 });
 test("revoked passive follow stops without reading or announcing a task outcome", async t => {
   const f = fixture(t); f.observer.follow(f.scope, structuredClone(f.target)); f.current = false; await f.observer.tick();

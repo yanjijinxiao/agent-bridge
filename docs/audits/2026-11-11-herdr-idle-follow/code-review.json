@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "baseline": "5a1188e",
+  "functions": [
+    {
+      "file": "src/bridge/runtime-observation.ts",
+      "symbol": "screenBoundary",
+      "lines": [
+        36,
+        39
+      ],
+      "sha256": "9cced7d2a4dbe0aec16f8046d88d65d21cfbb69e6cca330807162a4811474abb",
+      "intent": "Only recognize tagged screen comparison evidence; ignore legacy stage boundaries.",
+      "requirement": "HDR-18",
+      "scope": "listed-scenarios-only"
+    },
+    {
+      "file": "src/bridge/runtime-observation.ts",
+      "symbol": "screenDisplay",
+      "lines": [
+        40,
+        43
+      ],
+      "sha256": "9cced7d2a4dbe0aec16f8046d88d65d21cfbb69e6cca330807162a4811474abb",
+      "intent": "Hash the cleaned bounded window, never terminal markup or a native execution receipt.",
+      "requirement": "HDR-18",
+      "scope": "listed-scenarios-only"
+    },
+    {
+      "file": "src/bridge/runtime-observation.ts",
+      "symbol": "readScreen",
+      "lines": [
+        226,
+        235
+      ],
+      "sha256": "9cced7d2a4dbe0aec16f8046d88d65d21cfbb69e6cca330807162a4811474abb",
+      "intent": "Fence output resource and post-read process identity and current source authority.",
+      "requirement": "HDR-18",
+      "scope": "listed-scenarios-only"
+    },
+    {
+      "file": "src/bridge/runtime-observation.ts",
+      "symbol": "observeNow",
+      "lines": [
+        236,
+        365
+      ],
+      "sha256": "9cced7d2a4dbe0aec16f8046d88d65d21cfbb69e6cca330807162a4811474abb",
+      "intent": "Seed quiet baselines; require a changed screen for unseen idle cycles; retain explicit activity and input ownership.",
+      "requirement": "HDR-18",
+      "scope": "listed-scenarios-only"
+    },
+    {
+      "file": "src/bridge/runtime-observation.ts",
+      "symbol": "finish",
+      "lines": [
+        366,
+        394
+      ],
+      "sha256": "9cced7d2a4dbe0aec16f8046d88d65d21cfbb69e6cca330807162a4811474abb",
+      "intent": "Transfer verified state and screen baseline before an input result releases presentation ownership.",
+      "requirement": "HDR-18",
+      "scope": "listed-scenarios-only"
+    },
+    {
+      "file": "src/bridge/runtime-observation.ts",
+      "symbol": "resetFollow",
+      "lines": [
+        395,
+        402
+      ],
+      "sha256": "9cced7d2a4dbe0aec16f8046d88d65d21cfbb69e6cca330807162a4811474abb",
+      "intent": "Retain only tagged comparison evidence while retiring old card identity.",
+      "requirement": "HDR-18",
+      "scope": "listed-scenarios-only"
+    },
+    {
+      "file": "src/channels/terminal-presentation.ts",
+      "symbol": "terminalProse",
+      "lines": [
+        19,
+        28
+      ],
+      "sha256": "4201ad0389f7fdd26c04651949f8c92d14509392441f66850fbe93be9efc8234",
+      "intent": "Preserve clocks without HTML entities while keeping terminal markup, links and mentions inert.",
+      "requirement": "HDR-18",
+      "scope": "listed-scenarios-only"
+    }
+  ],
+  "adjacentReadScopes": [
+    {
+      "file": "src/bridge/service.ts",
+      "lines": [
+        380,
+        426
+      ]
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "lines": [
+        1602,
+        1655
+      ]
+    },
+    {
+      "file": "src/channels/turn-presentation.ts",
+      "lines": [
+        191,
+        210
+      ]
+    }
+  ]
+}

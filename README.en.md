@@ -16,6 +16,8 @@
 
 Herdr uses an explicitly configured Connector endpoint, with catalog, terminal lifecycle, durable input handoff, read-only recovery, IM/Web observation, files, sharing, and a full IDE on local or App remote machines. Its APIs expose status and turn-related counters, but output reads cannot select the text belonging to one conversation turn. A terminal card may include earlier exchanges still in the read window. Native approvals, model settings, and queue receipts are separate capabilities and are not emulated with terminal keystrokes. See the [Herdr configuration guide](docs/herdr-connector-guide.md) and the source checkout’s four-layer audit for the exact validation boundaries. Release changes and upgrade notes belong in the [changelog](CHANGELOG.md); tutorials do not pin an installation version.
 
+Passive follow quietly establishes a screen baseline and does not replay an unchanged idle screen merely because its status counter increases. Observed activity and fast completions with changed output remain visible; results belonging to Gateway inputs retain their own delivery obligations.
+
 | Execution location | Connection |
 | --- | --- |
 | Gateway machine | An independently running Connector on the same machine connects to its configured native App Server |

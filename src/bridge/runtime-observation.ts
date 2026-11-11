@@ -8,6 +8,7 @@ import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import type { ChannelStreamCheckpoint } from "../channels/progress.js";
 import { channelStreamCheckpointSchema } from "../channels/stream-checkpoint.js";
 import type { TurnReplyStream } from "../channels/turn-presentation.js";
+import { terminalWindowText } from "../channels/terminal-presentation.js";
 
 const scopeSchema = z.object({ sessionId: z.string().min(1), conversationId: z.string().min(1), actorId: z.string().min(1),
   accountId: z.string().min(1), hostId: z.string().min(1), threadId: z.string().min(1), bindingStamp: z.string().min(1),
@@ -29,6 +30,17 @@ const rowSchema = z.object({ id: z.string().regex(/^[a-f0-9]{64}$/), scope: scop
   lastState: z.string().optional(), checkpoint: channelStreamCheckpointSchema.optional(), notificationAttempted: z.boolean().optional() }).strict();
 export type RuntimeObservation = Omit<z.infer<typeof rowSchema>, "checkpoint"> & { checkpoint?: ChannelStreamCheckpoint };
 const storeSchema = z.object({ version: z.literal(1), rows: z.record(z.string(), rowSchema) }).strict();
+
+/** Tagged comparison evidence in the existing display envelope. Untagged
+ * legacy stage boundaries are not evidence about a terminal screen. */
+function screenBoundary(row: RuntimeObservation): string | undefined {
+  const boundary = row.display?.boundary;
+  return boundary && /^terminal-window-v1:sha256:[a-f0-9]{64}$/.test(boundary) ? boundary : undefined;
+}
+function screenDisplay(output: RuntimeOutput) {
+  return { version: 1 as const, boundary: `terminal-window-v1:sha256:${crypto.createHash("sha256")
+    .update(terminalWindowText(output.text)).digest("hex")}`, published: [] as string[] };
+}
 
 /** A read-only presentation obligation, not an execution queue. No prompt,
  * native turn ID, retry instruction or approval answer is persisted here. */
@@ -211,12 +223,23 @@ export class RuntimeObservationController {
     const work = this.observeNow(current).finally(() => this.inFlight.delete(row.id));
     this.inFlight.set(row.id, work); return work;
   }
+  private async readScreen(row: RuntimeObservation, valid: () => boolean) {
+    const output = await this.options.read(row.scope); if (!valid()) return;
+    if (output.ref.endpointId !== row.target.ref.endpointId || output.ref.id !== row.target.ref.id)
+      throw Error("Runtime screen identity changed");
+    // Fence the returned bytes against the saved target, including a process
+    // replacement between the first inspect and the adapter's own read.
+    const actual = await this.options.inspect(row.scope); if (!valid()) return;
+    assertSameReadTarget(row.target, actual);
+    return { output, actual };
+  }
   private async observeNow(row: RuntimeObservation): Promise<void> {
     if (this.closed || this.busy.has(row.id) || this.handoffs.has(row.id)) return;
     this.busy.add(row.id);
     try {
       const valid = () => !this.closed && this.options.current(row.scope)
         && (!row.following || this.options.followEnabled?.(row.scope) !== false);
+      let captured: Awaited<ReturnType<RuntimeObservationController["readScreen"]>>;
       if (!valid()) {
         const stream = this.streams.get(row.id);
         let retired = true;
@@ -229,7 +252,7 @@ export class RuntimeObservationController {
       // A passive subscription owns no task/input receipt. Keep idle baseline
       // quiet and share presentation with any current input observation.
       if (row.following && !row.checkpoint?.terminal) {
-        const actual = await this.options.inspect(row.scope); if (!valid()) return;
+        let actual = await this.options.inspect(row.scope); if (!valid()) return;
         try { assertSameReadTarget(row.target, actual); }
         catch {
           if (!row.checkpoint?.messageId || await this.stream(row).finalize("终端程序或目录已改变，已停止跟随原目标。请重新核对绑定。", false, { existingOnly: true, outcome: "detached" })) {
@@ -245,17 +268,40 @@ export class RuntimeObservationController {
           await this.resetFollow(row.id, actual); return;
         }
         if (!row.following.active) {
+          const baseline = screenBoundary(row);
+          let changedDuringRead = false;
+          const sequenceAdvanced = row.lastSequence !== undefined && actual.observationSequence !== undefined
+            && actual.observationSequence > row.lastSequence;
+          if ((actual.state === "idle" || actual.state === "done") && (!baseline || sequenceAdvanced)) {
+            const stateBeforeRead = actual.state;
+            captured = await this.readScreen(row, valid); if (!captured) return;
+            actual = captured.actual;
+            changedDuringRead = actual.state !== stateBeforeRead;
+            // A new input may have acquired presentation while this read was
+            // pending. Let its own observation deliver; never race it with a
+            // passive completion card from the same screen.
+            if (this.options.journal.list().some(other => !other.following && this.sameBinding(other.scope, row.scope))) {
+              await this.resetFollow(row.id, actual); return;
+            }
+            if ((actual.state === "idle" || actual.state === "done")
+              && (!baseline || baseline === screenDisplay(captured.output).boundary)) {
+              this.options.journal.put({ ...row, display: screenDisplay(captured.output), lastState: actual.state,
+                lastSequence: actual.observationSequence, lastSyncedAt: this.now() }); return;
+            }
+          }
           const sequenceChanged = row.lastSequence !== undefined && actual.observationSequence !== undefined
             && actual.observationSequence > row.lastSequence;
           const changed = row.lastState !== actual.state;
-          const active = (actual.state === "working" || actual.state === "blocked") && (changed || sequenceChanged)
-            || row.lastState !== undefined && changed && (actual.state === "error" || actual.state === "exited")
-            || sequenceChanged && (actual.state === "idle" || actual.state === "done");
+          const active = (actual.state === "working" || actual.state === "blocked") && (changed || sequenceChanged || !baseline)
+            || (row.lastState !== undefined && changed || changedDuringRead) && (actual.state === "error" || actual.state === "exited")
+            || Boolean(captured && baseline && sequenceChanged && (actual.state === "idle" || actual.state === "done"));
           row = { ...row, following: { active }, lastSyncedAt: this.now() };
           if (!active) {
             this.options.journal.put({ ...row, lastState: actual.state, lastSequence: actual.observationSequence }); return;
           }
-          row.startedAt = this.now(); row.seenWorking = true;
+          // A changed idle snapshot is a display obligation, not a witnessed
+          // working state. following.active can finish that fast observation.
+          row.startedAt = this.now(); row.seenWorking = actual.state === "working";
           this.options.journal.put(row);
         }
       }
@@ -281,24 +327,17 @@ export class RuntimeObservationController {
         if (await stream.finalize("输入未发送到终端，原任务未改变。", false, { outcome: "input-not-sent" })) await this.finish(row.id);
         return;
       }
-      const actual = await this.options.inspect(row.scope); if (!valid()) return;
+      const actual = captured?.actual ?? await this.options.inspect(row.scope); if (!valid()) return;
       try { assertSameReadTarget(row.target, actual); }
       catch {
         if (await stream.finalize("终端程序或目录已改变，已停止同步原目标；没有向新目标发送输入。", false, { outcome: "detached" })) await this.finish(row.id);
         return;
       }
-      const output = await this.options.read(row.scope); if (!valid()) return;
-      if (output.ref.endpointId !== row.target.ref.endpointId || output.ref.id !== row.target.ref.id) throw Error("Runtime screen identity changed");
-      // read() fences its own snapshot, but its first check may already see a
-      // replacement created after our inspect. Fence against the saved target
-      // again before publishing any bytes from that snapshot.
-      const after = await this.options.inspect(row.scope); if (!valid()) return;
-      assertSameReadTarget(row.target, after);
+      const snapshot = captured ?? await this.readScreen(row, valid); if (!snapshot) return;
+      const { output, actual: after } = snapshot;
       const latest = this.options.journal.get(row.id)!;
       latest.seenWorking ||= after.state === "working";
-      // Legacy display hashes described heuristic stages. A terminal window
-      // replaces them; keep execution and delivery identities unchanged.
-      delete latest.display;
+      latest.display = screenDisplay(output);
       latest.lastState = after.state; latest.lastSequence = after.observationSequence; latest.lastSyncedAt = this.now(); this.options.journal.put(latest);
       actual.state = after.state;
       const idle = actual.state === "idle" || actual.state === "done";
@@ -311,7 +350,7 @@ export class RuntimeObservationController {
       // phase accumulation or rotation. Even with /stream off retain the tail
       // for the final result, without emitting ordinary per-frame messages.
       await stream.terminalScreen(output.text, this.options.progressEnabled?.(row.scope) !== false);
-      if (actual.state === "exited" || actual.state === "error" || idle && (latest.seenWorking || this.now() - row.startedAt >= 20000)) {
+      if (actual.state === "exited" || actual.state === "error" || idle && (row.following?.active || latest.seenWorking || this.now() - row.startedAt >= 20000)) {
         const outcome = actual.state === "exited" ? "terminal-exited" : actual.state === "error" ? "terminal-error" : "terminal-idle";
         const evidence = row.following ? "这是只读跟随观察，未提交输入。"
           : row.phase === "confirmed" ? "输入交接已确认。" : "本次输入交接未确认，未自动重发。";
@@ -340,7 +379,8 @@ export class RuntimeObservationController {
           || (saved.lastSyncedAt ?? 0) > row.lastSyncedAt
           || saved.lastSequence !== undefined && row.lastSequence !== undefined && saved.lastSequence > row.lastSequence) continue;
         try { assertSameReadTarget(saved.target, row.target); } catch { continue; }
-        this.options.journal.put({ ...saved, lastState: row.lastState, lastSequence: row.lastSequence, lastSyncedAt: row.lastSyncedAt });
+        this.options.journal.put({ ...saved, lastState: row.lastState, lastSequence: row.lastSequence, lastSyncedAt: row.lastSyncedAt,
+          ...(screenBoundary(row) ? { display: row.display } : {}) });
       }
     }
     if (row && !row.following && this.options.notify && !row.notificationAttempted && this.options.current(row.scope)) {
@@ -354,8 +394,9 @@ export class RuntimeObservationController {
   }
   private async resetFollow(id: string, actual?: RuntimeResource): Promise<void> {
     const row = this.options.journal.get(id); if (!row?.following) return;
-    const { checkpoint: _checkpoint, notificationAttempted: _notification, display: _display, ...rest } = row;
+    const { checkpoint: _checkpoint, notificationAttempted: _notification, display, ...rest } = row;
     this.options.journal.put({ ...rest, following: { active: false }, seenWorking: false, startedAt: this.now(),
+      ...(screenBoundary(row) ? { display } : {}),
       ...(actual ? { lastState: actual.state, lastSequence: actual.observationSequence, lastSyncedAt: this.now() } : {}) });
     await this.streams.get(id)?.suspend(); this.streams.delete(id);
   }

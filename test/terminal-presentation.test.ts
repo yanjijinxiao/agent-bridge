@@ -35,3 +35,9 @@ test("durable terminal window is bounded by code points and keeps the newest tex
  const stored=terminalWindowText("OLD"+"🧪".repeat(TERMINAL_WINDOW_POINTS)+"NEW");
  assert.equal(Array.from(stored).length,TERMINAL_WINDOW_POINTS);assert.ok(stored.endsWith("NEW"));assert.doesNotMatch(stored,/OLD|\ufffd/);
 });
+test("terminal punctuation remains readable without HTML entity dependencies", () => {
+ const safe=terminalProse('Worked for 56s • 10:43\n<status> & ready\nhttps://example.test/path user@example.test @someone');
+ assert.match(safe,/10:43/);assert.doesNotMatch(safe,/&(?:amp|lt|gt|#\d+);/);
+ const tokens:any[]=[];const walk=(items:any[])=>{for(const token of items){tokens.push(token);if(token.tokens)walk(token.tokens);}};
+ walk(Lexer.lex(safe));assert.ok(!tokens.some(t=>["code","html","image","link"].includes(t.type)));
+});

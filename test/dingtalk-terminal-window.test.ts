@@ -38,9 +38,10 @@ test(`${mode} terminal fills one large card while controls stay within the small
  let stream=new ChannelTurnPresentation(client,"room",options);t.after(()=>stream.suspend());
  const visible=()=>{const card=[...cards.values()][0];return JSON.parse(card.sys_full_json_obj).order.map((key:string)=>card[key]).join("\n\n");};
  for(let i=0;i<3;i++){
-  await stream.terminalScreen("OLDEST"+"终端🧪字符\n".repeat(8000)+`\n    indent\n\n• Ran terminal command\nLATEST${i}`);await stream.flush();
+  await stream.terminalScreen("OLDEST"+"终端🧪字符\n".repeat(8000)+`\n    indent\n\n• Ran terminal command\nWorked for 56s • 10:43\nLATEST${i}`);await stream.flush();
   const text=visible();assert.ok(Buffer.byteLength(text)>49000);assert.ok(Buffer.byteLength(text)<=50000);
   assert.match(text,new RegExp(`LATEST${i}`));assert.doesNotMatch(text,/OLDEST/);assert.match(text,/Ran terminal command/);
+  assert.match(text,/10:43/);assert.doesNotMatch(text,/&#58;|&\\#58;/);
   assert.match(text,/Web IDE/);assert.match(text,/\u00a0{4}indent/);assert.match(text.slice(-1000),/indent {2}<br> {2}<br>/);
   assert.equal(cards.size,1);assert.equal(creates,1);assert.equal(stream.checkpoint().segments,undefined);
   assert.deepEqual(Lexer.lex([...cards.values()][0].msgContent).filter(x=>x.type==="code").map(x=>x.text),["/stop"]);

@@ -2,6 +2,12 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
+## [0.6.3] - Unreleased
+
+- Keep passive Herdr follow silent when only an idle/done counter changes and the normalized terminal screen is unchanged. Persist display comparison evidence across reconnects, seed legacy baselines quietly, and retain real working/blocked/error/exit activity and changed-screen fast completions.
+- Preserve input-owned result delivery during passive reads and share the last verified screen baseline after completion, preventing duplicate result cards without sending or stopping agent input.
+- Render terminal timestamps and punctuation without HTML entity dependencies while keeping URLs, mentions, markup, and action examples inert.
+
 ## [0.6.2] - 2026-11-10
 
 - Read DingTalk quoted card bodies from visible text elements and support legacy rich-text containers, preserving paragraph boundaries and keeping quoted slash commands separate from current input.
