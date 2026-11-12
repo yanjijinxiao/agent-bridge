@@ -4,9 +4,7 @@ import path from "node:path";
 import { z } from "zod";
 import type { ChannelMessage } from "../channels/message.js";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
-import { CodexCommunicationError } from "../codex/communication-error.js";
-import { CodexRunAdmissionError } from "../codex/backend.js";
-import { ForwardingDeferredError } from "./forwarding-error.js";
+import { ForwardingDeferredError, isRetryableForwardingError } from "./forwarding-error.js";
 import type { InboundReceiptJournal, InboundReceipt } from "./inbound-receipts.js";
 
 const attachment = z.object({ kind: z.enum(["image", "file", "video", "audio"]), label: z.string(),
@@ -65,6 +63,13 @@ export class ForwardingInbox {
     this.rows = saved.rows;
   }
   private now(): number { return this.options.now?.() ?? Date.now(); }
+  /** Presentation authority only, never permission to replay. The journal may
+   * currently contain this attempt's submitting intent; deliver() must still
+   * inspect its post-dispatch receipt before deciding whether it can retry. */
+  ownsPendingInput(messageId: string): boolean {
+    const row = this.rows[idOf(messageId)], phase = this.options.receipts.receipt(messageId)?.phase;
+    return Boolean(row?.automatic && row.state === "pending" && (!phase || phase === "received" || phase === "submitting"));
+  }
   private ordered(row: Row): boolean { return row.automatic || this.options.ordersInput?.(row.message) === true; }
   private save(): void { writeJsonFile(this.options.filePath, { version: 1, rows: this.rows }, { durable: true }); }
   private normalize(input: ChannelMessage): ChannelMessage {
@@ -270,8 +275,7 @@ export class ForwardingInbox {
         const after = this.options.receipts.receipt(row.message.id);
         if (after && ["accepted", "handled"].includes(after.phase)) { this.remove(key); throw error; }
         if ((!after || after.phase === "received") && row.automatic
-          && (error instanceof ForwardingDeferredError || error instanceof CodexRunAdmissionError
-            || error instanceof CodexCommunicationError && error.submission === "not-submitted")) {
+          && isRetryableForwardingError(error)) {
           row.nextAt = this.now() + Math.min(60_000, (this.options.retryMs ?? 2000) * 2 ** Math.min(5, row.attempts - 1)); this.save();
           await this.inform(row, "消息已保存，正在等待原会话恢复转发；尚未提交给 Codex，无需重发。"); return;
         }

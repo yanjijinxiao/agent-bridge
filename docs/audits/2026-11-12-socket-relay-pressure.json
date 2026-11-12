@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "baseline": "f0c64a0862832caa6293edbd5c0c074c0999f1b2",
+  "cases": [
+    "NATIVE-01.6",
+    "IN-02.10"
+  ],
+  "layers": [
+    "architecture and execution/receipt authority",
+    "transport and inbox module boundaries",
+    "embedded script and changed function branches",
+    "configuration, documentation, compile and regression"
+  ],
+  "source": [
+    {
+      "file": "src/codex/app-server-socket-relay.ts",
+      "sha256": "0eeb3be97bbc82fa247787ffdb5e07c7f7e1b61c9c62c614e78d39f45632f61e"
+    },
+    {
+      "file": "src/bridge/forwarding-error.ts",
+      "sha256": "abe2a3f738f3976628ce2ea75986b18a1727e8d674a79475ceb7319c4453df03"
+    },
+    {
+      "file": "src/bridge/forwarding-inbox.ts",
+      "sha256": "5a5dc4e50870dce72b88230e174642ba783fb0ede7ff8b2407ac595a7fc8e494"
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "sha256": "f6fe66918930e0ef911c59c55bba26b9d148ca5d555fd364f7ba4509e46ff44a"
+    },
+    {
+      "file": "src/server/account-manager.ts",
+      "sha256": "8d264d7ec3a007b92dc5a0bc633a7756eae478708b6acd64df9570edba47d67e"
+    },
+    {
+      "file": "test/app-server-socket-relay.test.ts",
+      "sha256": "d8a0de4d54f31cf8bea2b381395fe6d49a7558317c6c0c3dff84afc17c8fac12"
+    },
+    {
+      "file": "test/forwarding-inbox.test.ts",
+      "sha256": "15757bb35672eae488b5696801a1fa9b2cdeed59a2e52e3e307926abe45cde37"
+    }
+  ],
+  "evidence": [
+    {
+      "file": "/private/tmp/agent-bridge-socket-relay-before.tap",
+      "sha256": "b34ecaf57e987c40a6ba8e7bed12db9a42ff804ac0ff0df99da465595016c8ec"
+    },
+    {
+      "file": "/private/tmp/agent-bridge-relay-pressure-and-owner.tap",
+      "sha256": "38707d8f67ec5220aa8497944e412d9d9eaccf24c0984f93b7036bdad8fef60a"
+    },
+    {
+      "file": "/private/tmp/agent-bridge-relay-final-full-20261112.tap",
+      "sha256": "77e9894323a75df7ff3333c4ccadecaee85dae804201260b55ee4348d25de6e5"
+    },
+    {
+      "file": "/private/tmp/agent-bridge-relay-native-adjacent.tap",
+      "sha256": "75d9581a8a384513591c7ba0bea6f8e902b3220f27cb532c9ee7f164f1b8ec18"
+    },
+    {
+      "file": "/private/tmp/agent-bridge-relay-compile.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "results": {
+    "counterexample": "old relay fails linear copy budget",
+    "pressureAndOwner": {
+      "tests": 33,
+      "pass": 33,
+      "fail": 0
+    },
+    "final": {
+      "tests": 3879,
+      "pass": 3778,
+      "skip": 101,
+      "fail": 0
+    },
+    "nativeAdjacent": {
+      "tests": 13,
+      "pass": 13,
+      "version": "0.167.0-alpha.3.2"
+    }
+  },
+  "limits": [
+    "Initial full run had an unchanged 120ms timing-case failure; unchanged recheck and final full run passed.",
+    "Live small RPC passed; 84 MB native fs/readFile exceeded its 20s probe budget. Synthetic 84 MiB is not its acceptance.",
+    "No real IM card sent and no source replayed; no production executor restarted during validation.",
+    "No full-repository re-review claimed; existing partial contracts retained."
+  ],
+  "deployment": "pending separate release receipts",
+  "npm": "0.6.4 source only; formal registry remains 0.6.3"
+}

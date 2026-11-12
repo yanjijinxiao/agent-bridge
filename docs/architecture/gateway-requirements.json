@@ -321,6 +321,65 @@
             "scope": "显式设置在已加载线程的真实生效修复；runWithLease完整复核，其余选定函数AST未变；完整回归重新验证。",
             "report": "docs/audits/2026-11-03-dual-release-permissions/README.md"
           }
+        },
+        {
+          "id": "NATIVE-01.6",
+          "scenario": "本机/SSH 共用 relay 大响应线性复制、完整消息边界及背压；超限或半包关闭不产生部分成功或输入重放。",
+          "tests": [
+            {
+              "file": "test/app-server-socket-relay.test.ts",
+              "name": "NATIVE-01.6: 8 MiB split frames use linear copying and deliver the following small reply under stdout backpressure"
+            },
+            {
+              "file": "test/app-server-socket-relay.test.ts",
+              "name": "NATIVE-01.6: 84 MiB split frames use linear copying and deliver the following small reply under stdout backpressure"
+            },
+            {
+              "file": "test/app-server-socket-relay.test.ts",
+              "name": "NATIVE-01.6: fragmented UTF-8, interleaved ping and ignored binary data preserve message boundaries"
+            },
+            {
+              "file": "test/app-server-socket-relay.test.ts",
+              "name": "NATIVE-01.6: frame length 125 survives partial headers"
+            },
+            {
+              "file": "test/app-server-socket-relay.test.ts",
+              "name": "NATIVE-01.6: frame length 126 survives partial headers"
+            },
+            {
+              "file": "test/app-server-socket-relay.test.ts",
+              "name": "NATIVE-01.6: frame length 65535 survives partial headers"
+            },
+            {
+              "file": "test/app-server-socket-relay.test.ts",
+              "name": "NATIVE-01.6: frame length 65536 survives partial headers"
+            },
+            {
+              "file": "test/app-server-socket-relay.test.ts",
+              "name": "NATIVE-01.6: oversized frame fails from its header without allocation or partial output"
+            },
+            {
+              "file": "test/app-server-socket-relay.test.ts",
+              "name": "NATIVE-01.6: oversized cumulative message fails from its header without allocation or partial output"
+            },
+            {
+              "file": "test/app-server-socket-relay.test.ts",
+              "name": "NATIVE-01.6: closing an incomplete payload ends only its relay and emits no partial message"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/app-server-socket-relay.ts",
+              "sha256": "0eeb3be97bbc82fa247787ffdb5e07c7f7e1b61c9c62c614e78d39f45632f61e"
+            }
+          ],
+          "verifiedBoundary": "真实 Unix socket/WebSocket 和生产子进程脚本，8/84 MiB 分块复制预算、后续小消息、UTF-8、ping、边界及断线；旧实现稳定超复制预算。现场小 RPC 可用，但 84 MB 原生整文件读取仍超时，不能据此声称任意大历史恢复完成。",
+          "status": "verified",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "仅本次列明模块/函数变动及相邻交接边界，不批量刷新旧 case hash。",
+            "report": "docs/audits/2026-11-12-socket-relay-pressure.md"
+          }
         }
       ]
     },
@@ -2596,6 +2655,45 @@
             }
           ],
           "verifiedBoundary": "生产normalizer/monitor与受控轮询源，含原游标重读和持久claim替身；无实际微信供应商故障注入。"
+        },
+        {
+          "id": "IN-02.10",
+          "scenario": "收件箱普通输入在原生接收前不创建任务卡；明确未提交的重试沿用单条准备提示，接收后保留进展与答案增量，展示归属不授予重发权限。",
+          "tests": [
+            {
+              "file": "test/forwarding-inbox.test.ts",
+              "name": "IN-02.10: inbox-owned preparation retries create no failure cards and preserve progress after exact acceptance"
+            },
+            {
+              "file": "test/forwarding-inbox.test.ts",
+              "name": "IN-02.10: presentation ownership cannot authorize retry of an uncertain or accepted source"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/forwarding-error.ts",
+              "sha256": "abe2a3f738f3976628ce2ea75986b18a1727e8d674a79475ceb7319c4453df03"
+            },
+            {
+              "file": "src/bridge/forwarding-inbox.ts",
+              "sha256": "5a5dc4e50870dce72b88230e174642ba783fb0ede7ff8b2407ac595a7fc8e494"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "f6fe66918930e0ef911c59c55bba26b9d148ca5d555fd364f7ba4509e46ff44a"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "8d264d7ec3a007b92dc5a0bc633a7756eae478708b6acd64df9570edba47d67e"
+            }
+          ],
+          "verifiedBoundary": "真实 Bridge/文件状态仓储/收件箱/journal，原生和渠道为受控替身；两次明确未提交后一次接受、一次建卡、增量保留，未知/已接收不重试。非真实 IM 显示验收。",
+          "status": "verified",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "仅本次列明模块/函数变动及相邻交接边界，不批量刷新旧 case hash。",
+            "report": "docs/audits/2026-11-12-socket-relay-pressure.md"
+          }
         }
       ]
     },
@@ -19932,14 +20030,14 @@
     }
   },
   "currentSummary": {
-    "audit": "2026-11-11-legacy-catalog-grouping",
+    "audit": "2026-11-12-socket-relay-pressure",
     "requirements": 96,
-    "cases": 463,
-    "mappedCases": 463,
-    "recordedNarrowVerified": 368,
+    "cases": 465,
+    "mappedCases": 465,
+    "recordedNarrowVerified": 370,
     "partialCases": 95,
-    "selectedFunctionContracts": 325,
-    "note": "本轮新增CAT-02.6，保留NATIVE-02.8及其余案例各自证据；不代表本轮重新验收全库。"
+    "selectedFunctionContracts": 338,
+    "note": "新增 NATIVE-01.6 / IN-02.10；旧 case 各自证据和 partial 保留，未宣称本次重审全库。"
   },
   "connectorIDEUpdate": {
     "date": "2026-11-04",

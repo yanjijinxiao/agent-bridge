@@ -72,7 +72,7 @@ import { isSessionPageSize, MIN_SESSION_PAGE_SIZE, MAX_SESSION_PAGE_SIZE } from 
 import { readSessionPurposes, SessionPurposeIndex } from "../state/session-purposes.js";
 import { ChannelUserInputController } from "./user-input.js";
 import { RestartWork } from "./restart-work.js";
-import { ForwardingDeferredError } from "./forwarding-error.js";
+import { ForwardingDeferredError, isRetryableForwardingError } from "./forwarding-error.js";
 import type { ForwardingInbox } from "./forwarding-inbox.js";
 import { forwardingCard } from "./forwarding-card.js";
 import type { TurnResultAction } from "./turn-result-actions.js";
@@ -165,6 +165,9 @@ type ProjectSessionChoice = {
 export type BridgeServiceOptions = {
   peer?: PeerBridgePort;
   inputReceipts?: InboundReceiptJournal;
+  /** A durable inbox owns preparation notices for this ordinary input. This
+   * only delays task presentation, never authorizes a submission or retry. */
+  ownsPendingInput?: (messageId: string) => boolean;
   ideApprovals?: IDEApprovalService;
   admission?: AdmissionService;
   /** Captured from the actual running adapter account, not mutable UI state. */
@@ -3211,7 +3214,8 @@ export class BridgeService {
       if (!this.activePresentations.has(session.id)) this.activePresentations.set(session.id, {
         hostId: this.sessionHostId(session) ?? "local", threadId: session.threadId, stream: replyStream });
     };
-    if (!queued) await prepareReplyStream();
+    const inboxOwnsPreparation = !queued && this.options.ownsPendingInput?.(message.id) === true;
+    if (!queued && !inboxOwnsPreparation) await prepareReplyStream();
     let streamedAnswer = "";
     let acceptedQueueTurn = false;
     let backendEntered = false;
@@ -3225,7 +3229,7 @@ export class BridgeService {
       this.runningSessions.set(session.id, count + 1);
       if (!count) this.options.onTurnStatus?.({ senderId: message.senderId, sessionId: session.id, active: true });
     };
-    if (!queued) markActive();
+    if (!queued && !inboxOwnsPreparation) markActive();
     try {
       await this.withTyping(message.senderId, async () => {
         console.log(`[codex-im-gateway] starting Codex turn for ${message.senderId} in ${workspace}`);
@@ -3254,18 +3258,20 @@ export class BridgeService {
             recordParticipant(startedThreadId, turnId);
             const running = status === undefined || status === "inProgress";
             if (running) acceptedWork({ hostId: this.sessionHostId(session) ?? "local", threadId: startedThreadId, turnId });
-            if (queued && running) { await prepareReplyStream(turnId); markActive(); }
+            if ((queued || inboxOwnsPreparation) && running) { await prepareReplyStream(turnId); markActive(); }
             if (replyStream) this.activePresentations.set(session.id, { hostId: this.sessionHostId(session) ?? "local",
               threadId: startedThreadId, turnId, stream: replyStream });
             await this.options.onTurnStarted?.(session, turnId, status);
             if (queued && running && wantsProgress() && replyStream?.supported) await replyStream.progress("🤔 原生队列任务已开始…");
+            else if (inboxOwnsPreparation && running && wantsProgress() && replyStream?.supported)
+              await replyStream.progress("🤔 已由 Codex 接收，正在执行…");
           },
           ...(qaContext ? {
             dynamicTools: llmWikiDynamicTools(),
             onDynamicToolCall: (call: CodexDynamicToolCall) => this.handleKnowledgeToolCall(qaContext, call)
           } : {}),
           ...(progressEnabled ? {
-            ...(replyStream?.supported || queued ? {
+            ...(replyStream?.supported || queued || inboxOwnsPreparation ? {
               onDelta: async (delta: string) => {
                 if (!wantsProgress() || queued && !acceptedQueueTurn || !replyStream?.supported) return;
                 streamedAnswer += delta;
@@ -3368,6 +3374,10 @@ export class BridgeService {
       error = queued ? communicationError(error, { phase: acceptedTurnId ? "observation" : backendEntered ? "submission" : "preflight",
         operation: acceptedTurnId ? "turn/observe" : backendEntered ? "turn/submit" : "turn/prepare", threadId: session.threadId, turnId: acceptedTurnId }) : submission.error(error);
       if (error instanceof TurnDeliveryError) throw error;
+      // No native turn exists for a definitely unsubmitted inbox-owned input.
+      // Its durable owner rechecks the receipt and emits one preparation notice;
+      // retries must not manufacture task-failure cards or stop controls.
+      if (inboxOwnsPreparation && !acceptedTurnId && isRetryableForwardingError(error)) throw error;
       if (error instanceof CodexRunAdmissionError) {
         // This input has no native task outcome. Close only its preparation
         // presentation; the durable inbox rechecks the ordinary-message policy.

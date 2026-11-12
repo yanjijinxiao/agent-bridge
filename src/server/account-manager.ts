@@ -793,6 +793,7 @@ export class AccountManager {
       config,
       stateStore: store,
       inputReceipts: this.receiptsFor(account.accountId),
+      ownsPendingInput: messageId => this.forwardingInboxes.get(account.accountId)?.ownsPendingInput(messageId) === true,
       forwardingStatus: conversationId => this.forwardingInboxes.get(account.accountId)?.summary(conversationId),
       forwardingInbox: this.forwardingFor(account.accountId),
       onAttachmentsPrepared: (messageId, attachments, references) => this.forwardingInboxes.get(account.accountId)?.prepared(messageId, attachments, references),

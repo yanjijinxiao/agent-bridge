@@ -18,11 +18,13 @@
 
 | 内容 | 权威记录 | 使用方式 |
 | --- | --- | --- |
-| Gateway 共用功能及 Codex 行为 | [需求与 case](gateway-requirements.json)、[人读功能合同](gateway-contracts.md) | 96 项要求、463 个 case；逐 case 的状态、测试名和边界优先于汇总段落 |
+| Gateway 共用功能及 Codex 行为 | [需求与 case](gateway-requirements.json)、[人读功能合同](gateway-contracts.md) | 96 项要求、465 个 case；逐 case 的状态、测试名和边界优先于汇总段落 |
 | Herdr TUI / App 适配 | [Herdr 功能与测试基线](../audits/2026-11-07-herdr-adapters/production-requirements.json)、[实现及实测清单](../audits/2026-11-07-herdr-adapters/production-checklist.md)；HDR-18 由 [单卡窗口合同与 case](../audits/2026-11-09-herdr-terminal-window/README.md) 取代 | 20 项 HDR 合同；基线 JSON 中 HDR-18 的阶段分类和旧测试名是历史记录，不代表当前实现。沿用各自精确测试名和环境边界，不混加为“116 项全部验收” |
 | 模块、函数和调用关系 | [实现职责图](gateway-implementation-map.md)、各模块说明、[精选函数合同](function-contracts.jsonl) | 函数记录只证明所列版本/范围；不能批量换 hash 冒充重读 |
 | 待办与取消范围 | [剩余清单](remaining-work.md)、本文决定表 | 部分覆盖、已确认缺陷、未开发、用户取消分别表示 |
 | 用户操作方法 | [探探 Codex 教程](../tantan-connector-guide.md)、[Herdr 教程](../herdr-connector-guide.md)、[README](../../README.md) | 教程解释使用步骤和真实功能，不承担长篇发布日志或内部审计 |
+
+2026-11-12 补充 NATIVE-01.6 和 IN-02.10：大响应传输改为分块队列，收件箱明确未提交的重试只保留准备提示，原生接收后才创建任务卡。新增 12 项隔离断言，清单增至 465 case；现场大文件原生响应仍有独立验证限制，见[四层记录](../audits/2026-11-12-socket-relay-pressure.md)。
 
 ## 执行入口与后端职责
 

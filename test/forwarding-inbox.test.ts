@@ -18,6 +18,54 @@ import { Lexer } from "marked";
 import { ordersPromptInput, parseCommand } from "../src/bridge/channel-commands.js";
 import { spawnSync } from "node:child_process";
 
+test("IN-02.10: inbox-owned preparation retries create no failure cards and preserve progress after exact acceptance", async t => {
+  const f = fixture(t), store = new RuntimeStateStore(resolveStatePaths(path.join(f.root, "state")));
+  const session = store.createSession("room", f.root, "original", undefined, "session", undefined, { standalone: true });
+  store.setSessionThread(session.id, "thread");
+  let attempts = 0, creates = 0, failures = 0, finals = 0;
+  const answers: string[] = [];
+  const service = new BridgeService({ config: { ...defaultConfig(f.root), allowedSenderIds: ["actor"], streamReplies: true },
+    stateStore: store, inputReceipts: f.receipts, ownsPendingInput: id => f.inbox.ownsPendingInput(id),
+    weixin: { async sendTyping() {}, async sendText() { return { messageId: "reply" }; } },
+    createTextStream: async () => {
+      creates++;
+      assert.equal(f.receipts.receipt(input.id)?.phase, "accepted", "a real native acceptance precedes task presentation");
+      return { supported: true, checkpoint: () => ({}), progress: async () => {},
+        answer: async (text: string) => { answers.push(text); },
+        finalize: async () => { finals++; return true; }, fail: async () => { failures++; return true; },
+        suspend: async () => {}, flush: async () => {}, reportTerminalFailure: async () => false } as never;
+    },
+    runner: {
+      async inspectThread() { return { threadId: "thread", persistence: "active", runtimeStatus: "idle", activeFlags: [] }; },
+      async run(value: any) {
+        if (++attempts <= 2) throw new CodexCommunicationError("preflight", "thread/resume", "thread", undefined, Error("timeout"));
+        await value.onTurnStarted({ threadId: "thread", turnId: "accepted-turn", status: "inProgress" });
+        assert.equal(typeof value.onDelta, "function", "deferred presentation still receives native answer deltas");
+        await value.onDelta("阶段成果");
+        return { threadId: "thread", turnId: "accepted-turn", text: "阶段成果", raw: "" };
+      }
+    } as never });
+  f.action = message => service.handleMessage(message);
+  const message = { ...input, attachments: [] };
+  await f.inbox.receive(message); f.advance(); await f.inbox.receive(message);
+  assert.equal(attempts, 2); assert.equal(creates, 0); assert.equal(failures, 0);
+  assert.equal(f.notices.length, 1); assert.match(f.notices[0], /尚未提交/);
+  assert.equal(f.receipts.receipt(input.id)?.phase, "received");
+  f.advance(); f.advance(); await f.inbox.receive(message);
+  assert.equal(attempts, 3); assert.equal(creates, 1); assert.equal(finals, 1); assert.equal(failures, 0);
+  assert.deepEqual(answers, ["阶段成果"]); assert.equal(f.receipts.receipt(input.id)?.phase, "handled");
+  await f.inbox.receive(message); assert.equal(attempts, 3, "accepted input is never replayed");
+});
+
+test("IN-02.10: presentation ownership cannot authorize retry of an uncertain or accepted source", async t => {
+  const f = fixture(t), message = { ...input, attachments: [] };
+  f.inbox.claim(message); assert.equal(f.inbox.ownsPendingInput(message.id), true);
+  f.action = async () => { f.receipts.submitting({ sessionId: "session", threadId: "thread", hostId: "local" }); throw new CodexCommunicationError("submission", "turn/start", "thread", undefined, Error("timeout")); };
+  await assert.rejects(f.inbox.receive(message));
+  assert.equal(f.inbox.ownsPendingInput(message.id), false); assert.equal(f.receipts.receipt(message.id)?.phase, "unconfirmed");
+  await f.inbox.receive(message); assert.equal(f.inbox.items("room")[0]?.state, "unconfirmed");
+});
+
 const input: ChannelMessage = { id: "provider-source", senderId: "actor", replyTargetId: "room", text: "original\nmessage",
   attachments: [{ kind: "file", label: "input.txt", item: { downloadCode: "opaque-file-descriptor" } }],
   references: [{ type: "text", text: "quoted /stop is data", attachments: [], availability: "available" }],
