@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "baseline": "bd36b0b",
+  "cases": [
+    "NATIVE-02.9"
+  ],
+  "layers": [
+    "architecture",
+    "module",
+    "function and changed lines",
+    "static configuration documentation regression"
+  ],
+  "source": [
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "sha256": "18571d3ee97e4533d5d722442967e498bfe35d0bd9d270b0b43d8609db940f99"
+    },
+    {
+      "file": "src/bridge/user-input-controller.ts",
+      "sha256": "8a826cb3e8de3ff5ef50a515167faed0900e731e9e4913158803d3349ebb8a6f"
+    }
+  ],
+  "evidence": [
+    {
+      "name": "agent-bridge-v066-before-final.tap",
+      "sha256": "f9578431516fa16a7f0d8dfb4c797dfedf2e7d8d53a10fe6cf00e7d33ab21cc2"
+    },
+    {
+      "name": "agent-bridge-v066-targeted-final.tap",
+      "sha256": "5f528348866a5cc0f159bf82dcd894b7de6b06b9b5a409829f78f265447f97bb"
+    },
+    {
+      "name": "agent-bridge-v066-full.tap",
+      "sha256": "c54ffc6228203a5c9da2393d8fedb45d09457283613a41b3b70559621e788dd7"
+    },
+    {
+      "name": "agent-bridge-v066-real-native.tap",
+      "sha256": "5e6bb28bc496e9bf2ff8fbf75f13b9972e9cb44315b0a17a9f349512d0931c92"
+    },
+    {
+      "name": "agent-bridge-v066-typecheck-final.log",
+      "sha256": "98619b857bbc7dc6de563b2a0c3b6a5dd7d71794af8018025792c6efe1b77989"
+    }
+  ],
+  "results": {
+    "newTests": 10,
+    "before": {
+      "tests": 10,
+      "pass": 1,
+      "fail": 9
+    },
+    "targeted": {
+      "tests": 93,
+      "pass": 93,
+      "fail": 0
+    },
+    "fullBeforeLastAdditionalPromptTest": {
+      "tests": 3915,
+      "pass": 3814,
+      "skip": 101,
+      "fail": 0
+    },
+    "realNative": {
+      "version": "0.167.2",
+      "tests": 22,
+      "pass": 22,
+      "fail": 0
+    }
+  },
+  "limits": [
+    "Private stdio oversized-response isolation is not proven.",
+    "Full cold restore of sources over the existing128MiB budget is not implemented.",
+    "Protocol fixture pass is not real IM answer acceptance."
+  ],
+  "deployment": "pending final release checks and live subscription observation"
+}

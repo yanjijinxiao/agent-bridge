@@ -12,6 +12,7 @@ import { elicitationValue } from "../codex/elicitation.js";
 import { ChannelPartialDeliveryError, channelProgressError } from "../channels/errors.js";
 import type { AcceptedPresentationInput } from "./input-presentation.js";
 import type { TurnParticipantOrigin } from "./turn-audience.js";
+import { diagnostic } from "../runtime/diagnostics.js";
 
 type QuestionStatus = "pending" | "answered" | "submitting" | "confirmed" | "withdrawn" | "unconfirmed" | "expired";
 type QuestionRecord = {
@@ -178,6 +179,8 @@ export class ChannelUserInputController {
 
   private unavailableAnswer(senderId: string, id: string): string {
     const record = this.state.records.find(record => record.id === id.toUpperCase() && this.matchesBinding(senderId, record));
+    if (record?.status === "pending" && !this.waiters.has(record.id))
+      return `问题 ${record.id} 仍待回答，但原生回答连接正在恢复；这条回答未提交。恢复后可沿用原卡回答。`;
     return record && ["answered", "submitting", "unconfirmed", "confirmed"].includes(record.status)
       ? `${answerStatus(record)} 未提交这条重复回答或跳过。`
       : "问题不存在、已处理、绑定已切换或尚未恢复；未提交回答或跳过。";
@@ -229,6 +232,7 @@ export class ChannelUserInputController {
         schedule();
       }
       this.waiters.set(record.id, waiter);
+      diagnostic("question.waiter", { hostId: record.hostId, nativeRequestId: record.id, phase: "attached", status: "pending" });
     });
     if (deliver) {
       this.noticeTransfers++;
@@ -435,6 +439,7 @@ export class ChannelUserInputController {
   }
   private release(id: string, answer?: string): void {
     const waiter = this.waiters.get(id); if (!waiter) return;
+    diagnostic("question.waiter", { nativeRequestId: id, phase: "released" });
     if (waiter.timer) clearTimeout(waiter.timer);
     this.waiters.delete(id); waiter.resolve(answer);
   }

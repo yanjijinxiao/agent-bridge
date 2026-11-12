@@ -8,6 +8,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import crypto from "node:crypto";
 import { DiagnosticTail } from "./diagnostic-tail.js";
 import path from "node:path";
+import fs from "node:fs/promises";
 import readline from "node:readline";
 import { rolloutIdentity } from "./rollout-identity.js";
 import { isInternalUserMessage } from "./public-user-message.js";
@@ -114,6 +115,8 @@ export type AppServerRunnerOptions = {
   metadataOnly?: boolean;
   /** Bulk display history is isolated from metadata and native execution. */
   historyOnly?: boolean;
+  /** Dedicated bulk-read client of the same independent native core. */
+  permissionReadOnly?: boolean;
 };
 
 type JsonRpcId = number | string;
@@ -187,6 +190,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private readonly observedApprovalIds = new Set<string>();
   private closed = false;
   private closePromise?: Promise<void>;
+  private readonly permissionReaders = new Set<AppServerCodexRunner>();
   private retiringTransport?: Promise<void>;
   private nextId = 1;
   private stderr = "";
@@ -1796,7 +1800,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
    * user input. Loaded owners receive a bare attach; cold owners restore only
    * their latest native permission record through the shared resume boundary. */
   async observeThreadInteractions(threadId: string, observer: NativeInteractionObserver): Promise<void> {
-    if (this.options.metadataOnly || this.options.historyOnly) throw new Error("Read-only observers cannot subscribe to interactions");
+    if (this.options.metadataOnly || this.options.historyOnly || this.options.permissionReadOnly) throw new Error("Read-only observers cannot subscribe to interactions");
     const previous = this.interactionObservers.get(threadId);
     if (previous && previous !== observer) await this.unobserveThreadInteractions(threadId);
     this.interactionObservers.set(threadId, observer);
@@ -1851,7 +1855,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     if (this.closePromise) return this.closePromise;
     const child = this.child;
     this.closed = true;
-    const stopped = Promise.all([child ? waitForProcessExit(child) : Promise.resolve(), this.retiringTransport]).then(() => {});
+    const stopped = Promise.all([child ? waitForProcessExit(child) : Promise.resolve(), this.retiringTransport,
+      ...[...this.permissionReaders].map(reader => reader.close())]).then(() => {});
     this.failTransport(new Error("Codex app-server runner closed"), true);
     this.closePromise = stopped;
     return stopped;
@@ -1918,7 +1923,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     try {
       const hello = await this.request("initialize", {
         clientInfo: {
-          name: this.options.metadataOnly ? "codex-im-gateway-metadata" : this.options.historyOnly ? "codex-im-gateway-history" : "codex-im-gateway",
+          name: this.options.permissionReadOnly ? "codex-im-gateway-permission-reader" : this.options.metadataOnly ? "codex-im-gateway-metadata" : this.options.historyOnly ? "codex-im-gateway-history" : "codex-im-gateway",
           title: "Codex IM Gateway",
           version: productVersion()
         },
@@ -1958,7 +1963,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       if (notLoaded) {
         if (typeof thread.path !== "string" || !thread.path) throw new Error("原生冷恢复缺少权限记录路径，未恢复或提交输入。");
         assertCurrent?.();
-        const result = await this.request("fs/readFile", { path: thread.path }, timeoutMs ?? 15_000, true);
+        const result = await this.readPermissionFile(thread.path, timeoutMs ?? 15_000);
         // This native API has no range-read parameter. Bound decoding and never
         // log its payload, expose history to Gateway, or fall back to shell/SSH.
         const maxBytes = 128 * 1024 * 1024;
@@ -1973,6 +1978,29 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     // before the only write. A racing loaded owner ignores resume overrides;
     // never follow this with settings/update or a permission-bearing turn.
     return guardNativeWrite(assertCurrent, () => this.request("thread/resume", { ...restored, ...params }, timeoutMs));
+  }
+
+  /** A bulk response can exceed a relay's message budget before decoding.
+   * Borrow a read-only connection to the SAME core so that failure cannot
+   * retire unrelated approval/question waiters on the control connection. */
+  private async readPermissionFile(nativePath: string, timeoutMs: number): Promise<unknown> {
+    const mode = this.options.transport?.mode;
+    if (mode !== "daemon-proxy" && mode !== "remote-daemon")
+      return this.request("fs/readFile", { path: nativePath }, timeoutMs, true);
+    if (mode === "daemon-proxy") {
+      // Size only, never permission evidence. A remote path is never examined
+      // on this filesystem. Unknown local metadata leaves native reads authoritative.
+      const metadata = await fs.lstat(nativePath).catch(() => undefined);
+      if (metadata?.isFile() && metadata.size > 128 * 1024 * 1024)
+        throw new Error("原生权限记录超过完整读取预算，未恢复或提交输入。");
+    }
+    if (this.closed) throw new Error("Codex app-server runner is closed");
+    const reader = new AppServerCodexRunner({ ...this.options, metadataOnly: false, historyOnly: false, permissionReadOnly: true });
+    this.permissionReaders.add(reader);
+    try {
+      await reader.ensureConnected();
+      return await reader.request("fs/readFile", { path: nativePath }, timeoutMs, true);
+    } finally { await reader.close(); this.permissionReaders.delete(reader); }
   }
 
   private request(
@@ -2017,6 +2045,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private send(message: WireMessage): void {
+    if (this.options.permissionReadOnly && (!message.method || !["initialize", "initialized", "fs/readFile"].includes(message.method)))
+      throw new Error("Permission-read connection cannot submit controls or native decisions");
     if (this.options.metadataOnly && (!message.method || !["initialize", "initialized", "thread/read", "thread/list", "project/list", "config/read"].includes(message.method)
       || message.method === "thread/read" && message.params?.includeTurns !== false)) {
       throw new Error("Metadata-only connection cannot submit task controls or approval decisions");
@@ -2500,7 +2530,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private handleServerRequest(message: WireMessage): void {
     // Requests observed from a shared native owner remain its responsibility.
     // A read-only client must not even decline somebody else's approval.
-    if (this.options.metadataOnly || this.options.historyOnly) return;
+    if (this.options.metadataOnly || this.options.historyOnly || this.options.permissionReadOnly) return;
     const id = message.id as JsonRpcId;
     if (isAppServerApprovalMethod(message.method)) {
       const method = message.method;
@@ -2713,6 +2743,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   }
 
   private failTransport(error: Error, kill: boolean): void {
+    if (this.child) diagnostic("native.disconnected", { nativeConnectionId: this.diagnosticId, hostId: this.options.hostId ?? "local",
+      status: "closed", phase: kill ? "retired" : "exited", code: this.closed ? "owner-closed"
+        : /WebSocket (?:frame|message) is too large/.test(error.message) ? "message-budget" : "transport-failed" });
     this.asyncQuestions.disconnect();
     for (const [key, request] of this.approvalRequests) this.resolveApproval(key, request.submitted ? "failed" : "withdrawn");
     this.approvalResults.clear();

@@ -30,8 +30,10 @@ for (const remote of [false, true]) for (const operation of ["interaction", "mod
     assert.equal((await reader.request("thread/read", { threadId: id, includeTurns: false })).thread.status.type, "notLoaded");
     const runner = f.runner(remote ? { transport: f.transport("remote-daemon") } : {});
     const writes: string[] = [], reads: string[] = [], request = (runner as any).request.bind(runner);
+    const readPermissionFile = (runner as any).readPermissionFile.bind(runner);
+    (runner as any).readPermissionFile = (...args: unknown[]) => { reads.push("fs/readFile"); return readPermissionFile(...args); };
     (runner as any).request = (method: string, params: any, ...args: any[]) => {
-      (method === "fs/readFile" ? reads : writes).push(method); return request(method, params, ...args);
+      writes.push(method); return request(method, params, ...args);
     };
     if (operation === "interaction") await runner.observeThreadInteractions(id, { approval: async () => {} } as any);
     if (operation === "model") await runner.updateThreadSettings(id, { model: "mock-model-later", effort: "low" });
@@ -77,10 +79,10 @@ test("NATIVE-02.8: real cold restore retains permitted native temporary director
 test("NATIVE-02.8: racing native owner tightening wins over a cold reader's earlier snapshot", options, async t => {
   const { f, id } = await prepared(t); await f.restart();
   const desktop = await f.rpc("racing_owner"), runner = f.runner();
-  const request = (runner as any).request.bind(runner);
-  (runner as any).request = async (method: string, params: any, ...args: any[]) => {
-    const result = await request(method, params, ...args);
-    if (method === "fs/readFile") {
+  const readPermissionFile = (runner as any).readPermissionFile.bind(runner);
+  (runner as any).readPermissionFile = async (...args: unknown[]) => {
+    const result = await readPermissionFile(...args);
+    {
       await desktop.request("thread/resume", { threadId: id, excludeTurns: true });
       await desktop.request("thread/settings/update", { threadId: id, sandboxPolicy: { type: "readOnly", networkAccess: false } });
       await until(() => desktop.events.some((e: any) => e.method === "thread/settings/updated" && e.params.threadSettings.sandboxPolicy.type === "readOnly"));

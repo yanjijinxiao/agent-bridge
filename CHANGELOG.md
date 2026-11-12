@@ -2,6 +2,12 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
+## [0.6.6] - 2026-11-12
+
+- Isolate cold permission-file reads on a restricted client of the same independent App Server. A failed or oversized bulk reply cannot disconnect other sessions' task, approval or question controls; no extra execution core is started.
+- Reject known oversized local permission sources before transfer, preserve the existing restoration budget and remote-host authority, and close temporary readers with their owner.
+- Distinguish a pending question awaiting reconnection from a missing or processed question. Record waiter availability and bounded transport failure reasons without question or answer contents.
+
 ## [0.6.5] - 2026-11-12
 
 - Keep unanswered asynchronous Codex questions suspended across Connector/observer disconnects. Bootstrap from full native items, retain omitted delta fields, and restore an exactly reobserved legacy false withdrawal without replaying accepted or uncertain answers. Persist a one-time legacy correction budget across restarts; real new-policy withdrawals remain closed, and replaced observers cannot withdraw the native widget.

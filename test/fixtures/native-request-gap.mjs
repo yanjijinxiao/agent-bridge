@@ -5,7 +5,7 @@ const send = value => process.stdout.write(JSON.stringify(value) + '\n');
 let resumes = 0;
 for await (const line of readline.createInterface({ input: process.stdin })) {
   const m = JSON.parse(line); if (m.id === undefined) continue;
-  fs.appendFileSync(trace, JSON.stringify(m) + '\n');
+  fs.appendFileSync(trace, JSON.stringify({ ...m, fixturePid: process.pid }) + '\n');
   if (!m.method) continue; // Record decisions, never synthesize them.
   const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
   let result = {};
@@ -15,6 +15,12 @@ for await (const line of readline.createInterface({ input: process.stdin })) {
       threadId: 'thread', turnId: 'turn', itemId: 'command', command: 'fixture-command', cwd: '/tmp',
       availableDecisions: ['accept', 'decline'] } });
     result = { thread: { id: 'thread' } };
+  } else if (m.method === 'fs/readFile' && state.stallPermissionRead) {
+    continue; // A read with no response stays pending until its client is closed.
+  } else if (m.method === 'fs/readFile' && state.failPermissionRead) {
+    process.exit(19); // Simulate an oversized/failed bulk-read relay, never a native turn end.
+  } else if (m.method === 'thread/read' && m.params.threadId === 'cold') {
+    result = { thread: { id: 'cold', cwd: '/tmp', path: state.coldPath, status: { type: 'notLoaded' } } };
   } else if (m.method === 'thread/read') result = { thread: { id: 'thread', cwd: '/tmp', projectId: null,
     status: { type: 'active', activeFlags: state.approval ? ['waitingOnApproval'] : [] } } };
   else if (m.method === 'thread/turns/list') result = ['summary', 'full'].includes(m.params.itemsView)

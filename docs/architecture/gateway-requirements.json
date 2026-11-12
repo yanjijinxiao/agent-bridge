@@ -1025,6 +1025,69 @@
             "report": "docs/audits/2026-11-11-native-cold-permissions.md",
             "note": "目录修复后13个权限函数正文摘要未变；原审计证据保留，补当前组合完整及原生回归，详见同名审计JSON。"
           }
+        },
+        {
+          "id": "NATIVE-02.9",
+          "status": "verified",
+          "scenario": "共享核心的冷权限批量读失败或超限不得关闭另一会话的原卡回答通道；临时读取客户端只读、父关闭清理、本机预检不替代远端权威；精确区分 pending 与 waiter 未恢复。",
+          "tests": [
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "NATIVE-02.9: another cold permission read cannot retire a pending question (daemon-proxy, oversized=false)"
+            },
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "NATIVE-02.9: another cold permission read cannot retire a pending question (daemon-proxy, oversized=true)"
+            },
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "NATIVE-02.9: another cold permission read cannot retire a pending question (remote-daemon, oversized=false)"
+            },
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "NATIVE-02.9: another cold permission read cannot retire a pending question (remote-daemon, oversized=true)"
+            },
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "NATIVE-02.9: an isolated permission reader rejects turn/steer"
+            },
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "NATIVE-02.9: an isolated permission reader rejects thread/resume"
+            },
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "NATIVE-02.9: an isolated permission reader rejects thread/settings/update"
+            },
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "NATIVE-02.9: a permission reader does not answer unsolicited approvals, questions or tools"
+            },
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "NATIVE-02.9: closing the owner releases an outstanding read-only client without a native decision"
+            },
+            {
+              "file": "test/user-input.test.ts",
+              "name": "NATIVE-02.9: an offline pending question reports restoring instead of claiming it does not exist"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "18571d3ee97e4533d5d722442967e498bfe35d0bd9d270b0b43d8609db940f99"
+            },
+            {
+              "file": "src/bridge/user-input-controller.ts",
+              "sha256": "8a826cb3e8de3ff5ef50a515167faed0900e731e9e4913158803d3349ebb8a6f"
+            }
+          ],
+          "verifiedBoundary": "生产 Runner/Controller 与 JSONL 夹具的跨线程/本机远端/超限/连接关闭组合；既有最新权限与 owner race 通过实际0.167.2隔离集成22项。不是实际钉钉回答验收；私有stdio大响应及超出128MiB权限预算的完整冷恢复不在证明范围。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "本次隔离路径、列明函数及相关守卫；未批量更新其他partial或代码证据。",
+            "report": "docs/audits/2026-11-12-cold-read-question-isolation.md"
+          }
         }
       ]
     },
@@ -20196,14 +20259,14 @@
     }
   },
   "currentSummary": {
-    "audit": "2026-11-12-follow-receipt-repair",
+    "audit": "2026-11-12-cold-read-question-isolation",
     "requirements": 96,
-    "cases": 467,
-    "mappedCases": 467,
-    "recordedNarrowVerified": 372,
+    "cases": 468,
+    "mappedCases": 468,
+    "recordedNarrowVerified": 373,
     "partialCases": 95,
-    "selectedFunctionContracts": 347,
-    "note": "新增 INT-02.6 / DEL-08.13；只复核列明范围，历史 partial 和旧函数其余范围不重新认证。"
+    "selectedFunctionContracts": 356,
+    "note": "新增NATIVE-02.9，Q124生产失败独立复现；不把0.6.5全绿当作本次实际回答成功。"
   },
   "connectorIDEUpdate": {
     "date": "2026-11-04",

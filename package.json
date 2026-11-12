@@ -1,6 +1,6 @@
 {
   "name": "@yanjijinxiao/agent-bridge",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "private": true,
   "workspaces": [
     "taskboard"

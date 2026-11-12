@@ -65,6 +65,16 @@ test("INT-02.6: transient async suspension reattaches the same live card without
   assert.deepEqual(await next, { "native-question": { answers: ["current answer"] } });
 });
 
+test("NATIVE-02.9: an offline pending question reports restoring instead of claiming it does not exist", async t => {
+  const f = fixture(t), r = { ...request, kind: "async" as const };
+  const first = f.controller.request("room", r);
+  await f.controller.reportResult("room", r, "suspended"); await first; await tick();
+  const message = f.controller.answer("room", "Q1 answer that cannot be delivered yet");
+  assert.match(message, /Q1.*仍待回答.*连接.*恢复/); assert.match(message, /未提交/);
+  assert.equal(JSON.parse(fs.readFileSync(f.filePath, "utf8")).records[0].answerDigest, undefined);
+  assert.equal(f.cards.length, 1); assert.equal(f.notices.length, 0);
+});
+
 for (const guard of ["binding", "sync", "attempted-answer", "changed-question"] as const)
 test(`INT-02.6: legacy async reattachment retains the ${guard} boundary`, async t => {
   let valid = true;
