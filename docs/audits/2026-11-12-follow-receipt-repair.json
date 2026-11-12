@@ -15,7 +15,7 @@
   "source": [
     {
       "file": "src/bridge/user-input-controller.ts",
-      "sha256": "d1248564629356a9e34b860d9d4e935359ae867083ad311f595bdd9a709dd196"
+      "sha256": "68acbcf13a0e8b376617bb69db351dc679321d7bec214a272d7b4ed2db5238db"
     },
     {
       "file": "src/codex/app-server-runner.ts",
@@ -23,7 +23,7 @@
     },
     {
       "file": "src/codex/native-async-questions.ts",
-      "sha256": "e456e0e2281e69f119b3dfabf750746f2dc15451f55ada9304aa8cd82b0f9d96"
+      "sha256": "7dfe3f32910199d482839ebe531e3e61672ea682a4c0e8c03232af82abefe4d4"
     },
     {
       "file": "src/codex/native-turn-lifecycle.ts",
@@ -64,16 +64,20 @@
       "sha256": "3cc631dc49be9bb044a92a1114a5ab9c034972776a90044a4eed2ff081909adf"
     },
     {
-      "name": "agent-bridge-v065-full.tap",
-      "sha256": "f3f5fffb6383383ba73da42a1b0c82790f84f8649ef5102023feed6af2a4c866"
+      "name": "agent-bridge-v065-recheck-full.tap",
+      "sha256": "412109d01157bd2b7d2f5b8c8c678644874cdbd1f00eefbc7176b1122196548e"
     },
     {
       "name": "agent-bridge-v065-real-native.tap",
       "sha256": "ea6b8d3bb7a37a1c5c7812ab7b19cbbdbf685f83e68ca90bd3536566848d6665"
     },
     {
-      "name": "agent-bridge-v065-targeted-final.tap",
-      "sha256": "88612a0c5b2009df2dcbcf184e0f6e0e17039e4cfc3235fac0c78cd1c77ce4b5"
+      "name": "agent-bridge-v065-question-targeted-final.tap",
+      "sha256": "b6fb50cdc1b50207a528a20d940a38a023f03f85fd670d5e6133c1e9d1a3f0d4"
+    },
+    {
+      "name": "agent-bridge-v065-reoffer-before-final.tap",
+      "sha256": "07a03a0011ac406ddd59df1e82e976e80cabe0b1dcc5c9e263aef3433a1ff021"
     },
     {
       "name": "agent-bridge-large-provenance-proof.json",
@@ -81,19 +85,25 @@
     },
     {
       "name": "agent-bridge-question-native-view.json",
-      "sha256": "d4e01d679496066a1dcbfefd5835e851e6c311994f6017e5b85d124d3d4c62a5"
+      "sha256": "613d7e40afa3294231a7581512bda5e8da13327985e3549f5ebacc3096fbd219"
     }
   ],
   "results": {
-    "newAssertions": 23,
+    "newAssertions": 27,
     "before": {
       "tests": 21,
       "pass": 11,
       "fail": 10
     },
+    "repeatBefore": {
+      "baseline": "087d8ac",
+      "tests": 4,
+      "pass": 1,
+      "fail": 3
+    },
     "full": {
-      "tests": 3902,
-      "pass": 3801,
+      "tests": 3906,
+      "pass": 3805,
       "skip": 101,
       "fail": 0
     },
@@ -126,5 +136,5 @@
     "Existing partial cases remain partial; no whole-repository certification.",
     "Complete provenance remains bounded at 4GiB, 64MiB per line, 15s and 50000 turns."
   ],
-  "deployment": "pending separate release receipts"
+  "deployment": "087d8ac partial rollout exposed a repeat-delivery gap; superseded candidate awaiting separate verified rollout receipts"
 }

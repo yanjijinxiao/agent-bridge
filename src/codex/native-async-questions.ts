@@ -1,8 +1,12 @@
+import { diagnostic } from "../runtime/diagnostics.js";
 import crypto from "node:crypto";
 import { desktopAsyncUserInputs, desktopAsyncAnswerReceipts, asyncAnswerDigest, asyncUserInputReply,
   type NativeAsyncAnswerReceipt } from "./async-user-input.js";
 import type { CodexSteerInput, CodexSteerResult, CodexUserInputResult } from "./backend.js";
 import type { NativeInteractionObserver, NativeUserInput } from "./interactions.js";
+
+type RetirementReason = "accepted-answer" | "accepted-elsewhere" | "widget-removed" | "widget-replaced" | "observer-replaced"
+  | "source-changed" | "answer-failed" | "turn-terminal" | "observer-suspended";
 
 type Pending = { input: NativeUserInput; observer: NativeInteractionObserver; submitted: boolean; accepted: boolean;
   expected?: NativeAsyncAnswerReceipt[]; failureReported?: boolean };
@@ -40,22 +44,22 @@ export class NativeAsyncQuestions {
     if (receipts.length) void Promise.resolve().then(() => observer.onObservedUserInputAnswers?.(receipts)).catch(() => {});
     for (const [key, pending] of this.pending) if (pending.submitted && pending.expected?.every(expected => receipts.some(r =>
       r.threadId === expected.threadId && r.turnId === expected.turnId && r.questionId === expected.questionId && r.digest === expected.digest))) {
-      this.pending.delete(key); this.report(pending, "confirmed");
+      this.pending.delete(key); this.report(pending, "confirmed", "accepted-answer");
     } else if (!pending.submitted && pending.input.request.questions.every(q => receipts.some(r => r.questionId === q.id
       && r.threadId === pending.input.request.threadId && r.turnId === pending.input.request.turnId))) {
-      this.pending.delete(key); this.report(pending, "withdrawn");
+      this.pending.delete(key); this.report(pending, "withdrawn", "accepted-elsewhere");
     }
     const requests = desktopAsyncUserInputs(threadId, state, this.hostId);
     const live = new Set(requests.map(request => request.requestId ?? JSON.stringify(["async", turnId, request.itemId])));
     for (const [key, pending] of this.pending) if (!pending.submitted && pending.input.request.threadId === threadId
       && pending.input.request.turnId === turnId && !live.has(pending.input.requestId as string)) {
-      this.pending.delete(key); this.report(pending, "withdrawn");
+      this.pending.delete(key); this.report(pending, "withdrawn", "widget-removed");
     }
     for (const request of requests) {
       const requestId = request.requestId ?? JSON.stringify(["async", turnId, request.itemId]), key = JSON.stringify([threadId, turnId, requestId]);
       const previous = this.pending.get(key);
       if (previous && JSON.stringify(previous.input.request.questions) !== JSON.stringify(request.questions)) {
-        this.pending.delete(key); this.report(previous, previous.submitted ? "suspended" : "withdrawn");
+        this.pending.delete(key); this.report(previous, previous.submitted ? "suspended" : "withdrawn", "widget-replaced");
       }
       if (this.pending.has(key) || !observer.onUserInput) continue;
       const input: NativeUserInput = { hostId: this.hostId, requestId, method: "item/tool/requestUserInput", request: { ...request, requestId } };
@@ -65,7 +69,7 @@ export class NativeAsyncQuestions {
       let sourceInvalidated = false;
       void Promise.resolve().then(() => current() ? observer.onUserInput!(input) : undefined).then(async answers => {
         if (this.pending.get(key) !== pending) return;
-        if (!this.current(threadId, observer)) { this.pending.delete(key); this.report(pending, "withdrawn"); return; }
+        if (!this.current(threadId, observer)) { this.pending.delete(key); this.report(pending, "suspended", "observer-replaced"); return; }
         if (answers === undefined) { this.pending.delete(key); this.refresh(threadId); return; }
         pending.expected = request.questions.map(q => ({ hostId: this.hostId, threadId, turnId, questionId: q.id,
           digest: asyncAnswerDigest(q.id, q.question, answers[q.id]?.answers[0] ?? "") }));
@@ -84,9 +88,9 @@ export class NativeAsyncQuestions {
         pending.accepted = true; this.observe(threadId, turnId, [], observer);
       }).catch(() => {
         if (this.pending.get(key) !== pending) return;
-        if (sourceInvalidated) { this.pending.delete(key); this.report(pending, "withdrawn"); return; }
+        if (sourceInvalidated) { this.pending.delete(key); this.report(pending, this.current(threadId, observer) ? "withdrawn" : "suspended", "source-changed"); return; }
         if (!pending.submitted) this.pending.delete(key);
-        pending.failureReported = true; this.report(pending, pending.submitted ? "failed" : "suspended");
+        pending.failureReported = true; this.report(pending, pending.submitted ? "failed" : "suspended", "answer-failed");
       });
     }
   }
@@ -99,12 +103,15 @@ export class NativeAsyncQuestions {
   private retire(threadId: string | undefined, turnId: string | undefined, unsent: "withdrawn" | "suspended"): void {
     for (const [key, pending] of this.pending) if ((threadId === undefined || pending.input.request.threadId === threadId)
       && (turnId === undefined || pending.input.request.turnId === turnId)) {
-      this.pending.delete(key); if (!pending.failureReported) this.report(pending, pending.submitted ? "suspended" : unsent);
+      this.pending.delete(key); if (!pending.failureReported) this.report(pending, pending.submitted ? "suspended" : unsent, unsent === "withdrawn" ? "turn-terminal" : "observer-suspended");
     }
     for (const scope of this.items.keys()) { const [thread, turn] = JSON.parse(scope); if ((threadId === undefined || thread === threadId) && (turnId === undefined || turn === turnId)) this.items.delete(scope); }
   }
   disconnect(): void { this.suspend(); }
-  private report(pending: Pending, result: CodexUserInputResult) {
+  private report(pending: Pending, result: CodexUserInputResult, code: RetirementReason) {
+    // Fixed lifecycle reasons and opaque native identity only, never widgets,
+    // questions or answers. A diagnostic sink cannot affect native execution.
+    diagnostic("native.async-question.result", { hostId: this.hostId, nativeRequestId: String(pending.input.requestId), status: result, code });
     void Promise.resolve().then(() => pending.observer.onUserInputResult?.(pending.input, result)).catch(() => {});
   }
 }

@@ -96,7 +96,14 @@ test("changing or revoking the source prevents an old widget answer from writing
   assert.equal(f.writes.length, 0); assert.equal(f.requests.length, 2);
   f.revoke(); const changed = f.requests[1].request.questions[0];
   f.answers[1].resolve({ [changed.id]: { answers: ["revoked answer"] } }); await settle();
-  assert.equal(f.writes.length, 0); assert.deepEqual(f.results.map(r => r.result), ["withdrawn", "withdrawn"]);
+  assert.equal(f.writes.length, 0); assert.deepEqual(f.results.map(r => r.result), ["withdrawn", "suspended"]);
+});
+
+test("INT-02.6: an observer replaced while its answer callback is pending suspends the widget instead of withdrawing it", async () => {
+  const f = fixture(); f.native.observe("thread", "turn", [widget(["first"])], f.observer); await settle();
+  const question = f.requests[0].request.questions[0]; f.revoke();
+  f.answers[0].resolve({ [question.id]: { answers: ["late answer from retired observer"] } }); await settle();
+  assert.equal(f.writes.length, 0); assert.deepEqual(f.results.map(r => r.result), ["suspended"]);
 });
 
 test("native turn end invalidates an awaiting widget and never writes after disconnect", async () => {

@@ -7657,7 +7657,7 @@
         {
           "id": "INT-02.6",
           "status": "verified",
-          "scenario": "异步问题的传输丢失不撤回；完整原生视图与增量字段分开；精确旧问题恢复不重发答案，绑定/同步请求/已尝试答案/改写边界保留。",
+          "scenario": "异步问题的传输丢失不撤回；完整原生视图与增量字段分开；旧记录持久一次修正预算，真实新撤回不恢复，观察者更换挂起，不重发答案，绑定/同步请求/已尝试答案/改写边界保留。",
           "tests": [
             {
               "file": "test/gap-native-requests.test.ts",
@@ -7678,6 +7678,10 @@
             {
               "file": "test/native-async-questions.test.ts",
               "name": "INT-02.6: omitted question fields in an item delta do not erase the widget; a complete removal still withdraws it"
+            },
+            {
+              "file": "test/native-async-questions.test.ts",
+              "name": "INT-02.6: an observer replaced while its answer callback is pending suspends the widget instead of withdrawing it"
             },
             {
               "file": "test/peer-execution.test.ts",
@@ -7701,6 +7705,18 @@
             },
             {
               "file": "test/user-input.test.ts",
+              "name": "INT-02.6: repeated withdrawn/reoffer cycles never republish a question after restart: legacy=false"
+            },
+            {
+              "file": "test/user-input.test.ts",
+              "name": "INT-02.6: repeated withdrawn/reoffer cycles never republish a question after restart: legacy=true"
+            },
+            {
+              "file": "test/user-input.test.ts",
+              "name": "INT-02.6: transient async suspension reattaches the same live card without a migration or repeat notice"
+            },
+            {
+              "file": "test/user-input.test.ts",
               "name": "INT-02.6: legacy async reattachment retains the binding boundary"
             },
             {
@@ -7719,7 +7735,7 @@
           "implementation": [
             {
               "file": "src/bridge/user-input-controller.ts",
-              "sha256": "d1248564629356a9e34b860d9d4e935359ae867083ad311f595bdd9a709dd196"
+              "sha256": "68acbcf13a0e8b376617bb69db351dc679321d7bec214a272d7b4ed2db5238db"
             },
             {
               "file": "src/codex/app-server-runner.ts",
@@ -7727,7 +7743,7 @@
             },
             {
               "file": "src/codex/native-async-questions.ts",
-              "sha256": "e456e0e2281e69f119b3dfabf750746f2dc15451f55ada9304aa8cd82b0f9d96"
+              "sha256": "7dfe3f32910199d482839ebe531e3e61672ea682a4c0e8c03232af82abefe4d4"
             },
             {
               "file": "src/peer/backend.ts",

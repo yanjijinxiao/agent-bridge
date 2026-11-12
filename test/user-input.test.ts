@@ -19,13 +19,50 @@ test("INT-02.6: an exactly reobserved unanswered async question restores its old
   const f = fixture(t), r = { ...request, kind: "async" as const };
   const first = f.controller.request("room", r);
   await f.controller.reportResult("room", r, "withdrawn"); await first; await tick();
-  const next = f.controller.request("room", r);
+  f.controller.close();
+  const journal = JSON.parse(fs.readFileSync(f.filePath, "utf8")); delete journal.records[0].observationVersion;
+  fs.writeFileSync(f.filePath, JSON.stringify(journal)); const restored = f.create();
+  const next = restored.request("room", r);
   assert.equal(f.cards.length, 2, "legacy invalidation receives one corrected question card");
   assert.match(f.cards[1].fallbackText, /Q1/); assert.match(f.cards[1].fallbackText, /重新核对/);
-  assert.match(f.controller.answer("room", "Q1 current explicit answer"), /回执/);
+  assert.match(restored.answer("room", "Q1 current explicit answer"), /回执/);
   assert.deepEqual(await next, { "native-question": { answers: ["current explicit answer"] } });
-  await f.controller.reportResult("room", r, "confirmed");
+  await restored.reportResult("room", r, "confirmed");
   assert.equal(f.cards.length, 2);
+});
+
+for (const legacy of [false, true])
+test(`INT-02.6: repeated withdrawn/reoffer cycles never republish a question after restart: legacy=${legacy}`, async t => {
+  const f = fixture(t), r = { ...request, kind: "async" as const };
+  const first = f.controller.request("room", r); await f.controller.reportResult("room", r, "withdrawn"); await first; await tick();
+  f.controller.close();
+  if (legacy) {
+    const journal = JSON.parse(fs.readFileSync(f.filePath, "utf8")); delete journal.records[0].observationVersion;
+    fs.writeFileSync(f.filePath, JSON.stringify(journal));
+  }
+  let controller = f.create();
+  if (legacy) {
+    const correction = controller.request("room", r);
+    assert.equal(f.cards.length, 2);
+    await controller.reportResult("room", r, "withdrawn"); await correction; await tick();
+  }
+  for (let n = 0; n < 3; n++) {
+    controller.close(); controller = f.create();
+    const repeated = controller.request("room", r);
+    assert.equal(f.cards.length, legacy ? 2 : 1, "exact native reoffers cannot reset the persisted delivery budget");
+    assert.equal(await repeated, undefined);
+    assert.match(controller.answer("room", "Q1 late answer"), /未提交/);
+  }
+});
+
+test("INT-02.6: transient async suspension reattaches the same live card without a migration or repeat notice", async t => {
+  const f = fixture(t), r = { ...request, kind: "async" as const };
+  const first = f.controller.request("room", r);
+  await f.controller.reportResult("room", r, "suspended"); await first; await tick();
+  const next = f.controller.request("room", r);
+  assert.equal(f.cards.length, 1); assert.equal(f.notices.length, 0);
+  f.controller.answer("room", "Q1 current answer");
+  assert.deepEqual(await next, { "native-question": { answers: ["current answer"] } });
 });
 
 for (const guard of ["binding", "sync", "attempted-answer", "changed-question"] as const)
@@ -35,17 +72,20 @@ test(`INT-02.6: legacy async reattachment retains the ${guard} boundary`, async 
   const first = f.controller.request("room", r);
   if (guard === "attempted-answer") { f.controller.answer("room", "Q1 possibly submitted"); await first; }
   await f.controller.reportResult("room", r, "withdrawn"); await first; await tick();
+  f.controller.close();
+  const journal = JSON.parse(fs.readFileSync(f.filePath, "utf8")); delete journal.records[0].observationVersion;
+  fs.writeFileSync(f.filePath, JSON.stringify(journal)); const restored = f.create();
   if (guard === "binding") valid = false;
   const fresh = guard === "changed-question" ? { ...r, questions: [{ ...r.questions[0], question: "new native question" }] } : r;
-  const result = f.controller.request("room", fresh);
+  const result = restored.request("room", fresh);
   if (guard === "changed-question") {
     assert.match(f.cards.at(-1)!.fallbackText, /Q2/);
-    assert.match(f.controller.answer("room", "Q1 stale"), /未提交/);
-    f.controller.answer("room", "Q2 explicit new answer");
+    assert.match(restored.answer("room", "Q1 stale"), /未提交/);
+    restored.answer("room", "Q2 explicit new answer");
     assert.deepEqual(await result, { "native-question": { answers: ["explicit new answer"] } });
   } else {
     assert.equal(await result, undefined); assert.equal(f.cards.length, 1);
-    assert.match(f.controller.answer("room", "Q1 stale answer"), /未提交/);
+    assert.match(restored.answer("room", "Q1 stale answer"), /未提交/);
   }
 });
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));

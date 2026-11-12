@@ -29,6 +29,8 @@ type QuestionRecord = {
   bindingDetached?: boolean;
   /** A legacy false withdrawal was corrected by the exact current widget. */
   recoveredPending?: boolean;
+  /** New observations use suspension semantics; only older journals need migration. */
+  observationVersion?: 1;
 };
 type Waiter = { resolve: (answer: string | undefined) => void; timer?: NodeJS.Timeout };
 const MAX_RESOLUTION_CARD_ATTEMPTS = 3;
@@ -102,7 +104,7 @@ export class ChannelUserInputController {
         const timeout = request.autoResolutionMs === null ? undefined : request.autoResolutionMs ?? this.defaultTimeoutMs;
         record = { id: `Q${++this.state.sequence}`, key: recordKey, requestKey: key, senderId,
           hostId: request.hostId ?? "local", threadId: request.threadId, turnId: request.turnId,
-          question, kind: request.kind, status: "pending", ...(mentions?.length ? { mentions } : {}),
+          question, kind: request.kind, observationVersion: 1, status: "pending", ...(mentions?.length ? { mentions } : {}),
           ...(timeout !== undefined ? { deadline: Date.now() + timeout } : {}) };
         this.state.records.push(record); this.save();
       }
@@ -110,12 +112,13 @@ export class ChannelUserInputController {
       // Called only for a currently observed native request. Restoring the
       // exact edge may reattach its unsent waiter, never replay an answer.
       if (record.status === "withdrawn" && !record.answerDigest && this.matchesBinding(senderId, record)
-        && (record.bindingDetached || record.kind === "async")) {
+        && (record.bindingDetached || record.kind === "async" && !record.observationVersion && !record.recoveredPending)) {
         const legacyAsync = record.kind === "async" && !record.bindingDetached;
         record.status = "pending"; delete record.bindingDetached;
         if (legacyAsync) {
           // Only an exact reoffer reaches this record key. Replace the old
-          // invalidation once; submitted/uncertain answers are never reset.
+          // invalidation once, durably across retries/restarts. New-policy
+          // withdrawals are terminal; submitted/uncertain answers are never reset.
           record.recoveredPending = true; record.deliveryAttempted = false;
           delete record.noticeAttempted; delete record.noticeOutcome; delete record.noticeDelivery;
           delete record.noticeAttempts; delete record.noticeRetryAt;

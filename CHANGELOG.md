@@ -2,9 +2,9 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
-## [0.6.5] - Unreleased
+## [0.6.5] - 2026-11-12
 
-- Keep unanswered asynchronous Codex questions suspended across Connector/observer disconnects. Bootstrap from full native items, retain omitted delta fields, and restore an exactly reobserved legacy false withdrawal without replaying accepted or uncertain answers.
+- Keep unanswered asynchronous Codex questions suspended across Connector/observer disconnects. Bootstrap from full native items, retain omitted delta fields, and restore an exactly reobserved legacy false withdrawal without replaying accepted or uncertain answers. Persist a one-time legacy correction budget across restarts; real new-policy withdrawals remain closed, and replaced observers cannot withdraw the native widget.
 - Repair verified root progress independently of unrelated input-receipt recovery. Read complete native provenance up to 4 GiB with the existing deadline and a bounded single-line buffer, preserving result and binding checks.
 
 ## [0.6.4] - 2026-11-12

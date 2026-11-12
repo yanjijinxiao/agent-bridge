@@ -36,4 +36,6 @@ AppServerRequestMonitor只在实际订阅就绪后停止补订阅；原生状态
 
 INT-02.6：交互重放请求 itemsView=full；summary 可能同时省略问题和已接受答案，不能作为完整替换证据。对同一 item 的增量保留未提供的 questions 字段；完整撤回、明确替换和 accepted answer 仍关闭原待办。NativeAsyncQuestions.suspend、Peer 独立订阅和执行回调使用既有 suspended 结果，不新增协议枚举或默认决定。正常重连沿用原 Q 编号和卡片。
 
-旧版误撤回的异步问题，只有当前原生再次明确提供同一个 account/binding/host/thread/turn/request/widget 及问题指纹、且从未记录答案摘要时，才恢复 pending 并发送一次标明“重新核对”的修正卡。同步请求、换绑、问题改写、已有或未知答案不复用旧内容。recoveredPending 是本地可选展示字段，旧文件可读，回滚可忽略；不保存答案正文或授予提交权限。
+旧版误撤回的异步问题，只有当前原生再次明确提供同一个 account/binding/host/thread/turn/request/widget 及问题指纹、且从未记录答案摘要时，才恢复 pending 并发送一次标明“重新核对”的修正卡。同步请求、换绑、问题改写、已有或未知答案不复用旧内容。observationVersion=1 区分采用挂起语义的新记录；仅未标记 observationVersion 的旧策略记录才允许迁移。recoveredPending 在发修正卡前持久保存，一旦使用便不能被再次撤回、轮询、重连或 Gateway 重启重置。新策略下的真实 withdrawn 不自动重新开放。两个字段均为本地可选元信息，旧文件可读，回滚可忽略；不保存答案正文或授予提交权限。
+
+观察者在答案回调等待中更换，只产生 suspended 并禁止旧回调写入；完整问题撤回和真正轮次结束仍为 withdrawn。native.async-question.result 沿用日志 major=1，只记录不含正文的 host、原生请求身份、结果及固定生命周期原因，不能把诊断输出作为原生回执。
