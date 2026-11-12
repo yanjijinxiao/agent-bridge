@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "productVersion": "0.6.4",
+  "status": "published-and-verified",
+  "releaseCommit": "7f1165b38ef168123a6851175a8be8a6704e480e",
+  "sourceHash": "fb25412fcd6ef5a397169fc01cc23cd06cc27494df92017da46f9806060584fc",
+  "tag": {
+    "name": "v0.6.4",
+    "commit": "7f1165b38ef168123a6851175a8be8a6704e480e",
+    "pushed": true
+  },
+  "artifact": {
+    "files": 999,
+    "bytes": 2444885,
+    "integrity": "sha512-IWPXXkGQwasxbfDjpUAYSw4AWrpq+bXueXbmzGI7tnsRdHH+ui8U4qlkQq+/L3iHDpCkTqiGuwdpviLbRSpQQA==",
+    "sha256": "0a6160f9990143eab1326751392ce3102c33dfe96f57c934c93935184837bef2"
+  },
+  "npm": {
+    "status": "published",
+    "login": "renewed-by-user-on-official-site",
+    "publish2FA": "completed-by-user-on-official-site",
+    "acceptedPublications": 1,
+    "repeatWhileScanning": false,
+    "publicDownload": {
+      "version": "0.6.4",
+      "name": "@yanjijinxiao/agent-bridge",
+      "latest": "0.6.4",
+      "anonymousMetadataStatus": 200,
+      "anonymousTarballStatus": 200,
+      "integrity": "sha512-IWPXXkGQwasxbfDjpUAYSw4AWrpq+bXueXbmzGI7tnsRdHH+ui8U4qlkQq+/L3iHDpCkTqiGuwdpviLbRSpQQA==",
+      "sha256": "0a6160f9990143eab1326751392ce3102c33dfe96f57c934c93935184837bef2",
+      "bytes": 2444885,
+      "downloadedAt": "2026-11-12T04:37:18.934Z",
+      "registry": "https://registry.npmjs.org/@yanjijinxiao%2fagent-bridge/0.6.4",
+      "tarball": "https://registry.npmjs.org/@yanjijinxiao/agent-bridge/-/agent-bridge-0.6.4.tgz"
+    }
+  },
+  "github": {
+    "isDraft": false,
+    "publishedAt": "2026-11-12T04:38:09Z",
+    "tagName": "v0.6.4",
+    "url": "https://github.com/yanjijinxiao/agent-bridge/releases/tag/v0.6.4",
+    "anonymousDownload": {
+      "publicDownload": true,
+      "bytes": 2444885,
+      "sha256": "0a6160f9990143eab1326751392ce3102c33dfe96f57c934c93935184837bef2",
+      "verifiedAt": "2026-11-12T04:39:02.680Z"
+    }
+  },
+  "validation": {
+    "gateway": {
+      "tests": 3879,
+      "pass": 3778,
+      "skip": 101,
+      "fail": 0
+    },
+    "embedded": {
+      "tests": 510,
+      "pass": 508,
+      "skip": 2,
+      "fail": 0
+    },
+    "nativeAdjacent": {
+      "tests": 13,
+      "pass": 13,
+      "fail": 0
+    },
+    "registryCleanInstall": {
+      "version": "0.6.4",
+      "commit": "7f1165b38ef168123a6851175a8be8a6704e480e",
+      "cli": [
+        "agent-bridge",
+        "agent-bridge-connector"
+      ],
+      "gateway": true,
+      "taskboard": true,
+      "staticAsset": true
+    }
+  },
+  "deployment": {
+    "gateways": 2,
+    "maintainedConnectors": 5,
+    "thirdPartyDevicesChanged": false,
+    "version": "0.6.4",
+    "commit": "7f1165b38ef168123a6851175a8be8a6704e480e",
+    "bindingsAndAccessPreserved": true,
+    "nativeCorePidsPreserved": true,
+    "browserGrantsRetained": 35,
+    "ttlDays": 90,
+    "originalInputRecovered": "exact native accepted receipt, no manual replay"
+  },
+  "documentation": {
+    "cases": [
+      "NATIVE-01.6",
+      "IN-02.10"
+    ],
+    "tutorial": "https://aliyuque.antfin.com/odps/cm8be7/kfh7pk75ggvpno42",
+    "tutorialReadbackMatched": true,
+    "sourceDateAndFinalReceiptsRecordedAfterPackaging": true,
+    "unchangedPublishedTarball": true
+  },
+  "limits": [
+    "Synthetic 84 MiB transfer does not establish arbitrary native history performance; initial 84 MB native file probe timed out.",
+    "This is a changed-scope four-layer review; existing partial feature contracts are retained."
+  ],
+  "verifiedAt": "2026-11-12T04:39:37.726Z"
+}

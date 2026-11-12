@@ -20036,7 +20036,7 @@
     "mappedCases": 465,
     "recordedNarrowVerified": 370,
     "partialCases": 95,
-    "selectedFunctionContracts": 338,
+    "selectedFunctionContracts": 337,
     "note": "新增 NATIVE-01.6 / IN-02.10；旧 case 各自证据和 partial 保留，未宣称本次重审全库。"
   },
   "connectorIDEUpdate": {

@@ -30,7 +30,13 @@ npm publish /absolute/release/package.tgz --access public --registry=https://reg
 6. npm 可能要求账号的浏览器/双因素确认，凭据和验证码不能发到群聊。发布后从官方 registry 核对 name/version/dist.integrity、latest 标签，并用实际安装验证；发布成功不等于线上实例已经重启。
 7. 部署时核对每个 Gateway/Connector 的 productVersion、commit、instanceId 和实际连接。状态、授权和原生执行器不随程序版本重置。
 
-## 0.6.3 发行与升级
+## 0.6.4 发行与升级
+
+0.6.4 修复大响应 Socket 代理反复复制和收件箱准备阶段提前建卡，原生确认接收后再进入任务呈现。具体源码、制品、下载及部署证据见[发行核验](audits/2026-11-12-v064-release.md)。功能 case、模块及相关代码注释随实现提交，外部探探教程同步使用变化；教程不承担长篇内部发布记录。
+
+管理员应同时更新 Gateway 和自有 Connector，保留配置、设备身份、原生回执及 stateDir。只替换转发程序，不为此重启 Codex/Herdr 核心；第三方 Connector 的更新由设备所有者决定。
+
+## 0.6.3 历史发行
 
 0.6.3 包含 Herdr 被动跟随去重、Codex 冷恢复权限保留，以及旧 App 会话展示分组和 Connector 项目筛选修复。发布提交、公开下载完整性及干净安装结果见[发行核验](audits/2026-11-11-v063-release.md)。已上线构建、发布命令回执和 registry 可下载状态分别核对。
 

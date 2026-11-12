@@ -2,7 +2,7 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
-## [0.6.4] - Unreleased
+## [0.6.4] - 2026-11-12
 
 - Consume native Unix-socket WebSocket frames with linear copying, bounded messages and stdout backpressure, preventing large replies from monopolizing Connector relay processes.
 - Let the durable inbox own notices for definitely unsubmitted inputs. Create Codex task cards after exact native acceptance, preserving answer deltas and avoiding repeated failure cards during preparation retries.

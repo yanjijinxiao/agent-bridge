@@ -89,6 +89,41 @@
     "No real IM card sent and no source replayed; no production executor restarted during validation.",
     "No full-repository re-review claimed; existing partial contracts retained."
   ],
-  "deployment": "pending separate release receipts",
-  "npm": "0.6.4 source only; formal registry remains 0.6.3"
+  "deployment": {
+    "version": "0.6.4",
+    "commit": "7f1165b38ef168123a6851175a8be8a6704e480e",
+    "gateways": 2,
+    "maintainedConnectors": 5,
+    "thirdPartyConnectorsChanged": false,
+    "bindingsAndAccessPreserved": true,
+    "browserGrantsPreserved": 35,
+    "ttlDays": 90,
+    "nativeCorePidsPreserved": true,
+    "originalSource": "accepted, exact same native thread; no manual replay",
+    "receipts": [
+      {
+        "name": "manifest.json",
+        "sha256": "cd8744ac12fea5b3e650677f7d58b8ffcf4da8e374c4f061535cd109e322c19f"
+      },
+      {
+        "name": "toutou-connectors-verified.json",
+        "sha256": "5ce30847cd611455a0f196cb76147362ea236d5c3718ae0fe1c94690ebc451bd"
+      },
+      {
+        "name": "tantan-verified.json",
+        "sha256": "e5d7a8512511a4523d38c7f3a65146cfade6f1479e5b7d6fa1c590ea55c2bfea"
+      },
+      {
+        "name": "tantan-connectors-verified.json",
+        "sha256": "3223e9b973aa15e85e42a22a14fa945d1ab99e4955b4df08a4fd669250f74e51"
+      }
+    ]
+  },
+  "npm": {
+    "version": "0.6.4",
+    "status": "published",
+    "publicDownload": "verified",
+    "latest": "0.6.4",
+    "releaseReport": "docs/audits/2026-11-12-v064-release.md"
+  }
 }
