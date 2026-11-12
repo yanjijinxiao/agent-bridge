@@ -41,6 +41,42 @@
     {
       "name": "agent-bridge-v066-typecheck-final.log",
       "sha256": "98619b857bbc7dc6de563b2a0c3b6a5dd7d71794af8018025792c6efe1b77989"
+    },
+    {
+      "name": "release-tests.log",
+      "sha256": "82c96b8e55dada44b732f544324e9cedba76f6f606df932a3b0850ea8a0dd1c9"
+    },
+    {
+      "name": "release-taskboard-tests.log",
+      "sha256": "12d5239a3260305335a15342da855c610fc9257150abb38bada2d0fbe196a741"
+    },
+    {
+      "name": "release-verified.json",
+      "sha256": "db3da37fa4e3b865829fa9890e9d4a7093ce7ae7051bd54fe2f5cafe588525ce"
+    },
+    {
+      "name": "release-toutou-connectors-verified.json",
+      "sha256": "84987cad96c1768844338d61a236f71fda0644ec568fea0a6ac385a377b9be7e"
+    },
+    {
+      "name": "release-tantan-verified.json",
+      "sha256": "dfd38aee5ec9c99aac1bb7fd0f9a45d2d59f66c9e7cc39b5352fae6633dcdcc1"
+    },
+    {
+      "name": "release-tantan-connectors-verified.json",
+      "sha256": "3a849f32f5596a52d1293f8efc6047dbb7ac06ccd9bc88f8c75c4ea427f7e850"
+    },
+    {
+      "name": "release-live-question-watch.json",
+      "sha256": "1a3a809a62712adee5a4ad9987b3b1b4befbdc0e496d7049ef2d6f95710798c6"
+    },
+    {
+      "name": "agent-bridge-v066-public-proof.json",
+      "sha256": "b780fb5bd2881196c0f876857f430ffde17fd713d92db9ce2cfeed0b8222db67"
+    },
+    {
+      "name": "official-smoke.json",
+      "sha256": "62d5a44683c601b6922d70b80d7f558582fef1cfc88cd97e9756868af38c4b4e"
     }
   ],
   "results": {
@@ -66,6 +102,18 @@
       "tests": 22,
       "pass": 22,
       "fail": 0
+    },
+    "finalRelease": {
+      "tests": 3916,
+      "pass": 3815,
+      "skip": 101,
+      "fail": 0
+    },
+    "embeddedTaskboard": {
+      "tests": 510,
+      "pass": 508,
+      "skip": 2,
+      "fail": 0
     }
   },
   "limits": [
@@ -73,5 +121,56 @@
     "Full cold restore of sources over the existing128MiB budget is not implemented.",
     "Protocol fixture pass is not real IM answer acceptance."
   ],
-  "deployment": "pending final release checks and live subscription observation"
+  "deployment": {
+    "version": "0.6.6",
+    "commit": "87dfba08428efa46c403b2577c2c311e209a82e3",
+    "gateways": [
+      "头头",
+      "探探"
+    ],
+    "maintainedConnectors": 5,
+    "configurationBindingsAndBrowserGrantsPreserved": true,
+    "threeMacNativeProcessesPreserved": true,
+    "thirdPartyConnectorUnchanged": true,
+    "livePendingQuestion": {
+      "stableMs": 90469,
+      "samples": 7,
+      "subscriptionReady": true,
+      "retryAndWaiterReleaseCountersStable": true,
+      "imAnswerAcceptedNotYetVerified": false
+    },
+    "npm": {
+      "version": "0.6.6",
+      "latest": "0.6.6",
+      "publicIntegrityMatched": true,
+      "officialFreshInstallAndSmokePassed": true
+    },
+    "realImAnswers": [
+      {
+        "questionId": "Q125",
+        "kind": "async",
+        "nativeStatus": "confirmed",
+        "imOriginPresent": true,
+        "localAnswerDigestPresent": true,
+        "noticeOutcome": "confirmed",
+        "answerBodySavedInAudit": false,
+        "noticeDelivery": "delivered"
+      },
+      {
+        "questionId": "Q126",
+        "kind": "async",
+        "nativeStatus": "confirmed",
+        "imOriginPresent": true,
+        "localAnswerDigestPresent": true,
+        "noticeOutcome": "confirmed",
+        "answerBodySavedInAudit": false,
+        "noticeDelivery": "delivered"
+      }
+    ],
+    "githubRelease": {
+      "tag": "v0.6.6",
+      "commit": "87dfba08428efa46c403b2577c2c311e209a82e3",
+      "url": "https://github.com/yanjijinxiao/agent-bridge/releases/tag/v0.6.6"
+    }
+  }
 }

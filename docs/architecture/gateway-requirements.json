@@ -1082,7 +1082,7 @@
               "sha256": "8a826cb3e8de3ff5ef50a515167faed0900e731e9e4913158803d3349ebb8a6f"
             }
           ],
-          "verifiedBoundary": "生产 Runner/Controller 与 JSONL 夹具的跨线程/本机远端/超限/连接关闭组合；既有最新权限与 owner race 通过实际0.167.2隔离集成22项。不是实际钉钉回答验收；私有stdio大响应及超出128MiB权限预算的完整冷恢复不在证明范围。",
+          "verifiedBoundary": "生产 Runner/Controller 与 JSONL 夹具的跨线程/本机远端/超限/连接关闭组合；既有最新权限与 owner race 通过实际0.167.2隔离集成22项。不是实际钉钉回答验收；私有stdio大响应及超出128MiB权限预算的完整冷恢复不在证明范围。 最终3916回归与真实线上90秒订阅稳定、Q125/Q126钉钉回答原生confirmed另有验收记录；第三方Connector不擅自升级。",
           "implementationRecheck": {
             "date": "2026-11-12",
             "scope": "本次隔离路径、列明函数及相关守卫；未批量更新其他partial或代码证据。",
