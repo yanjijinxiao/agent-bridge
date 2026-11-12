@@ -8,7 +8,7 @@ NativeInteractionFanout 每个 host/thread 保留一个底层观察者，按 gat
 
 并发回执按实际获选的消费者分配。原生 confirmed 只确认被提交的那份答案，其他入口得到 withdrawn，不能把 Web 的拒绝算作 IM 的允许已生效。failed 是确认未知，保留已选消费者身份直到原生 confirmed/withdrawn 或观察者退休；不重放答案。消费者被替换后，旧获选者的回执也不能确认新消费者的同 ID 答案。
 
-Taskboard 通过观察消费者接入，不在 run 上安装抢占 IM 的 active handler。原请求回到表单后才允许再次选择；答案 flush 未知先观察，不自动再送旧决定。NativeAsyncQuestions 的通知微任务和最终写前均核来源；撤回、peer 已答、编辑、断连和 end 退休旧内容。
+Taskboard 通过观察消费者接入，不在 run 上安装抢占 IM 的 active handler。原请求回到表单后才允许再次选择；答案 flush 未知先观察，不自动再送旧决定。NativeAsyncQuestions 的通知微任务和最终写前均核来源；撤回、peer 已答、编辑和实际 turn end 退休旧内容。连接或观察者消失只挂起未答的异步 widget，不证明原生撤回；同步 RPC 问题和审批沿用其连接边界。
 
 ## 审批提醒与确认后换卡
 
@@ -33,3 +33,7 @@ native-async-questions、interaction-fanout、taskboard-native-integration、bri
 ## 漏重放与完整快照
 
 AppServerRequestMonitor只在实际订阅就绪后停止补订阅；原生状态waitingOnApproval但当前observer没有对应实际approval request时，仍需在原host/thread补订阅，不发用户输入、不猜审批答案。异步agent-message通知是增量，NativeAsyncQuestions默认合并；observeThreadInteractions仅把通过nativePage、active turn及items DTO校验的完整snapshot标为complete。可信空snapshot撤销消失且未提交的问题；非法snapshot、别的item增量不清空原待办，已提交的未知答案继续等待精确原生回执。INT-02.1/2有真实JSONL协议子进程反例。
+
+INT-02.6：交互重放请求 itemsView=full；summary 可能同时省略问题和已接受答案，不能作为完整替换证据。对同一 item 的增量保留未提供的 questions 字段；完整撤回、明确替换和 accepted answer 仍关闭原待办。NativeAsyncQuestions.suspend、Peer 独立订阅和执行回调使用既有 suspended 结果，不新增协议枚举或默认决定。正常重连沿用原 Q 编号和卡片。
+
+旧版误撤回的异步问题，只有当前原生再次明确提供同一个 account/binding/host/thread/turn/request/widget 及问题指纹、且从未记录答案摘要时，才恢复 pending 并发送一次标明“重新核对”的修正卡。同步请求、换绑、问题改写、已有或未知答案不复用旧内容。recoveredPending 是本地可选展示字段，旧文件可读，回滚可忽略；不保存答案正文或授予提交权限。

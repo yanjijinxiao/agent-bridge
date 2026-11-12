@@ -15,8 +15,11 @@ export class PeerInteractionClient {
     const retire = async () => {
       const pending = [...requests]; requests.clear();
       await Promise.allSettled(pending.map(([key, input]) => Promise.resolve().then(() => {
-        const result = answered.has(key) ? "failed" as const : "withdrawn" as const;
-        return key.startsWith('["approval"') ? observer.onResult?.(input, result) : observer.onUserInputResult?.(input, result);
+        // Async widgets outlive a transport/observer. Sync RPC requests and
+        // approvals retain their existing connection-bound retirement policy.
+        if (key.startsWith('["approval"')) return observer.onResult?.(input, answered.has(key) ? "failed" : "withdrawn");
+        return observer.onUserInputResult?.(input, answered.has(key) ? "failed"
+          : input.request?.kind === "async" ? "suspended" : "withdrawn");
       })));
     };
     const subscription = { host, thread, id, ready: false, close: async () => {

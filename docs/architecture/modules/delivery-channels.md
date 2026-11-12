@@ -1,5 +1,9 @@
 # 进展、卡片与渠道回执
 
+DEL-08.13：旧输入接收扫描失败/超时不能禁止只读 provenance 修复。observe 总是允许该修复独立验证当前持有者及完整原生来源；原输入恢复仍控制结果副作用，repairQueueTerminals 和 closeDeliveredProgress 不因修复进展而放开。只有完整来源、活动 turn 和新鲜同 host/thread 绑定同时成立，才能校正被旧展示污染的完成记录。部分、终态或换绑证据不重新打开卡片，不发答案、不启动任务。
+
+Connector 的完整来源扫描上限为 4 GiB，保留 15 秒读取预算及 50000 个 turn 上限；在 readline 累积前逐字节块检查单行不超过 64 MiB。超限、超时、缺尾、来源不是根会话或文件身份变化均返回未知，不用尾窗口冒充完整证明。本次约 2.77 GB 现存记录的只读验证与边界测试见[四层记录](../../audits/2026-11-12-follow-receipt-repair.md)，不据此承诺任意长度历史或机器负载下均能完成。
+
 Herdr 源码中的终端观察复用 ChannelTurnPresentation，状态事实来自 RuntimeObservationController。blocked 是等待终端处理，不生成原生审批/聊天问答；idle/error/exited 是终端观察结果，不能变成“已完成任务”。中断控件按能力显示，只承诺请求；画面有界刷新、状态阶段保留，IDE 和 @ 沿用公共能力。回执未知不另建卡、不自动重发通知；见[运行模块](agent-runtime.md)与[增量四层检查](../../audits/2026-11-07-herdr-adapters/README.md)。
 
 TurnPresentation/ThreadEventHub 保存按 host/thread/turn、阶段、卡片和页的展示状态。进展摘要、commentary、公开工具状态与最终答案分开，长任务持续刷新；原生 running/terminal 决定执行状态，渠道回执决定平台接收。Task 卡用普通字号状态与原生 loading，不额外附大标题冒充新答案。

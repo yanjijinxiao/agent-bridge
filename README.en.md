@@ -44,6 +44,7 @@ The local administration console binds to `127.0.0.1` and is not a multi-user lo
 - **Project and session management**: Connector discovers registered hosts and queries each host's native project and session catalog; bind, switch, create, resume, queue, and validate archived or missing sessions. Identically named projects on different hosts stay distinct.
 - **Long-running agent tasks**: Accepted tasks have no fixed overall timeout. Channels receive readable progress, tool state, and elapsed time while the final answer remains intact.
 - **Media, approvals, and notifications**: Handle images, voice, video, and files according to channel capabilities. Command, file-change, and permission approvals return to the originating account and conversation.
+- **Async question recovery**: Suspend Codex widgets when their connection drops, then verify the same native question and answer records after reconnecting. Accepted or uncertain answers are never replayed automatically.
 - **Local management and extensions**: Manage channels, projects, sessions, models, and notifications from a Web console. An embedded Taskboard and declarative Skill capabilities can extend the channel workbench.
 - **Optional full Web IDE**: code-server provides file editing, Git, and a terminal for local, SSH, or explicitly enabled Connector hosts, subject to the access conditions below.
 

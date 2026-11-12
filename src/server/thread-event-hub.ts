@@ -356,8 +356,12 @@ export class ThreadEventHub {
           this.failSync(sub, { code: "unconfirmed", message: "后端报告正在执行，但没有可确认的当前轮次；保留原进展，等待一致的原生状态。" }, "unconfirmed");
           return this.status(sub.key);
         }
+        // A failed historical input scan still gates result effects below.
+        // Read-only provenance repair independently validates the native owner
+        // and current binding; otherwise a polluted completion can permanently
+        // suppress live progress while waiting on that unrelated receipt.
+        this.requestProvenanceRepair(sub, snapshot);
         if (!inputRecoveryFailure) {
-          this.requestProvenanceRepair(sub, snapshot);
           await this.repairQueueTerminals(sub);
           await this.closeDeliveredProgress(sub, snapshot);
         }

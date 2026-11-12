@@ -7,6 +7,7 @@ import type { CodexTurnObservation, CodexThreadSnapshot, CodexThreadProvenance }
 
 const unknown = (): CodexTurnObservation => ({ status: "unknown", source: "unknown" });
 const HEADER_BYTES = 128 * 1024, TAIL_BYTES = 8 * 1024 * 1024;
+const PROVENANCE_BYTES = 4 * 1024 * 1024 * 1024, PROVENANCE_LINE_BYTES = 64 * 1024 * 1024;
 
 /** Stream a complete, size-bounded source once; a tail window cannot prove a
  * foreign turn absent or contradict an old completion receipt. */
@@ -14,10 +15,24 @@ export async function readNativeThreadProvenance(filePath: string, threadId: str
   const file = await fs.open(filePath, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const stat = await file.stat();
-    if (!stat.isFile() || !stat.size || stat.size > 1024 * 1024 * 1024) return;
+    if (!stat.isFile() || !stat.size || stat.size > PROVENANCE_BYTES) return;
     const last = Buffer.alloc(1); await file.read(last, 0, 1, stat.size - 1);
     if (last[0] !== 10) return; // Torn input cannot certify complete provenance.
     const input = file.createReadStream({ start: 0, end: stat.size - 1, autoClose: false, signal: AbortSignal.timeout(15000) });
+    // Long-lived root logs can exceed 1 GiB. Keep the complete-prefix proof
+    // and time budget, while bounding a single line before readline buffers it.
+    let lineBytes = 0;
+    const boundLine = (value: string | Buffer) => {
+      const chunk = typeof value === "string" ? Buffer.from(value) : value;
+      for (let start = 0; start < chunk.length;) {
+        const end = chunk.indexOf(10, start);
+        lineBytes += (end < 0 ? chunk.length : end) - start;
+        if (lineBytes > PROVENANCE_LINE_BYTES) { input.destroy(new Error("Native provenance line exceeds budget")); return; }
+        if (end < 0) return;
+        lineBytes = 0; start = end + 1;
+      }
+    };
+    input.on("data", boundLine);
     const lines = readline.createInterface({ input, crlfDelay: Infinity });
     const turns = new Map<string, CodexThreadProvenance["turns"][number]["status"]>();
     let first = true, rows = 0;
@@ -47,7 +62,7 @@ export async function readNativeThreadProvenance(filePath: string, threadId: str
       const after = await file.stat(), current = await fs.lstat(filePath);
       if (after.size < stat.size || !current.isFile() || current.dev !== stat.dev || current.ino !== stat.ino) return;
       return { threadId, complete: true, turns: [...turns].map(([id, status]) => ({ id, status })) };
-    } finally { lines.close(); input.destroy(); }
+    } finally { input.off("data", boundLine); lines.close(); input.destroy(); }
   } catch { return; } finally { await file.close(); }
 }
 

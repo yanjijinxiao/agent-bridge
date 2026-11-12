@@ -2,6 +2,11 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
+## [0.6.5] - Unreleased
+
+- Keep unanswered asynchronous Codex questions suspended across Connector/observer disconnects. Bootstrap from full native items, retain omitted delta fields, and restore an exactly reobserved legacy false withdrawal without replaying accepted or uncertain answers.
+- Repair verified root progress independently of unrelated input-receipt recovery. Read complete native provenance up to 4 GiB with the existing deadline and a bounded single-line buffer, preserving result and binding checks.
+
 ## [0.6.4] - 2026-11-12
 
 - Consume native Unix-socket WebSocket frames with linear copying, bounded messages and stdout backpressure, preventing large replies from monopolizing Connector relay processes.

@@ -27,6 +27,8 @@ type QuestionRecord = {
   /** Frozen turn participants, distinct from the eventual answer author. */
   mentions?: ChannelMention[];
   bindingDetached?: boolean;
+  /** A legacy false withdrawal was corrected by the exact current widget. */
+  recoveredPending?: boolean;
 };
 type Waiter = { resolve: (answer: string | undefined) => void; timer?: NodeJS.Timeout };
 const MAX_RESOLUTION_CARD_ATTEMPTS = 3;
@@ -107,8 +109,18 @@ export class ChannelUserInputController {
       record.kind ??= request.kind;
       // Called only for a currently observed native request. Restoring the
       // exact edge may reattach its unsent waiter, never replay an answer.
-      if (record.status === "withdrawn" && record.bindingDetached && this.matchesBinding(senderId, record)) {
-        record.status = "pending"; delete record.bindingDetached; this.save();
+      if (record.status === "withdrawn" && !record.answerDigest && this.matchesBinding(senderId, record)
+        && (record.bindingDetached || record.kind === "async")) {
+        const legacyAsync = record.kind === "async" && !record.bindingDetached;
+        record.status = "pending"; delete record.bindingDetached;
+        if (legacyAsync) {
+          // Only an exact reoffer reaches this record key. Replace the old
+          // invalidation once; submitted/uncertain answers are never reset.
+          record.recoveredPending = true; record.deliveryAttempted = false;
+          delete record.noticeAttempted; delete record.noticeOutcome; delete record.noticeDelivery;
+          delete record.noticeAttempts; delete record.noticeRetryAt;
+        }
+        this.save();
       }
       if (!["pending", "answered"].includes(record.status)) return undefined;
       if (record.status === "pending") {
@@ -452,7 +464,8 @@ function questionCard(record: QuestionRecord, index: number, total: number): Cha
   const { question, id } = record;
   const title = `Codex 问题 ${id}${total > 1 ? ` · ${index + 1}/${total}` : ""}`;
   const body = question.isSecret ? "此问题需要敏感输入，请在 Codex App 中回答。"
-    : [question.question, ...(question.options ?? []).map((option, index) => `${index + 1}. ${option.label}\n${option.description}`),
+    : [...(record.recoveredPending ? ["原问题已重新核对，仍等待回答；请使用本卡操作。"] : []),
+      question.question, ...(question.options ?? []).map((option, index) => `${index + 1}. ${option.label}\n${option.description}`),
       `自定义回答（将“回答内容”替换为你的回答）：\n\n${copyBlock(`/answer ${id} 回答内容`)}`].join("\n\n");
   return { ...createChoiceCard({ title, body, fallbackText: `【${title}】\n\n${body}`, template: "orange",
     choices: question.isSecret ? [] : [...(question.options ?? []).map((option, index) => ({ label: option.label,

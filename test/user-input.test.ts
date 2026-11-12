@@ -14,6 +14,40 @@ import { ChannelPartialDeliveryError } from "../src/channels/errors.js";
 
 const request: CodexUserInputRequest = { hostId: "local", requestId: 42, threadId: "thread", turnId: "turn", itemId: "item",
   questions: [{ id: "native-question", header: "问题", question: "farming 是项目还是目录？" }], autoResolutionMs: null };
+
+test("INT-02.6: an exactly reobserved unanswered async question restores its old ID after a legacy false withdrawal", async t => {
+  const f = fixture(t), r = { ...request, kind: "async" as const };
+  const first = f.controller.request("room", r);
+  await f.controller.reportResult("room", r, "withdrawn"); await first; await tick();
+  const next = f.controller.request("room", r);
+  assert.equal(f.cards.length, 2, "legacy invalidation receives one corrected question card");
+  assert.match(f.cards[1].fallbackText, /Q1/); assert.match(f.cards[1].fallbackText, /重新核对/);
+  assert.match(f.controller.answer("room", "Q1 current explicit answer"), /回执/);
+  assert.deepEqual(await next, { "native-question": { answers: ["current explicit answer"] } });
+  await f.controller.reportResult("room", r, "confirmed");
+  assert.equal(f.cards.length, 2);
+});
+
+for (const guard of ["binding", "sync", "attempted-answer", "changed-question"] as const)
+test(`INT-02.6: legacy async reattachment retains the ${guard} boundary`, async t => {
+  let valid = true;
+  const f = fixture(t, { validate: () => valid }), r = { ...request, kind: guard === "sync" ? "sync" as const : "async" as const };
+  const first = f.controller.request("room", r);
+  if (guard === "attempted-answer") { f.controller.answer("room", "Q1 possibly submitted"); await first; }
+  await f.controller.reportResult("room", r, "withdrawn"); await first; await tick();
+  if (guard === "binding") valid = false;
+  const fresh = guard === "changed-question" ? { ...r, questions: [{ ...r.questions[0], question: "new native question" }] } : r;
+  const result = f.controller.request("room", fresh);
+  if (guard === "changed-question") {
+    assert.match(f.cards.at(-1)!.fallbackText, /Q2/);
+    assert.match(f.controller.answer("room", "Q1 stale"), /未提交/);
+    f.controller.answer("room", "Q2 explicit new answer");
+    assert.deepEqual(await result, { "native-question": { answers: ["explicit new answer"] } });
+  } else {
+    assert.equal(await result, undefined); assert.equal(f.cards.length, 1);
+    assert.match(f.controller.answer("room", "Q1 stale answer"), /未提交/);
+  }
+});
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
 async function until(predicate: () => boolean): Promise<void> {
   const deadline = Date.now() + 2_000;

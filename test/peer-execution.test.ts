@@ -74,6 +74,24 @@ test("native execution and progress, approval and question callbacks round-trip 
   assert.equal((await f.as(() => f.facade.readTurnLifecycle!(f.thread.threadId, "old", f.ticket.hostId))).source, "unknown");
 });
 
+for (const kind of ["sync", "async"] as const) test(`INT-02.6: retiring execution callbacks preserves ${kind} question lifetime`, { timeout: 15000 }, async t => {
+  const f = await peerFixture(t); await f.bind();
+  const shown = Promise.withResolvers<void>(), retired = Promise.withResolvers<string>();
+  f.run = async input => {
+    await input.onTurnStarted?.({ threadId: f.thread.threadId, turnId: "native-turn" });
+    await input.onUserInput?.({ kind, requestId: "q", threadId: f.thread.threadId, turnId: "native-turn", itemId: "widget",
+      questions: [{ id: "q", header: "question", question: "pending" }] });
+    return { text: "fixture result", threadId: f.thread.threadId, turnId: "native-turn", raw: "" };
+  };
+  const running = f.as(() => f.facade.run(f.input({
+    onUserInput() { shown.resolve(); return new Promise(() => {}); },
+    onUserInputResult(_input, result) { retired.resolve(result); }
+  }))).catch(() => undefined);
+  await shown.promise; await f.reconnect();
+  assert.equal(await retired.promise, kind === "async" ? "suspended" : "withdrawn");
+  await running;
+});
+
 test("delayed native interactions preserve the channel deadline and confirm the original request", async t => {
   const f = await peerFixture(t); await f.bind();
   const notices: string[] = [];

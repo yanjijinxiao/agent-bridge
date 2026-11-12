@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "baseline": "1f0de26",
+  "cases": [
+    "INT-02.6",
+    "DEL-08.13"
+  ],
+  "layers": [
+    "architecture and independent authority",
+    "module and exception paths",
+    "selected functions and changed lines",
+    "static configuration documentation regression"
+  ],
+  "source": [
+    {
+      "file": "src/bridge/user-input-controller.ts",
+      "sha256": "d1248564629356a9e34b860d9d4e935359ae867083ad311f595bdd9a709dd196"
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "sha256": "a07ffa49e95f79aa00352bbedb57b04ccb79c6fa48d3079b20cb933554b795ff"
+    },
+    {
+      "file": "src/codex/native-async-questions.ts",
+      "sha256": "e456e0e2281e69f119b3dfabf750746f2dc15451f55ada9304aa8cd82b0f9d96"
+    },
+    {
+      "file": "src/codex/native-turn-lifecycle.ts",
+      "sha256": "357ba3d9e210cae3509df28692ea4c1634c9462ab996c13eb15e71923208db9d"
+    },
+    {
+      "file": "src/peer/backend.ts",
+      "sha256": "0037681f1606ab15054a221198bb6d16c006239f7234fe976f2a66f97d7cbe9c"
+    },
+    {
+      "file": "src/peer/interaction-client.ts",
+      "sha256": "270bae6767b1066af5bf7f495a1db5103fc67b5d535a47ab73513c5ac28c09d5"
+    },
+    {
+      "file": "src/server/thread-event-hub.ts",
+      "sha256": "734c80f70858854c58854c33f25fc74ad6c4e7034e264920e956a68d958a11cc"
+    }
+  ],
+  "evidence": [
+    {
+      "name": "agent-bridge-follow-receipt-before.tap",
+      "sha256": "822d9ae67f0b506d40b21ddb5b3f0ff4a333dd0bce7c62b1acbadaf7c3437a1d"
+    },
+    {
+      "name": "agent-bridge-question-lifecycle-before.tap",
+      "sha256": "41238549992cf99720b9f75bd0a05420333c869a4054a225d8de3138207667c7"
+    },
+    {
+      "name": "agent-bridge-question-bootstrap-before.tap",
+      "sha256": "98c693a8eddbeb508500b6d1e7231e15cca4319dd6a1dedf276b3c57aed8a87f"
+    },
+    {
+      "name": "agent-bridge-question-peer-before.tap",
+      "sha256": "d98c28d1a0055773b5d4a6c3d0760e11ff44c3961f366a9824d8fe1a9ae56de2"
+    },
+    {
+      "name": "agent-bridge-question-managed-peer-before.tap",
+      "sha256": "3cc631dc49be9bb044a92a1114a5ab9c034972776a90044a4eed2ff081909adf"
+    },
+    {
+      "name": "agent-bridge-v065-full.tap",
+      "sha256": "f3f5fffb6383383ba73da42a1b0c82790f84f8649ef5102023feed6af2a4c866"
+    },
+    {
+      "name": "agent-bridge-v065-real-native.tap",
+      "sha256": "ea6b8d3bb7a37a1c5c7812ab7b19cbbdbf685f83e68ca90bd3536566848d6665"
+    },
+    {
+      "name": "agent-bridge-v065-targeted-final.tap",
+      "sha256": "88612a0c5b2009df2dcbcf184e0f6e0e17039e4cfc3235fac0c78cd1c77ce4b5"
+    },
+    {
+      "name": "agent-bridge-large-provenance-proof.json",
+      "sha256": "819a6e5baf1f255c6510347d1d0056d12b4192026e4ad4ad7108f054f1e8c9ad"
+    },
+    {
+      "name": "agent-bridge-question-native-view.json",
+      "sha256": "d4e01d679496066a1dcbfefd5835e851e6c311994f6017e5b85d124d3d4c62a5"
+    }
+  ],
+  "results": {
+    "newAssertions": 23,
+    "before": {
+      "tests": 21,
+      "pass": 11,
+      "fail": 10
+    },
+    "full": {
+      "tests": 3902,
+      "pass": 3801,
+      "skip": 101,
+      "fail": 0
+    },
+    "realNative": {
+      "version": "0.167.2",
+      "tests": 22,
+      "pass": 22,
+      "fail": 0
+    },
+    "protocolFixtureIntegration": "Runner / NativeAsyncQuestions / Peer WebSocket / durable question controller; one explicit steer and stable native fixture PID",
+    "largeProvenance": {
+      "bytes": 2771359421,
+      "complete": true,
+      "turns": 505,
+      "elapsedMs": 4614,
+      "rssBefore": 68485120,
+      "rssAfter": 337559552,
+      "latest": [
+        {
+          "status": "completed"
+        },
+        {
+          "status": "inProgress"
+        }
+      ]
+    }
+  },
+  "limits": [
+    "Native protocol fixture integration is not real DingTalk UI acceptance.",
+    "Existing partial cases remain partial; no whole-repository certification.",
+    "Complete provenance remains bounded at 4GiB, 64MiB per line, 15s and 50000 turns."
+  ],
+  "deployment": "pending separate release receipts"
+}

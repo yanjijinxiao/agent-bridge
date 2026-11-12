@@ -17,14 +17,22 @@ for await (const line of readline.createInterface({ input: process.stdin })) {
     result = { thread: { id: 'thread' } };
   } else if (m.method === 'thread/read') result = { thread: { id: 'thread', cwd: '/tmp', projectId: null,
     status: { type: 'active', activeFlags: state.approval ? ['waitingOnApproval'] : [] } } };
-  else if (m.method === 'thread/turns/list') result = m.params.itemsView === 'summary'
+  else if (m.method === 'thread/turns/list') result = ['summary', 'full'].includes(m.params.itemsView)
     ? state.invalid ? { data: [{ id: 'turn', status: 'inProgress', items: null }], nextCursor: null }
-      : { data: [{ id: 'turn', status: 'inProgress', items: state.items ?? [] }], nextCursor: null }
+      : { data: [{ id: 'turn', status: 'inProgress', itemsView: state.returnedView ?? m.params.itemsView,
+        items: (m.params.itemsView === 'full' ? state.fullItems : state.summaryItems) ?? state.items ?? [] }], nextCursor: null }
     : { data: [{ id: 'turn', status: 'inProgress' }], nextCursor: null };
   else if (m.method === 'config/read') {
     if (state.delta) send({ method: 'item/completed', params: { threadId: 'thread', turnId: 'turn', item: {
       id: 'unrelated-item', type: 'agentMessage', questions: [], text: 'public incremental update' } } });
     result = { config: {} };
+  } else if (m.method === 'turn/steer' && state.allowAsyncSteer) {
+    const item = { type: 'steeringUserMessage', id: 'accepted-answer', status: 'accepted', input: m.params.input };
+    const items = [...(state.fullItems ?? state.items ?? []), item];
+    fs.writeFileSync(stateFile, JSON.stringify({ ...state, items, fullItems: items }));
+    send({ id: m.id, result: { turnId: 'turn' } });
+    send({ method: 'item/completed', params: { threadId: 'thread', turnId: 'turn', item } });
+    continue;
   } else if (!['initialize', 'thread/unsubscribe'].includes(m.method)) {
     send({ id: m.id, error: { code: -1, message: 'unexpected mutation' } }); continue;
   }

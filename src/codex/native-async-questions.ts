@@ -27,7 +27,12 @@ export class NativeAsyncQuestions {
       if (typeof item.id !== "string") continue;
       if (item.type === "agentMessage" && (items.has(item.id) || Array.isArray(item.questions) && item.questions.length)
         || ["userMessage", "steeringUserMessage"].includes(String(item.type))
-          && JSON.stringify(item.content ?? item.input ?? []).includes("<send_user_message_question_reply>")) items.set(item.id, item);
+          && JSON.stringify(item.content ?? item.input ?? []).includes("<send_user_message_question_reply>")) {
+        // Item notifications can omit unchanged widget fields. Only an
+        // explicit replacement or a complete snapshot may remove them.
+        const previous = items.get(item.id);
+        items.set(item.id, previous && item.type === "agentMessage" ? { ...previous, ...item } : item);
+      }
     }
     this.items.set(scope, items);
     const state = { threadRuntimeStatus: { type: "active" }, turns: [{ turnId, status: "inProgress", items: [...items.values()] }] };
@@ -86,13 +91,19 @@ export class NativeAsyncQuestions {
     }
   }
   end(threadId: string, turnId?: string): void {
-    for (const [key, pending] of this.pending) if (pending.input.request.threadId === threadId
-      && (!turnId || pending.input.request.turnId === turnId)) {
-      this.pending.delete(key); if (!pending.failureReported) this.report(pending, pending.submitted ? "suspended" : "withdrawn");
-    }
-    for (const scope of this.items.keys()) { const [thread, turn] = JSON.parse(scope); if (thread === threadId && (!turnId || turn === turnId)) this.items.delete(scope); }
+    this.retire(threadId, turnId, "withdrawn");
   }
-  disconnect(): void { for (const pending of [...this.pending.values()]) this.end(pending.input.request.threadId); this.items.clear(); }
+  /** A lost observer says nothing about whether the native widget is open.
+   * Reattachment must reobserve its exact source; it never replays an answer. */
+  suspend(threadId?: string): void { this.retire(threadId, undefined, "suspended"); }
+  private retire(threadId: string | undefined, turnId: string | undefined, unsent: "withdrawn" | "suspended"): void {
+    for (const [key, pending] of this.pending) if ((threadId === undefined || pending.input.request.threadId === threadId)
+      && (turnId === undefined || pending.input.request.turnId === turnId)) {
+      this.pending.delete(key); if (!pending.failureReported) this.report(pending, pending.submitted ? "suspended" : unsent);
+    }
+    for (const scope of this.items.keys()) { const [thread, turn] = JSON.parse(scope); if ((threadId === undefined || thread === threadId) && (turnId === undefined || turn === turnId)) this.items.delete(scope); }
+  }
+  disconnect(): void { this.suspend(); }
   private report(pending: Pending, result: CodexUserInputResult) {
     void Promise.resolve().then(() => pending.observer.onUserInputResult?.(pending.input, result)).catch(() => {});
   }

@@ -1813,10 +1813,13 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const state = await this.inspectThread(threadId);
       if (state.runtimeStatus === "active" && state.activeTurnId) {
         this.activeTurns.set(threadId, state.activeTurnId);
-        const page = nativePage(await this.request("thread/turns/list", { threadId, limit: 1, itemsView: "summary", sortDirection: "desc" }, 5_000), "thread/turns/list");
+        // A summary may omit accepted answers or the widget itself. It cannot
+        // certify pending-question validity or authorize a withdrawal.
+        const page = nativePage(await this.request("thread/turns/list", { threadId, limit: 1, itemsView: "full", sortDirection: "desc" }, 5_000), "thread/turns/list");
         const turn = page.data.filter(isRecord).find(t => t.id === state.activeTurnId && t.status === "inProgress");
-        if (!turn || !Array.isArray(turn.items) || turn.items.some(item => !isRecord(item) || typeof item.id !== "string" || typeof item.type !== "string"))
-          throw new Error("Native interaction snapshot must contain the active turn and an items array");
+        if (!turn || turn.itemsView !== undefined && turn.itemsView !== "full" || !Array.isArray(turn.items)
+          || turn.items.some(item => !isRecord(item) || typeof item.id !== "string" || typeof item.type !== "string"))
+          throw new Error("Native interaction snapshot must contain the full active turn and an items array");
         if (this.interactionObservers.get(threadId) === observer)
           this.asyncQuestions.observe(threadId, state.activeTurnId, turn.items, observer, true);
       }
@@ -1830,7 +1833,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   async unobserveThreadInteractions(threadId: string): Promise<void> {
     const observer = this.interactionObservers.get(threadId);
     this.interactionObservers.delete(threadId); this.interactionRefreshThreads.delete(threadId);
-    this.asyncQuestions.end(threadId);
+    this.asyncQuestions.suspend(threadId);
     for (const [key, request] of this.approvalRequests) if (request.observer === observer && request.request.threadId === threadId)
       this.resolveApproval(key, request.submitted ? "failed" : "withdrawn");
     for (const [key, request] of this.userInputRequests) if (request.observer === observer && request.request.threadId === threadId)

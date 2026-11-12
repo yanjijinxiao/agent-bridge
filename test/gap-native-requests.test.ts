@@ -9,6 +9,26 @@ import { AppServerRequestMonitor } from "../src/server/app-server-request-monito
 import type { NativeInteractionObserver, NativeUserInput } from "../src/codex/interactions.js";
 
 const until = async (check: () => boolean) => { for (let n = 0; n < 300; n++) { if (check()) return; await new Promise(r => setTimeout(r, 5)); } assert.fail("native fixture condition timed out"); };
+
+for (const answered of [false, true]) test(`INT-02.6: full native question bootstrap retains pending widgets and excludes accepted replies (answered=${answered})`, async t => {
+  const widget = { id: "widget", type: "agentMessage", questions: [{ title: "pending native question", options: null }] };
+  const questionItemId = JSON.stringify(["request_user_input_async", "widget", 0]);
+  const reply = { id: "accepted", type: "steeringUserMessage", status: "accepted", input: [{ type: "text",
+    text: `<send_user_message_question_reply>\n${JSON.stringify([{ questionItemId, question: "pending native question", answer: "desktop answer" }])}\n</send_user_message_question_reply>` }] };
+  // A real summary is a projection, not a complete list of turn items.
+  const f = fixture(t, { summaryItems: answered ? [widget] : [], fullItems: answered ? [widget, reply] : [widget] });
+  const offered: NativeUserInput[] = [];
+  await f.runner.observeThreadInteractions("thread", { onApproval: async () => undefined,
+    onUserInput(input) { offered.push(input); return new Promise(() => {}); } });
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(offered.length, answered ? 0 : 1);
+  assert.ok(!f.calls().some(call => ["turn/start", "turn/steer"].includes(call.method)));
+});
+
+test("INT-02.6: a summary returned for a full interaction bootstrap cannot certify withdrawal", async t => {
+  const f = fixture(t, { returnedView: "summary", items: [] });
+  await assert.rejects(f.runner.observeThreadInteractions("thread", { onApproval: async () => undefined }), /full|snapshot/i);
+});
 function fixture(t: test.TestContext, initial: Record<string, unknown>) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-request-gap-")), state = path.join(root, "state.json"), trace = path.join(root, "trace.jsonl");
   fs.writeFileSync(state, JSON.stringify(initial));

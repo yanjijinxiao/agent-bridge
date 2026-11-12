@@ -30,6 +30,18 @@ test("complete provenance keeps root ownership and never treats inherited child 
  fs.writeFileSync(file,rows.map(x=>JSON.stringify(x)).join("\n"));assert.equal(await readNativeThreadProvenance(file,"thread"),undefined);
 });
 
+test("DEL-08.13: oversized source or a growing single line cannot certify complete provenance", async t => {
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),"gateway-provenance-budget-"));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));const file=path.join(dir,"rollout.jsonl");
+ const header=JSON.stringify({type:"session_meta",payload:{id:"thread",source:"cli"}})+'\n';
+ fs.writeFileSync(file,header);const fd=fs.openSync(file,'r+');fs.ftruncateSync(fd,4*1024*1024*1024+1);fs.closeSync(fd);
+ assert.equal(await readNativeThreadProvenance(file,"thread"),undefined);
+ fs.writeFileSync(file,header+JSON.stringify({type:"event_msg",payload:{type:"task_started",turn_id:"main"}})+'\n'+
+  '{"type":"response_item","payload":{"text":"');
+ const block=Buffer.alloc(64*1024,97),out=fs.openSync(file,'a');
+ try{for(let i=0;i<1025;i++)fs.writeSync(out,block);fs.writeSync(out,'"}}\n');}finally{fs.closeSync(out);}
+ assert.equal(await readNativeThreadProvenance(file,"thread"),undefined,"an over-budget line is not a complete trusted source");
+});
+
 test("only exact explicit native endings certify an unloaded turn; partial, guardian and other-turn records do not",async t=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),"gateway-lifecycle-proof-"));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));const file=path.join(dir,"rollout.jsonl");
  const meta={type:"session_meta",payload:{id:"thread"}},event=(type:string,extra={})=>({type:"event_msg",payload:{type,turn_id:"turn",...extra}});

@@ -7653,6 +7653,97 @@
             "scope": "移除 Gateway 自建记忆；相关函数按 AST 差异及调用边界复核，其余方法体相同；新增行为按 KB-02 case 验证，不扩大旧 case 验证边界。",
             "report": "docs/audits/2026-11-04-remove-gateway-memory.md"
           }
+        },
+        {
+          "id": "INT-02.6",
+          "status": "verified",
+          "scenario": "异步问题的传输丢失不撤回；完整原生视图与增量字段分开；精确旧问题恢复不重发答案，绑定/同步请求/已尝试答案/改写边界保留。",
+          "tests": [
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "INT-02.6: full native question bootstrap retains pending widgets and excludes accepted replies (answered=false)"
+            },
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "INT-02.6: full native question bootstrap retains pending widgets and excludes accepted replies (answered=true)"
+            },
+            {
+              "file": "test/gap-native-requests.test.ts",
+              "name": "INT-02.6: a summary returned for a full interaction bootstrap cannot certify withdrawal"
+            },
+            {
+              "file": "test/native-async-questions.test.ts",
+              "name": "INT-02.6: a transport disconnect suspends an unanswered async widget; only its reobserved source can accept an answer"
+            },
+            {
+              "file": "test/native-async-questions.test.ts",
+              "name": "INT-02.6: omitted question fields in an item delta do not erase the widget; a complete removal still withdraws it"
+            },
+            {
+              "file": "test/peer-execution.test.ts",
+              "name": "INT-02.6: retiring execution callbacks preserves sync question lifetime"
+            },
+            {
+              "file": "test/peer-execution.test.ts",
+              "name": "INT-02.6: retiring execution callbacks preserves async question lifetime"
+            },
+            {
+              "file": "test/peer-interactions.test.ts",
+              "name": "INT-02.6: peer disconnect suspends an unanswered async widget and permits only an explicit answer after reattachment"
+            },
+            {
+              "file": "test/peer-interactions.test.ts",
+              "name": "INT-02.6: a real native question survives Peer reattachment in its original card, accepts one answer and stays closed after replay"
+            },
+            {
+              "file": "test/user-input.test.ts",
+              "name": "INT-02.6: an exactly reobserved unanswered async question restores its old ID after a legacy false withdrawal"
+            },
+            {
+              "file": "test/user-input.test.ts",
+              "name": "INT-02.6: legacy async reattachment retains the binding boundary"
+            },
+            {
+              "file": "test/user-input.test.ts",
+              "name": "INT-02.6: legacy async reattachment retains the sync boundary"
+            },
+            {
+              "file": "test/user-input.test.ts",
+              "name": "INT-02.6: legacy async reattachment retains the attempted-answer boundary"
+            },
+            {
+              "file": "test/user-input.test.ts",
+              "name": "INT-02.6: legacy async reattachment retains the changed-question boundary"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/user-input-controller.ts",
+              "sha256": "d1248564629356a9e34b860d9d4e935359ae867083ad311f595bdd9a709dd196"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "a07ffa49e95f79aa00352bbedb57b04ccb79c6fa48d3079b20cb933554b795ff"
+            },
+            {
+              "file": "src/codex/native-async-questions.ts",
+              "sha256": "e456e0e2281e69f119b3dfabf750746f2dc15451f55ada9304aa8cd82b0f9d96"
+            },
+            {
+              "file": "src/peer/backend.ts",
+              "sha256": "0037681f1606ab15054a221198bb6d16c006239f7234fe976f2a66f97d7cbe9c"
+            },
+            {
+              "file": "src/peer/interaction-client.ts",
+              "sha256": "270bae6767b1066af5bf7f495a1db5103fc67b5d535a47ab73513c5ac28c09d5"
+            }
+          ],
+          "verifiedBoundary": "生产 Controller/Runner 与隔离 JSONL 原生夹具、真实 Peer WebSocket，含稳定原卡、一次显式 steer、接收后重连不重放。原生 0.167.2 相邻集成另有 22 项；不是实际钉钉客户端答案交接验收。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "本次变动、下述精选函数和相邻守卫；旧 partial 与其他版本证据不提升。",
+            "report": "docs/audits/2026-11-12-follow-receipt-repair.md"
+          }
         }
       ]
     },
@@ -10139,6 +10230,65 @@
           ],
           "verifiedBoundary": "真实原生适配/Hub/checkpoint/钉钉转换与隔离 JSONL 供应商；含重启、补读失败、错轮和摘要回退。截图旧轮次已归档，未重新执行其原生任务，不声称那次实际时序已完整重现。",
           "report": "docs/audits/2026-11-09-native-phase-recovery.md"
+        },
+        {
+          "id": "DEL-08.13",
+          "status": "verified",
+          "scenario": "旧回执失败不禁止完整来源校正当前进展；结果仍受接收事实保护，部分/终态/换绑不得重开卡片；大记录有字节/行/时间边界。",
+          "tests": [
+            {
+              "file": "test/follow-receipt-repair.test.ts",
+              "name": "DEL-08.13: receipt error keeps provenance active independent from result authority"
+            },
+            {
+              "file": "test/follow-receipt-repair.test.ts",
+              "name": "DEL-08.13: receipt error keeps provenance terminal independent from result authority"
+            },
+            {
+              "file": "test/follow-receipt-repair.test.ts",
+              "name": "DEL-08.13: receipt error keeps provenance partial independent from result authority"
+            },
+            {
+              "file": "test/follow-receipt-repair.test.ts",
+              "name": "DEL-08.13: receipt error keeps provenance binding-change independent from result authority"
+            },
+            {
+              "file": "test/follow-receipt-repair.test.ts",
+              "name": "DEL-08.13: receipt timeout keeps provenance active independent from result authority"
+            },
+            {
+              "file": "test/follow-receipt-repair.test.ts",
+              "name": "DEL-08.13: receipt timeout keeps provenance terminal independent from result authority"
+            },
+            {
+              "file": "test/follow-receipt-repair.test.ts",
+              "name": "DEL-08.13: receipt timeout keeps provenance partial independent from result authority"
+            },
+            {
+              "file": "test/follow-receipt-repair.test.ts",
+              "name": "DEL-08.13: receipt timeout keeps provenance binding-change independent from result authority"
+            },
+            {
+              "file": "test/native-turn-lifecycle.test.ts",
+              "name": "DEL-08.13: oversized source or a growing single line cannot certify complete provenance"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/native-turn-lifecycle.ts",
+              "sha256": "357ba3d9e210cae3509df28692ea4c1634c9462ab996c13eb15e71923208db9d"
+            },
+            {
+              "file": "src/server/thread-event-hub.ts",
+              "sha256": "734c80f70858854c58854c33f25fc74ad6c4e7034e264920e956a68d958a11cc"
+            }
+          ],
+          "verifiedBoundary": "真实文件仓储和受控旧回执错误/超时×来源活动/终态/部分/换绑矩阵，含 4GiB 稀疏超限及 64MiB 行保护；另只读完整扫描当前约 2.77GB 根记录。没有取消或重跑任务，不声称任意历史都能在预算内完成。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "本次变动、下述精选函数和相邻守卫；旧 partial 与其他版本证据不提升。",
+            "report": "docs/audits/2026-11-12-follow-receipt-repair.md"
+          }
         }
       ]
     },
@@ -20030,14 +20180,14 @@
     }
   },
   "currentSummary": {
-    "audit": "2026-11-12-socket-relay-pressure",
+    "audit": "2026-11-12-follow-receipt-repair",
     "requirements": 96,
-    "cases": 465,
-    "mappedCases": 465,
-    "recordedNarrowVerified": 370,
+    "cases": 467,
+    "mappedCases": 467,
+    "recordedNarrowVerified": 372,
     "partialCases": 95,
-    "selectedFunctionContracts": 337,
-    "note": "新增 NATIVE-01.6 / IN-02.10；旧 case 各自证据和 partial 保留，未宣称本次重审全库。"
+    "selectedFunctionContracts": 347,
+    "note": "新增 INT-02.6 / DEL-08.13；只复核列明范围，历史 partial 和旧函数其余范围不重新认证。"
   },
   "connectorIDEUpdate": {
     "date": "2026-11-04",

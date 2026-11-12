@@ -128,7 +128,12 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     const retireInteractions = () => {
       for (const [key, request] of interactionRequests) {
         const handler = key.startsWith('["approval"') ? input?.onApprovalResult : input?.onUserInputResult;
-        try { void Promise.resolve(handler?.(request, answeredInteractions.has(key) ? "failed" : "withdrawn")).catch(() => {}); } catch { /* No native answer. */ }
+        // Retiring a callback cannot prove that an async widget was revoked;
+        // an attempted answer remains unknown and is never replayed here.
+        const result = answeredInteractions.has(key) ? "failed"
+          : key.startsWith('["question"') && request && typeof request === "object" && "kind" in request
+            && request.kind === "async" ? "suspended" : "withdrawn";
+        try { void Promise.resolve(handler?.(request, result)).catch(() => {}); } catch { /* No native answer. */ }
       }
       interactionRequests.clear();
     };

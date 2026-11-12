@@ -8,6 +8,31 @@ import type { CodexSteerInput, CodexSteerResult, CodexUserInputAnswer } from "..
 const settle = async () => { for (let n = 0; n < 4; n++) await new Promise<void>(r => setImmediate(r)); };
 const widget = (questions = ["first", "second"]) => ({ type: "agentMessage", id: "widget", questions: questions.map(title => ({ title, options: null })) });
 const accepted = (text: string, id = "native-answer") => ({ type: "steeringUserMessage", id, status: "accepted", input: [{ type: "text", text }] });
+
+test("INT-02.6: a transport disconnect suspends an unanswered async widget; only its reobserved source can accept an answer", async () => {
+  const f = fixture(); f.native.observe("thread", "turn", [widget(["first"])], f.observer); await settle();
+  const old = f.requests[0].request.questions[0];
+  f.native.disconnect(); await settle();
+  assert.deepEqual(f.results.map(r => r.result), ["suspended"], "transport loss cannot prove native withdrawal");
+  f.answers[0].resolve({ [old.id]: { answers: ["late old observer"] } }); await settle();
+  assert.equal(f.writes.length, 0);
+  f.native.observe("thread", "turn", [widget(["first"])], f.observer, true); await settle();
+  assert.equal(f.requests.length, 2);
+  const fresh = f.requests[1].request.questions[0];
+  f.answers[1].resolve({ [fresh.id]: { answers: ["explicit current answer"] } }); await settle();
+  assert.equal(f.writes.length, 1);
+  f.native.observe("thread", "turn", [accepted(f.writes[0].prompt)], f.observer); await settle();
+  f.acknowledgements[0].resolve({ status: "accepted", threadId: "thread", turnId: "turn" }); await settle();
+  assert.deepEqual(f.results.map(r => r.result), ["suspended", "confirmed"]);
+});
+
+test("INT-02.6: omitted question fields in an item delta do not erase the widget; a complete removal still withdraws it", async () => {
+  const f = fixture(); f.native.observe("thread", "turn", [widget(["first"])], f.observer); await settle();
+  f.native.observe("thread", "turn", [{ type: "agentMessage", id: "widget", text: "updated public text" }], f.observer); await settle();
+  assert.equal(f.requests.length, 1); assert.deepEqual(f.results, []);
+  f.native.observe("thread", "turn", [], f.observer, true); await settle();
+  assert.deepEqual(f.results.map(r => r.result), ["withdrawn"]); assert.equal(f.writes.length, 0);
+});
 function fixture() {
   const requests: NativeUserInput[] = [], answers: Array<ReturnType<typeof Promise.withResolvers<CodexUserInputAnswer | undefined>>> = [];
   const results: Array<{ request: NativeUserInput; result: string }> = [], writes: CodexSteerInput[] = [];
