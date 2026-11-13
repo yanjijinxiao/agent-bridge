@@ -1,0 +1,136 @@
+{
+  "version": "0.6.7",
+  "commit": "d959c233f6ae550c871217a8f27818ff1292d30e",
+  "sourceHash": "b5774d9c8cf8bae0fbe057830cfbcf38288f08539b9f9c70202245a2bb6e1c27",
+  "npm": {
+    "version": "0.6.7",
+    "latest": "0.6.7",
+    "integrity": "sha512-iyRaPttXlLbAqkkUNBlxw49RnVtdyk2Uz8posA5+pnBBAzuDGDVw3sErq9TU8YSGj+zNs+Ar8Ha5v64o9DcYBQ==",
+    "tarballReadable": true,
+    "bytes": 2460640,
+    "checkedAt": "2026-11-13T06:39:11.224Z"
+  },
+  "github": "https://github.com/yanjijinxiao/agent-bridge/releases/tag/v0.6.7",
+  "candidate": {
+    "version": "0.6.7",
+    "commit": "d959c233f6ae550c871217a8f27818ff1292d30e",
+    "cli": [
+      "agent-bridge",
+      "agent-bridge-connector"
+    ],
+    "gateway": true,
+    "taskboard": true,
+    "staticAsset": true,
+    "isolatedState": "/private/tmp/agent-bridge-smoke-state-wBUJSL"
+  },
+  "gateways": {
+    "toutou": {
+      "version": "0.6.7",
+      "pid": 44658,
+      "bindingsPreserved": true,
+      "grants": 34
+    },
+    "tantan": {
+      "version": "0.6.7",
+      "pid": 165403,
+      "bindings": 22,
+      "grants": 2,
+      "permissionsPreserved": true
+    }
+  },
+  "connectors": {
+    "toutou": [
+      {
+        "kind": "codex-app",
+        "version": "0.6.7",
+        "online": true,
+        "pid": 47287
+      },
+      {
+        "kind": "codex-app",
+        "version": "0.6.7",
+        "online": true,
+        "pid": 47287
+      }
+    ],
+    "tantan": [
+      {
+        "kind": "herdr-tui",
+        "version": "0.6.7",
+        "online": true,
+        "pid": 205903
+      },
+      {
+        "kind": "codex-cli",
+        "version": "0.6.7",
+        "online": true,
+        "pid": 205777
+      },
+      {
+        "kind": "herdr-app",
+        "version": "0.6.6",
+        "online": true,
+        "pid": 25634
+      },
+      {
+        "kind": "codex-app",
+        "version": "0.6.7",
+        "online": true,
+        "pid": 51649
+      }
+    ]
+  },
+  "nativeMacPidsPreserved": [
+    11238,
+    95394,
+    85378
+  ],
+  "admissionReopened": true,
+  "deferred": [
+    {
+      "component": "self-owned Herdr App acceptance Connector",
+      "version": "0.6.6",
+      "pid": 25634,
+      "reason": "Temporary launch configuration is missing. Process kept online; no credentials were regenerated and no authority was changed."
+    }
+  ],
+  "tutorial": {
+    "url": "https://yuque.antfin.com/go/doc/590977164",
+    "codex": true,
+    "herdr": true,
+    "helpLevels": true,
+    "combinedBodySha256": "dbc54df7f669a1e7b4983f8d8d7dfc81a46f71d2a807107a0d4a09d93fcbd497",
+    "relativeLinks": 0
+  },
+  "official": {
+    "version": "0.6.7",
+    "commit": "d959c233f6ae550c871217a8f27818ff1292d30e",
+    "cli": [
+      "agent-bridge",
+      "agent-bridge-connector"
+    ],
+    "gateway": true,
+    "taskboard": true,
+    "staticAsset": true,
+    "isolatedState": "/private/tmp/agent-bridge-smoke-state-h4Az4R"
+  },
+  "tests": {
+    "main": {
+      "total": 3930,
+      "passed": 3829,
+      "skipped": 101,
+      "failed": 0
+    },
+    "taskboard": {
+      "total": 510,
+      "passed": 508,
+      "skipped": 2,
+      "failed": 0
+    },
+    "finalFocused": {
+      "total": 135,
+      "passed": 135,
+      "failed": 0
+    }
+  }
+}
