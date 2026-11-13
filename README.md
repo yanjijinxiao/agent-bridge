@@ -218,11 +218,13 @@ node dist/server/index.js
 
 已注册的 Gateway 命令及扩展优先处理；未注册的 /xxx 给简短文字提示后按普通消息转发。路径、引文和正文中的斜杠直接作为普通内容；权限、绑定和运行中输入规则照常生效。已注册命令即使参数错误或后端不支持，也不会降级为 agent 输入。
 
-Herdr 的 /help 提供全部命令及别名、参数和能力说明，可按 session、input、access、workflow、capabilities 分项，也可查看单个命令。以下表格中 Codex 的新建、历史、模型等语义不直接套用于 Herdr，以当前入口的帮助为准。
+Codex、Herdr 共用三层帮助：/help 只列当前可用的常用入口；/help all 提供完整语法、别名和能力条件；/help session、input、access、workflow、capabilities 查看分项，/help 命令名 查看单个命令。同名分项可用 /help /session 或 /help /access 区分。默认页隐藏兼容写法及未启用功能，旧问题、审批和队列记录仍可从对应分项处理。以下表格中 Codex 的新建、历史、模型等语义不直接套用于 Herdr，以当前入口的帮助为准。
 
 | 命令 | 用途 |
 | --- | --- |
-| `/help` | 查看全部命令 |
+| `/help` | 简洁常用入口；`/help all` 查看完整参考 |
+| `/help input` | 合并消息、排队、进度及恢复；其他分项为 session、access、workflow、capabilities |
+| `/help ide` | 查看单个命令；`/help /session` 区分同名分项 |
 | `/status` | 查看当前项目、Session、后端、模型和任务状态 |
 | `/sessions` | 置顶→项目及其会话→其他会话；保留空项目，默认每页 50 项 |
 | `/sessions size 50` | 每页项数设为 50（支持 5-50，按聊天和用户保存） |
@@ -239,7 +241,6 @@ Herdr 的 /help 提供全部命令及别名、参数和能力说明，可按 ses
 | `/new` | 在当前项目新建 Session |
 | `/new P2` | 在指定项目新建并切换；也支持 C编号或完整项目名 |
 | `/new --standalone` | 在当前设备新建独立会话；先核对设备来源 |
-| `/session new ...` | /new ... 的别名 |
 | `/model` | 查看或切换模型 |
 | `/effort` | 查看或切换推理强度 |
 | `/stream` | 设置过程进度 |
@@ -257,7 +258,7 @@ Herdr 的 /help 提供全部命令及别名、参数和能力说明，可按 ses
 
 模型、推理强度和 Plan 模式直接修改所绑定的 Codex 原生会话。Gateway 不另存执行覆盖值，普通续聊和重启不会覆盖你后来在 Codex App 中的选择；旧 `/model default`、`/effort default` 只刷新当前原生设置。过程进度、绑定和消息回执仍由 Gateway 保存。
 
-普通消息在任务运行中默认安全 `steer`，也可显式 `/queue` 或用 `/policy queue` 排到下一轮。所有操作都使用选定主机的原生 App Server，读取失败或回执不明不会切换执行器或重发。`/leave` 会持续退出绑定，直到显式选择会话或 `/new`。`/stream off` 关闭过程进度但保留最终结果。全部命令及兼容别名见[渠道命令审计](./docs/channel-command-audit.md)。
+普通消息在任务运行中默认安全 `steer`，也可显式 `/queue` 或用 `/policy queue` 排到下一轮。所有操作都使用选定主机的原生 App Server，读取失败或回执不明不会切换执行器或重发。`/unbind` 会持续退出绑定，直到显式选择会话或 `/new`。`/stream off` 关闭过程进度但保留最终结果。`/leave`、`/session new`、`/project add`、`/ide status` 等兼容写法继续可用，集中在完整帮助说明；见[渠道命令审计](./docs/channel-command-audit.md)及[帮助模块](./docs/architecture/modules/command-help.md)。
 
 文字、图片和文件都发往当前绑定会话；仅切换 `/connect` 的目录来源不会改变发送目标。附件先经 Gateway 下载校验，再由 Connector 转存到会话所在主机，同机部署也遵守相同流程。纯文字不进入附件转存。若提示“附件未能转存，这条消息尚未提交”，可用 `/inbox` 核对保存记录和可用操作；这不表示原任务失败，也不会自动重发旧消息。
 

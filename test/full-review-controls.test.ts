@@ -82,10 +82,10 @@ test("queue cancellation rechecks authority after reading exact native queue own
   assert.equal(deletes, 0); assert.equal(queue.list("a")[0].status, "queued");
 });
 test("Desktop help distinguishes guarded steering from supported native queue admission", () => {
-  const help = channelHelpText([], "session", { desktopOwned: true, backendCapabilities: APP_SERVER_BACKEND_CAPABILITIES });
+  const help = channelHelpText([], "input", { backendCapabilities: APP_SERVER_BACKEND_CAPABILITIES });
   assert.doesNotMatch(help.split("\n").find(line => line.startsWith("/queue"))!, /不支持/);
-  assert.match(help.split("\n").find(line => line.startsWith("/steer"))!, /不支持/);
-  assert.match(help.split("\n").find(line => line.startsWith("/ide identity"))!, /个人准入/);
+  assert.match(help, /\/steer[\s\S]*不支持时拒绝/);
+  assert.match(channelHelpText([], "ide"), /\/ide identity[^\n]*个人准入/);
 });
 test("an invalid plan argument cannot silently toggle the current mode", async t => {
   const root = temporary(t), store = new RuntimeStateStore(resolveStatePaths(root));

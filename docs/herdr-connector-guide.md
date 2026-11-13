@@ -218,7 +218,7 @@ App 只允许重命名独占一个终端的标签页；多终端标签页请回�
 
 ### 命令和帮助怎么用
 
-/help 展示当前 Herdr 入口的完整命令说明；/help session 查看绑定、新建、跟随和关闭终端，/help input 查看合并消息、进度与回执，/help access 查看权限和共享，/help workflow 查看项目和看板，/help capabilities 查看原生能力限制。也可以用 /help stop 等查看单个命令。
+/help 展示当前 Herdr 入口可用的常用命令，/help all 才是完整参考（含兼容别名和功能条件）。/help session 查看绑定、新建、跟随和关闭终端，/help input 查看合并消息、进度与回执，/help access 查看权限和共享，/help workflow 查看项目和已启用看板，/help capabilities 查看原生能力。也可以用 /help stop 等查看单个命令；/help /session 用于区分同名分项。Codex 使用相同的帮助查询语法。
 
 已注册的 Gateway 命令优先处理，包括它们的别名和已安装扩展。未注册的 /xxx 会先收到一条简短文字提示，再作为普通消息原样交给当前终端；路径、引文和正文中出现的斜杠直接作为普通内容。能否提交仍取决于权限、绑定和终端状态。
 
@@ -298,7 +298,7 @@ TUI 读取最近 512 行终端内容，App 使用当前画面。因此，窗口�
 
 **Herdr 中的工具审批在原 agent 终端处理。** 探探能显示它正在等你，但不会把聊天里的“同意”或 /approve 自动变成终端按键。终端中的审批文字也不会被包装成可点击的原生审批卡。
 
-模型、推理强度及计划模式同样使用 agent 自己的界面或命令。/model、/effort、/plan、/goal、/balance 通过 Herdr 不提供相应原生功能；/help 会说明当前入口的支持范围。
+模型、推理强度及计划模式同样使用 agent 自己的界面或命令。/model、/effort、/plan、/goal、/balance 通过 Herdr 不提供相应原生功能；/help all 或单命令帮助会说明支持条件，默认页不罗列不可用操作。原问题、审批及队列回执仍按原请求目标处理。
 
 设备配对和共享访问审批仍在第 3、8 节所述位置处理，它们与 agent 的工具审批是不同事项。
 

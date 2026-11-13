@@ -181,7 +181,7 @@ test("Bridge uses channel-native cards for help and fixed selections", async (t)
   await send("prompt", "/prompt");
 
   assert.deepEqual(cards.map((card) => card.title), [
-    "Codex 渠道工作台",
+    "Agent Bridge · 帮助",
     "Codex 项目 · 2 个 · 1/1 页",
     "可绑定会话 · 全部 · 0 个 · 第 1/1 页",
     "选择模型",
@@ -203,12 +203,13 @@ test("Bridge uses channel-native cards for help and fixed selections", async (t)
   assert.match(cards[0].body, /\/history/);
   assert.ok(cards[0].fallbackText.startsWith(cards[0].body), "native help retains its full command guide; fallback adds only text controls");
   assert.match(cards[0].fallbackText, /发送命令操作/);
-  for (const command of ["history", "follow", "policy", "role"]) {
+  for (const command of ["sessions", "status", "project", "ide"]) {
     assert.ok(cards[0].actionGroups.flat().some((action) => action.value.command === command));
   }
   assert.ok(cards[0].actionGroups.flat().some((action) => action.value.command === "help" && action.value.arg === "session"));
   await send("session-help", "/h session");
-  assert.match(cards.at(-1)!.body, /会话介入与跟随[\s\S]*\/history more[\s\S]*\/follow[\s\S]*\/leave[\s\S]*\/policy[\s\S]*\/role/);
+  assert.match(cards.at(-1)!.body, /设备、会话与跟随[\s\S]*\/history[\s\S]*\/follow/);
+  assert.doesNotMatch(cards.at(-1)!.body, /^\/leave\b|^\/policy\b|^\/role\b/m);
   assert.doesNotMatch(cards.at(-1)!.body, /\/task new|\/project rename/);
 });
 

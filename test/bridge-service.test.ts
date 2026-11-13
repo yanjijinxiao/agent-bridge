@@ -294,12 +294,12 @@ test("lists every built-in command and reports the current Codex account balance
     raw: {}
   });
 
-  await send("help", "/help");
+  await send("help", "/help all");
   const help = replies.join("\n\n");
   for (const command of [
     "/help", "/status", "/balance", "/project", "/task", "/new", "/sessions", "/session",
     "/history", "/history more", "/help session", "/follow", "/leave", "/policy", "/role", "/intervene",
-    "/steer", "/queue", "/model", "/effort", "/stream", "/prompt start", "/prompt done",
+    "/steer", "/queue", "/model", "/effort", "/stream", "/prompt",
     "/approve", "/reject", "/stop"
   ]) {
     assert.match(help, new RegExp(command.replace("/", "\\/")));
@@ -796,7 +796,7 @@ for (const channel of ["dingtalk", "weixin", "feishu", "wecom"] as const) {
       await send(command, command);
       assert.equal(classificationCount, 0, "control dispatch does not invoke AI classification");
       assert.equal(runs.length, 2);
-      assert.match(replies.slice(start).map((reply) => reply.text).join("\n"), /会话介入与跟随/);
+      assert.match(replies.slice(start).map((reply) => reply.text).join("\n"), /Agent Bridge/);
     }
     const start = replies.length;
     await send("natural-help", "查看帮助");

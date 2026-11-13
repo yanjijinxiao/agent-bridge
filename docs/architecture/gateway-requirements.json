@@ -6747,7 +6747,7 @@
         2738,
         2741
       ],
-      "contract": "命令别名、权限、能力与帮助一致；status轻量并行有界，不被可选服务/历史/任务执行堵住。",
+      "contract": "命令别名、权限、能力与帮助一致；首页/完整/分项/单命令共用定义，兼容与记录控制保留。status轻量并行有界，不被可选服务/历史/任务执行堵住。",
       "implementationReview": "pending",
       "cases": [
         {
@@ -6934,6 +6934,418 @@
             }
           ],
           "verifiedBoundary": "覆盖命令/别名/参数、扩展、Taskboard 配置和动态中断能力；渠道展示上限由既有分页器处理。"
+        },
+        {
+          "id": "CTRL-05.help-1",
+          "scenario": "首页简洁、兼容和高级入口不刷屏",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/channel-help.test.ts",
+              "name": "HELP-01: default help is one concise common page without aliases, recovery or authorization recipes"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/channel-command-registry.ts",
+              "sha256": "169e335ce8a9fcd6851b839860a39a551891bc11656a9d7de4e2ff2b2f963427"
+            },
+            {
+              "file": "src/bridge/command-help.ts",
+              "sha256": "fc1b3eae6aa378eede35fb6bf35cac7f5d9b21739120633526b9ba9a9df81551"
+            },
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "e2cdd00d7aa4fe2b64053754f3638ddbdd748acaf265931143efdf4d223bd39e"
+            },
+            {
+              "file": "src/bridge/runtime-help.ts",
+              "sha256": "2c7372f05c1ed1eb1ed1a491cdea8faa848201107779c5b952ec3c10f9ad35c4"
+            },
+            {
+              "file": "src/bridge/runtime-command-policy.ts",
+              "sha256": "20b552efdcbf1d5810a238860ea7016cb6b2bce0b26d75edd7585917ebe6e2cd"
+            },
+            {
+              "file": "src/bridge/interaction-cards.ts",
+              "sha256": "7db5bdf2a8467d22d760c5ced97f162fa32ea073756321bf8d68b3a0772c4e20"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "4ebfffdd56604c14ac66358c2299bf4deee4aa4fec99e749d307408f7125cbbc"
+            }
+          ],
+          "verifiedBoundary": "本地帮助格式器、四渠道卡片/文字 Bridge 及两种 Herdr 协议替身；不代表真实IM客户端、线上部署或全部原生版本验收。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "仅本轮帮助分层及其直接调用边界，不扩大旧场景的验证范围。",
+            "report": "docs/audits/2026-11-12-help-levels.md"
+          }
+        },
+        {
+          "id": "CTRL-05.help-2",
+          "scenario": "完整参考保留36命令、22别名和兼容语法",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/channel-help.test.ts",
+              "name": "HELP-02: complete reference retains every registered command, alias and capability condition"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/channel-command-registry.ts",
+              "sha256": "169e335ce8a9fcd6851b839860a39a551891bc11656a9d7de4e2ff2b2f963427"
+            },
+            {
+              "file": "src/bridge/command-help.ts",
+              "sha256": "fc1b3eae6aa378eede35fb6bf35cac7f5d9b21739120633526b9ba9a9df81551"
+            },
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "e2cdd00d7aa4fe2b64053754f3638ddbdd748acaf265931143efdf4d223bd39e"
+            },
+            {
+              "file": "src/bridge/runtime-help.ts",
+              "sha256": "2c7372f05c1ed1eb1ed1a491cdea8faa848201107779c5b952ec3c10f9ad35c4"
+            },
+            {
+              "file": "src/bridge/runtime-command-policy.ts",
+              "sha256": "20b552efdcbf1d5810a238860ea7016cb6b2bce0b26d75edd7585917ebe6e2cd"
+            },
+            {
+              "file": "src/bridge/interaction-cards.ts",
+              "sha256": "7db5bdf2a8467d22d760c5ced97f162fa32ea073756321bf8d68b3a0772c4e20"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "4ebfffdd56604c14ac66358c2299bf4deee4aa4fec99e749d307408f7125cbbc"
+            }
+          ],
+          "verifiedBoundary": "本地帮助格式器、四渠道卡片/文字 Bridge 及两种 Herdr 协议替身；不代表真实IM客户端、线上部署或全部原生版本验收。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "仅本轮帮助分层及其直接调用边界，不扩大旧场景的验证范围。",
+            "report": "docs/audits/2026-11-12-help-levels.md"
+          }
+        },
+        {
+          "id": "CTRL-05.help-3",
+          "scenario": "统一分项、单命令、别名和同名分项消歧",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/channel-help.test.ts",
+              "name": "HELP-03: topic selection is consistent, with an explicit escape for command/family name collisions"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/channel-command-registry.ts",
+              "sha256": "169e335ce8a9fcd6851b839860a39a551891bc11656a9d7de4e2ff2b2f963427"
+            },
+            {
+              "file": "src/bridge/command-help.ts",
+              "sha256": "fc1b3eae6aa378eede35fb6bf35cac7f5d9b21739120633526b9ba9a9df81551"
+            },
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "e2cdd00d7aa4fe2b64053754f3638ddbdd748acaf265931143efdf4d223bd39e"
+            },
+            {
+              "file": "src/bridge/runtime-help.ts",
+              "sha256": "2c7372f05c1ed1eb1ed1a491cdea8faa848201107779c5b952ec3c10f9ad35c4"
+            },
+            {
+              "file": "src/bridge/runtime-command-policy.ts",
+              "sha256": "20b552efdcbf1d5810a238860ea7016cb6b2bce0b26d75edd7585917ebe6e2cd"
+            },
+            {
+              "file": "src/bridge/interaction-cards.ts",
+              "sha256": "7db5bdf2a8467d22d760c5ced97f162fa32ea073756321bf8d68b3a0772c4e20"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "4ebfffdd56604c14ac66358c2299bf4deee4aa4fec99e749d307408f7125cbbc"
+            }
+          ],
+          "verifiedBoundary": "本地帮助格式器、四渠道卡片/文字 Bridge 及两种 Herdr 协议替身；不代表真实IM客户端、线上部署或全部原生版本验收。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "仅本轮帮助分层及其直接调用边界，不扩大旧场景的验证范围。",
+            "report": "docs/audits/2026-11-12-help-levels.md"
+          }
+        },
+        {
+          "id": "CTRL-05.help-4",
+          "scenario": "模式、Taskboard、知识库及原生能力独立筛选",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/channel-help.test.ts",
+              "name": "HELP-04: configuration narrows topic visibility without losing explicit disabled-feature documentation"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/channel-command-registry.ts",
+              "sha256": "169e335ce8a9fcd6851b839860a39a551891bc11656a9d7de4e2ff2b2f963427"
+            },
+            {
+              "file": "src/bridge/command-help.ts",
+              "sha256": "fc1b3eae6aa378eede35fb6bf35cac7f5d9b21739120633526b9ba9a9df81551"
+            },
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "e2cdd00d7aa4fe2b64053754f3638ddbdd748acaf265931143efdf4d223bd39e"
+            },
+            {
+              "file": "src/bridge/runtime-help.ts",
+              "sha256": "2c7372f05c1ed1eb1ed1a491cdea8faa848201107779c5b952ec3c10f9ad35c4"
+            },
+            {
+              "file": "src/bridge/runtime-command-policy.ts",
+              "sha256": "20b552efdcbf1d5810a238860ea7016cb6b2bce0b26d75edd7585917ebe6e2cd"
+            },
+            {
+              "file": "src/bridge/interaction-cards.ts",
+              "sha256": "7db5bdf2a8467d22d760c5ced97f162fa32ea073756321bf8d68b3a0772c4e20"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "4ebfffdd56604c14ac66358c2299bf4deee4aa4fec99e749d307408f7125cbbc"
+            }
+          ],
+          "verifiedBoundary": "本地帮助格式器、四渠道卡片/文字 Bridge 及两种 Herdr 协议替身；不代表真实IM客户端、线上部署或全部原生版本验收。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "仅本轮帮助分层及其直接调用边界，不扩大旧场景的验证范围。",
+            "report": "docs/audits/2026-11-12-help-levels.md"
+          }
+        },
+        {
+          "id": "CTRL-05.help-5",
+          "scenario": "Herdr App/TUI 正确终端语义、能力限制及旧记录入口",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/channel-help.test.ts",
+              "name": "HELP-05: herdr-app shares topics while retaining honest terminal, capability and record semantics"
+            },
+            {
+              "file": "test/channel-help.test.ts",
+              "name": "HELP-05: herdr-tui shares topics while retaining honest terminal, capability and record semantics"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/channel-command-registry.ts",
+              "sha256": "169e335ce8a9fcd6851b839860a39a551891bc11656a9d7de4e2ff2b2f963427"
+            },
+            {
+              "file": "src/bridge/command-help.ts",
+              "sha256": "fc1b3eae6aa378eede35fb6bf35cac7f5d9b21739120633526b9ba9a9df81551"
+            },
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "e2cdd00d7aa4fe2b64053754f3638ddbdd748acaf265931143efdf4d223bd39e"
+            },
+            {
+              "file": "src/bridge/runtime-help.ts",
+              "sha256": "2c7372f05c1ed1eb1ed1a491cdea8faa848201107779c5b952ec3c10f9ad35c4"
+            },
+            {
+              "file": "src/bridge/runtime-command-policy.ts",
+              "sha256": "20b552efdcbf1d5810a238860ea7016cb6b2bce0b26d75edd7585917ebe6e2cd"
+            },
+            {
+              "file": "src/bridge/interaction-cards.ts",
+              "sha256": "7db5bdf2a8467d22d760c5ced97f162fa32ea073756321bf8d68b3a0772c4e20"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "4ebfffdd56604c14ac66358c2299bf4deee4aa4fec99e749d307408f7125cbbc"
+            }
+          ],
+          "verifiedBoundary": "本地帮助格式器、四渠道卡片/文字 Bridge 及两种 Herdr 协议替身；不代表真实IM客户端、线上部署或全部原生版本验收。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "仅本轮帮助分层及其直接调用边界，不扩大旧场景的验证范围。",
+            "report": "docs/audits/2026-11-12-help-levels.md"
+          }
+        },
+        {
+          "id": "CTRL-05.help-6",
+          "scenario": "扩展完整发现且不能覆盖内置帮助",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/channel-help.test.ts",
+              "name": "HELP-06: installed extensions are discoverable and exact aliases do not override builtin help"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/channel-command-registry.ts",
+              "sha256": "169e335ce8a9fcd6851b839860a39a551891bc11656a9d7de4e2ff2b2f963427"
+            },
+            {
+              "file": "src/bridge/command-help.ts",
+              "sha256": "fc1b3eae6aa378eede35fb6bf35cac7f5d9b21739120633526b9ba9a9df81551"
+            },
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "e2cdd00d7aa4fe2b64053754f3638ddbdd748acaf265931143efdf4d223bd39e"
+            },
+            {
+              "file": "src/bridge/runtime-help.ts",
+              "sha256": "2c7372f05c1ed1eb1ed1a491cdea8faa848201107779c5b952ec3c10f9ad35c4"
+            },
+            {
+              "file": "src/bridge/runtime-command-policy.ts",
+              "sha256": "20b552efdcbf1d5810a238860ea7016cb6b2bce0b26d75edd7585917ebe6e2cd"
+            },
+            {
+              "file": "src/bridge/interaction-cards.ts",
+              "sha256": "7db5bdf2a8467d22d760c5ced97f162fa32ea073756321bf8d68b3a0772c4e20"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "4ebfffdd56604c14ac66358c2299bf4deee4aa4fec99e749d307408f7125cbbc"
+            }
+          ],
+          "verifiedBoundary": "本地帮助格式器、四渠道卡片/文字 Bridge 及两种 Herdr 协议替身；不代表真实IM客户端、线上部署或全部原生版本验收。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "仅本轮帮助分层及其直接调用边界，不扩大旧场景的验证范围。",
+            "report": "docs/audits/2026-11-12-help-levels.md"
+          }
+        },
+        {
+          "id": "CTRL-05.help-7",
+          "scenario": "兼容解析、IDE/跟随/共享等独立控制不受精简影响",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/channel-help.test.ts",
+              "name": "HELP-07: compatibility classification and independent controls survive presentation cleanup"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/channel-command-registry.ts",
+              "sha256": "169e335ce8a9fcd6851b839860a39a551891bc11656a9d7de4e2ff2b2f963427"
+            },
+            {
+              "file": "src/bridge/command-help.ts",
+              "sha256": "fc1b3eae6aa378eede35fb6bf35cac7f5d9b21739120633526b9ba9a9df81551"
+            },
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "e2cdd00d7aa4fe2b64053754f3638ddbdd748acaf265931143efdf4d223bd39e"
+            },
+            {
+              "file": "src/bridge/runtime-help.ts",
+              "sha256": "2c7372f05c1ed1eb1ed1a491cdea8faa848201107779c5b952ec3c10f9ad35c4"
+            },
+            {
+              "file": "src/bridge/runtime-command-policy.ts",
+              "sha256": "20b552efdcbf1d5810a238860ea7016cb6b2bce0b26d75edd7585917ebe6e2cd"
+            },
+            {
+              "file": "src/bridge/interaction-cards.ts",
+              "sha256": "7db5bdf2a8467d22d760c5ced97f162fa32ea073756321bf8d68b3a0772c4e20"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "4ebfffdd56604c14ac66358c2299bf4deee4aa4fec99e749d307408f7125cbbc"
+            }
+          ],
+          "verifiedBoundary": "本地帮助格式器、四渠道卡片/文字 Bridge 及两种 Herdr 协议替身；不代表真实IM客户端、线上部署或全部原生版本验收。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "仅本轮帮助分层及其直接调用边界，不扩大旧场景的验证范围。",
+            "report": "docs/audits/2026-11-12-help-levels.md"
+          }
+        },
+        {
+          "id": "CTRL-05.help-8",
+          "scenario": "四渠道卡片/文字帮助无原生读取写入、不换绑或切模式",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/help-integration.test.ts",
+              "name": "HELP-08: dingtalk text help is read-only, filtered and navigable"
+            },
+            {
+              "file": "test/help-integration.test.ts",
+              "name": "HELP-08: dingtalk cards help is read-only, filtered and navigable"
+            },
+            {
+              "file": "test/help-integration.test.ts",
+              "name": "HELP-08: weixin text help is read-only, filtered and navigable"
+            },
+            {
+              "file": "test/help-integration.test.ts",
+              "name": "HELP-08: weixin cards help is read-only, filtered and navigable"
+            },
+            {
+              "file": "test/help-integration.test.ts",
+              "name": "HELP-08: feishu text help is read-only, filtered and navigable"
+            },
+            {
+              "file": "test/help-integration.test.ts",
+              "name": "HELP-08: feishu cards help is read-only, filtered and navigable"
+            },
+            {
+              "file": "test/help-integration.test.ts",
+              "name": "HELP-08: wecom text help is read-only, filtered and navigable"
+            },
+            {
+              "file": "test/help-integration.test.ts",
+              "name": "HELP-08: wecom cards help is read-only, filtered and navigable"
+            },
+            {
+              "file": "test/help-integration.test.ts",
+              "name": "HELP-08: unbound help reads the selected Connector capability rather than the local default"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/channel-command-registry.ts",
+              "sha256": "169e335ce8a9fcd6851b839860a39a551891bc11656a9d7de4e2ff2b2f963427"
+            },
+            {
+              "file": "src/bridge/command-help.ts",
+              "sha256": "fc1b3eae6aa378eede35fb6bf35cac7f5d9b21739120633526b9ba9a9df81551"
+            },
+            {
+              "file": "src/bridge/channel-commands.ts",
+              "sha256": "e2cdd00d7aa4fe2b64053754f3638ddbdd748acaf265931143efdf4d223bd39e"
+            },
+            {
+              "file": "src/bridge/runtime-help.ts",
+              "sha256": "2c7372f05c1ed1eb1ed1a491cdea8faa848201107779c5b952ec3c10f9ad35c4"
+            },
+            {
+              "file": "src/bridge/runtime-command-policy.ts",
+              "sha256": "20b552efdcbf1d5810a238860ea7016cb6b2bce0b26d75edd7585917ebe6e2cd"
+            },
+            {
+              "file": "src/bridge/interaction-cards.ts",
+              "sha256": "7db5bdf2a8467d22d760c5ced97f162fa32ea073756321bf8d68b3a0772c4e20"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "4ebfffdd56604c14ac66358c2299bf4deee4aa4fec99e749d307408f7125cbbc"
+            }
+          ],
+          "verifiedBoundary": "本地帮助格式器、四渠道卡片/文字 Bridge 及两种 Herdr 协议替身；不代表真实IM客户端、线上部署或全部原生版本验收。",
+          "implementationRecheck": {
+            "date": "2026-11-12",
+            "scope": "仅本轮帮助分层及其直接调用边界，不扩大旧场景的验证范围。",
+            "report": "docs/audits/2026-11-12-help-levels.md"
+          }
         }
       ]
     },
@@ -20259,14 +20671,14 @@
     }
   },
   "currentSummary": {
-    "audit": "2026-11-12-cold-read-question-isolation",
+    "audit": "2026-11-12-help-levels",
     "requirements": 96,
-    "cases": 468,
-    "mappedCases": 468,
-    "recordedNarrowVerified": 373,
+    "cases": 476,
+    "mappedCases": 476,
+    "recordedNarrowVerified": 381,
     "partialCases": 95,
-    "selectedFunctionContracts": 356,
-    "note": "新增NATIVE-02.9，Q124生产失败独立复现；不把0.6.5全绿当作本次实际回答成功。"
+    "selectedFunctionContracts": 366,
+    "note": "新增8项帮助正交合同；完整回归与最终专项隔离验证通过，不外推线上或全库逐行验收。"
   },
   "connectorIDEUpdate": {
     "date": "2026-11-04",
@@ -20320,5 +20732,22 @@
     "testCount": 16,
     "deployment": "not-deployed-at-review; verify release receipts separately",
     "remaining": "知游开发机实际版本与会话漏项未验；现有历史 partial 不提升。"
+  },
+  "helpPresentationUpdate": {
+    "date": "2026-11-12",
+    "report": "docs/audits/2026-11-12-help-levels.md",
+    "functionModule": "docs/architecture/slash-routing-and-runtime-help.md",
+    "implementationModule": "docs/architecture/modules/command-help.md",
+    "cases": [
+      "CTRL-05.help-1",
+      "CTRL-05.help-2",
+      "CTRL-05.help-3",
+      "CTRL-05.help-4",
+      "CTRL-05.help-5",
+      "CTRL-05.help-6",
+      "CTRL-05.help-7",
+      "CTRL-05.help-8"
+    ],
+    "scope": "默认/完整/分项/单命令、可用性及只读卡片；兼容和原处理器不删除，不部署。"
   }
 }

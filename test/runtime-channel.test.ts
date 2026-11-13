@@ -53,11 +53,17 @@ async function fixture(t: TestContext, kind: "herdr-app" | "herdr-tui") {
 for (const kind of ["herdr-tui", "herdr-app"] as const) {
   test(`${kind}: help topics and unsupported builtins stay controls while unknown slash is exact deduplicated input`, async t => {
     const x = await fixture(t, kind);
+    const binding = x.store.getActiveSession(principal.conversationId)?.id;
+    await x.send("/help", "common-help");
+    assert.ok(x.messages.some(m => m.includes("常用命令")));
+    assert.ok(!x.messages.some(m => /^\/(model|effort|steer|plan)\b/m.test(m)));
     await x.send("/help session", "session-help");
     assert.ok(x.messages.some(m => m.includes("--agent 程序名 --name 名称")));
     assert.ok(!x.messages.some(m => m.includes("/model")));
     await x.send("/help input", "input-help");
     assert.ok(x.messages.some(m => m.includes("/prompt")));
+    assert.equal(x.store.getActiveSession(principal.conversationId)?.id, binding);
+    assert.equal(x.f.writes.length, 0); assert.equal(x.f.stops.length, 0);
     await x.send("/model unsupported", "model"); assert.equal(x.f.writes.length, 0);
     const text = "  /compact  literal\nsecond line\n";
     await x.send(text, "slash-input");

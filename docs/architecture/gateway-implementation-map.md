@@ -27,7 +27,7 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 | 持久状态 | src/state/runtime-state.ts、json-store.ts、paths.ts、config.ts | 账号/会话/主机身份和版本；写前校验、原子保存、落盘失败后的内存一致性；旧格式迁移不扩大权限 |
 | 绑定和主入口 | src/bridge/session-execution.ts、session-follow.ts、interaction-routing.ts；AccountManager 订阅协调 | 精确 account/chat/host/thread 与运行代次；主入口不是模糊目录匹配；旧异步结果、换绑、解绑和 ABA 变化 |
 | 目录/项目/历史 | src/codex/desktop-session-catalog.ts、desktop-session-membership.ts、history-reader.ts；src/bridge/session-catalog-order.ts、project-selection.ts | 完整普通会话目录；项目 assigned/none/unknown 与 cwd 区分；原生 ID/别名/完整根；公开历史与重型读取隔离 |
-| 控制编排 | src/bridge/service.ts、channel-commands.ts、session-control.ts、native-queue.ts、new-session.ts | 仅显式控制；默认 steer、显式原生 queue；来源末次复核；原生接收、队首、取消和已结束恢复不冒充新执行 |
+| 控制编排 | src/bridge/service.ts、channel-commands.ts、channel-command-registry.ts、command-help.ts、session-control.ts、native-queue.ts、new-session.ts | 仅显式控制；默认 steer、显式原生 queue；来源末次复核；原生接收、队首、取消和已结束恢复不冒充新执行；帮助分层仅消费同一命令定义和配置，不替代鉴权 |
 | 准入/角色 | src/bridge/access.ts、admission.ts；src/channels/principal.ts | 操作者/群/账号不同身份；控制者、参与者、只读访问；个人准入与 IDE 配对；撤销后的旧控件 |
 | 交互 | src/codex/approval.ts、user-input.ts、elicitation.ts、native-async-questions.ts；src/bridge/approval.ts、user-input-controller.ts | 原请求/选项/范围、原路投递；部分答案与兄弟题；提交和原生确认；路线缺失不能代答；超时拒绝仅属已接管本地审批的既定策略 |
 | 恢复 | src/server/capacity-recovery.ts、system-error-recovery.ts；原生 runner 状态重载 | 容量恢复与 systemError 分开；精确失败轮；原生队列/用户输入优先；无提示重发；archive 补偿义务持久化；只读恢复不能伪造新开始 |

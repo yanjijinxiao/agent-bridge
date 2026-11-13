@@ -51,6 +51,8 @@ npm 0.6.3 随后已正式发布并完成公开下载、干净安装及 GitHub Re
 
 ## 模块说明
 
+- [命令帮助](modules/command-help.md)：统一命令定义、简洁首页、完整/分项/单命令参考、能力及配置筛选和只读按钮；功能合同见[斜杠输入与帮助](slash-routing-and-runtime-help.md)，本轮范围见[帮助分层检查](../audits/2026-11-12-help-levels.md)。
+
 | 模块 | 说明 |
 | --- | --- |
 | Connector 唯一执行入口 | [Peer 的接口适配、授权和验证边界](modules/peer-transport.md) |

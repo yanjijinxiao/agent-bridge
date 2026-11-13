@@ -2,6 +2,12 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
+## [0.6.7] - 2026-11-13
+
+- Unify Codex and Herdr command help around one registry. Keep the default page concise, with complete, topic and individual-command references using the same syntax and capability evidence.
+- Keep legacy command spellings executable while moving them out of the default page. Generate read-only navigation from the same help definitions instead of exposing disabled or advanced actions in a fixed menu.
+- Preserve original approval, question and queue-record controls across backend changes, and keep local follow/display controls discoverable when native observation is unavailable. Update feature, module and Connector tutorials with the new help layout.
+
 ## [0.6.6] - 2026-11-12
 
 - Isolate cold permission-file reads on a restricted client of the same independent App Server. A failed or oversized bulk reply cannot disconnect other sessions' task, approval or question controls; no extra execution core is started.

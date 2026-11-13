@@ -20,6 +20,7 @@ import type { RuntimeLifecycleInput } from "../agents/lifecycle.js";
 import { RuntimeObservationController, RuntimeObservationJournal, terminalScreenText, runtimeObservationPrincipal, type RuntimeObservationScope } from "./runtime-observation.js";
 import { runtimeCommandRestriction, runtimeCommandTarget } from "./runtime-command-policy.js";
 import { runtimeHelp } from "./runtime-help.js";
+import { commandHelpChoices, type CommandHelpContext } from "./command-help.js";
 import { observeStatus, STATUS_RPC_BUDGET_MS } from "./status-observation.js";
 import { SessionControlJournal, SessionControlQueue } from "./session-control.js";
 import type { AcceptedPresentationInput } from "./input-presentation.js";
@@ -821,10 +822,12 @@ export class BridgeService {
       case "h":
         {
           const session = this.executionSession(message.senderId);
-          await this.replyActionCard(message.senderId, createMainMenuCard(channelHelpText(channelCapabilities, command.arg, {
-            backendCapabilities: this.runner.backendInfo?.(session ? this.sessionHostId(session) : undefined).capabilities,
-            taskboardAvailable: Boolean(this.options.taskboard)
-          })));
+          const helpHost = session ? this.sessionHostId(session)
+            : this.options.stateStore.getConnectorSelection(this.catalogPrincipal(message.senderId))?.hostId;
+          const context = this.commandHelpContext(message.senderId,
+            this.runner.backendInfo?.(helpHost).capabilities);
+          await this.replyActionCard(message.senderId, createMainMenuCard(
+            channelHelpText(channelCapabilities, command.arg, context), commandHelpChoices(command.arg, context)));
         }
         return;
       case "status":
@@ -1653,6 +1656,14 @@ export class BridgeService {
     catch { return "hidden"; } // Retiring a saved card must not require a live endpoint.
   }
 
+  /** Help reads existing configuration only. It neither probes native writers
+   * nor changes the selected device, mode, role or binding. */
+  private commandHelpContext(senderId: string, backendCapabilities?: CommandHelpContext["backendCapabilities"]): CommandHelpContext {
+    const project = this.options.stateStore.getActiveProject(senderId);
+    return { backendCapabilities, taskboardAvailable: Boolean(this.options.taskboard),
+      enabledModes: this.modeSettings.enabledModes, qaAvailable: Boolean(project && this.resolveQaContext(project)) };
+  }
+
   /** Common operation routing consumes declared semantics. Unrelated Gateway
    * controls remain usable while the execution device is disconnected. */
   private async handleRuntimeCommand(message: ChannelMessage, command: ChannelCommand, capabilities: readonly ChannelCommandCapability[]): Promise<boolean> {
@@ -1669,11 +1680,9 @@ export class BridgeService {
     const restriction = runtimeCommandRestriction(descriptor, command);
     if (restriction) { await this.reply(message.senderId, restriction); return true; }
     if (command.name === "help") {
-      const help = runtimeHelp(descriptor, command.arg, { capabilities, taskboardAvailable: Boolean(this.options.taskboard) });
-      await this.replyActionCard(message.senderId, createChoiceCard({ title: "Agent Bridge · Herdr 帮助", body: help,
-        fallbackText: help, choices: [{ label: "会话帮助", command: "help", arg: "session" },
-          { label: "输入与进度", command: "help", arg: "input" }, { label: "权限与共享", command: "help", arg: "access" },
-          { label: "全部命令", command: "help", arg: "all" }, { label: "会话列表", command: "sessions", arg: "" }] }));
+      const context = { ...this.commandHelpContext(message.senderId), runtime: descriptor };
+      const help = runtimeHelp(descriptor, command.arg, { ...context, capabilities });
+      await this.replyActionCard(message.senderId, createMainMenuCard(help, commandHelpChoices(command.arg, context)));
       return true;
     }
     if (command.name === "qa" || command.name === "mode" && command.arg.trim() === "qa") {

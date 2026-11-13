@@ -1,6 +1,6 @@
 import type { RuntimeDescriptor, RuntimeOperation } from "../agents/contracts.js";
 import type { ChannelCommand } from "./channel-intent.js";
-import { CHANNEL_COMMAND_REGISTRY } from "./channel-commands.js";
+import { CHANNEL_COMMAND_REGISTRY } from "./channel-command-registry.js";
 
 type CommandName = typeof CHANNEL_COMMAND_REGISTRY[number]["name"];
 type CommandTarget = "gateway" | "catalog" | "binding" | "record";

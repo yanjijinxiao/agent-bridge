@@ -43,5 +43,6 @@ for (const host of [undefined, "local", "ssh-contract"]) test(`Peer decoration p
 test("Connector patch does not introduce the extracted generic lifecycle commands", () => {
   const help = channelHelpText([], "session");
   assert.doesNotMatch(help, /\/sessions archived|\/session rename|\/session restore/);
-  assert.match(help, /\/sessions/); assert.match(help, /\/leave/);
+  assert.match(help, /\/sessions/); assert.match(help, /\/unbind/);
+  assert.match(channelHelpText([], "all"), /\/leave/);
 });

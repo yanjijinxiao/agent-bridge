@@ -174,12 +174,12 @@ test("installed Skill slash shortcuts execute locally while ordinary requests re
     raw: {}
   });
 
-  await send("help-before", "/help");
+  await send("help-before", "/help all");
   assert.doesNotMatch(replies.join("\n"), /\/weekly/);
 
   installWeeklySkill(codexHome);
   const beforeHelp = replies.length;
-  await send("help-after", "/help");
+  await send("help-after", "/help all");
   assert.match(replies.slice(beforeHelp).join("\n"), /\/weekly/);
 
   await send("mail", "/wr mail");

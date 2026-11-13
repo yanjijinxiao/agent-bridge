@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "scope": "Help levels and shared command inventory only",
+  "wholeRepositoryReviewed": false,
+  "base": "f3f269a0a57c028391d4cb1e2dc2f66bc669b153",
+  "layers": {
+    "architecture": "One descriptive registry and formatter; unchanged authorization, original request routing and native executors.",
+    "modules": "Four IM x text/cards, Codex and both Herdr transports, mode/taskboard/knowledge/native capabilities, retained records and local disable/reset operations.",
+    "functions": [
+      {
+        "file": "src/bridge/command-help.ts",
+        "symbol": "selectCommandHelp",
+        "lines": [
+          22,
+          30
+        ]
+      },
+      {
+        "file": "src/bridge/command-help.ts",
+        "symbol": "commandHelpRestriction",
+        "lines": [
+          34,
+          54
+        ]
+      },
+      {
+        "file": "src/bridge/command-help.ts",
+        "symbol": "variant",
+        "lines": [
+          56,
+          59
+        ]
+      },
+      {
+        "file": "src/bridge/command-help.ts",
+        "symbol": "visible",
+        "lines": [
+          61,
+          68
+        ]
+      },
+      {
+        "file": "src/bridge/command-help.ts",
+        "symbol": "commandHelpChoices",
+        "lines": [
+          72,
+          78
+        ]
+      },
+      {
+        "file": "src/bridge/command-help.ts",
+        "symbol": "commandHelpText",
+        "lines": [
+          83,
+          117
+        ]
+      },
+      {
+        "file": "src/bridge/channel-commands.ts",
+        "symbol": "channelHelpText",
+        "lines": [
+          69,
+          71
+        ]
+      },
+      {
+        "file": "src/bridge/runtime-help.ts",
+        "symbol": "runtimeHelp",
+        "lines": [
+          7,
+          11
+        ]
+      },
+      {
+        "file": "src/bridge/interaction-cards.ts",
+        "symbol": "createMainMenuCard",
+        "lines": [
+          28,
+          30
+        ]
+      },
+      {
+        "file": "src/bridge/service.ts",
+        "symbol": "handleCommand",
+        "lines": [
+          714,
+          983
+        ]
+      },
+      {
+        "file": "src/bridge/service.ts",
+        "symbol": "commandHelpContext",
+        "lines": [
+          1661,
+          1665
+        ]
+      },
+      {
+        "file": "src/bridge/service.ts",
+        "symbol": "handleRuntimeCommand",
+        "lines": [
+          1669,
+          1718
+        ]
+      }
+    ],
+    "static": "Typecheck, relative document links, whitespace, registry compatibility and updated function SHA/ranges."
+  },
+  "tests": {
+    "full": {
+      "total": 3930,
+      "passed": 3829,
+      "failed": 0,
+      "skipped": 101,
+      "log": "/private/tmp/agent-bridge-help-full-sealed.log",
+      "sha256": "2720d5efe912b0defcbd07ef6a3a9d1eb9f93db7c0b946a4025f771661ca97fc"
+    },
+    "finalFocused": {
+      "total": 135,
+      "passed": 135,
+      "failed": 0,
+      "skipped": 0,
+      "log": "/private/tmp/agent-bridge-help-final-focused.log",
+      "sha256": "f7f99ca507ac435447a2ab13d49da8b9f39ea4cdc3e6351a87b616a7c8a3625b"
+    },
+    "typecheck": {
+      "passed": true,
+      "log": "/private/tmp/agent-bridge-help-typecheck-final.log"
+    }
+  },
+  "files": [
+    {
+      "file": "src/bridge/channel-command-registry.ts",
+      "sha256": "169e335ce8a9fcd6851b839860a39a551891bc11656a9d7de4e2ff2b2f963427"
+    },
+    {
+      "file": "src/bridge/command-help.ts",
+      "sha256": "fc1b3eae6aa378eede35fb6bf35cac7f5d9b21739120633526b9ba9a9df81551"
+    },
+    {
+      "file": "src/bridge/channel-commands.ts",
+      "sha256": "e2cdd00d7aa4fe2b64053754f3638ddbdd748acaf265931143efdf4d223bd39e"
+    },
+    {
+      "file": "src/bridge/runtime-help.ts",
+      "sha256": "2c7372f05c1ed1eb1ed1a491cdea8faa848201107779c5b952ec3c10f9ad35c4"
+    },
+    {
+      "file": "src/bridge/runtime-command-policy.ts",
+      "sha256": "20b552efdcbf1d5810a238860ea7016cb6b2bce0b26d75edd7585917ebe6e2cd"
+    },
+    {
+      "file": "src/bridge/interaction-cards.ts",
+      "sha256": "7db5bdf2a8467d22d760c5ced97f162fa32ea073756321bf8d68b3a0772c4e20"
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "sha256": "4ebfffdd56604c14ac66358c2299bf4deee4aa4fec99e749d307408f7125cbbc"
+    }
+  ],
+  "requirements": {
+    "audit": "2026-11-12-help-levels",
+    "requirements": 96,
+    "cases": 476,
+    "mappedCases": 476,
+    "recordedNarrowVerified": 381,
+    "partialCases": 95,
+    "selectedFunctionContracts": 366,
+    "note": "新增8项帮助正交合同；完整回归与最终专项隔离验证通过，不外推线上或全库逐行验收。"
+  },
+  "deployment": {
+    "changed": false,
+    "npmPublished": false,
+    "liveRestarted": false
+  },
+  "limitations": [
+    "101 existing environment-gated tests skipped in full suite.",
+    "No new live IM or browser visual acceptance.",
+    "Final local-control help visibility assertions were additionally verified in the 135-test final focused run.",
+    "An unchanged 500ms IDE transfer cleanup assertion timed out once in the initial parallel run; isolated and subsequent full runs passed without changing its implementation or threshold."
+  ]
+}

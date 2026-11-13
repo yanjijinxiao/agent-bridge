@@ -1,3 +1,4 @@
+import { commandHelpChoices } from "./command-help.js";
 import {
   createChoiceCard,
   type ChannelActionCard,
@@ -23,33 +24,9 @@ type CommandSelectionCardInput = {
   readonly includeDefault?: boolean;
 };
 
-export function createMainMenuCard(fallbackText: string): ChannelActionCard {
-  return createChoiceCard({
-    title: "Codex 渠道工作台",
-    // Native cards and text-only channels must expose the same command guide.
-    body: fallbackText,
-    fallbackText,
-    choices: [
-      { label: "介入与跟随说明", command: "help", arg: "session", style: "primary" },
-      { label: "全部命令", command: "help", arg: "" },
-      { label: "对话历史", command: "history", arg: "" },
-      { label: "跟随状态", command: "follow", arg: "" },
-      { label: "介入策略", command: "policy", arg: "" },
-      { label: "聊天权限", command: "role", arg: "" },
-      { label: "当前状态", command: "status", arg: "", style: "primary" },
-      { label: "Taskboard", command: "task", arg: "list" },
-      { label: "项目", command: "project", arg: "list" },
-      { label: "工作模式", command: "mode", arg: "" },
-      { label: "计划模式", command: "plan", arg: "toggle" },
-      { label: "Codex 目标", command: "goal", arg: "" },
-      { label: "会话", command: "sessions", arg: "" },
-      { label: "新建会话", command: "new", arg: "" },
-      { label: "模型", command: "model", arg: "" },
-      { label: "推理强度", command: "effort", arg: "" },
-      { label: "过程进度", command: "stream", arg: "" },
-      { label: "用量", command: "balance", arg: "" },
-    ]
-  });
+/** Buttons use the same backend/configuration selection as the help body. */
+export function createMainMenuCard(fallbackText: string, choices: readonly ChannelChoice[] = commandHelpChoices()): ChannelActionCard {
+  return createChoiceCard({ title: "Agent Bridge · 帮助", body: fallbackText, fallbackText, choices });
 }
 
 export function createCommandSelectionCard(input: CommandSelectionCardInput): ChannelActionCard {

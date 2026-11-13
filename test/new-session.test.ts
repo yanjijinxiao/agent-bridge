@@ -26,7 +26,8 @@ test("new target parser and aliases reject mixed/unknown flags", () => {
   assert.deepEqual(parseCommand("/session new"), { name: "new", arg: "" });
   assert.deepEqual(parseCommand("/session new-thread"), { name: "session", arg: "new-thread" });
   assert.match(channelHelpText([], "session"), /\/new --standalone/);
-  assert.match(channelHelpText([]), /\/session new/);
+  assert.doesNotMatch(channelHelpText([]), /\/session new/);
+  assert.match(channelHelpText([], "all"), /\/session new/);
 });
 
 for (const backend of ["exec", "app-server"] as const) {

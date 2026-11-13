@@ -1,6 +1,8 @@
 # 渠道命令审计
 
-内置命令统一登记在 `CHANNEL_COMMAND_REGISTRY`。解析别名、保留关键字和 `/help` 后端限制使用同一登记表；渠道扩展不能覆盖这些入口。微信、钉钉、飞书和企业微信共享业务命令，仅呈现方式不同。
+内置命令统一登记在 `channel-command-registry.ts` 的 `CHANNEL_COMMAND_REGISTRY`。解析别名、保留关键字、帮助正文和只读按钮使用同一登记表；渠道扩展不能覆盖这些入口。微信、钉钉、飞书和企业微信共享业务命令，仅呈现方式不同。
+
+2026-11-12 帮助分层：`/help` 是简洁常用页，`/help all` 才列全部命令和兼容写法；分项/单命令语法在 Codex、Herdr 两端统一。未启用专项功能和不支持的新操作不挤入首页，旧审批、问题及队列回执的处理仍在分项可发现。`/leave`、`/session new`、`/project add`、`/ide status` 不再独立推荐，但执行兼容保留。此调整不合并跟随与展示、设备与会话绑定、准入与角色/共享授权。功能与模块合同见[帮助设计](architecture/slash-routing-and-runtime-help.md)和[模块说明](architecture/modules/command-help.md)。
 
 2026-11-07 核对边界：下表描述 Codex 主链路，不代表所有命令已跨 agent 通用。Herdr 源码已覆盖 36 个命令与 22 个别名的目标归属、普通输入、目录及生命周期、跟随、Web 和 Taskboard 能力边界。原请求控制按原记录路由，创建按目录选择，当前会话控制按绑定；缺少原生结构化语义的操作明确拒绝。完整映射和缺口见[命令合同](architecture/agent-command-compatibility-2026-11-07.md)，实际证据见[生产四层检查](audits/2026-11-07-herdr-adapters/production-checklist.md)。
 

@@ -33,12 +33,12 @@ test("help covers command families and capability rejection never captures origi
   const descriptor = { kind: "herdr-app" as const, endpointId: "e", version: "v", protocol: { name: "test" }, operations: terminalOperations() };
   for (const name of ["approve", "reject", "answer", "skip"]) assert.equal(runtimeCommandRestriction(descriptor, { name, arg: "old" }), undefined);
   for (const name of ["model", "effort", "plan", "goal", "balance", "steer"]) assert.match(runtimeCommandRestriction(descriptor, { name, arg: "" })!, /没有提供等价/);
-  const help = runtimeHelp(descriptor);
+  const help = runtimeHelp(descriptor, "all");
   for (const name of CHANNEL_COMMAND_REGISTRY.map(c => c.name)) assert.ok(help.includes(`/${name}`), name);
 });
 
 test("runtime help topics, aliases, extension usage and configured capabilities match dispatch", () => {
-  const descriptor = { kind: "herdr-tui" as const, endpointId: "e", version: "v", protocol: { name: "test" }, operations: terminalOperations() };
+  const descriptor = { kind: "herdr-tui" as const, endpointId: "e", version: "v", protocol: { name: "test" }, operations: terminalOperations({ create: { supported: true, semantics: "terminal-create" } }) };
   const all = runtimeHelp(descriptor, "all", { taskboardAvailable: false });
   for (const command of CHANNEL_COMMAND_REGISTRY) for (const alias of command.aliases) assert.ok(all.includes(`/${alias}`), alias);
   assert.match(all, /需启用 Taskboard/); assert.match(all, /未注册.*文字提示/);

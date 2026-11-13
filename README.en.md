@@ -200,7 +200,10 @@ Common commands:
 
 | Command | Purpose |
 | --- | --- |
-| `/help` | Show all commands |
+| `/help` | Show concise common commands available for the current backend |
+| `/help all` | Show the complete reference, compatibility aliases and capability requirements |
+| `/help input` | Show a topic: session, input, access, workflow or capabilities |
+| `/help ide` | Show one command; use `/help /session` to distinguish it from the session topic |
 | `/status` | Show project, session, backend, model, and task status |
 | `/sessions` | Pinned, project folders with sessions (including empty folders), then others; 50 items per page |
 | `/sessions size 50` | Set page size (5-50, saved per conversation and user) |
