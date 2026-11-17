@@ -17,7 +17,7 @@ import { communicationError, isCodexCommunicationFailure, CodexCommunicationErro
 import { parseUserInputRequest } from "./user-input.js";
 import { automaticApprovalProgress } from "./approval-progress.js";
 import { parseMcpForm, mcpFormResponse, safeElicitationUrl, type McpForm } from "./elicitation.js";
-import type { CodexUserInputResultHandler, CodexUserInputResult } from "./backend.js";
+import type { CodexUserInputResultHandler, CodexUserInputResult, CodexUserInputResultReason } from "./backend.js";
 import type { CodexApprovalRequest, CodexApprovalResult, CodexApprovalResultHandler } from "./approval.js";
 import { desktopProjectHint, desktopSessionMembership, nativeSessionPresentation } from "./desktop-session-membership.js";
 import { CodexNativeRequestError } from "./connection-errors.js";
@@ -285,7 +285,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         onTurnStarted: async event => { await input.onTurnStarted?.(event); accepted(); },
         onApproval: input.onApproval ? async request => { await ready; return input.onApproval!(request); } : undefined,
         onUserInput: input.onUserInput ? async request => { await ready; return input.onUserInput!(request); } : undefined,
-        onUserInputResult: input.onUserInputResult ? async (request, result) => { await ready; await input.onUserInputResult!(request, result); } : undefined
+        onUserInputResult: input.onUserInputResult ? async (request, result, reason) => { await ready; await input.onUserInputResult!(request, result, reason); } : undefined
       }, resume);
     } catch (error) { failed(error); throw error; }
     finally { failed(new Error("Native input acceptance callback did not complete")); }
@@ -1841,7 +1841,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     for (const [key, request] of this.approvalRequests) if (request.observer === observer && request.request.threadId === threadId)
       this.resolveApproval(key, request.submitted ? "failed" : "withdrawn");
     for (const [key, request] of this.userInputRequests) if (request.observer === observer && request.request.threadId === threadId)
-      this.resolveUserInput(key, request.submitted ? "failed" : "withdrawn");
+      this.resolveUserInput(key, request.submitted ? "failed" : "withdrawn", "observer-suspended");
     if (!this.expectedTurnThreads.has(threadId) && ![...this.nativeQueueOrigins.values()].some(o => o.threadId === threadId)
       && this.subscribedThreads.has(threadId)) await this.unsubscribeThread(threadId);
   }
@@ -2171,14 +2171,14 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const approval = this.approvalRequests.get(key);
       if (approval) this.resolveApproval(key, approval.submitted ? "confirmed" : "withdrawn");
       const pending = this.userInputRequests.get(key);
-      if (pending) this.resolveUserInput(key, pending.submitted ? "confirmed" : "withdrawn");
+      if (pending) this.resolveUserInput(key, pending.submitted ? "confirmed" : "withdrawn", "request-resolved");
       return;
     }
     if (method === "turn/started") {
       const threadId = typeof params.threadId === "string" ? params.threadId : undefined;
       const turn = params.turn as { id?: string } | undefined;
       if (threadId && turn?.id) {
-        for (const [key, pending] of this.userInputRequests) if (pending.request.threadId === threadId && pending.request.turnId !== turn.id) this.resolveUserInput(key, "withdrawn");
+        for (const [key, pending] of this.userInputRequests) if (pending.request.threadId === threadId && pending.request.turnId !== turn.id) this.resolveUserInput(key, "withdrawn", "turn-replaced");
         this.activeTurns.set(threadId, turn.id);
         this.unconfirmedStarts.delete(threadId);
       }
@@ -2350,7 +2350,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const ownsThreadState = !currentTurn || currentTurn === turnId;
     if (ownsThreadState) this.unconfirmedStarts.delete(threadId);
     for (const [key, pending] of this.userInputRequests) if (pending.request.threadId === threadId
-      && pending.request.turnId === turnId) this.resolveUserInput(key, pending.submitted ? "failed" : "withdrawn");
+      && pending.request.turnId === turnId) this.resolveUserInput(key, pending.submitted ? "failed" : "withdrawn", "turn-terminal");
     const key = turnKey(threadId, turnId);
     this.appendTurnEvent(key, raw);
     const status = turn!.status as string; // Validated before changing any task or interaction state.
@@ -2690,7 +2690,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     if (this.userInputRequests.has(key)) return;
     const pending = { request, submitted: false, observer: activeHandler ? undefined : observer,
       notify: activeHandler ? this.userInputResultHandlersByThread.get(request.threadId)
-      : (envelope && observer ? (_request: CodexUserInputRequest, result: CodexUserInputResult) => observer.onUserInputResult?.(envelope, result) : undefined) };
+      : (envelope && observer ? (_request: CodexUserInputRequest, result: CodexUserInputResult, reason?: CodexUserInputResultReason) => observer.onUserInputResult?.(envelope, result, reason) : undefined) };
     this.userInputRequests.set(key, pending);
     Promise.resolve().then(() => this.userInputRequests.get(key) === pending ? handler(request) : undefined).then(answers => {
       if (this.userInputRequests.get(key) !== pending) return;
@@ -2700,12 +2700,12 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         this.interactionRefreshThreads.add(request.threadId); return;
       }
       if (pending.observer && this.interactionObservers.get(request.threadId) !== pending.observer) {
-        this.resolveUserInput(key, "withdrawn"); return;
+        this.resolveUserInput(key, "withdrawn", "observer-replaced"); return;
       }
       pending.submitted = true;
       this.send({ id, result: form ? mcpFormResponse(form, answers) : { answers } });
     }).catch(() => {
-      this.resolveUserInput(key, "failed");
+      this.resolveUserInput(key, "failed", "answer-failed");
       this.interactionRefreshThreads.add(request.threadId);
     });
   }
@@ -2726,11 +2726,11 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     });
   }
 
-  private resolveUserInput(key: string, result: CodexUserInputResult): void {
+  private resolveUserInput(key: string, result: CodexUserInputResult, reason?: CodexUserInputResultReason): void {
     const pending = this.userInputRequests.get(key);
     if (!pending) return;
     this.userInputRequests.delete(key);
-    void Promise.resolve().then(() => pending.notify?.(pending.request, result)).catch(() => {
+    void Promise.resolve().then(() => pending.notify?.(pending.request, result, reason)).catch(() => {
       console.warn("[codex-im-gateway] user-input resolution notice failed");
     });
   }
@@ -2777,7 +2777,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     this.approvalHandlersByThread.clear();
     this.dynamicToolHandlersByThread.clear();
     this.userInputHandlersByThread.clear();
-    for (const [key, pending] of this.userInputRequests) this.resolveUserInput(key, pending.submitted ? "failed" : "suspended");
+    for (const [key, pending] of this.userInputRequests) this.resolveUserInput(key, pending.submitted ? "failed" : "suspended", "connection-lost");
     this.userInputResultHandlersByThread.clear();
     this.turnEvents.clear();
     this.turnTexts.clear();

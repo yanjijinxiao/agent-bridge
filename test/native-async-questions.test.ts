@@ -4,6 +4,7 @@ import { NativeAsyncQuestions } from "../src/codex/native-async-questions.js";
 import { AppServerCodexRunner } from "../src/codex/app-server-runner.js";
 import type { NativeInteractionObserver, NativeUserInput } from "../src/codex/interactions.js";
 import type { CodexSteerInput, CodexSteerResult, CodexUserInputAnswer } from "../src/codex/backend.js";
+import { asyncUserInputReply } from "../src/codex/async-user-input.js";
 
 const settle = async () => { for (let n = 0; n < 4; n++) await new Promise<void>(r => setImmediate(r)); };
 const widget = (questions = ["first", "second"]) => ({ type: "agentMessage", id: "widget", questions: questions.map(title => ({ title, options: null })) });
@@ -35,12 +36,12 @@ test("INT-02.6: omitted question fields in an item delta do not erase the widget
 });
 function fixture() {
   const requests: NativeUserInput[] = [], answers: Array<ReturnType<typeof Promise.withResolvers<CodexUserInputAnswer | undefined>>> = [];
-  const results: Array<{ request: NativeUserInput; result: string }> = [], writes: CodexSteerInput[] = [];
+  const results: Array<{ request: NativeUserInput; result: string; reason?: string }> = [], writes: CodexSteerInput[] = [];
   const acknowledgements: Array<ReturnType<typeof Promise.withResolvers<CodexSteerResult>>> = [];
   let current = true;
   const observer: NativeInteractionObserver = { onApproval: async () => undefined,
     onUserInput(request) { requests.push(request); const answer = Promise.withResolvers<CodexUserInputAnswer | undefined>(); answers.push(answer); return answer.promise; },
-    onUserInputResult(request, result) { results.push({ request, result }); } };
+    onUserInputResult(request, result, reason) { results.push({ request, result, reason }); } };
   const native = new NativeAsyncQuestions("remote", () => current, input => {
     writes.push(input); const ack = Promise.withResolvers<CodexSteerResult>(); acknowledgements.push(ack); return ack.promise;
   }, () => {});
@@ -111,6 +112,21 @@ test("native turn end invalidates an awaiting widget and never writes after disc
   f.native.end("thread", "turn"); f.native.disconnect();
   const q = f.requests[0].request.questions[0]; f.answers[0].resolve({ [q.id]: { answers: ["too late"] } }); await settle();
   assert.equal(f.writes.length, 0); assert.deepEqual(f.results.map(r => r.result), ["withdrawn"]);
+  assert.equal(f.results[0].reason, "turn-terminal"); assert.equal(f.results[0].request, f.requests[0]);
+});
+
+for (const change of ["removed", "elsewhere", "disconnect"] as const)
+test(`INT-02.presentation: native ${change} reports source reason without changing request identity`, async () => {
+  const f = fixture(); f.native.observe("thread", "turn", [widget(["first"])], f.observer); await settle();
+  const input = f.requests[0], question = input.request.questions[0];
+  if (change === "disconnect") f.native.disconnect();
+  else if (change === "removed") f.native.observe("thread", "turn", [widget([])], f.observer);
+  else f.native.observe("thread", "turn", [accepted(asyncUserInputReply(input.request, { [question.id]: { answers: ["external"] } }))], f.observer);
+  await settle();
+  assert.equal(f.results[0].request, input);
+  assert.equal(f.results[0].reason, change === "disconnect" ? "observer-suspended" : change === "removed" ? "widget-removed" : "accepted-elsewhere");
+  assert.equal(f.results[0].result, change === "disconnect" ? "suspended" : "withdrawn");
+  assert.equal(f.writes.length, 0); f.native.disconnect();
 });
 
 test('removing a native widget invalidates its pending reply before any native input',async()=>{

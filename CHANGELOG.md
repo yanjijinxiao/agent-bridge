@@ -2,6 +2,12 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
+## [0.6.8] - 2026-11-17
+
+- Label synchronous and asynchronous questions in cards and text, including whether the current question step waits for an answer.
+- Carry fixed native closure reasons through Connector callbacks without changing request identity. Explain turn completion, replaced questions and answers accepted elsewhere instead of combining them into an ambiguous expiry message.
+- Preserve reasons across restarts and late replies, handle missing legacy metadata explicitly, and retain existing question lifetimes, approval callbacks and answer receipt safeguards. Update feature contracts, module documentation and the Connector tutorial.
+
 ## [0.6.7] - 2026-11-13
 
 - Unify Codex and Herdr command help around one registry. Keep the default page concise, with complete, topic and individual-command references using the same syntax and capability evidence.

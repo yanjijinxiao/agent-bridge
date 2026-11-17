@@ -20,6 +20,14 @@ Taskboard 通过观察消费者接入，不在 run 上安装抢占 IM 的 active
 
 ## 展示和秘密
 
+### 问题类型与关闭原因
+
+问题卡标题及文字回退同时标明同步/异步，正文解释「当前提问步骤等待回答」或「当前轮次仍可推进」。新请求省略 kind 沿用同步合同；未重新观察的旧记录没有类型时明确显示未记录，不能从内容猜类型。敏感问题仍只在原生界面回答，不增加 IM 输入或复制控件。
+
+原生结果通知增加可选第三参数 reason，详见[功能合同](../question-presentation.md)。NativeAsyncQuestions、同步 Runner、扇出、Peer 执行/独立订阅、AccountManager、BridgeService 传递该元数据；原请求对象、身份键和结果枚举不变。扇出对已接受的其他入口显示 accepted-elsewhere；只获选但回执未知时使用 answer-selected-elsewhere，不能谎报已回答成功。execution/nativeAdapter minor=1，旧两参数处理器及未提供原因的 Connector 继续兼容。
+
+ChannelUserInputController 校验固定枚举并持久保存 resultReason。问题卡关闭、文字通知和后续 /answer、/skip 共用 questionWithdrawalText；未提供或未知原因明确显示未记录，不回显异常原文、不推断超时或外部回答。异步 suspended 仍为待答且不发失效卡，confirmed 仍以原生证据为准，晚到连接失败不能覆盖它。旧通知预算、同卡重试、参与者 @、绑定隔离及回答不重发规则保持有效。本变更不延长生命周期、不修改轮次结束关闭规则。
+
 ### 审批通知投递与原生决定分离（本轮修复契约）
 
 实际入口是 BridgeService.requestApproval → ChannelApprovalController → 渠道独立审批卡；用户决定交给原生后，reportApprovalResult 收到原生确认。当前缺口是确认事实写入后先删除通知上下文，投递失败便无法恢复。修复保留严格 v1 审批记录，在顶层增加可选的通知投影：原卡 ID、结果和投递状态。只重试更新已获回执的同一张审批卡；新文字通知回执不明时不能盲发第二条。通知失败不撤销已确认的原生决定，也不再次提交决定或启动任务。

@@ -503,7 +503,7 @@ export class PeerExecutionService {
           return answer === null ? undefined : z.record(z.string(), z.object({ answers: z.array(z.string()) }).strict()).parse(answer);
         } catch { return undefined; }
       },
-      onUserInputResult: (request, result) => event("onUserInputResult", [request, result]).then(() => {}) } as CodexRunnerInput & Record<string, any>;
+      onUserInputResult: (request, result, reason) => event("onUserInputResult", [request, result, ...(reason ? [reason] : [])]).then(() => {}) } as CodexRunnerInput & Record<string, any>;
     try {
       let result: unknown;
       if (method === "recoverSystemError") {

@@ -3,7 +3,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import type { ApprovalDeliveryResult } from "../bridge/approval.js";
-import type { CodexUserInputAnswer, CodexUserInputRequest, CodexUserInputResult } from "../codex/backend.js";
+import type { CodexUserInputAnswer, CodexUserInputRequest, CodexUserInputResult, CodexUserInputResultReason } from "../codex/backend.js";
 import { parseUserInputRequest } from "../codex/user-input.js";
 import { desktopAsyncUserInputs, asyncUserInputReply, asyncAnswerDigest, desktopAsyncAnswerReceipts, type NativeAsyncAnswerReceipt } from "../codex/async-user-input.js";
 import { IpcFrameDecoder, IpcFrameSizeError } from "../codex/ipc-frames.js";
@@ -58,7 +58,7 @@ export type CodexDesktopRequestMonitorOptions = {
   onApproval: (approval: CodexDesktopApproval) => Promise<CodexApprovalDecision | undefined>;
   onResult?: (approval: CodexDesktopApproval, result: ApprovalDeliveryResult) => Promise<void> | void;
   onUserInput?: (input: CodexDesktopUserInput) => Promise<CodexUserInputAnswer | undefined>;
-  onUserInputResult?: (input: CodexDesktopUserInput, result: CodexUserInputResult) => Promise<void> | void;
+  onUserInputResult?: (input: CodexDesktopUserInput, result: CodexUserInputResult, reason?: CodexUserInputResultReason) => Promise<void> | void;
   onObservedUserInputAnswers?: (receipts: NativeAsyncAnswerReceipt[]) => Promise<void> | void;
   /** Neutral notice only: no unvalidated form, credential or challenge data. */
   onUnsupportedInteraction?: (input: CodexDesktopUnsupportedInteraction) => Promise<boolean | void>;
@@ -412,7 +412,7 @@ export class CodexDesktopRequestMonitor {
     // A requests-list removal is normal after our own decision; the RPC result
     // is the authoritative receipt in that case.
     if (!this.handledRequests.delete(key)) {
-      if (approval.method === "item/tool/requestUserInput") void this.reportInput(approval, suspended ? "suspended" : "withdrawn");
+      if (approval.method === "item/tool/requestUserInput") void this.reportInput(approval, suspended ? "suspended" : "withdrawn", suspended ? "observer-suspended" : "widget-removed");
       else void this.report(approval, "withdrawn");
     }
   }
@@ -453,12 +453,12 @@ export class CodexDesktopRequestMonitor {
         } else await this.submitDecision("thread-follower-submit-user-input", {
             conversationId: approval.request.threadId, requestId: approval.requestId, response: { answers }
           }, undefined, undefined, approval.hostId);
-        await this.reportInput(approval, "confirmed");
+        await this.reportInput(approval, "confirmed", "accepted-answer");
       } catch (error) {
         console.warn(`[codex-im-gateway] native question RPC unconfirmed ${JSON.stringify({ timestamp: new Date().toISOString(),
           hostId: approval.hostId, threadId: approval.request.threadId, turnId: approval.request.turnId,
           code: /timed out/.test(error instanceof Error ? error.message : "") ? "timeout" : "invalid-or-disconnected-receipt" })}`);
-        await this.reportInput(approval, "failed");
+        await this.reportInput(approval, "failed", "answer-failed");
       }
       return;
     }
@@ -578,11 +578,11 @@ export class CodexDesktopRequestMonitor {
     }
   }
 
-  private async reportInput(input: CodexDesktopUserInput, result: CodexUserInputResult): Promise<void> {
+  private async reportInput(input: CodexDesktopUserInput, result: CodexUserInputResult, reason?: CodexUserInputResultReason): Promise<void> {
     console.info(`[codex-im-gateway] native question result ${JSON.stringify({ timestamp: new Date().toISOString(),
       hostId: input.hostId, threadId: input.request.threadId, turnId: input.request.turnId,
       kind: input.request.kind ?? "sync", result })}`);
-    try { await this.options.onUserInputResult?.(input, result); }
+    try { await this.options.onUserInputResult?.(input, result, reason); }
     catch { console.warn("[codex-im-gateway] unable to deliver question resolution notice"); }
   }
 

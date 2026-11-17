@@ -40,6 +40,8 @@ HTTP 响应附 X-Gateway-API-Version、X-Gateway-Instance、X-Gateway-Request-ID
 
 ## 发布和变更要求
 
+问题结果元数据的兼容扩展：execution/nativeAdapter 从 1.0 到 1.1，onUserInputResult 增加可选第三参数 reason，固定枚举定义在 src/codex/user-input-result.ts。原请求对象及原 confirmed/failed/withdrawn/suspended 枚举不变；HTTP、Peer 帧、日志 major/minor 和能力开关不因此修改。新 Gateway 对无原因的旧 Connector 明确显示原因未记录；旧 Gateway 的两参数回调可忽略第三参数，不改变按原请求对象匹配回执的规则。详情见[问题呈现合同](question-presentation.md)。
+
 每次接口或日志改动都先判断兼容性，更新本清单、模块说明和 case；代码与文档一起审查。发布验收分别核对 Gateway、Connector、上游服务，保留旧新混合版本、缺失版本、不兼容、重连、并发关联和脱敏的反例。版本不一致本身不是停止既有 Codex 任务的理由。
 
 本次增量只验证明确列出的边界；没有登录知游的开发机，不能据此宣称其会话漏项已修复。实际上线与各设备升级需要独立记录。

@@ -18,8 +18,9 @@ export class NativeInteractionFanout {
     onUserInput: input => this.request("input", input) as Promise<CodexUserInputAnswer | undefined>,
     onResult: (input, result) => this.finish("approval", input, result,
       (observer, selected) => observer.onResult?.(input, selected === "suspended" ? "withdrawn" : selected)),
-    onUserInputResult: (input, result) => this.finish("input", input, result,
-      (observer, selected) => observer.onUserInputResult?.(input, selected)),
+    onUserInputResult: (input, result, reason) => this.finish("input", input, result,
+      (observer, selected) => observer.onUserInputResult?.(input, selected, selected === result ? reason
+        : result === "confirmed" ? "accepted-elsewhere" : "answer-selected-elsewhere")),
     onProgress: (scope, text) => this.notify(observer => observer.onProgress?.(scope, text)),
     onObservedUserInputAnswers: receipts => this.notify(observer => observer.onObservedUserInputAnswers?.(receipts)),
     onUnsupportedInteraction: input => this.notify(observer => observer.onUnsupportedInteraction?.(input)),

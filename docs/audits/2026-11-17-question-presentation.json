@@ -1,0 +1,225 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-17",
+  "scope": "question-type-and-result-reason-presentation-only",
+  "sourceHead": "f29ffffa0684d897cbdc123f7d6055f7ba83f987",
+  "requirements": [
+    "INT-02.presentation-1",
+    "INT-02.presentation-2",
+    "INT-02.presentation-3",
+    "INT-02.presentation-4",
+    "INT-02.presentation-5"
+  ],
+  "functionReview": {
+    "selected": 17,
+    "new": 12,
+    "updated": 5,
+    "totalSelectedContracts": 378,
+    "scope": "named function bodies and changed callback branches; not a repository-wide reread"
+  },
+  "contractChange": {
+    "execution": {
+      "major": 1,
+      "minor": 1
+    },
+    "nativeAdapter": {
+      "major": 1,
+      "minor": 1
+    },
+    "method": "optional third reason callback argument; original request and result unchanged"
+  },
+  "checks": [
+    {
+      "name": "initial-full-isolated-regression",
+      "command": "node --test --test-concurrency=4 --test-timeout=120000 --test-reporter=tap --import tsx test/*.test.ts",
+      "result": {
+        "tests": 3960,
+        "pass": 3859,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 101
+      },
+      "logSha256": "b7a0eb494803c571d890a0925595e67fc63b4413bc4153915d660976480c5623"
+    },
+    {
+      "name": "final-full-isolated-regression",
+      "command": "node --test --test-concurrency=4 --test-timeout=120000 --test-reporter=tap --import tsx test/*.test.ts",
+      "result": {
+        "tests": 3965,
+        "pass": 3864,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 101
+      },
+      "logSha256": "d01e25d4925fbddae2672ce7a9526caf26564b9840e10daf537cddf33209ccb6"
+    },
+    {
+      "name": "final-focused-unit",
+      "files": [
+        "test/question-presentation.test.ts",
+        "test/native-async-questions.test.ts",
+        "test/user-input.test.ts",
+        "test/interaction-fanout.test.ts"
+      ],
+      "result": {
+        "tests": 111,
+        "pass": 111,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "logSha256": "a3978277027711488d5620d7900e096151a5b593261970d6fce96d19e7e9381b"
+    },
+    {
+      "name": "isolated-peer-and-versions",
+      "result": {
+        "tests": 50,
+        "pass": 48,
+        "fail": 0,
+        "skipped": 2
+      },
+      "logSha256": "c33f93a70c95e1f6a8b58c39ff226894f6882990083cc5e87f4ac0183ac42c5c"
+    },
+    {
+      "name": "typecheck",
+      "result": "passed",
+      "logSha256": "92eca5ec55570375354bcf0c671a81efc06f8d1548ad8a92e97894762a95c268"
+    }
+  ],
+  "afterFullRegression": "Final full suite covers all current executable code and new scenarios, including keeping approval retirement callbacks at their original two arguments. Only documentation/evidence changed afterward.",
+  "initialFailures": [
+    "8 unit assertion errors: new test used absent DTO choices; old tests selected title field by position. Fixed to actionGroups and final status field, existing receipt/race assertions retained.",
+    "Initial socket tests hit sandbox EPERM; rerun with isolated execution authorization passed."
+  ],
+  "files": [
+    {
+      "file": "docs/architecture/function-contracts.jsonl",
+      "sha256": "9cd4fa0c5eff86e09a6205c0de4f2e01528fcd4a153cebeddab19ec156573d51"
+    },
+    {
+      "file": "docs/architecture/gateway-requirements.json",
+      "sha256": "f4a084955b849e26af4588813956e46e4304fa1cbf64fcc9753ca58d1be49b2b"
+    },
+    {
+      "file": "docs/architecture/modules/native-interactions.md",
+      "sha256": "94cd7ef65203a72d9c3f967e5b9e8a8f768b16ebbde5d631691367443c9fd081"
+    },
+    {
+      "file": "docs/architecture/question-presentation.md",
+      "sha256": "2b47648d3335040a60c9415832b23c51ce134660078f0399d8a9e73de10912c5"
+    },
+    {
+      "file": "docs/architecture/session-requirements.md",
+      "sha256": "8eef0db90b644b2bca7c4270d555b63cf7f13d9a24433e7ee4b0fc4a06370ba0"
+    },
+    {
+      "file": "docs/architecture/version-contracts.md",
+      "sha256": "040fe0541caf212052cf4c0d44b7be4c7b23d607e05f9b929a21780d578945d7"
+    },
+    {
+      "file": "docs/audits/2026-11-17-question-presentation.md",
+      "sha256": "30e62c1c9d64d1eed982f67e7d2eb8b05a6321f0f7d666c0cec7d8920501673f"
+    },
+    {
+      "file": "docs/tantan-connector-guide.md",
+      "sha256": "8046169104be0f5f9a027dbd2a8c47f5a353a1315ef71722155f1a9495790246"
+    },
+    {
+      "file": "src/bridge/question-presentation.ts",
+      "sha256": "80a23ff619c343c5fa1122af9c7e1dc4a13e38686c8b0a6f6997d770f18024f3"
+    },
+    {
+      "file": "src/bridge/service.ts",
+      "sha256": "af526747e283034babc23edea66009b7765d4cc76c090b0ec66b49f4c1406436"
+    },
+    {
+      "file": "src/bridge/user-input-controller.ts",
+      "sha256": "4b46541851053c11d80fad56a2c5052c03c5fb66aef55a30b52c908737302469"
+    },
+    {
+      "file": "src/codex/app-server-runner.ts",
+      "sha256": "23f986a63e77d18349686bbf4c79eb573d0fa0d6aecc24e428a2b815a5ef0c19"
+    },
+    {
+      "file": "src/codex/backend.ts",
+      "sha256": "32d171c5d05412cd2f61fa5e559c8d9f18cde198192b90b5778e179829eb7384"
+    },
+    {
+      "file": "src/codex/interaction-fanout.ts",
+      "sha256": "110de050ed278a3cbb7b82ca047ca432efd88c2e732a6ff12a64fc2a6cbe63dd"
+    },
+    {
+      "file": "src/codex/interactions.ts",
+      "sha256": "e3e9ca6abafa45de1895b1daac23c384e9bd91f718a9d004e39920a5755ef659"
+    },
+    {
+      "file": "src/codex/native-async-questions.ts",
+      "sha256": "d43ce643f3cb9a9cc1a4076dc25ee6207e35badffb848331e75f0d807112daec"
+    },
+    {
+      "file": "src/codex/user-input-result.ts",
+      "sha256": "e6a7e23aab855c870ebb4220a03b6741fb070680758d01e1f338368c6a63e15a"
+    },
+    {
+      "file": "src/peer/backend.ts",
+      "sha256": "dff860d5b2b6b353e8884248fbffba31f6037376aacaa7f861fe4bd15de4b382"
+    },
+    {
+      "file": "src/peer/execution-service.ts",
+      "sha256": "f3fdcee9bb2d11cffb6f1a795c1205fead86b4c0968bd555df2e78c37b07ebfd"
+    },
+    {
+      "file": "src/peer/interaction-client.ts",
+      "sha256": "5b9125dd730488e07b5d698b18ec555d3b63b1fc0ce1b8b5a7d320df24298229"
+    },
+    {
+      "file": "src/peer/interaction-service.ts",
+      "sha256": "bab696842d85e60975865f7b8999efd84889477bb2d4e999857dfcb19326793a"
+    },
+    {
+      "file": "src/runtime/versions.ts",
+      "sha256": "3a57db15061d23beded5da0950b1b55a89f0f3fe3a8272a7577dae68f52ecf94"
+    },
+    {
+      "file": "src/server/account-manager.ts",
+      "sha256": "3bce67c2fdae76c113d082730bad9480389f8fc9ca467a015b287883fb1abb45"
+    },
+    {
+      "file": "src/server/codex-desktop-request-monitor.ts",
+      "sha256": "72f72e3be0a6523fd4676ae0430d2e1a108a1bca7f34d58b9cd4782b0056ac7e"
+    },
+    {
+      "file": "test/native-async-questions.test.ts",
+      "sha256": "50868d3d1f05b5d2190f2fbd10b4e121313f5c7e136c1bc83ca10afe23b685f5"
+    },
+    {
+      "file": "test/peer-execution.test.ts",
+      "sha256": "a133762a7fba646cbba02769a08920d906f06c7e02c2345335e55a4cbaef1480"
+    },
+    {
+      "file": "test/peer-interactions.test.ts",
+      "sha256": "f5471596d6f57286387f1f56c9bcc9d44a9a9755b0ddc104300635e5ba1c41bf"
+    },
+    {
+      "file": "test/question-presentation.test.ts",
+      "sha256": "9c78afca11e229c76480314eb2ab0d8fbb3e49b1929b33631dba2495cb9a911f"
+    },
+    {
+      "file": "test/user-input.test.ts",
+      "sha256": "eb14f3f246b5453a4639ef9940209a730a70a83ff658a97cf01ad57ad5254c62"
+    }
+  ],
+  "deployment": {
+    "push": false,
+    "npm": false,
+    "gatewayRestart": false,
+    "connectorRestart": false,
+    "groupMessages": false
+  },
+  "limits": [
+    "No actual DingTalk client layout verification",
+    "No new vendor model execution",
+    "Legacy reason not reconstructed",
+    "Old binary compatibility represented by optional-field/callback and minor-contract tests; no real mixed-version deployment"
+  ]
+}

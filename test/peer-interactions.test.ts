@@ -19,6 +19,24 @@ async function fixture(t: test.TestContext) {
   return {...f, observers, envelope, native: () => [...observers.values()].at(-1)!};
 }
 
+for (const reason of ["turn-terminal", "accepted-elsewhere", undefined] as const)
+test(`INT-02.presentation: independent peer subscription carries ${reason ?? "old peer without reason"} outside request identity`, async t => {
+  const f = await fixture(t); let shown: NativeUserInput | undefined, received = false;
+  const input: NativeUserInput = { hostId: "local", requestId: "async-question", method: "item/tool/requestUserInput",
+    request: { requestId: "async-question", kind: "async", threadId: f.thread.threadId, turnId: "turn", itemId: "widget", questions: [] } };
+  await f.facade.observeThreadInteractions!(f.thread.threadId, f.ticket.hostId, { onApproval: async () => undefined,
+    onUserInput: async value => { shown = value; return undefined; },
+    onUserInputResult(value, result, sourceReason) {
+      assert.equal(value, shown); assert.equal(value.request.kind, "async");
+      assert.equal(result, "withdrawn"); assert.equal(sourceReason, reason); received = true;
+      assert.equal("resultReason" in value.request, false);
+    } });
+  await f.native().onUserInput!(input);
+  await f.native().onUserInputResult!(input, "withdrawn", reason);
+  assert.equal(received, true); assert.equal(input.hostId, "local");
+  await f.facade.unobserveThreadInteractions!(f.thread.threadId, f.ticket.hostId);
+});
+
 test('independent peer interaction remaps host, preserves request identity and keeps explicit decisions', async t => {
   const f = await fixture(t); let shown: NativeApproval | undefined, confirmed = false;
   await f.facade.observeThreadInteractions!(f.thread.threadId, f.ticket.hostId, {

@@ -112,6 +112,6 @@ export class NativeAsyncQuestions {
     // Fixed lifecycle reasons and opaque native identity only, never widgets,
     // questions or answers. A diagnostic sink cannot affect native execution.
     diagnostic("native.async-question.result", { hostId: this.hostId, nativeRequestId: String(pending.input.requestId), status: result, code });
-    void Promise.resolve().then(() => pending.observer.onUserInputResult?.(pending.input, result)).catch(() => {});
+    void Promise.resolve().then(() => pending.observer.onUserInputResult?.(pending.input, result, code)).catch(() => {});
   }
 }

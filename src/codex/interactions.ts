@@ -1,5 +1,5 @@
 import type { CodexApprovalDecision, CodexApprovalRequest, CodexApprovalResult, AppServerApprovalMethod } from "./approval.js";
-import type { CodexUserInputRequest, CodexUserInputAnswer, CodexUserInputResult } from "./backend.js";
+import type { CodexUserInputRequest, CodexUserInputAnswer, CodexUserInputResult, CodexUserInputResultReason } from "./backend.js";
 import type { McpForm } from "./elicitation.js";
 import type { NativeAsyncAnswerReceipt } from "./async-user-input.js";
 
@@ -13,7 +13,7 @@ export type NativeInteractionObserver = {
   onApproval(input: NativeApproval): Promise<CodexApprovalDecision | undefined>;
   onResult?(input: NativeApproval, result: CodexApprovalResult): void | Promise<void>;
   onUserInput?(input: NativeUserInput): Promise<CodexUserInputAnswer | undefined>;
-  onUserInputResult?(input: NativeUserInput, result: CodexUserInputResult): void | Promise<void>;
+  onUserInputResult?(input: NativeUserInput, result: CodexUserInputResult, reason?: CodexUserInputResultReason): void | Promise<void>;
   onObservedUserInputAnswers?(receipts: NativeAsyncAnswerReceipt[]): Promise<void> | void;
   onUnsupportedInteraction?(input: NativeUnsupportedInteraction): Promise<boolean | void>;
 };

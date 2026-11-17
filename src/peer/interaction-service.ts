@@ -35,7 +35,7 @@ export class PeerInteractionService {
         try { const result = await callback("onUserInput", [input]); return result == null ? undefined : z.record(z.string(), z.object({ answers: z.array(z.string()) }).strict()).parse(result); }
         catch { return undefined; }
       },
-      onUserInputResult: (input, result) => notify("onUserInputResult", [input, result]),
+      onUserInputResult: (input, result, reason) => notify("onUserInputResult", [input, result, ...(reason ? [reason] : [])]),
       onProgress: (scope, text) => notify("onProgress", [scope, text]),
       onObservedUserInputAnswers: receipts => notify("onObservedUserInputAnswers", [receipts]),
       onUnsupportedInteraction: async input => { try { return await callback("onUnsupportedInteraction", [input]) === true; } catch { return false; } }

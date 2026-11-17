@@ -6,6 +6,8 @@ import { codexFailureCode, type CodexFailureCode } from "./turn-failure.js";
 import type { CodexTurnRecovery } from "./turn-recovery.js";
 import type { AgentBackendId } from "../agents/catalog.js";
 import type { RuntimeResource } from "../agents/contracts.js";
+import type { CodexUserInputResultReason } from "./user-input-result.js";
+export type { CodexUserInputResultReason } from "./user-input-result.js";
 
 /** Production uses app-server; exec remains a persisted/test compatibility ID. */
 export type CodexBackendId = "exec" | "app-server";
@@ -351,7 +353,10 @@ export type CodexUserInputRequest = {
 export type CodexUserInputAnswer = Record<string, { answers: string[] }>;
 export type CodexUserInputHandler = (request: CodexUserInputRequest) => Promise<CodexUserInputAnswer | undefined>;
 export type CodexUserInputResult = "confirmed" | "failed" | "withdrawn" | "suspended";
-export type CodexUserInputResultHandler = (request: CodexUserInputRequest, result: CodexUserInputResult) => Promise<void> | void;
+/** Optional source evidence for presentation; not part of request identity.
+ * Legacy two-argument callbacks/peers remain valid. Never infer a missing reason. */
+export type CodexUserInputResultHandler = (request: CodexUserInputRequest, result: CodexUserInputResult,
+  reason?: CodexUserInputResultReason) => Promise<void> | void;
 
 export type CodexRunnerInput = {
   prompt: string;

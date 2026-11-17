@@ -13,6 +13,8 @@ import { ChannelPartialDeliveryError, channelProgressError } from "../channels/e
 import type { AcceptedPresentationInput } from "./input-presentation.js";
 import type { TurnParticipantOrigin } from "./turn-audience.js";
 import { diagnostic } from "../runtime/diagnostics.js";
+import { parseUserInputResultReason, type CodexUserInputResultReason } from "../codex/user-input-result.js";
+import { questionTypeLabel, questionTypeExplanation, questionWithdrawalText } from "./question-presentation.js";
 
 type QuestionStatus = "pending" | "answered" | "submitting" | "confirmed" | "withdrawn" | "unconfirmed" | "expired";
 type QuestionRecord = {
@@ -20,6 +22,8 @@ type QuestionRecord = {
   question: CodexUserInputQuestion; status: QuestionStatus; deadline?: number;
   answer?: string; skipped?: boolean; messageId?: string; deliveryAttempted?: boolean; noticeAttempted?: boolean;
   kind?: "sync" | "async"; answerDigest?: string; noticeOutcome?: CodexUserInputResult;
+  /** Source evidence only; missing legacy metadata must stay unknown. */
+  resultReason?: CodexUserInputResultReason;
   /** Native acceptance and delivery of its IM acknowledgement are separate facts. */
   noticeDelivery?: "pending" | "delivered" | "unconfirmed";
   noticeAttempts?: number; noticeRetryAt?: number;
@@ -105,17 +109,17 @@ export class ChannelUserInputController {
         const timeout = request.autoResolutionMs === null ? undefined : request.autoResolutionMs ?? this.defaultTimeoutMs;
         record = { id: `Q${++this.state.sequence}`, key: recordKey, requestKey: key, senderId,
           hostId: request.hostId ?? "local", threadId: request.threadId, turnId: request.turnId,
-          question, kind: request.kind, observationVersion: 1, status: "pending", ...(mentions?.length ? { mentions } : {}),
+          question, kind: request.kind ?? "sync", observationVersion: 1, status: "pending", ...(mentions?.length ? { mentions } : {}),
           ...(timeout !== undefined ? { deadline: Date.now() + timeout } : {}) };
         this.state.records.push(record); this.save();
       }
-      record.kind ??= request.kind;
+      record.kind ??= request.kind ?? "sync";
       // Called only for a currently observed native request. Restoring the
       // exact edge may reattach its unsent waiter, never replay an answer.
       if (record.status === "withdrawn" && !record.answerDigest && this.matchesBinding(senderId, record)
         && (record.bindingDetached || record.kind === "async" && !record.observationVersion && !record.recoveredPending)) {
         const legacyAsync = record.kind === "async" && !record.bindingDetached;
-        record.status = "pending"; delete record.bindingDetached;
+        record.status = "pending"; delete record.bindingDetached; delete record.resultReason;
         if (legacyAsync) {
           // Only an exact reoffer reaches this record key. Replace the old
           // invalidation once, durably across retries/restarts. New-policy
@@ -181,6 +185,8 @@ export class ChannelUserInputController {
     const record = this.state.records.find(record => record.id === id.toUpperCase() && this.matchesBinding(senderId, record));
     if (record?.status === "pending" && !this.waiters.has(record.id))
       return `问题 ${record.id} 仍待回答，但原生回答连接正在恢复；这条回答未提交。恢复后可沿用原卡回答。`;
+    if (record && ["withdrawn", "expired"].includes(record.status))
+      return `${questionWithdrawalText(record.id, record.resultReason)} 未提交这条回答或跳过。`;
     return record && ["answered", "submitting", "unconfirmed", "confirmed"].includes(record.status)
       ? `${answerStatus(record)} 未提交这条重复回答或跳过。`
       : "问题不存在、已处理、绑定已切换或尚未恢复；未提交回答或跳过。";
@@ -260,7 +266,8 @@ export class ChannelUserInputController {
     return answer;
   }
 
-  async reportResult(senderId: string, request: CodexUserInputRequest, result: CodexUserInputResult): Promise<void> {
+  async reportResult(senderId: string, request: CodexUserInputRequest, result: CodexUserInputResult,
+    sourceReason?: CodexUserInputResultReason): Promise<void> {
     if (this.closed) return;
     const key = requestKey(senderId, request);
     for (const record of this.state.records.filter(record => record.requestKey === key)) {
@@ -272,6 +279,12 @@ export class ChannelUserInputController {
         continue;
       }
       if (result === "suspended") { this.release(record.id); this.releaseAudience(record.id); continue; }
+      const reason = parseUserInputResultReason(sourceReason);
+      // A duplicate old-peer notification cannot erase known evidence. A new
+      // outcome (especially confirmed) must not inherit a withdrawal reason.
+      if (record.status !== (result === "failed" ? "unconfirmed" : result) || !record.resultReason) {
+        if (reason) record.resultReason = reason; else delete record.resultReason;
+      }
       if (result === "withdrawn") delete record.bindingDetached;
       if (result === "confirmed") record.presentation ??= {
         id: `answer:${crypto.createHash("sha256").update(record.requestKey).digest("hex")}`,
@@ -310,14 +323,14 @@ export class ChannelUserInputController {
       record.noticeDelivery = "pending"; record.noticeAttempts = (record.noticeAttempts ?? 0) + 1;
       delete record.noticeRetryAt; this.save();
       const text = outcome === "confirmed" ? `Codex 已确认接收问题 ${record.id} 的回答。任务继续，后续进展按展示阶段同步；这不代表任务已完成。`
-        : outcome === "withdrawn" ? `问题 ${record.id} 已失效或已在 Codex 中处理。`
+        : outcome === "withdrawn" ? questionWithdrawalText(record.id, record.resultReason)
         : `问题 ${record.id} 的回答尚未获 Codex 确认，未自动重发；请在 Codex App 核对。`;
       try {
         if (record.messageId && this.options.updateCard) {
           await this.options.updateCard(record.messageId, createChoiceCard({
-            title: `Codex 问题 ${record.id} · ${outcome === "confirmed" ? "回答已接收" : outcome === "withdrawn" ? "已失效" : "等待接收确认"}`,
-            body: text, fallbackText: text, choices: [], template: outcome === "failed" ? "orange" : "grey" }));
-        } else if (this.options.sendNotice) await this.options.sendNotice(record.senderId, text);
+            title: `Codex 问题 ${record.id} · ${questionTypeLabel(record.kind)} · ${outcome === "confirmed" ? "回答已接收" : outcome === "withdrawn" ? "当前入口已关闭" : "等待接收确认"}`,
+            body: text, fallbackText: `${questionTypeLabel(record.kind)}\n${text}`, choices: [], template: outcome === "failed" ? "orange" : "grey" }));
+        } else if (this.options.sendNotice) await this.options.sendNotice(record.senderId, `${questionTypeLabel(record.kind)}\n${text}`);
         else throw new Error("Question resolution presentation unavailable");
         if (this.closed) return; // A replacement controller now owns this journal.
         if (record.noticeOutcome === outcome) record.noticeDelivery = "delivered";
@@ -377,7 +390,7 @@ export class ChannelUserInputController {
   cancelSender(senderId: string): void {
     for (const record of this.state.records) if (record.senderId === senderId) this.releaseAudience(record.id);
     for (const record of this.state.records) if (record.senderId === senderId && this.waiters.has(record.id)) {
-      record.status = "withdrawn"; delete record.answer; this.release(record.id);
+      record.status = "withdrawn"; record.resultReason = "binding-changed"; delete record.answer; this.release(record.id);
     }
     this.save();
   }
@@ -404,7 +417,7 @@ export class ChannelUserInputController {
     }
     for (const record of this.state.records) if (!this.options.validate(record.senderId, record)
       && ["pending", "answered"].includes(record.status)) {
-      record.status = "withdrawn"; delete record.answer; this.release(record.id); changed = true;
+      record.status = "withdrawn"; record.resultReason = "binding-changed"; delete record.answer; this.release(record.id); changed = true;
     }
     // Preserve unknown native submissions as unknown; never resend or falsely
     // label them rejected just because the IM binding changed.
@@ -423,12 +436,13 @@ export class ChannelUserInputController {
     for (const id of this.waiters.keys()) this.release(id); this.liveRequests.clear();
   }
   private expire(record: QuestionRecord): void {
-    record.status = "expired";
+    record.status = "expired"; record.resultReason = "timeout";
     try { this.save(); }
     catch {
       // No answer/skip may be submitted without a durable transition. End the
       // in-memory waiter safely; restart requires observing the native request.
       record.status = "withdrawn";
+      delete record.resultReason;
       console.warn("[codex-im-gateway] question expiry journal unavailable; no answer submitted");
     }
     finally { this.release(record.id); }
@@ -470,11 +484,12 @@ function requestKey(senderId: string, request: CodexUserInputRequest): string {
 
 function questionCard(record: QuestionRecord, index: number, total: number): ChannelActionCard {
   const { question, id } = record;
-  const title = `Codex 问题 ${id}${total > 1 ? ` · ${index + 1}/${total}` : ""}`;
-  const body = question.isSecret ? "此问题需要敏感输入，请在 Codex App 中回答。"
+  const title = `Codex 问题 ${id} · ${questionTypeLabel(record.kind)}${total > 1 ? ` · ${index + 1}/${total}` : ""}`;
+  const content = question.isSecret ? "此问题需要敏感输入，请在 Codex App 中回答。"
     : [...(record.recoveredPending ? ["原问题已重新核对，仍等待回答；请使用本卡操作。"] : []),
       question.question, ...(question.options ?? []).map((option, index) => `${index + 1}. ${option.label}\n${option.description}`),
       `自定义回答（将“回答内容”替换为你的回答）：\n\n${copyBlock(`/answer ${id} 回答内容`)}`].join("\n\n");
+  const body = `${questionTypeExplanation(record.kind)}\n\n${content}`;
   return { ...createChoiceCard({ title, body, fallbackText: `【${title}】\n\n${body}`, template: "orange",
     choices: question.isSecret ? [] : [...(question.options ?? []).map((option, index) => ({ label: option.label,
       command: "answer" as const, arg: `${id} --option ${index + 1}` })), { label: "跳过", command: "skip" as const, arg: id }] }),

@@ -550,7 +550,7 @@ test("unconfirmed answer and later acceptance use distinct truthful question-car
   assert.match(f.controller.answer("room", "list"), /未获 Codex 确认/);
   await f.controller.reportResult("room", request, "confirmed");
   await f.controller.reportResult("room", request, "failed");
-  assert.deepEqual(titles.map(title => title.split(" · ")[1]), ["等待接收确认", "回答已接收"]);
+  assert.deepEqual(titles.map(title => title.split(" · ").at(-1)), ["等待接收确认", "回答已接收"]);
 });
 
 test("late acknowledgement updates cannot overwrite a restarted question journal", async t => {
@@ -584,7 +584,7 @@ test("a stale failed-state update cannot supersede the newer native confirmation
   const failed = f.controller.reportResult("room", request, "failed");
   await tick(); const confirmed = f.controller.reportResult("room", request, "confirmed");
   release(); await Promise.all([failed, confirmed]);
-  assert.deepEqual(titles.map(title => title.split(" · ")[1]), ["等待接收确认", "回答已接收"]);
+  assert.deepEqual(titles.map(title => title.split(" · ").at(-1)), ["等待接收确认", "回答已接收"]);
   const row = JSON.parse(fs.readFileSync(f.filePath, "utf8")).records[0];
   assert.equal(row.status, "confirmed"); assert.equal(row.noticeOutcome, "confirmed"); assert.equal(row.noticeDelivery, "delivered");
 });

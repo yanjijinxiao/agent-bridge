@@ -106,7 +106,7 @@ test("delayed native interactions preserve the channel deadline and confirm the 
     await input.onApprovalResult?.(request, "confirmed");
     const prompt: CodexUserInputRequest = { threadId: f.thread.threadId, turnId: "delayed-turn", itemId: "question", questions: [] };
     assert.deepEqual(await input.onUserInput?.(prompt), { answer: { answers: ["yes"] } });
-    await input.onUserInputResult?.(prompt, "confirmed");
+    await input.onUserInputResult?.(prompt, "confirmed", "accepted-answer");
     return { text: "confirmed", threadId: f.thread.threadId, turnId: "delayed-turn", raw: "" };
   };
   t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: Date.now() });
@@ -117,7 +117,7 @@ test("delayed native interactions preserve the channel deadline and confirm the 
       },
       onApprovalResult: (request, result) => controller.reportResult(principal.actorId, request, result),
       onUserInput: request => { question = request; questionEntered.resolve(); return answer.promise; },
-      onUserInputResult: (request, result) => { assert.equal(request, question); assert.equal(result, "confirmed"); questionConfirmed = true; }
+      onUserInputResult: (request, result, reason) => { assert.equal(request, question); assert.equal(result, "confirmed"); assert.equal(reason, "accepted-answer"); questionConfirmed = true; }
     }))).finally(() => { settled = true; });
     void result.catch(() => {});
     await approvalEntered.promise;

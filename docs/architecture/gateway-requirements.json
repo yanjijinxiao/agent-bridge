@@ -8235,6 +8235,201 @@
             "scope": "本次变动、下述精选函数和相邻守卫；旧 partial 与其他版本证据不提升。",
             "report": "docs/audits/2026-11-12-follow-receipt-repair.md"
           }
+        },
+        {
+          "id": "INT-02.presentation-1",
+          "scenario": "原生同步/异步类型在问题卡和文字回退可见；省略kind沿用同步，未重观测旧记录不猜类型，秘密问题不新增IM作答控件。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: sync type is visible with secret=false"
+            },
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: async type is visible with secret=true"
+            },
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: native sync default type is visible with secret=false"
+            },
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: legacy terminal notification does not guess its type or cause"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/question-presentation.ts",
+              "sha256": "80a23ff619c343c5fa1122af9c7e1dc4a13e38686c8b0a6f6997d770f18024f3"
+            },
+            {
+              "file": "src/bridge/user-input-controller.ts",
+              "sha256": "4b46541851053c11d80fad56a2c5052c03c5fb66aef55a30b52c908737302469"
+            }
+          ],
+          "verifiedBoundary": "六种类型/敏感组合及旧记录呈现；卡片DTO及文字回退隔离断言，不等同于供应商客户端实机样式。",
+          "reviewReport": "docs/audits/2026-11-17-question-presentation.md"
+        },
+        {
+          "id": "INT-02.presentation-2",
+          "scenario": "关闭原因在同卡更新、文字通知、后续answer/skip和重启后保持一致；未知原因不猜超时/已答，不回显上游原文。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: turn-terminal persists and agrees across card, late answer, skip and restart"
+            },
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: accepted-elsewhere persists and agrees across card, late answer, skip and restart"
+            },
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: unknown, legacy and injected reasons stay explicitly unknown"
+            },
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: plain-text closure uses the same exact cause as later IM replies"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/question-presentation.ts",
+              "sha256": "80a23ff619c343c5fa1122af9c7e1dc4a13e38686c8b0a6f6997d770f18024f3"
+            },
+            {
+              "file": "src/bridge/user-input-controller.ts",
+              "sha256": "4b46541851053c11d80fad56a2c5052c03c5fb66aef55a30b52c908737302469"
+            },
+            {
+              "file": "src/codex/user-input-result.ts",
+              "sha256": "e6a7e23aab855c870ebb4220a03b6741fb070680758d01e1f338368c6a63e15a"
+            }
+          ],
+          "verifiedBoundary": "13种已知关闭原因参数组合；旧通知不重复、跨聊天不泄露、原因固定枚举及旧两参回调不能擦掉已知原因。",
+          "reviewReport": "docs/audits/2026-11-17-question-presentation.md"
+        },
+        {
+          "id": "INT-02.presentation-3",
+          "scenario": "断连suspended保留pending与原卡；confirmed可纠正旧撤回，晚到故障不覆盖原生接收证据。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: suspension retains pending; native confirmation supersedes a withdrawal"
+            },
+            {
+              "file": "test/user-input.test.ts",
+              "name": "a stale failed-state update cannot supersede the newer native confirmation"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/bridge/user-input-controller.ts",
+              "sha256": "4b46541851053c11d80fad56a2c5052c03c5fb66aef55a30b52c908737302469"
+            },
+            {
+              "file": "src/codex/native-async-questions.ts",
+              "sha256": "d43ce643f3cb9a9cc1a4076dc25ee6207e35badffb848331e75f0d807112daec"
+            }
+          ],
+          "verifiedBoundary": "控制器持久journal及同卡投递交错，不自动重发答案或重开真实关闭的问题；不修改已有轮次寿命。",
+          "reviewReport": "docs/audits/2026-11-17-question-presentation.md"
+        },
+        {
+          "id": "INT-02.presentation-4",
+          "scenario": "原因经Connector独立观察和执行回调传递，保持原请求对象身份；扇出区分其他入口已接受与仅提交但确认未知。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/peer-interactions.test.ts",
+              "name": "INT-02.presentation: independent peer subscription carries turn-terminal outside request identity"
+            },
+            {
+              "file": "test/peer-interactions.test.ts",
+              "name": "INT-02.presentation: independent peer subscription carries old peer without reason outside request identity"
+            },
+            {
+              "file": "test/peer-execution.test.ts",
+              "name": "delayed native interactions preserve the channel deadline and confirm the original request"
+            },
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: fanout failed distinguishes selected and other answer surfaces"
+            },
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: fanout confirmed distinguishes selected and other answer surfaces"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/peer/interaction-service.ts",
+              "sha256": "bab696842d85e60975865f7b8999efd84889477bb2d4e999857dfcb19326793a"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "f3fdcee9bb2d11cffb6f1a795c1205fead86b4c0968bd555df2e78c37b07ebfd"
+            },
+            {
+              "file": "src/peer/interaction-client.ts",
+              "sha256": "5b9125dd730488e07b5d698b18ec555d3b63b1fc0ce1b8b5a7d320df24298229"
+            },
+            {
+              "file": "src/peer/backend.ts",
+              "sha256": "dff860d5b2b6b353e8884248fbffba31f6037376aacaa7f861fe4bd15de4b382"
+            },
+            {
+              "file": "src/codex/interaction-fanout.ts",
+              "sha256": "110de050ed278a3cbb7b82ca047ca432efd88c2e732a6ff12a64fc2a6cbe63dd"
+            },
+            {
+              "file": "src/bridge/service.ts",
+              "sha256": "af526747e283034babc23edea66009b7765d4cc76c090b0ec66b49f4c1406436"
+            },
+            {
+              "file": "src/server/account-manager.ts",
+              "sha256": "3bce67c2fdae76c113d082730bad9480389f8fc9ca467a015b287883fb1abb45"
+            }
+          ],
+          "verifiedBoundary": "真实本机Peer socket和生产序列化/回调路径，原生端为受控替身；跨产品旧版本进程仅由两参/缺字段及minor兼容合同覆盖，不冒充真实混合部署。",
+          "reviewReport": "docs/audits/2026-11-17-question-presentation.md"
+        },
+        {
+          "id": "INT-02.presentation-5",
+          "scenario": "原生结果根据真实来源附固定原因；同步数字/字符串ID隔离，异步轮次结束/移除/外部已答/断连分别说明。",
+          "status": "verified",
+          "tests": [
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: sync native wire resolved preserves typed request identity and reports its cause without an answer"
+            },
+            {
+              "file": "test/question-presentation.test.ts",
+              "name": "INT-02.presentation: sync native wire completed preserves typed request identity and reports its cause without an answer"
+            },
+            {
+              "file": "test/native-async-questions.test.ts",
+              "name": "INT-02.presentation: native elsewhere reports source reason without changing request identity"
+            },
+            {
+              "file": "test/native-async-questions.test.ts",
+              "name": "native turn end invalidates an awaiting widget and never writes after disconnect"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "23f986a63e77d18349686bbf4c79eb573d0fa0d6aecc24e428a2b815a5ef0c19"
+            },
+            {
+              "file": "src/codex/native-async-questions.ts",
+              "sha256": "d43ce643f3cb9a9cc1a4076dc25ee6207e35badffb848331e75f0d807112daec"
+            }
+          ],
+          "verifiedBoundary": "Runner实际解析/通知函数注入JSON-RPC报文，异步真实归一化模块，断言原身份、结果和零答案写入；本case不启动供应商原生模型。",
+          "reviewReport": "docs/audits/2026-11-17-question-presentation.md"
         }
       ]
     },
@@ -20671,14 +20866,14 @@
     }
   },
   "currentSummary": {
-    "audit": "2026-11-12-help-levels",
+    "audit": "2026-11-17-question-presentation",
     "requirements": 96,
-    "cases": 476,
-    "mappedCases": 476,
-    "recordedNarrowVerified": 381,
+    "cases": 481,
+    "mappedCases": 481,
+    "recordedNarrowVerified": 386,
     "partialCases": 95,
-    "selectedFunctionContracts": 366,
-    "note": "新增8项帮助正交合同；完整回归与最终专项隔离验证通过，不外推线上或全库逐行验收。"
+    "selectedFunctionContracts": 378,
+    "note": "新增5项问题类型和关闭原因合同，仅在列明边界内验证；不扩大旧case验收状态，不声明全库逐行或供应商客户端验收。"
   },
   "connectorIDEUpdate": {
     "date": "2026-11-04",
@@ -20749,5 +20944,19 @@
       "CTRL-05.help-8"
     ],
     "scope": "默认/完整/分项/单命令、可用性及只读卡片；兼容和原处理器不删除，不部署。"
+  },
+  "questionPresentationUpdate": {
+    "date": "2026-11-17",
+    "report": "docs/audits/2026-11-17-question-presentation.md",
+    "functionModule": "docs/architecture/question-presentation.md",
+    "implementationModule": "docs/architecture/modules/native-interactions.md",
+    "cases": [
+      "INT-02.presentation-1",
+      "INT-02.presentation-2",
+      "INT-02.presentation-3",
+      "INT-02.presentation-4",
+      "INT-02.presentation-5"
+    ],
+    "scope": "可选第三回调参数传递固定原因；请求身份、结果枚举及提问寿命不变；未部署。"
   }
 }

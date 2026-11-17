@@ -2731,7 +2731,7 @@ export class BridgeService {
       onApproval: request => this.approvals.request(message.senderId, request),
       onApprovalResult: (request, result) => this.approvals.reportResult(message.senderId, request, result),
       onUserInput: request => this.requestUserInput(message.senderId, request, hostId),
-      onUserInputResult: (request, result) => this.reportUserInputResult(message.senderId, request, result, hostId)
+      onUserInputResult: (request, result, reason) => this.reportUserInputResult(message.senderId, request, result, hostId, reason)
     });
     if ((receipt.status === "queued" || receipt.status === "running") && receipt.queuedSubmissionId)
       this.options.inputReceipts?.queued(receipt.threadId, receipt.queuedSubmissionId, receipt.turnId);
@@ -3304,8 +3304,8 @@ export class BridgeService {
           onApproval: (request: CodexApprovalRequest) => this.requestApproval(message.senderId, request),
           onApprovalResult: (request, result) => this.reportApprovalResult(message.senderId, request, result),
           onUserInput: (request: import("../codex/backend.js").CodexUserInputRequest) => this.requestUserInput(message.senderId, request, this.sessionHostId(session)),
-          onUserInputResult: (request: import("../codex/backend.js").CodexUserInputRequest, result: import("../codex/backend.js").CodexUserInputResult) =>
-            this.reportUserInputResult(message.senderId, request, result, this.sessionHostId(session))
+          onUserInputResult: (request: import("../codex/backend.js").CodexUserInputRequest, result: import("../codex/backend.js").CodexUserInputResult, reason?: import("../codex/backend.js").CodexUserInputResultReason) =>
+            this.reportUserInputResult(message.senderId, request, result, this.sessionHostId(session), reason)
         };
         // A web/IM detach during preparation must not submit a new native input.
         // Already accepted native queue items remain owned by Codex.
@@ -4021,8 +4021,9 @@ export class BridgeService {
   }
 
   reportUserInputResult(senderId: string, request: import("../codex/backend.js").CodexUserInputRequest,
-    result: import("../codex/backend.js").CodexUserInputResult, hostId?: string): Promise<void> {
-    return this.userInputs.reportResult(senderId, { ...request, hostId: hostId ?? request.hostId ?? "local" }, result);
+    result: import("../codex/backend.js").CodexUserInputResult, hostId?: string,
+    reason?: import("../codex/backend.js").CodexUserInputResultReason): Promise<void> {
+    return this.userInputs.reportResult(senderId, { ...request, hostId: hostId ?? request.hostId ?? "local" }, result, reason);
   }
 }
 

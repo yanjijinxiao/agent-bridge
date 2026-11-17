@@ -19,7 +19,7 @@ export class PeerInteractionClient {
         // approvals retain their existing connection-bound retirement policy.
         if (key.startsWith('["approval"')) return observer.onResult?.(input, answered.has(key) ? "failed" : "withdrawn");
         return observer.onUserInputResult?.(input, answered.has(key) ? "failed"
-          : input.request?.kind === "async" ? "suspended" : "withdrawn");
+          : input.request?.kind === "async" ? "suspended" : "withdrawn", "connection-lost");
       })));
     };
     const subscription = { host, thread, id, ready: false, close: async () => {

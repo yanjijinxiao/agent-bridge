@@ -133,7 +133,11 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         const result = answeredInteractions.has(key) ? "failed"
           : key.startsWith('["question"') && request && typeof request === "object" && "kind" in request
             && request.kind === "async" ? "suspended" : "withdrawn";
-        try { void Promise.resolve(handler?.(request, result)).catch(() => {}); } catch { /* No native answer. */ }
+        try {
+          const notification = key.startsWith('["approval"') ? handler?.(request, result)
+            : handler?.(request, result, "connection-lost");
+          void Promise.resolve(notification).catch(() => {});
+        } catch { /* No native answer. */ }
       }
       interactionRequests.clear();
     };

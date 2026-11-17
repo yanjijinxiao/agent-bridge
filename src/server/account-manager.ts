@@ -493,9 +493,9 @@ export class AccountManager {
           return route ? this.entries.get(route.accountId)?.service?.requestUserInput(route.recipientId, request, scope.hostId)
             ?? Promise.resolve(undefined) : Promise.resolve(undefined);
         },
-        onUserInputResult: (request, result) => {
+        onUserInputResult: (request, result, reason) => {
           const route = this.interactionRouting.resolve(scope.hostId, scope.threadId, this.interactionDestinations(), request.turnId).destination;
-          return route ? this.entries.get(route.accountId)?.service?.reportUserInputResult(route.recipientId, request, result, scope.hostId) : undefined;
+          return route ? this.entries.get(route.accountId)?.service?.reportUserInputResult(route.recipientId, request, result, scope.hostId, reason) : undefined;
         }
       }),
       terminal: async (scope, text, outcome) => {
@@ -1733,7 +1733,7 @@ export class AccountManager {
           }
           return entry.service!.requestUserInput(session.senderId, request, prepared.hostId);
         },
-        onUserInputResult: (request, result) => entry.service!.reportUserInputResult(session.senderId, request, result, prepared.hostId),
+        onUserInputResult: (request, result, reason) => entry.service!.reportUserInputResult(session.senderId, request, result, prepared.hostId, reason),
         ...((session.streamReplies ?? config.streamReplies) && onProgress
           ? { onProgress }
           : {})
@@ -2337,7 +2337,7 @@ export class AccountManager {
       onApproval: (approval) => this.handleNativeApproval(approval),
       onResult: (approval, result) => this.reportNativeApprovalResult(approval, result),
       onUserInput: (input) => this.handleNativeUserInput(input),
-      onUserInputResult: (input, result) => this.reportNativeUserInputResult(input, result),
+      onUserInputResult: (input, result, reason) => this.reportNativeUserInputResult(input, result, reason),
       onObservedUserInputAnswers: async receipts => {
         await Promise.all([...this.entries.values()].map(entry => entry.service?.observeNativeUserInputAnswers?.(receipts)));
       },
@@ -2515,11 +2515,12 @@ export class AccountManager {
     return answers;
   }
 
-  private async reportNativeUserInputResult(input: NativeUserInput, result: CodexUserInputResult): Promise<void> {
+  private async reportNativeUserInputResult(input: NativeUserInput, result: CodexUserInputResult,
+    reason?: import("../codex/backend.js").CodexUserInputResultReason): Promise<void> {
     const route = this.userInputRoutes.get(input);
     if (!route) return;
     this.userInputRoutes.delete(input);
-    await route.service.reportUserInputResult(route.recipientId, input.request, result);
+    await route.service.reportUserInputResult(route.recipientId, input.request, result, undefined, reason);
   }
 
   private async handleNativeApproval(approval: NativeApproval): Promise<CodexApprovalDecision | undefined> {
