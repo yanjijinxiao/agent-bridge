@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-17",
+  "version": "0.6.8",
+  "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7",
+  "sourceHash": "48eedb497e7a7c0ca602a588aa905a4e1884351c39ac483b62e7c084491891fd",
+  "scope": "push main and deploy question presentation fix; no registry publication requested",
+  "tests": {
+    "gateway": {
+      "total": 3965,
+      "passed": 3864,
+      "skipped": 101,
+      "failed": 0
+    },
+    "taskboard": {
+      "total": 510,
+      "passed": 508,
+      "skipped": 2,
+      "failed": 0
+    },
+    "typechecks": "passed"
+  },
+  "artifact": {
+    "name": "@yanjijinxiao/agent-bridge",
+    "integrity": "sha512-LbDFngahGy9fOLkAu6UswAAt8c4ZulR0hiSJoItXRTUh8Sqvn6cScXt6p5+tROq89ptInAtStLMd6ILjB9Oepw==",
+    "files": 1011,
+    "runtimeBundleSha256": "a24f2967fae50cf30e6eaef8f8ee19409f8e64239e7f79d4a4d3e4622e28aea5",
+    "remoteTransferSha256Verified": true
+  },
+  "candidate": {
+    "version": "0.6.8",
+    "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7",
+    "cli": [
+      "agent-bridge",
+      "agent-bridge-connector"
+    ],
+    "gateway": true,
+    "taskboard": true,
+    "staticAsset": true,
+    "isolatedState": "/private/tmp/agent-bridge-smoke-state-LtyRHS"
+  },
+  "questionArtifactSmoke": {
+    "mac": {
+      "questionTypes": true,
+      "closureReason": true,
+      "realIMDelivery": false
+    },
+    "linux": {
+      "questionTypes": true,
+      "closureReason": true,
+      "realIMDelivery": false
+    }
+  },
+  "gateways": {
+    "toutou": {
+      "version": "0.6.8",
+      "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7",
+      "pid": 17445,
+      "contracts": {
+        "http": {
+          "major": 1,
+          "minor": 0
+        },
+        "peer": {
+          "major": 1,
+          "minor": 0
+        },
+        "execution": {
+          "major": 1,
+          "minor": 1
+        },
+        "nativeAdapter": {
+          "major": 1,
+          "minor": 1
+        },
+        "log": {
+          "major": 1,
+          "minor": 0
+        }
+      },
+      "admissionOpen": true,
+      "accounts": [
+        {
+          "status": "running",
+          "connection": "connected"
+        }
+      ],
+      "connectors": [
+        {
+          "backend": "头头 · Mac 本机",
+          "version": "0.6.8",
+          "online": true,
+          "pid": 20460,
+          "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7"
+        },
+        {
+          "backend": "11.158.199.43（经 头头 · Mac 本机）",
+          "version": "0.6.8",
+          "online": true,
+          "pid": 20460,
+          "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7"
+        }
+      ]
+    },
+    "tantan": {
+      "version": "0.6.8",
+      "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7",
+      "pid": 182103,
+      "contracts": {
+        "http": {
+          "major": 1,
+          "minor": 0
+        },
+        "peer": {
+          "major": 1,
+          "minor": 0
+        },
+        "execution": {
+          "major": 1,
+          "minor": 1
+        },
+        "nativeAdapter": {
+          "major": 1,
+          "minor": 1
+        },
+        "log": {
+          "major": 1,
+          "minor": 0
+        }
+      },
+      "admissionOpen": true,
+      "accounts": [
+        {
+          "status": "running",
+          "connection": "connected"
+        }
+      ],
+      "connectors": [
+        {
+          "backend": "Herdr TUI Linux12 · 验收",
+          "version": "0.6.8",
+          "online": true,
+          "pid": 261506,
+          "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7"
+        },
+        {
+          "backend": "Linux 12（Codex CLI）",
+          "version": "0.6.8",
+          "online": true,
+          "pid": 261371,
+          "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7"
+        },
+        {
+          "backend": "Herdr App Mac · 验收",
+          "version": "0.6.6",
+          "online": true,
+          "pid": 25634,
+          "commit": "87dfba08428efa46c403b2577c2c311e209a82e3"
+        },
+        {
+          "backend": "Mac Connector 回归验证",
+          "version": "0.6.8",
+          "online": true,
+          "pid": 23610,
+          "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7"
+        }
+      ]
+    }
+  },
+  "preserved": {
+    "toutouBrowserGrants": 34,
+    "tantanBrowserGrants": 2,
+    "tantanBindings": 22,
+    "bindingsAndPermissions": true,
+    "macConfigurations": true,
+    "nativeMacPids": [
+      11238,
+      20404,
+      85378
+    ]
+  },
+  "deferred": [
+    {
+      "component": "Mac Herdr App acceptance Connector",
+      "version": "0.6.6",
+      "pid": 25634,
+      "reason": "original temporary launch configuration is missing; online process and identity preserved"
+    }
+  ],
+  "tutorial": {
+    "url": "https://yuque.antfin.com/go/doc/590977164",
+    "bodySha256": "028a1f940282abd73b14443aac3d0192e19d9d8945e13a14cf46d539b20bd400",
+    "titlePreserved": true,
+    "codex": true,
+    "herdr": true,
+    "herdrContentPreservedIgnoringTrailingWhitespace": true,
+    "relativeLinks": 0,
+    "readBackVerified": true
+  },
+  "npmPublished": false,
+  "githubReleaseCreated": false,
+  "evidence": [
+    {
+      "name": "manifest.json",
+      "sha256": "c72c8a6f3ea833538af2d664c93227f9b9429e651e2facf4be56baf944d27395"
+    },
+    {
+      "name": "verified.json",
+      "sha256": "0e0cdfac32b66122abc59065fa454bcdf173ddc24f3a45b5de69913082444a28"
+    },
+    {
+      "name": "tantan-verified.json",
+      "sha256": "a53005f10cff22da9bc265040c0c7f514ec305e1ad214185d2c94e2a04cd9068"
+    },
+    {
+      "name": "toutou-connectors-verified.json",
+      "sha256": "94ad963f6080813e3e9fb225c486a83a3d4deb8ad3728560857687098ef5f3fd"
+    },
+    {
+      "name": "tantan-connectors-verified.json",
+      "sha256": "69a6c8ec0064b11ebeb27f373a7b977a0129e85455e538517a120d787ab3bcb8"
+    }
+  ]
+}

@@ -20957,6 +20957,12 @@
       "INT-02.presentation-4",
       "INT-02.presentation-5"
     ],
-    "scope": "可选第三回调参数传递固定原因；请求身份、结果枚举及提问寿命不变；未部署。"
+    "scope": "可选第三回调参数传递固定原因；请求身份、结果枚举及提问寿命不变。开发检查与0.6.8实际上线分别留证。",
+    "deployment": {
+      "version": "0.6.8",
+      "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7",
+      "report": "docs/audits/2026-11-17-v068-deployment.md",
+      "headAndTantanVerified": true
+    }
   }
 }
