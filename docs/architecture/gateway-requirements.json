@@ -20963,6 +20963,12 @@
       "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7",
       "report": "docs/audits/2026-11-17-v068-deployment.md",
       "headAndTantanVerified": true
+    },
+    "publication": {
+      "version": "0.6.8",
+      "npmLatestVerified": true,
+      "githubTag": "v0.6.8",
+      "report": "docs/audits/2026-11-17-v068-release.md"
     }
   }
 }

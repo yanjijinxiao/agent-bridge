@@ -220,5 +220,6 @@
       "name": "tantan-connectors-verified.json",
       "sha256": "69a6c8ec0064b11ebeb27f373a7b977a0129e85455e538517a120d787ab3bcb8"
     }
-  ]
+  ],
+  "subsequentPublicationRecord": "docs/audits/2026-11-17-v068-release.json"
 }

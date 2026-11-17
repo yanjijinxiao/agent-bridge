@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-17",
+  "version": "0.6.8",
+  "name": "@yanjijinxiao/agent-bridge",
+  "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7",
+  "sourceHash": "48eedb497e7a7c0ca602a588aa905a4e1884351c39ac483b62e7c084491891fd",
+  "npm": {
+    "commandExitCode": 0,
+    "public": {
+      "version": "0.6.8",
+      "latest": "0.6.8",
+      "integrity": "sha512-LbDFngahGy9fOLkAu6UswAAt8c4ZulR0hiSJoItXRTUh8Sqvn6cScXt6p5+tROq89ptInAtStLMd6ILjB9Oepw==",
+      "tarballReadable": true,
+      "tarball": "https://registry.npmjs.org/@yanjijinxiao/agent-bridge/-/agent-bridge-0.6.8.tgz",
+      "bytes": 2464004,
+      "checkedAt": "2026-11-17T06:55:57.823Z"
+    },
+    "officialInstalledSmoke": {
+      "version": "0.6.8",
+      "commit": "0ec6a9ccd58b0f0d2f66d47c1f8ebd93191e06b7",
+      "cli": [
+        "agent-bridge",
+        "agent-bridge-connector"
+      ],
+      "gateway": true,
+      "taskboard": true,
+      "staticAsset": true,
+      "isolatedState": "/private/tmp/agent-bridge-smoke-state-yQq7jZ"
+    },
+    "tarballSha256": "0437b4f0c6412ba60e854e86689a5889846a02a3b1d6fd30b1cc6dd44056d74d",
+    "officialQuestionPresentationSmoke": {
+      "questionTypes": true,
+      "closureReason": true,
+      "realIMDelivery": false
+    }
+  },
+  "github": {
+    "tag": "v0.6.8",
+    "url": "https://github.com/yanjijinxiao/agent-bridge/releases/tag/v0.6.8",
+    "draft": false,
+    "assets": [
+      {
+        "name": "yanjijinxiao-agent-bridge-0.6.8.tgz",
+        "size": 2464004
+      }
+    ]
+  },
+  "candidateIntegrity": "sha512-LbDFngahGy9fOLkAu6UswAAt8c4ZulR0hiSJoItXRTUh8Sqvn6cScXt6p5+tROq89ptInAtStLMd6ILjB9Oepw==",
+  "sameValidatedArtifact": true,
+  "tests": {
+    "gateway": {
+      "total": 3965,
+      "passed": 3864,
+      "skipped": 101,
+      "failed": 0
+    },
+    "taskboard": {
+      "total": 510,
+      "passed": 508,
+      "skipped": 2,
+      "failed": 0
+    }
+  },
+  "deployment": "docs/audits/2026-11-17-v068-deployment.json",
+  "runtimeChangedDuringPublication": false,
+  "tutorial": {
+    "url": "https://yuque.antfin.com/go/doc/590977164",
+    "preservedCodexAndHerdrParts": true,
+    "previouslyVerifiedDeploymentRecord": "docs/audits/2026-11-17-v068-deployment.md"
+  }
+}
