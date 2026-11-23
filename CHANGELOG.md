@@ -2,6 +2,12 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
+## [0.6.9] - 2026-11-23
+
+- Restore Codex permissions from the latest native record on the execution host. Managed local and SSH routes transfer only the verified permission fields needed for cold resume.
+- Preserve definite pre-submission failures across Connector and Gateway. The inbox retries transient reads and holds invalid permission evidence for review while retaining the original destination and receipt.
+- Keep the relay pressure test's output and copy-budget assertions while avoiding repeated decoding by the test fixture.
+
 ## [0.6.8] - 2026-11-17
 
 - Label synchronous and asynchronous questions in cards and text, including whether the current question step waits for an answer.

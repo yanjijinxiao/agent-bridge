@@ -56,6 +56,10 @@ npm version = package.json version = CLI --version = build-info.productVersion =
 
 0.6.8 在问题卡显示同步/异步及真实关闭原因，保持原问题生命周期和回执规则。源码上线与 npm 发行分别验收；官方 latest、tarball 完整性和全新安装结果见[发行核验](audits/2026-11-17-v068-release.md)。探探教程沿用使用说明，不堆叠更新日志。
 
+## 0.6.9
+
+0.6.9 修复长会话冷恢复卡住。受管本机和 SSH 路由在原执行主机读取最新权限记录，Connector 向 Gateway 保留明确未提交的原因。安装后需要分别更新 Gateway 和使用该路径的 Connector。异常提示和收件箱操作见[探探教程](tantan-connector-guide.md)，验证范围见[冷恢复检查](audits/2026-11-23-native-permission-source.md)。
+
 ## 发布后暂时 404
 
 npm 会在新版本可安装前进行发布扫描，因此发布命令成功和公开下载可用可能相隔数分钟。遇到 404 时先核对包的访问级别及维护者可见的版本状态，等待官方元数据与 tarball 可读，再核对完整性并安装；不要重复发布同一版本，也不要为绕过扫描随意增加版本号。状态显示 published 本身不能替代实际下载验收。参见 [npm 发布扫描说明](https://github.blog/changelog/2026-07-28-npm-publish-time-malware-scanning-and-dual-use-metadata/)。
