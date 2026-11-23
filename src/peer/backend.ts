@@ -13,6 +13,7 @@ import { CodexBackendCapabilityError, CodexQueueAdmissionError, CodexInterventio
   type CodexBridgeBackend, type CodexThreadState, type CodexTurnStatus, type CodexTurnObservation,
   type CodexInputReceipt, type CodexStopResult, APP_SERVER_BACKEND_CAPABILITIES } from "../codex/backend.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
+import { coldPermissionReason, ColdPermissionError } from "../codex/cold-permission-error.js";
 import { PeerRegistry } from "./registry.js";
 import { PeerConnectionError, PeerError } from "./rpc.js";
 import { peerPrincipal } from "./context.js";
@@ -176,6 +177,8 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         acceptedTurnId ? "observation" : write && error.sent ? "submission" : "preflight", method, scope?.threadId, acceptedTurnId, error);
       if (error instanceof PeerError && error.code === "codex-communication") {
         const data = error.data as any;
+        if (!acceptedTurnId && data?.phase === "preflight" && data.operation === "thread/restore-permissions" && coldPermissionReason(data.permissionReason))
+          throw new ColdPermissionError(data.permissionReason, scope?.threadId);
         throw new CodexCommunicationError(acceptedTurnId ? "observation" : ["preflight", "submission", "observation"].includes(data?.phase) ? data.phase : "submission",
           method, scope?.threadId, acceptedTurnId ?? data?.turnId);
       }

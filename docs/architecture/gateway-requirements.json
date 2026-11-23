@@ -1088,6 +1088,112 @@
             "scope": "本次隔离路径、列明函数及相关守卫；未批量更新其他partial或代码证据。",
             "report": "docs/audits/2026-11-12-cold-read-question-isolation.md"
           }
+        },
+        {
+          "id": "NATIVE-02.10",
+          "status": "verified",
+          "scenario": "受管本机和 SSH 共享核心冷恢复在原执行主机读取最新原生权限，长记录不受整文件上限影响。不能回放旧权限，失败按明确未提交保存。",
+          "tests": [
+            {
+              "file": "test/forwarding-inbox.test.ts",
+              "name": "NATIVE-02.10: inbox reports timeout as known not submitted"
+            },
+            {
+              "file": "test/forwarding-inbox.test.ts",
+              "name": "NATIVE-02.10: inbox reports invalid as known not submitted"
+            },
+            {
+              "file": "test/native-cold-permissions.test.ts",
+              "name": "NATIVE-02.10: the execution-host reader restores permissions on the original real core thread"
+            },
+            {
+              "file": "test/native-permission-resume.test.ts",
+              "name": "NATIVE-02.10: closing a runner aborts its host read before native writes"
+            },
+            {
+              "file": "test/native-permission-source.test.ts",
+              "name": "NATIVE-02.10: a multi-GiB native log can restore its latest permission from small bounded reads"
+            },
+            {
+              "file": "test/native-permission-source.test.ts",
+              "name": "NATIVE-02.10: settings-applied takes precedence when newest and empty threads retain native defaults"
+            },
+            {
+              "file": "test/native-permission-source.test.ts",
+              "name": "NATIVE-02.10: truncated append cannot fall back to older permissions"
+            },
+            {
+              "file": "test/native-permission-source.test.ts",
+              "name": "NATIVE-02.10: corrupt complete line cannot fall back to older permissions"
+            },
+            {
+              "file": "test/native-permission-source.test.ts",
+              "name": "NATIVE-02.10: newer incomplete settings cannot fall back to older permissions"
+            },
+            {
+              "file": "test/native-permission-source.test.ts",
+              "name": "NATIVE-02.10: foreign latest settings cannot fall back to older permissions"
+            },
+            {
+              "file": "test/native-permission-source.test.ts",
+              "name": "NATIVE-02.10: a foreign, internal, symlinked or outside-home source cannot restore permissions"
+            },
+            {
+              "file": "test/native-permission-source.test.ts",
+              "name": "NATIVE-02.10: a large unread line stops the latest-first scan instead of guessing older permissions"
+            },
+            {
+              "file": "test/peer-execution.test.ts",
+              "name": "NATIVE-02.10: cold permission failure retains its reason and definitive receipt across Connector"
+            }
+          ],
+          "implementation": [
+            {
+              "file": "src/codex/native-permission-source.ts",
+              "sha256": "1a6b2aab319d6300001eda650f070b970f3c6978252fd2b8d0413b79d4f34480"
+            },
+            {
+              "file": "src/codex/native-permission-resume.ts",
+              "sha256": "08e953d59af354ff455da3bb780c45ef64862c587b200e764342c50df7c111d3"
+            },
+            {
+              "file": "src/codex/app-server-runner.ts",
+              "sha256": "9e76c5e1b9a4e9efbb771e82a89da6b44685853568da195113feb69fe0b384c4"
+            },
+            {
+              "file": "src/codex/app-server-daemon.ts",
+              "sha256": "7131d19c04890d5da2308c7ac39b26045b2eec67d5839038832dd1019f11656a"
+            },
+            {
+              "file": "src/codex/remote-host.ts",
+              "sha256": "d973a9a390e9671fafb4c583fdc3890a129055658fca2c5ad75acba9309da550"
+            },
+            {
+              "file": "src/codex/cold-permission-error.ts",
+              "sha256": "e4c018b4243a86f83e8efc13bd967bb9183dea0d7e4f82dce6cb9dcc0694f6b5"
+            },
+            {
+              "file": "src/peer/execution-service.ts",
+              "sha256": "b0187a3a5953690bea1eb14c1065296b4e0efa1939ca86d35ddb304cd0bfb463"
+            },
+            {
+              "file": "src/peer/backend.ts",
+              "sha256": "142deca87f357e1cdd99fd4c465f1f0f9f56b3fdc163777f7cada9ec6120e4ea"
+            },
+            {
+              "file": "src/bridge/forwarding-inbox.ts",
+              "sha256": "38924fc5fc6bb4689c046c3a50626cc18169be054a5fe0e4b94d1f74390291ce"
+            }
+          ],
+          "previousTestGap": "旧 NATIVE-02.9 只验证整文件读取隔离及超限拒绝，未覆盖长会话仍应冷恢复及 Connector 准确区分明确未提交。",
+          "verifiedBoundary": "13 个直接通过场景，含真实隔离 Codex 0.171.0 核心冷重启、3 GiB 稀疏记录、损坏/半写及来源拒绝、退出取消、Connector 回执和收件箱。实际本机和 SSH 两个故障来源另以只读采样验证。",
+          "remainingBoundary": "私有 stdio 未改整文件兼容路径。现场消息未重放，生产版本未参与写入验证。",
+          "implementationRecheck": {
+            "date": "2026-11-23",
+            "scope": "执行主机有界读取、原生权限投影及写前守卫、明确未提交的 Connector 往返及收件箱。",
+            "report": "docs/audits/2026-11-23-native-permission-source.md",
+            "testResults": "docs/audits/2026-11-23-native-permission-source-tests.jsonl"
+          }
         }
       ]
     },

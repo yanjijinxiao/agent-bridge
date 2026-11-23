@@ -16,6 +16,7 @@ import { z } from "zod";
 import { assertCodexThreadRunnable, CodexBackendCapabilityError, CodexQueueAdmissionError, CodexInterventionError, CodexThreadStateError, CodexRunAdmissionError, CodexTurnExecutionError,
   type CodexBridgeBackend, type CodexRunnerInput, type CodexInputReceipt, type CodexThreadState } from "../codex/backend.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
+import { ColdPermissionError } from "../codex/cold-permission-error.js";
 import { CodexConnectionSetupError, CodexNativeRequestError } from "../codex/connection-errors.js";
 import { approvalOptions, type CodexApprovalDecision } from "../codex/approval.js";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
@@ -239,7 +240,8 @@ export class PeerExecutionService {
         if (error instanceof CodexConnectionSetupError) throw new PeerError("native-setup", error.message, { reason: error.reason });
         if (error instanceof CodexNativeRequestError) throw new PeerError("native-request", error.publicMessage(), { operation: error.operation, rpcCode: error.rpcCode });
         if (error instanceof CodexCommunicationError) throw new PeerError("codex-communication", "Codex communication was not confirmed", {
-          phase: error.phase, operation: error.operation, threadId: error.threadId, turnId: error.turnId });
+          phase: error.phase, operation: error.operation, threadId: error.threadId, turnId: error.turnId,
+          ...(error instanceof ColdPermissionError ? { permissionReason: error.reason } : {}) });
         if (error instanceof CodexBackendCapabilityError) throw new PeerError("capability", "The selected Codex profile does not support this operation", { capability: error.capability });
         if (error instanceof CodexQueueAdmissionError) throw new PeerError("queue-admission", error.message);
         if (error instanceof CodexThreadStateError) throw new PeerError("thread-state", error.message, {

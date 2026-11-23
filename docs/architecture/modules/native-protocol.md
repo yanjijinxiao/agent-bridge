@@ -12,11 +12,13 @@ Gateway 的业务端口是 src/codex/backend.ts。Gateway 通过 connectorOnlyBa
 
 NATIVE-02.8 区分 Connector/Gateway 客户端重连与原生核心进程重启。0.167.0 的裸 thread/resume 冷加载会丢失网络和额外写目录；原先保持同一 native PID 的 NATIVE-02.2 不覆盖此缺陷。
 
-六个恢复调用统一经过 resumeThread。先 thread/read 核对精确身份和加载状态；已加载线程只附着，不回放权限。notLoaded 时，通过同一 App Server 的专用只读客户端以 fs/readFile 读取该线程的原生路径，按顺序选取最新 thread_settings_applied 或 turn_context。nativePermissionResume 不建缓存、不回滚到更早的宽授权、不读取同名本机文件。模型、effort、Plan、指令与项目归属不进入恢复投影。
+六个恢复调用统一经过 resumeThread。先 thread/read 核对精确身份和加载状态；已加载线程只附着，不回放权限。notLoaded 时，以该原生服务返回的记录定位最新 thread_settings_applied 或 turn_context。nativePermissionProjection 按同一套规则验证权限。不建缓存、不回滚到更早的宽授权、不读取同名本机文件。模型、effort、Plan、指令与项目归属不进入恢复投影。
 
 具名权限使用原生 active_permission_profile.id，域名、deny 和后续配置变更继续由原服务解释。传统 workspace-write 恢复网络、额外可写目录及两个临时目录排除标志，并核对所有 runtime roots 都已具有相应写权限；只读与 full-access 保持已记录的模式。无法无损表示的匿名复杂权限、缺失状态/路径、半写或损坏记录明确失败，不猜测默认值或扩权。读取完成后重新校验来源/绑定或观察者；只发一个恢复请求，不补设置写入、占位任务或原始输入。
 
-NATIVE-02.9：fs/readFile 当前没有分段参数，fs/getMetadata 也没有 size 字段，不能凭空添加范围或大小参数。保留 128 MiB 的权限恢复预算；同一控制连接不能承担这个批量传输。共享 daemon-proxy/remote-daemon 通过临时的 permissionReadOnly 客户端读取，只允许 initialize、initialized、fs/readFile；不发送任何原生决定。它连接同一个独立核心，不启动新执行器，读失败只释放自身。父 Runner.close 负责等待并关闭临时客户端。本机 daemon-proxy 在发送前检查原生返回路径的本机文件大小，已知超限直接失败；远端不检查同名本机路径。metadata 只决定是否拒绝已知超限，不是权限证据，也不代替原生内容验证。私有 stdio 不因此启动第二个核心，仍走原读取路径，其超大响应隔离不在本次证明范围。
+NATIVE-02.10：受管本机和 SSH 共享核心在原执行主机按原生返回的绝对路径读取。路径须位于该核心 Codex home 的 sessions 或 archived_sessions，文件头须精确匹配线程，排除内部线程、文件符号链接和读中变动。从末尾逆序按块扫描，只返回最新权限记录的必要字段；128 MiB 是扫描预算，单条完整记录上限 64 MiB，文件总大小不作为拒绝条件。超过预算或最新记录不完整时禁止使用较早权限。关闭 Runner 会取消并等待在途读取；SSH 复用该线程已选定的主机配置。此读取不通过控制连接，不启动执行器，也不暴露新的文件读取接口。
+
+NATIVE-02.9：未提供执行主机读取器的自定义传输和私有 stdio 沿用 fs/readFile 兼容路径。该 RPC 没有分段参数，整文件预算仍为 128 MiB。共享核心的兼容路径使用临时 permissionReadOnly 客户端，只允许 initialize、initialized、fs/readFile，父关闭会回收。私有 stdio 不启动第二个核心，超大响应隔离仍不在本次验证范围。
 
 内容只在设备侧解析，不进入日志或 Gateway。原生权限记录不可用时须在 Codex 核对，不能自动恢复已经丢失的更早授权。队列在提交前失败则释放本次来源；实际开始 queue/add 后的未知回执继续保留，不自动重发。真实 CLI、桌面内置核心和 Linux 隔离验证分别见[四层记录](../../audits/2026-11-11-native-cold-permissions.md)，不是重启用户线上核心的验收。
 

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { sharedNativeCore, until } from "./fixtures/shared-native-core.mjs";
+import { nativePermissionSource } from "../src/codex/native-permission-source.js";
 
 const enabled = Boolean(process.env.CODEX_NATIVE_QUEUE_TEST_BIN);
 const options = { skip: !enabled, timeout: 60_000 };
@@ -50,6 +51,31 @@ for (const remote of [false, true]) for (const operation of ["interaction", "mod
     if (operation === "model") { assert.equal(after.model, "mock-model-later"); assert.equal(after.reasoningEffort, "low"); }
   });
 }
+
+test("NATIVE-02.10: the execution-host reader restores permissions on the original real core thread", options, async t => {
+  const { f, id, before } = await prepared(t);
+  await f.restart();
+  const desktop = await f.rpc("host_reader_verify");
+  assert.equal((await desktop.request("thread/read", { threadId: id, includeTurns: false })).thread.status.type, "notLoaded");
+  const readNativePermissions = nativePermissionSource((script, input) => ({
+    command: process.execPath, args: ["-e", script, input]
+  }), f.root);
+  const runner = f.runner({ transport: { ...f.transport("daemon-proxy"), readNativePermissions } });
+  const methods: string[] = [], request = (runner as any).request.bind(runner);
+  (runner as any).request = (method: string, ...args: unknown[]) => {
+    methods.push(method); return request(method, ...args);
+  };
+  await runner.observeThreadInteractions(id, {} as any);
+  const after = await desktop.request("thread/resume", { threadId: id, excludeTurns: true });
+  assert.equal(after.thread.id, id);
+  assert.deepEqual(after.sandbox, before.sandbox);
+  assert.deepEqual(after.runtimeWorkspaceRoots, before.runtimeWorkspaceRoots);
+  assert.equal(after.approvalPolicy, before.approvalPolicy);
+  assert.equal(after.approvalsReviewer, before.approvalsReviewer);
+  assert.ok(methods.includes("thread/resume"));
+  assert.ok(methods.every(method => !["fs/readFile", "turn/start", "thread/settings/update"].includes(method)));
+  assert.equal(f.calls.length, 0);
+});
 
 test("NATIVE-02.8: real later tightening survives cold restore and does not revive a wider earlier grant", options, async t => {
   const { f, desktop, id } = await prepared(t);

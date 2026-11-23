@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import { CodexBackendCapabilityError } from "../src/codex/backend.js";
 import { CodexCommunicationError } from "../src/codex/communication-error.js";
+import { ColdPermissionError } from "../src/codex/cold-permission-error.js";
 import { ChannelApprovalController } from "../src/bridge/approval.js";
 import type { CodexApprovalRequest } from "../src/codex/approval.js";
 import type { CodexUserInputRequest } from "../src/codex/backend.js";
@@ -174,6 +175,14 @@ test("only a proven native not-submitted receipt permits retry of the same input
   await assert.rejects(f.as(() => f.facade.run(f.input())), error => error instanceof CodexCommunicationError && error.submission === "not-submitted");
   f.run = async input => { await input.onTurnStarted?.({ threadId: f.thread.threadId, turnId: "retry-turn" }); return { text: "retried safely", threadId: f.thread.threadId, turnId: "retry-turn", raw: "" }; };
   assert.equal((await f.as(() => f.facade.run(f.input()))).text, "retried safely"); assert.equal(f.runs.length, 2);
+});
+
+test("NATIVE-02.10: cold permission failure retains its reason and definitive receipt across Connector", async t => {
+  const f = await peerFixture(t); await f.bind();
+  f.run = async () => { throw new ColdPermissionError("invalid", f.thread.threadId); };
+  await assert.rejects(f.as(() => f.facade.run(f.input())), error =>
+    error instanceof ColdPermissionError && error.reason === "invalid" && error.submission === "not-submitted");
+  assert.equal(f.runs.length, 1);
 });
 
 test("an unavailable device receipt disk prevents every native write", async t => {

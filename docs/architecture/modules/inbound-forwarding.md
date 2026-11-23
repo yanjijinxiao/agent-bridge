@@ -54,6 +54,8 @@ journal.handle 仅在“明确未提交”的通信错误、能力/准入拒绝�
 
 received 记录与 inbox 的 pending/held/unconfirmed 是两个维度。普通自动转发在已知前置不可用时可有界重试；换绑、普通准备异常及控制命令可能停在 held。用户显式处理仍受原 actor、conversation 和当前目标版本约束。不要把“可以认领”写成“自动换绑重发”。
 
+NATIVE-02.10 的权限读取错误发生在原生写入前，Connector 保留明确未提交的阶段和固定原因。短暂断连、读取超时或文件正在更新时，原目标仍有效的自动转发按已有退避重试。同一条记录的同一提示只发一次。永久无效或超过读取预算时，消息进入 held 并释放输入顺序，用户核对原会话后可从 /inbox 处理。旧记录的未知回执仍依赖原生证据核对。
+
 ## 不同命令的写入边界
 
 - 普通轮次：prepareTurnSubmission 完成后，TurnSubmission.run 先复核来源，再记录 submitting，随后进入 backend.run。

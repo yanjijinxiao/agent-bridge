@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import type { AppServerTransport } from "./app-server-transport.js";
+import { nativePermissionSource } from "./native-permission-source.js";
 
 type DesktopRemoteConnection = {
   readonly hostId?: unknown;
@@ -37,7 +38,9 @@ export function resolveRemoteCodexTransport(
 ): AppServerTransport {
   const connection = resolveRemoteSshConnection(hostId, options);
   return { command: connection.command, args: [...connection.args, connection.target, remoteRelayCommand()],
-    label: hostId.trim(), mode: "remote-daemon" };
+    label: hostId.trim(), mode: "remote-daemon",
+    readNativePermissions: nativePermissionSource((script, input) => ({ command: connection.command,
+      args: [...connection.args, connection.target, remoteNodeCommand(script, input)] })) };
 }
 
 /** Shared SSH *configuration*, never a shared process/control socket. IDE and
@@ -105,8 +108,12 @@ function readRemoteConnections(codexHome: string): DesktopRemoteConnection[] {
 }
 
 function remoteRelayCommand(): string {
-  const encoded = Buffer.from(APP_SERVER_SOCKET_RELAY, "utf8").toString("base64");
-  return `exec node -e "eval(Buffer.from('${encoded}','base64').toString())"`;
+  return remoteNodeCommand(APP_SERVER_SOCKET_RELAY);
+}
+
+function remoteNodeCommand(script: string, input?: string): string {
+  const encoded = Buffer.from(script, "utf8").toString("base64");
+  return `exec node -e "eval(Buffer.from('${encoded}','base64').toString())"${input ? ` '${input}'` : ""}`;
 }
 
 function stringValue(value: unknown): string | undefined {

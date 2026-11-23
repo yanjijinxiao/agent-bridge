@@ -5,6 +5,8 @@ import { z } from "zod";
 import type { ChannelMessage } from "../channels/message.js";
 import { readJsonFile, writeJsonFile } from "../state/json-store.js";
 import { ForwardingDeferredError, isRetryableForwardingError } from "./forwarding-error.js";
+import { ColdPermissionError } from "../codex/cold-permission-error.js";
+import { coldPermissionMessage } from "./errors.js";
 import type { InboundReceiptJournal, InboundReceipt } from "./inbound-receipts.js";
 
 const attachment = z.object({ kind: z.enum(["image", "file", "video", "audio"]), label: z.string(),
@@ -277,10 +279,19 @@ export class ForwardingInbox {
         if ((!after || after.phase === "received") && row.automatic
           && isRetryableForwardingError(error)) {
           row.nextAt = this.now() + Math.min(60_000, (this.options.retryMs ?? 2000) * 2 ** Math.min(5, row.attempts - 1)); this.save();
+          if (error instanceof ColdPermissionError) {
+            await this.inform(row, `${coldPermissionMessage(error)} 消息已保存，Gateway 会自动重试；无需重发。`);
+            return;
+          }
           await this.inform(row, "消息已保存，正在等待原会话恢复转发；尚未提交给 Codex，无需重发。"); return;
         }
         row.state = after && ["submitting", "unconfirmed"].includes(after.phase) ? "unconfirmed" : "held";
-        this.save(); throw error;
+        this.save();
+        if (row.automatic && row.state === "held" && error instanceof ColdPermissionError) {
+          await this.inform(row, `${coldPermissionMessage(error)} 消息已保存，请在 Codex 核对原会话权限后，从 /inbox 重试此条消息。`);
+          return;
+        }
+        throw error;
       }
     } finally { this.processing.delete(key); }
   }

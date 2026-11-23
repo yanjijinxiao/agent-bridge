@@ -27,6 +27,7 @@ import { codexFailureCode, lastCodexTurnFailure, type CodexFailureCode } from ".
 import { codexTurnRecovery, codexRecoverySummary, type CodexTurnRecovery } from "./turn-recovery.js";
 import { readDesktopSessionCatalog, isDesktopCatalogThread } from "./desktop-session-catalog.js";
 import { nativePermissionResume } from "./native-permission-resume.js";
+import { ColdPermissionError } from "./cold-permission-error.js";
 import { readDesktopCatalogGroups, desktopCatalogGroupId } from "./desktop-catalog-groups.js";
 
 import { resolveCodexCommand } from "./codex-command.js";
@@ -191,6 +192,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
   private closed = false;
   private closePromise?: Promise<void>;
   private readonly permissionReaders = new Set<AppServerCodexRunner>();
+  private readonly permissionScanAbort = new AbortController();
+  private readonly permissionScans = new Set<Promise<Record<string, unknown>>>();
   private retiringTransport?: Promise<void>;
   private nextId = 1;
   private stderr = "";
@@ -1855,7 +1858,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     if (this.closePromise) return this.closePromise;
     const child = this.child;
     this.closed = true;
+    this.permissionScanAbort.abort();
     const stopped = Promise.all([child ? waitForProcessExit(child) : Promise.resolve(), this.retiringTransport,
+      ...[...this.permissionScans].map(scan => scan.catch(() => undefined)),
       ...[...this.permissionReaders].map(reader => reader.close())]).then(() => {});
     this.failTransport(new Error("Codex app-server runner closed"), true);
     this.closePromise = stopped;
@@ -1945,8 +1950,8 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
 
   /** Resume is also a cold-load operation. Native 0.167 reconstructs custom
    * sandbox fields from config defaults unless supplied on that load. Read the
-   * exact native rollout through the same server (including SSH hosts); never
-   * keep a second permissions store or use a same-named local file. Loaded
+   * exact native rollout on its owning host; never keep a second permissions
+   * store or use a same-named local file for an SSH host. Loaded
    * owners receive a bare attach, so later Desktop changes remain authoritative.
    * Explicit owning-UI overrides intentionally bypass historical restoration. */
   private async resumeThread(params: Record<string, unknown>, timeoutMs?: number,
@@ -1958,26 +1963,43 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const thread = nativeThread(await this.request("thread/read", { threadId, includeTurns: false }, timeoutMs, true), threadId);
       const status = isRecord(thread.status) ? thread.status.type : thread.status;
       if (!["notLoaded", "idle", "active", "systemError"].includes(String(status)))
-        throw new Error("无法核对原生会话加载状态，未恢复或提交输入。");
+        throw new ColdPermissionError("invalid", threadId);
       const notLoaded = status === "notLoaded";
       if (notLoaded) {
-        if (typeof thread.path !== "string" || !thread.path) throw new Error("原生冷恢复缺少权限记录路径，未恢复或提交输入。");
+        if (typeof thread.path !== "string" || !thread.path) throw new ColdPermissionError("invalid", threadId);
         assertCurrent?.();
-        const result = await this.readPermissionFile(thread.path, timeoutMs ?? 15_000);
-        // This native API has no range-read parameter. Bound decoding and never
-        // log its payload, expose history to Gateway, or fall back to shell/SSH.
-        const maxBytes = 128 * 1024 * 1024;
-        if (!isRecord(result) || typeof result.dataBase64 !== "string" || result.dataBase64.length > Math.ceil(maxBytes / 3) * 4
-          || result.dataBase64.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(result.dataBase64))
-          throw new Error("原生权限记录无法完整读取，未恢复或提交输入。");
-        const contents = new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(result.dataBase64, "base64"));
-        restored = nativePermissionResume(contents, threadId);
+        restored = await this.restoreNativePermissions(thread.path, threadId, timeoutMs ?? 15_000);
       }
     }
     // Recheck actor/binding after the asynchronous native reads and immediately
     // before the only write. A racing loaded owner ignores resume overrides;
     // never follow this with settings/update or a permission-bearing turn.
     return guardNativeWrite(assertCurrent, () => this.request("thread/resume", { ...restored, ...params }, timeoutMs));
+  }
+
+  private async restoreNativePermissions(file: string, threadId: string, timeoutMs: number): Promise<Record<string, unknown>> {
+    if (this.closed) throw new ColdPermissionError("unavailable", threadId);
+    const read = this.options.transport?.readNativePermissions;
+    if (read) {
+      const scan = read({ file, threadId, signal: this.permissionScanAbort.signal, timeoutMs });
+      this.permissionScans.add(scan);
+      try { return await scan; } finally { this.permissionScans.delete(scan); }
+    }
+    // Custom transports without a device reader keep the native RPC path.
+    // fs/readFile has no range parameter. Never decode an oversized response.
+    const result = await this.readPermissionFile(file, timeoutMs).catch(error => {
+      if (error instanceof CodexCommunicationError && error.code === "timeout") throw new ColdPermissionError("timeout", threadId);
+      if (error instanceof ColdPermissionError) throw new ColdPermissionError(error.reason, threadId);
+      throw new ColdPermissionError("unavailable", threadId);
+    });
+    const maxBytes = 128 * 1024 * 1024;
+    if (!isRecord(result) || typeof result.dataBase64 !== "string" || result.dataBase64.length > Math.ceil(maxBytes / 3) * 4
+      || result.dataBase64.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(result.dataBase64))
+      throw new ColdPermissionError("invalid", threadId);
+    try {
+      const contents = new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(result.dataBase64, "base64"));
+      return nativePermissionResume(contents, threadId);
+    } catch { throw new ColdPermissionError("invalid", threadId); }
   }
 
   /** A bulk response can exceed a relay's message budget before decoding.
@@ -1992,7 +2014,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       // on this filesystem. Unknown local metadata leaves native reads authoritative.
       const metadata = await fs.lstat(nativePath).catch(() => undefined);
       if (metadata?.isFile() && metadata.size > 128 * 1024 * 1024)
-        throw new Error("原生权限记录超过完整读取预算，未恢复或提交输入。");
+        throw new ColdPermissionError("limit");
     }
     if (this.closed) throw new Error("Codex app-server runner is closed");
     const reader = new AppServerCodexRunner({ ...this.options, metadataOnly: false, historyOnly: false, permissionReadOnly: true });

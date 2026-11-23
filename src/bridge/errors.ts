@@ -1,5 +1,6 @@
 import { CodexInterventionError, CodexThreadStateError, CodexBackendCapabilityError, CodexTurnExecutionError } from "../codex/backend.js";
 import { CodexCommunicationError } from "../codex/communication-error.js";
+import { ColdPermissionError } from "../codex/cold-permission-error.js";
 import { codexFailureSummary } from "../codex/turn-failure.js";
 import { copyableChoices } from "../channels/copyable.js";
 import { ForwardingDeferredError } from "./forwarding-error.js";
@@ -17,9 +18,17 @@ export function wasMessageHandlingErrorReported(error: unknown): boolean {
   return isWeakSetKey(error) && channelReportedErrors.has(error);
 }
 
+export function coldPermissionMessage(error: ColdPermissionError): string {
+  const detail = { timeout: "读取原会话权限记录超时", unavailable: "暂时无法读取原会话权限记录",
+    changed: "原会话权限记录正在更新", limit: "在读取预算内找不到完整的最新权限记录",
+    invalid: "无法完整核对原会话的最新权限" }[error.reason];
+  return `${detail}，这条消息未提交给 Codex。`;
+}
+
 export function userFacingMessageHandlingError(error: unknown): string {
   if (error instanceof ForwardingDeferredError) return error.message;
   if (error instanceof TurnAttachmentError) return error.message;
+  if (error instanceof ColdPermissionError) return `[codex-im-gateway] ${coldPermissionMessage(error)}`;
   if (error instanceof CodexTurnExecutionError) {
     if (error.status === "failed" && error.failureCode === "model-capacity") {
       return `[codex-im-gateway] ${codexFailureSummary(error.failureCode)}\nCodex 原生轮次已确认失败，当前没有继续重试。可稍后在原会话重试或手动选择其他模型；Gateway 未重新执行任务或切换模型。`;

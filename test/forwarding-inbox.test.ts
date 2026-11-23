@@ -7,6 +7,7 @@ import { ForwardingInbox, type ForwardingTarget } from "../src/bridge/forwarding
 import { InboundReceiptJournal } from "../src/bridge/inbound-receipts.js";
 import { ForwardingDeferredError } from "../src/bridge/forwarding-error.js";
 import { CodexCommunicationError } from "../src/codex/communication-error.js";
+import { ColdPermissionError } from "../src/codex/cold-permission-error.js";
 import { CodexRunAdmissionError } from "../src/codex/backend.js";
 import { BridgeService } from "../src/bridge/service.js";
 import { RuntimeStateStore } from "../src/state/runtime-state.js";
@@ -64,6 +65,24 @@ test("IN-02.10: presentation ownership cannot authorize retry of an uncertain or
   await assert.rejects(f.inbox.receive(message));
   assert.equal(f.inbox.ownsPendingInput(message.id), false); assert.equal(f.receipts.receipt(message.id)?.phase, "unconfirmed");
   await f.inbox.receive(message); assert.equal(f.inbox.items("room")[0]?.state, "unconfirmed");
+});
+
+for (const reason of ["timeout", "invalid"] as const) test(`NATIVE-02.10: inbox reports ${reason} as known not submitted`, async t => {
+  const f = fixture(t), message = { ...input, attachments: [] };
+  let attempts = 0;
+  f.action = async () => {
+    attempts++;
+    f.receipts.submitting({ sessionId: "session", threadId: "thread", hostId: "local" });
+    throw new ColdPermissionError(reason, "thread");
+  };
+  await f.inbox.receive(message);
+  assert.equal(f.inbox.items("room")[0].state, reason === "timeout" ? "pending" : "held");
+  assert.equal(f.receipts.receipt(message.id)?.phase, "received");
+  assert.match(f.notices[0], /权限.*未提交给 Codex/);
+  assert.match(f.notices[0], reason === "timeout" ? /自动重试/ : /核对.*\/inbox/);
+  f.advance(); await f.inbox.receive(message);
+  assert.equal(attempts, reason === "timeout" ? 2 : 1);
+  assert.equal(f.notices.length, 1);
 });
 
 const input: ChannelMessage = { id: "provider-source", senderId: "actor", replyTargetId: "room", text: "original\nmessage",

@@ -12,8 +12,8 @@
 | --- | --- | --- |
 | 发布制品 | package.json 产品号；封存清单的 commit/sourceHash/builtAt/productVersion | 程序加载时固定，不能被磁盘后续替换重新标号 |
 | Gateway HTTP | contracts.http，当前 1.0 | 管理端、IDE 前置入口、共享目录入口；不改 Code Server 上游协议 |
-| Connector RPC | contracts.peer / execution，当前均为 1.0 | protocol.negotiate；已有 v1 envelope、权限检查和回执语义保留 |
-| 原生适配 | contracts.nativeAdapter，当前 1.0 | 表示本项目适配约定；上游实际 userAgent 来自 initialize |
+| Connector RPC | contracts.peer 1.0 / execution 1.2 | protocol.negotiate；已有 v1 envelope、权限检查和回执语义保留 |
+| 原生适配 | contracts.nativeAdapter，当前 1.2 | 表示本项目适配约定；上游实际 userAgent 来自 initialize |
 | 运行日志 | contracts.log，当前 1.0 | stderr JSONL；schemaVersion 为主版本，完整版本在 runtime.contracts.log |
 | 持久数据 | 各存储 schema 的已有版本与迁移程序 | grants、设备凭据、共享记录、消息回执不能随程序版本强行改号或回退 |
 
@@ -41,6 +41,8 @@ HTTP 响应附 X-Gateway-API-Version、X-Gateway-Instance、X-Gateway-Request-ID
 ## 发布和变更要求
 
 问题结果元数据的兼容扩展：execution/nativeAdapter 从 1.0 到 1.1，onUserInputResult 增加可选第三参数 reason，固定枚举定义在 src/codex/user-input-result.ts。原请求对象及原 confirmed/failed/withdrawn/suspended 枚举不变；HTTP、Peer 帧、日志 major/minor 和能力开关不因此修改。新 Gateway 对无原因的旧 Connector 明确显示原因未记录；旧 Gateway 的两参数回调可忽略第三参数，不改变按原请求对象匹配回执的规则。详情见[问题呈现合同](question-presentation.md)。
+
+冷权限恢复扩展由 execution/nativeAdapter 1.2 登记。Connector 在既有 codex-communication 错误中可提供 permissionReason 固定枚举；阶段仍为 preflight。旧 Gateway 忽略该可选字段，新 Gateway 对旧 Connector 继续按原阶段判断。不改变 Peer 帧、持久格式或上游 App Server 协议。已接收的原生轮次回执优先于任何准备错误。
 
 每次接口或日志改动都先判断兼容性，更新本清单、模块说明和 case；代码与文档一起审查。发布验收分别核对 Gateway、Connector、上游服务，保留旧新混合版本、缺失版本、不兼容、重连、并发关联和脱敏的反例。版本不一致本身不是停止既有 Codex 任务的理由。
 

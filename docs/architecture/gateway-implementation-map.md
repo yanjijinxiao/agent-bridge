@@ -30,7 +30,7 @@ Web IDE 走独立链路：当前原生项目归属 → WorkspaceIDEManager 项�
 | 控制编排 | src/bridge/service.ts、channel-commands.ts、channel-command-registry.ts、command-help.ts、session-control.ts、native-queue.ts、new-session.ts | 仅显式控制；默认 steer、显式原生 queue；来源末次复核；原生接收、队首、取消和已结束恢复不冒充新执行；帮助分层仅消费同一命令定义和配置，不替代鉴权 |
 | 准入/角色 | src/bridge/access.ts、admission.ts；src/channels/principal.ts | 操作者/群/账号不同身份；控制者、参与者、只读访问；个人准入与 IDE 配对；撤销后的旧控件 |
 | 交互 | src/codex/approval.ts、user-input.ts、elicitation.ts、native-async-questions.ts；src/bridge/approval.ts、user-input-controller.ts | 原请求/选项/范围、原路投递；部分答案与兄弟题；提交和原生确认；路线缺失不能代答；超时拒绝仅属已接管本地审批的既定策略 |
-| 恢复 | src/server/capacity-recovery.ts、system-error-recovery.ts；原生 runner 状态重载 | 容量恢复与 systemError 分开；精确失败轮；原生队列/用户输入优先；无提示重发；archive 补偿义务持久化；只读恢复不能伪造新开始 |
+| 恢复 | src/server/capacity-recovery.ts、system-error-recovery.ts；src/codex/app-server-runner.ts、native-permission-source.ts、native-permission-resume.ts | 容量恢复与 systemError 分开；精确失败轮；原生队列/用户输入优先；原执行主机读取冷权限，投影与原生写前守卫分开；archive 补偿义务持久化；未确认输入只核对，原生接收才有任务 |
 | 进展和结果 | src/server/thread-event-hub.ts；src/channels/turn-presentation.ts、progress.ts、turn-progress-card.ts、result-pages.ts、assistant-presentation.ts | 按轮、阶段、页和卡片实例持久化；流式/终态/加载/停止/复制/IDE 页脚一致；无关历史不补发成新卡；精确恢复义务可补发离线结果，客户端展示另验 |
 | 渠道和网络 | src/channels/dingtalk.ts、feishu.ts、wecom.ts、weixin.ts、client.ts、network-request.ts、network-family.ts | 平台身份、业务回执、附件下载和大小/总时限；IPv4/IPv6 有界重试；卡片未知不能另发文本；微信游标按成功处理范围提交 |
 | IDE | src/ide/manager.ts、project-identity.ts、workspace-scope.ts、endpoint-manager.ts、approval-service.ts、authorization.ts、access-server.ts、installer.ts、tls.ts、remote-ingress.ts | 项目所在主机；完整多根私有 workspace；固定入口与 90 天授权；HTTP/WS 新鲜归属；撤销不可复活；安装/证书/进程独立 |

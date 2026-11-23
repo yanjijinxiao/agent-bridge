@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { nativePermissionResume } from "../src/codex/native-permission-resume.js";
 import { AppServerCodexRunner } from "../src/codex/app-server-runner.js";
+import { ColdPermissionError } from "../src/codex/cold-permission-error.js";
+import type { NativePermissionSource } from "../src/codex/native-permission-source.js";
 
 const id = "native-thread", cwd = "/workspace";
 const special = (kind: string, access: string) => ({ path: { type: "special", value: { kind } }, access });
@@ -99,8 +101,10 @@ for (const variant of ["foreign-header", "foreign-settings", "internal", "torn",
   });
 }
 
-function runner(state = "notLoaded", contents = rollout(applied(settings()))) {
-  const r = new AppServerCodexRunner() as any;
+function runner(state = "notLoaded", contents = rollout(applied(settings())), readNativePermissions?: NativePermissionSource) {
+  const r = new AppServerCodexRunner(readNativePermissions ? {
+    transport: { command: process.execPath, args: [], label: "test", mode: "daemon-proxy", readNativePermissions }
+  } : {}) as any;
   const calls: Array<{ method: string; params: any }> = [];
   r.request = async (method: string, params: any) => {
     calls.push({ method, params });
@@ -120,6 +124,23 @@ test("NATIVE-02.8: cold restoration uses the native host file and checks revoked
     () => { if (!current) throw Error("binding revoked"); }), /binding revoked/);
   assert.deepEqual(f.calls.map(c => c.method), ["thread/read", "fs/readFile"]);
   assert.deepEqual(f.calls[1].params, { path: "/native/owner.jsonl" });
+});
+
+test("NATIVE-02.10: closing a runner aborts its host read before native writes", async () => {
+  const entered = Promise.withResolvers<void>();
+  const { r, calls } = runner(undefined, undefined, ({ file, threadId, signal }) => {
+    assert.equal(file, "/native/owner.jsonl"); assert.equal(threadId, id);
+    return new Promise((_resolve, reject) => {
+      signal.addEventListener("abort", () => reject(new ColdPermissionError("unavailable", id)), { once: true });
+      entered.resolve();
+    });
+  });
+  const result = assert.rejects(r.resumeThread({ threadId: id }), (error: ColdPermissionError) =>
+    error instanceof ColdPermissionError && error.submission === "not-submitted");
+  await entered.promise;
+  await r.close();
+  await result;
+  assert.deepEqual(calls.map(c => c.method), ["thread/read"]);
 });
 
 for (const state of ["idle", "active", "systemError"]) test(`NATIVE-02.8: loaded ${state} owner is attached without cached or stored overrides`, async () => {
@@ -143,7 +164,8 @@ test("NATIVE-02.8: missing load status or native path cannot silently fall back 
   for (const thread of [{ id }, { id, status: { type: "future" } }, { id, status: { type: "notLoaded" } }]) {
     const { r, calls } = runner();
     r.request = async (method: string) => { calls.push({ method, params: {} }); return { thread }; };
-    await assert.rejects(r.resumeThread({ threadId: id }), /加载状态|记录路径/);
+    await assert.rejects(r.resumeThread({ threadId: id }), error =>
+      error instanceof ColdPermissionError && error.reason === "invalid" && error.submission === "not-submitted");
     assert.deepEqual(calls.map(c => c.method), ["thread/read"]);
   }
 });

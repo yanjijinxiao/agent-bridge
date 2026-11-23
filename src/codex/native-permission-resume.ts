@@ -32,7 +32,11 @@ export function nativePermissionResume(contents: string, threadId: string): Reco
   }
   // A named empty thread may not yet have execution settings. It has no prior
   // grant to restore; let the native server choose its creation defaults.
-  if (!latest) return {};
+  return latest === undefined ? {} : nativePermissionProjection(latest, threadId);
+}
+
+export function nativePermissionProjection(latest: unknown, threadId: string): RecordValue {
+  if (!record(latest)) return invalid();
   if (latest.thread_id !== undefined && latest.thread_id !== threadId) return invalid();
   if (!absolute(latest.cwd)) return invalid();
   const approval = latest.approval_policy, reviewer = latest.approvals_reviewer;

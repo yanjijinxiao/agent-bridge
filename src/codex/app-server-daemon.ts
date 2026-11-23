@@ -8,6 +8,7 @@ import type { AppServerTransport } from "./app-server-transport.js";
 import { resolveCodexCommand } from "./codex-command.js";
 import { APP_SERVER_SOCKET_RELAY } from "./app-server-socket-relay.js";
 import { CodexConnectionSetupError } from "./connection-errors.js";
+import { nativePermissionSource } from "./native-permission-source.js";
 
 export type AppServerConnectionMode = "auto" | "daemon" | "stdio";
 
@@ -64,7 +65,8 @@ export function resolveLocalAppServerTransport(
     args: ["-e", APP_SERVER_SOCKET_RELAY, socketPath],
     label: managed ? "managed-daemon" : "configured-daemon",
     mode: "daemon-proxy",
-    prepare: ensureAvailable
+    prepare: ensureAvailable,
+    readNativePermissions: nativePermissionSource((script, input) => ({ command: process.execPath, args: ["-e", script, input] }), codexHome)
   };
 }
 
