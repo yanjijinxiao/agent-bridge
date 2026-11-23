@@ -32,7 +32,8 @@ process.on('exit',()=>fs.writeFileSync(${JSON.stringify(stats)},JSON.stringify({
   const child = spawn(process.execPath, ["-e", instrumentation + APP_SERVER_SOCKET_RELAY, endpoint], { stdio: ["pipe", "pipe", "pipe"] });
   let stderr = ""; child.stderr.on("data", b => stderr += b);
   const output: Buffer[] = [];
-  child.stdout.on("data", b => output.push(b));
+  let outputBytes = 0;
+  child.stdout.on("data", (chunk: Buffer) => { output.push(chunk); outputBytes += chunk.length; });
   const stopped = once(child, "close");
   t.after(async () => {
     for (const ws of wss.clients) ws.terminate();
@@ -51,6 +52,7 @@ process.on('exit',()=>fs.writeFileSync(${JSON.stringify(stats)},JSON.stringify({
     }
   };
   return { child, peer, socket, stopped, stats, until, error: () => stderr,
+    outputBytes: () => outputBytes,
     text: () => Buffer.concat(output).toString("utf8"),
     async finish() { child.stdin.end(); await stopped; return JSON.parse(fs.readFileSync(stats, "utf8")); } };
 }
@@ -67,7 +69,9 @@ for (const mib of [8, 84]) test(`NATIVE-01.6: ${mib} MiB split frames use linear
     await new Promise<void>(resolve => setImmediate(resolve));
   }
   if (!f.socket.destroyed) f.socket.write(wire(Buffer.from(tail)));
-  await f.until(() => f.text().endsWith(tail + "\n"));
+  // Poll only the byte count. Joining and decoding 84 MiB on each poll
+  // competes with the relay for CPU and makes the timeout measure the fixture.
+  await f.until(() => f.outputBytes() >= payload.length + Buffer.byteLength(tail) + 2);
   const lines = f.text().trimEnd().split("\n");
   assert.equal(lines.length, 2); assert.equal(lines[0], payload.toString()); assert.equal(lines[1], tail);
   const result = await f.finish();
