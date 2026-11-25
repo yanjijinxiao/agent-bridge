@@ -51,7 +51,7 @@ export class ConnectorSelection {
   assertAvailable(principal: PeerPrincipal, host: string): void {
     this.assertAuthorized(principal, host);
     if ((host.startsWith("peer:") || this.peer?.isRouted?.(host)) && this.peer?.isOnline?.(host) === false)
-      throw new ConnectorSelectionError(`当前 Connector「${this.peer.label(host)}」离线，已保留选择，未切换其他设备。`);
+      throw new ConnectorSelectionError(`当前 Connector「${this.peer.label(host)}」离线，已保留选择。用 /connect 查看在线设备；选择设备后，用 /sessions 查看它的会话。`);
   }
 
   resolve(principal: PeerPrincipal): string | undefined {

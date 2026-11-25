@@ -4,12 +4,13 @@ import type { ProjectInteractionMode } from "../channels/channel-mode-settings.j
 import type { ChannelChoice } from "../channels/action-card.js";
 import { channelCapabilityHelpLines, type ChannelCommandCapability } from "./channel-capability.js";
 import { CHANNEL_COMMAND_ALIASES, CHANNEL_COMMAND_REGISTRY, HELP_SECTIONS, type ChannelCommandDefinition, type HelpSection } from "./channel-command-registry.js";
-import { runtimeCommandRestriction } from "./runtime-command-policy.js";
+import { runtimeCommandRestriction, runtimeCommandTarget } from "./runtime-command-policy.js";
 import { requiredModeForCommand } from "./channel-command-policy.js";
 
 export type CommandHelpContext = {
   backendCapabilities?: CodexBackendCapabilities;
   runtime?: RuntimeDescriptor;
+  backendUnavailable?: boolean;
   taskboardAvailable?: boolean;
   enabledModes?: readonly ProjectInteractionMode[];
   qaAvailable?: boolean;
@@ -32,6 +33,10 @@ export function selectCommandHelp(topic: string): HelpSelection {
 /** Use the dispatch capability contract for native operations. Configuration
  * only narrows discoverability; nothing here grants access or submits work. */
 export function commandHelpRestriction(command: ChannelCommandDefinition, context: CommandHelpContext): string | undefined {
+  if (context.backendUnavailable) {
+    const target = runtimeCommandTarget({ name: command.name, arg: "" });
+    if (target === "catalog" || target === "binding") return "设备恢复连接后可核对支持情况";
+  }
   const requiredMode = requiredModeForCommand({ name: command.name, arg: "" });
   if (requiredMode && context.enabledModes && !context.enabledModes.includes(requiredMode))
     return `当前渠道未启用 ${requiredMode} 模式`;
@@ -54,6 +59,10 @@ export function commandHelpRestriction(command: ChannelCommandDefinition, contex
 }
 
 function variant(command: ChannelCommandDefinition, context: CommandHelpContext) {
+  // Only runtime-specific syntax needs withholding. Gateway navigation and
+  // record recovery (including /queue list) keep their documented arguments.
+  if (context.backendUnavailable && command.help.terminal?.usage !== undefined)
+    return { ...command.help, usage: undefined, details: undefined, description: "具体用法取决于执行后端，连接恢复后可查看。" };
   const terminal = context.runtime && command.help.terminal;
   return terminal ? { ...command.help, ...terminal } : command.help;
 }
@@ -89,7 +98,8 @@ export function commandHelpText(capabilities: readonly ChannelCommandCapability[
     return "未找到这个帮助主题。帮助主题：/help all、/help session、/help input、/help access、/help workflow、/help capabilities；也可发送 /help 命令名。";
   const home = selection.kind === "home";
   const lines = [home ? "Agent Bridge · 常用命令" : "Agent Bridge · 命令参考",
-    context.runtime ? "普通消息提交给已绑定终端；终端画面按容量滚动展示。" : "普通消息发到已绑定会话；运行中默认安全插话。"];
+    context.backendUnavailable ? "当前设备的运行能力暂不可读取。可用 /status 查看绑定和待转发数量，或用 /connect 查看设备。"
+      : context.runtime ? "普通消息提交给已绑定终端；终端画面按容量滚动展示。" : "普通消息发到已绑定会话；运行中默认安全插话。"];
   if (home) {
     lines.push(...commands.map(command => `/${command.name} — ${variant(command, context).summary}`));
     if (capabilities.length) lines.push(`另有 ${capabilities.length} 项已安装扩展，用 /help all 查看。`);

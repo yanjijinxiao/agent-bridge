@@ -1,7 +1,7 @@
 import { sessionHeadingContext } from "../channels/turn-status.js";
 import { addressInbound, bindingRecipient, memberBinding, type FirstContactPolicy } from "../channels/conversation-binding.js";
 import { withChannelWriteLeases } from "./channel-write-leases.js";
-import { peerPrincipal, type PeerBridgePort } from "../peer/context.js";
+import { offlineConnectorLabel, peerPrincipal, type PeerBridgePort } from "../peer/context.js";
 import { ConnectorSelection, ConnectorSelectionError } from "./connector-selection.js";
 import { PeerError } from "../peer/rpc.js";
 import { DEFAULT_COMMAND_LIST_SIZE, DEFAULT_HISTORY_SIZE } from "../channels/command-display.js";
@@ -483,6 +483,12 @@ export class BridgeService {
     });
   }
 
+  /** Forwarding notices can precede dispatch. Only disclose a device name to an admitted sender. */
+  offlineForwardingDevice(message: ChannelMessage, hostId: string): string | undefined {
+    if (!this.access.requireAccess(message.senderId, message.replyTargetId).allowed) return;
+    return offlineConnectorLabel(this.options.peer, hostId);
+  }
+
   configureFirstContact(policy: FirstContactPolicy): void { this.options.firstContact = policy; }
 
   /** Bind ingress identity before inbox admission; historic records retain
@@ -694,7 +700,8 @@ export class BridgeService {
       this.options.stateStore.recordBindingHumanActivity(replyTargetId, message.receivedAt);
     const directCommand = parseCommand(scopedMessage.text);
     const assertSourceCurrent = this.conversationControlGuard(replyTargetId, "viewer", false);
-    const diagnosticOnly = directCommand?.name === "status" || directCommand?.name === "queue" && ["", "list"].includes(directCommand.arg.trim());
+    const diagnosticOnly = directCommand?.name === "status" || directCommand?.name === "help"
+      || directCommand?.name === "queue" && ["", "list"].includes(directCommand.arg.trim());
     if (!diagnosticOnly) {
       scopedMessage = this.options.inboundReferences?.resolve(scopedMessage) ?? scopedMessage;
       scopedMessage = await this.channel.resolveReferences(scopedMessage);
@@ -709,8 +716,8 @@ export class BridgeService {
     // belongs to Codex, including text mentioning projects, modes or skills.
     const builtIn = parseCommand(scopedMessage.text);
     // Core controls stay available even if installed-skill discovery stalls.
-    // Help includes extension commands; other built-ins need no discovery.
-    const channelCapabilities = builtIn && mayBeChannelCommand(scopedMessage.text) && (builtIn.name === "help" || !isReservedChannelCommandToken(builtIn.name))
+    // Help enriches its own read-only menu after authorization.
+    const channelCapabilities = builtIn && mayBeChannelCommand(scopedMessage.text) && !isReservedChannelCommandToken(builtIn.name)
       ? await (this.options.channelCapabilities?.() ?? []) : [];
     assertSourceCurrent();
     const input = classifyChannelInput(scopedMessage.text, channelCapabilities);
@@ -809,7 +816,15 @@ export class BridgeService {
     command: ChannelCommand,
     channelCapabilities: readonly ChannelCommandCapability[]
   ): Promise<void | false> {
-    if (await this.handleRuntimeCommand(message, command, channelCapabilities)) return;
+    if (command.name === "status" || command.name === "where") {
+      await this.replyStatus(message.senderId);
+      return;
+    }
+    if (command.name === "help") {
+      await this.replyHelp(message.senderId, command.arg);
+      return;
+    }
+    if (await this.handleRuntimeCommand(message, command)) return;
     // These native-input paths own a later write-ahead boundary, after async
     // attachment preparation and the source guard. Marking them here would turn
     // a proven preparation refusal into an unknown native acknowledgement.
@@ -911,36 +926,6 @@ export class BridgeService {
           : "当前没有可用的 Web IDE 入口。请先绑定有项目的 session，并在 Gateway 网页端启用对应主机的 Web IDE。");
         return;
       }
-      case "help":
-      case "h":
-        {
-          const session = this.executionSession(message.senderId);
-          const helpHost = session ? this.sessionHostId(session)
-            : this.options.stateStore.getConnectorSelection(this.catalogPrincipal(message.senderId))?.hostId;
-          const context = this.commandHelpContext(message.senderId,
-            this.runner.backendInfo?.(helpHost).capabilities);
-          await this.replyActionCard(message.senderId, createMainMenuCard(
-            channelHelpText(channelCapabilities, command.arg, context), commandHelpChoices(command.arg, context)));
-        }
-        return;
-      case "status":
-      case "where":
-        {
-          const status = await this.statusText(message.senderId);
-          await this.replyActionCard(message.senderId, createChoiceCard({
-            title: "当前工作上下文",
-            body: status.replace(/^当前工作上下文\n/, ""),
-            fallbackText: status,
-            choices: [
-              { label: "切换模式", command: "mode", arg: "", style: "primary" },
-              { label: "任务面板", command: "task", arg: "list" },
-              { label: "会话", command: "sessions", arg: "" },
-              ...(this.options.forwardingInbox ? [{ label: "转发记录", command: "inbox" as const, arg: "" }] : []),
-              { label: "目标", command: "goal", arg: "" }
-            ]
-          }));
-        }
-        return;
       case "inbox": {
         const inbox = this.options.forwardingInbox;
         if (!inbox) { await this.reply(message.senderId, "当前实例尚未启用持久化转发记录。"); return; }
@@ -1757,15 +1742,32 @@ export class BridgeService {
 
   /** Help reads existing configuration only. It neither probes native writers
    * nor changes the selected device, mode, role or binding. */
-  private commandHelpContext(senderId: string, backendCapabilities?: CommandHelpContext["backendCapabilities"]): CommandHelpContext {
+  private async replyHelp(senderId: string, topic: string): Promise<void> {
+    const assertCurrent = this.conversationControlGuard(senderId, "viewer", false);
+    const extensions = await observeStatus(async () => await this.options.channelCapabilities?.() ?? []);
+    assertCurrent();
+    const session = this.executionSession(senderId);
+    const host = session ? this.sessionHostId(session)
+      : this.options.stateStore.getConnectorSelection(this.catalogPrincipal(senderId))?.hostId;
+    let backendUnavailable = Boolean(host && offlineConnectorLabel(this.options.peer, host));
+    let info: ReturnType<CodexBridgeBackend["backendInfo"]> | undefined;
+    if (!backendUnavailable) {
+      try { info = this.runner.backendInfo?.(host); }
+      catch { backendUnavailable = true; }
+    }
     const project = this.options.stateStore.getActiveProject(senderId);
-    return { backendCapabilities, taskboardAvailable: Boolean(this.options.taskboard),
+    const context: CommandHelpContext = { runtime: info?.runtime, backendCapabilities: info?.runtime ? undefined : info?.capabilities,
+      backendUnavailable, taskboardAvailable: Boolean(this.options.taskboard),
       enabledModes: this.modeSettings.enabledModes, qaAvailable: Boolean(project && this.resolveQaContext(project)) };
+    const capabilities = extensions.available ? extensions.value : [];
+    const text = info?.runtime ? runtimeHelp(info.runtime, topic, { ...context, capabilities }) : channelHelpText(capabilities, topic, context);
+    await this.replyActionCard(senderId, createMainMenuCard(
+      extensions.available ? text : text + "\n扩展清单暂时无法读取，以上为内置命令。", commandHelpChoices(topic, context)));
   }
 
   /** Common operation routing consumes declared semantics. Unrelated Gateway
    * controls remain usable while the execution device is disconnected. */
-  private async handleRuntimeCommand(message: ChannelMessage, command: ChannelCommand, capabilities: readonly ChannelCommandCapability[]): Promise<boolean> {
+  private async handleRuntimeCommand(message: ChannelMessage, command: ChannelCommand): Promise<boolean> {
     const route = runtimeCommandTarget(command);
     if (route === "gateway" || route === "record") return false;
     const session = this.executionSession(message.senderId);
@@ -1778,12 +1780,6 @@ export class BridgeService {
     if (!descriptor) return false;
     const restriction = runtimeCommandRestriction(descriptor, command);
     if (restriction) { await this.reply(message.senderId, restriction); return true; }
-    if (command.name === "help") {
-      const context = { ...this.commandHelpContext(message.senderId), runtime: descriptor };
-      const help = runtimeHelp(descriptor, command.arg, { ...context, capabilities });
-      await this.replyActionCard(message.senderId, createMainMenuCard(help, commandHelpChoices(command.arg, context)));
-      return true;
-    }
     if (command.name === "qa" || command.name === "mode" && command.arg.trim() === "qa") {
       await this.reply(message.senderId, "现有 QA 工作流依赖结构化工具调用，终端工作流适配尚未完成；未改变模式或发送输入。"); return true;
     }
@@ -1794,16 +1790,11 @@ export class BridgeService {
     if (command.name === "follow") {
       await this.handleRuntimeFollow(message, command.arg.trim(), session); return true;
     }
-    if (command.name === "status" || command.name === "history" || command.name === "stop") {
+    if (command.name === "history" || command.name === "stop") {
       const assertCurrent = this.controlGuard(message.senderId, session, command.name === "stop" ? "controller" : "viewer");
       const state = await this.runner.inspectThread(session.threadId, hostId); assertCurrent();
       if (!state.resource) throw new RuntimeError("changed", "运行资源类型已改变");
       if (command.name === "history") { await this.runtimeScreen(message.senderId, session, state.resource, assertCurrent); return true; }
-      if (command.name === "status") {
-        const r = state.resource;
-        const labels = { idle: "空闲", working: "运行中", blocked: "等待人工处理", done: "终端报告结束", error: "终端报告错误", exited: "进程已退出", unknown: "未确认" };
-        await this.reply(message.senderId, `当前终端：${r.title}\n\n运行接口：${descriptor.kind}\n终端状态：${labels[r.state]}\n状态依据：${r.evidence}\n\n这不是原生任务成功回执。/history 查看当前画面；等待人工处理时请在 Herdr 中操作。`); return true;
-      }
       if (!this.runner.runtimeInterrupt) throw new RuntimeError("unsupported", "Connector 中断接口未就绪");
       this.options.inputReceipts?.submitting({ sessionId: session.id, hostId, threadId: session.threadId });
       const result = await this.runner.runtimeInterrupt({ threadId: session.threadId, target: state.resource,
@@ -3785,14 +3776,72 @@ export class BridgeService {
     }
   }
 
-  private async statusText(senderId: string): Promise<string> {
+  private async replyStatus(senderId: string): Promise<void> {
+    const session = this.executionSession(senderId), host = this.sessionHostId(session);
+    const scope = session && sessionExecutionScope(this.options.stateStore, session, senderId);
+    const assertAccess = this.controlGuard(senderId, session, "viewer");
+    const offline = session && offlineConnectorLabel(this.options.peer, host);
+    // A restarted Gateway may have the binding before it has a backend descriptor.
+    // Diagnostic reads must not depend on the device being discoverable.
+    let unavailable = offline ? "离线" : undefined;
+    let info: ReturnType<CodexBridgeBackend["backendInfo"]> | undefined;
+    if (session && !offline) {
+      try { info = this.runner.backendInfo?.(host); }
+      catch { unavailable = "状态暂不可读取"; }
+    }
+    const runtime = info?.runtime, threadId = session?.threadId;
+    let status: string;
+    if (runtime && threadId) {
+      const state = await observeStatus(() => this.runner.inspectThread(threadId, host,
+        { includeTurns: false, timeoutMs: STATUS_RPC_BUDGET_MS, purpose: "status" }));
+      const resource = state.available && state.value.threadId === threadId && state.value.resource;
+      if (resource && scope?.current()) {
+        const labels = { idle: "空闲", working: "运行中", blocked: "等待人工处理", done: "终端报告结束", error: "终端报告错误", exited: "进程已退出", unknown: "未确认" };
+        assertAccess();
+        await this.reply(senderId, `当前终端：${resource.title}\n\n运行接口：${runtime.kind}\n终端状态：${labels[resource.state]}\n状态依据：${resource.evidence}\n\n这不是原生任务成功回执。/history 查看当前画面；等待人工处理时请在 Herdr 中操作。`);
+        return;
+      }
+      unavailable = "状态暂不可读取";
+    }
+    if (unavailable) {
+      const device = offline ?? this.options.peer?.label(host) ?? sessionHostLabel(host);
+      status = ["当前工作上下文", `会话：${session?.title ?? "未绑定任何 session"}`,
+        `设备：${device}（${unavailable}）`, "运行状态：暂未确认",
+        this.forwardingStatusLine(senderId)].filter(Boolean).join("\n\n");
+    } else {
+      status = await this.statusText(senderId, info?.capabilities.liveFollow);
+    }
+    if (scope ? !scope.current() : Boolean(this.executionSession(senderId)))
+      status = "查询期间会话绑定已改变，未展示旧目标的状态。请再次使用 /status 查看当前会话。";
+    else assertAccess();
+    this.options.inputReceipts?.submitting();
+    await this.replyActionCard(senderId, createChoiceCard({
+      title: "当前工作上下文",
+      body: status.replace(/^当前工作上下文\n/, ""),
+      fallbackText: status,
+      choices: [
+        { label: "切换模式", command: "mode", arg: "", style: "primary" },
+        { label: "任务面板", command: "task", arg: "list" },
+        { label: "会话", command: "sessions", arg: "" },
+        ...(this.options.forwardingInbox ? [{ label: "转发记录", command: "inbox" as const, arg: "" }] : []),
+        { label: "目标", command: "goal", arg: "" }
+      ]
+    }));
+  }
+
+  private forwardingStatusLine(senderId: string): string | undefined {
     const forwarding = this.options.forwardingStatus?.(senderId);
+    if (forwarding && forwarding.waiting + forwarding.held + forwarding.unconfirmed > 0)
+      return `消息转发：${forwarding.waiting} 条已保存待转发；${forwarding.unconfirmed} 条提交结果未确认；${forwarding.held} 条需核对目标或处理状态。`;
+  }
+
+  private async statusText(senderId: string, liveFollow?: boolean): Promise<string> {
+    const forwarding = this.forwardingStatusLine(senderId);
     const mode = this.options.stateStore.getInteractionMode(senderId);
     const project = this.options.stateStore.getActiveProject(senderId);
     const session = this.executionSession(senderId);
     const workspace = project?.workspace ?? session?.workspace ?? this.options.config.defaultCwd;
     const knowledgeBase = project ? this.resolveQaContext(project) : undefined;
-    const binding = session && sessionExecutionScope(this.options.stateStore, session, senderId);
     const observation = { includeTurns: false as const, timeoutMs: STATUS_RPC_BUDGET_MS, purpose: "status" as const };
     const [taskResult, runtimeResult, stateResult] = await Promise.all([
       observeStatus(async () => {
@@ -3806,8 +3855,6 @@ export class BridgeService {
       observeStatus(async () => session?.threadId && typeof this.runner.inspectThread === "function"
         ? this.runner.inspectThread(session.threadId, this.sessionHostId(session), observation) : undefined)
     ]);
-    if (binding ? !binding.current() : Boolean(this.executionSession(senderId)))
-      return "查询期间会话绑定已改变，未展示旧目标的状态。请再次使用 /status 查看当前会话。";
     const issue = taskResult.available ? taskResult.value : undefined;
     const runtime = runtimeResult.available ? runtimeResult.value : {};
     let execution = "尚未创建任务";
@@ -3832,15 +3879,16 @@ export class BridgeService {
       `问答知识库：${knowledgeBase?.name ?? "未绑定"}`,
       `任务：${issue ? `${issue.identifier} · ${formatTaskboardStatus(issue.status)} · ${issue.title}` : taskResult.available ? "尚未绑定 Taskboard Issue" : "关联信息暂不可读取"}`,
       `会话：${session?.title ?? "未绑定任何 session"}`,
-      ...(!session ? ["普通消息不会提交；使用 /sessions 查看，/session 绑定或 /new 新建。"] : []),
+      ...(!session ? [this.options.firstContact?.onUnbound === "create" && !this.options.stateStore.isSessionDetached(senderId) && this.modeSettings.enabledModes.includes("session")
+        ? "已开启首次对话自动创建。获准参与后，发送普通消息即可创建默认会话。"
+        : "普通消息不会提交；使用 /sessions 查看，/session 绑定或 /new 新建。"] : []),
       `对话状态：${runtime.collaborationMode === "plan" ? "计划协作" : runtime.collaborationMode === "default" ? "普通对话" : "原生模式暂未同步"}`,
       `工作目录：${workspace}`,
       `thread：${session?.threadId || "尚未创建"}`,
       `运行状态：${execution}`,
-      ...(forwarding && forwarding.waiting + forwarding.held + forwarding.unconfirmed > 0
-        ? [`消息转发：${forwarding.waiting} 条已保存待转发；${forwarding.unconfirmed} 条提交结果未确认；${forwarding.held} 条需核对目标或处理状态。`] : []),
+      ...(forwarding ? [forwarding] : []),
       ...(activeTurnId ? [`运行轮次：${activeTurnId}`] : []),
-      `实时跟随：${this.runner.backendInfo?.(session ? this.sessionHostId(session) : undefined).capabilities.liveFollow === false
+      `实时跟随：${liveFollow === false
         ? "当前后端不支持" : session?.follow === false || !session ? "关闭" : "开启"}`,
       ...(session && this.options.sessionFollow ? formatFollowStatus(this.options.sessionFollow.status(session)) : []),
       `backend：${this.options.config.codexBackend}`,

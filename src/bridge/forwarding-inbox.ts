@@ -41,6 +41,7 @@ type Options = {
   /** Additional input-order barriers. Ordering does not authorize replay:
    * a buffer mutation can wait behind input but remains a nonautomatic command. */
   ordersInput?: (message: ChannelMessage) => boolean;
+  offlineDevice?: (message: ChannelMessage, hostId: string) => string | undefined;
   canDispatch: () => boolean;
   dispatch: (message: ChannelMessage) => Promise<void>;
   notice: (message: ChannelMessage, text: string) => Promise<void>;
@@ -234,6 +235,13 @@ export class ForwardingInbox {
     try { await this.options.notice(row.message, text); }
     catch { console.warn("[codex-im-gateway] saved message notice not confirmed; forwarding record retained"); }
   }
+  private async informPending(row: Row, fallback: string): Promise<void> {
+    const host = row.target?.hostId ?? row.message.firstContactHost;
+    const device = host && this.options.offlineDevice?.(row.message, host);
+    await this.inform(row, device
+      ? `消息已保存，目标设备「${device}」离线，尚未提交。恢复连接后会按原顺序转发，无需重发。`
+      : fallback);
+  }
   private async deliver(key: string, row: Row, initial: boolean): Promise<void> {
     if (this.processing.has(key) || this.rows[key] !== row) return;
     this.processing.add(key);
@@ -273,7 +281,7 @@ export class ForwardingInbox {
           && (this.options.receipts.receipt(prior.message.id)?.phase ?? "received") === "received"));
       if (this.ordered(row) && preceding) {
         row.nextAt = this.now() + (this.options.retryMs ?? 2000); this.save();
-        await this.inform(row, "消息已保存，等待前一条输入完成转发交接；无需重发。"); return;
+        await this.informPending(row, "消息已保存，等待前一条输入完成转发交接；无需重发。"); return;
       }
       if (!this.options.canDispatch()) {
         row.nextAt = this.now() + (this.options.retryMs ?? 2000); this.save();
@@ -291,7 +299,7 @@ export class ForwardingInbox {
             await this.inform(row, `${coldPermissionMessage(error)} 消息已保存，Gateway 会自动重试；无需重发。`);
             return;
           }
-          await this.inform(row, "消息已保存，正在等待原会话恢复转发；尚未提交给 Codex，无需重发。"); return;
+          await this.informPending(row, "消息已保存，正在等待原会话恢复转发；尚未提交给 Codex，无需重发。"); return;
         }
         row.state = after && ["submitting", "unconfirmed"].includes(after.phase) ? "unconfirmed" : "held";
         this.save();

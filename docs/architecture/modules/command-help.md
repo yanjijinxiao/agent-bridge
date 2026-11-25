@@ -15,7 +15,7 @@
 | `commandHelpText` | 已过滤扩展、主题、上下文 → 阅读正文 | 首页仅常用且可用；分项不列兼容顶级入口，记录控制保留；完整及单命令保留限制；参数模板不生成复制框 |
 | `commandHelpChoices` | 同一主题/上下文 → 卡片按钮 | 与正文共用选择器；仅设备、项目、目录、状态、IDE 及帮助导航，不执行新建/中断/计划切换 |
 | `channelHelpText` / `runtimeHelp` | 原生或运行描述 → 共享格式器 | 兼容调用入口；不持有第二套帮助实现 |
-| `BridgeService.commandHelpContext` | 当前聊天 → 已有模式、Taskboard、知识库及能力元数据 | 不更改 Connector、项目、绑定、角色或原生设置，不探测写入者 |
+| `BridgeService.replyHelp` | 当前聊天和主题 → 帮助卡 | 从 Gateway 读取模式、Taskboard 和知识库配置，使用当前设备的能力描述细化帮助。设备离线或查询描述失败时仍返回内置菜单；扩展清单读取失败或超时时单独标注。 |
 | `createMainMenuCard` | 正文及已筛选按钮 → 渠道卡片 | 原生卡片及文字 fallback 内容一致；实际可发送的导航在渠道层形成复制控件 |
 
 ## 正交性与异常处理

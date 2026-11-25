@@ -8,8 +8,8 @@ type CommandTarget = "gateway" | "catalog" | "binding" | "record";
  * Record-based answers retain the original request's executor even after a
  * directory selection or binding changes. This table never grants access. */
 export const RUNTIME_COMMAND_TARGETS = {
-  help: "binding", status: "binding", inbox: "record", balance: "binding", project: "gateway", new: "catalog",
-  sessions: "gateway", session: "binding", connect: "gateway", share: "gateway", join: "gateway",
+  help: "gateway", status: "gateway", inbox: "record", balance: "binding", project: "gateway", new: "catalog",
+  sessions: "gateway", session: "gateway", connect: "gateway", share: "gateway", join: "gateway",
   history: "binding", ide: "gateway", access: "gateway", follow: "binding", leave: "gateway", unbind: "gateway",
   policy: "binding", role: "gateway", intervene: "record", steer: "binding", queue: "binding", model: "binding",
   effort: "binding", stream: "gateway", prompt: "gateway", approve: "record", reject: "record", answer: "record",
@@ -18,6 +18,7 @@ export const RUNTIME_COMMAND_TARGETS = {
 
 export function runtimeCommandTarget(command: ChannelCommand): CommandTarget {
   if (command.name === "session" && /^new(?:\s|$)/i.test(command.arg.trim())) return "catalog";
+  if (command.name === "session" && /^(?:rename|close)(?:\s|$)/i.test(command.arg.trim())) return "binding";
   if (command.name === "queue" && /^(?:list|cancel(?:\s|$))/.test(command.arg.trim())) return "record";
   return RUNTIME_COMMAND_TARGETS[command.name as CommandName] ?? "gateway";
 }

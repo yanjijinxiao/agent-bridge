@@ -63,7 +63,7 @@ function fixture(t: TestContext) {
   const send = (text: string, p = who(), card = false, service = bridge) => service.handleMessage({ id: crypto.randomUUID(), senderId: p.actorId, replyTargetId: p.conversationId,
     text, attachments: [], raw: {}, ...(card ? { interaction: { kind: "card" as const, messageId: "device-card" } } : {}) });
   t.after(() => { for (const s of services) s.suspendUserInputs(); fs.rmSync(root, { recursive: true, force: true }); });
-  return { root, paths, get store() { return store; }, peer, grants, offline, reads, projectReads, runs, creates, stops, texts, cards, threads, send, build,
+  return { root, paths, get store() { return store; }, peer, runner, grants, offline, reads, projectReads, runs, creates, stops, texts, cards, threads, send, build,
     get pairCalls() { return pairCalls; },
     set waitCatalog(value: typeof waitCatalog) { waitCatalog = value; },
     set waitProjects(value: typeof waitProjects) { waitProjects = value; },
@@ -73,6 +73,30 @@ function fixture(t: TestContext) {
 }
 
 async function choose(f: ReturnType<typeof fixture>, code: string, p = who()) { await f.send("/connect", p); await f.send(`/connect use ${code}`, p); }
+
+test("an offline binding cannot block help, directory navigation or an explicit bind to an online device", async t => {
+  const f = fixture(t);
+  await choose(f, "C1"); await f.send("/sessions"); await f.send("/session R1");
+  const original = f.store.getBoundSession("room")!.threadId;
+  f.offline.add(A);
+  const backend = f.runner.backendInfo.bind(f.runner);
+  let unavailable = false;
+  t.mock.method(f.runner, "backendInfo", (host?: string) => {
+    if (host === A || unavailable) throw Error("peer/discover");
+    return backend(host);
+  });
+  await f.send("/help new"); assert.match(f.cards.at(-1)!.body, /具体用法取决于执行后端/);
+  await f.send("/sessions"); assert.match(f.texts.at(-1)!, /离线.*\/connect/);
+  await choose(f, "C2"); await f.send("/sessions");
+  assert.equal(f.store.getBoundSession("room")?.threadId, original);
+  await f.send("/s detail R1"); assert.match(f.texts.at(-1)!, /会话详情/);
+  await f.send("/session R1");
+  assert.equal(f.store.getBoundSession("room")?.threadId, f.threads.get(B)![0].threadId);
+  unavailable = true; // Descriptor unavailable even though the device still reports online.
+  await f.send("/help /sessions");
+  assert.match(f.cards.at(-1)!.body, /运行能力暂不可读取/); assert.match(f.cards.at(-1)!.body, /--host/);
+  assert.deepEqual(f.runs, []); assert.deepEqual(f.creates, []);
+});
 
 test("Connector selection persists separately from binding and all ordinary input keeps its original host", async t => {
   const f = fixture(t);

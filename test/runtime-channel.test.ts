@@ -154,6 +154,17 @@ for (const kind of ["herdr-tui", "herdr-app"] as const) {
     await x.send("/unbind"); await x.tick();
     assert.equal(x.f.writes.length, 1); assert.equal(x.f.stops.length, 0); assert.equal(x.observations().length, 0);
   });
+  test(`${kind}: failed terminal observation returns the saved binding and no execution verdict`, async t => {
+    const x = await fixture(t, kind);
+    const read = t.mock.method(x.f.registry, "invoke", async () => { throw new PeerConnectionError(false); });
+    await x.send("/status");
+    assert(read.mock.calls.some(call => call.arguments[1] === "inspectThread"));
+    assert.match(x.messages.at(-1)!, /会话：Terminal/);
+    assert.match(x.messages.at(-1)!, /运行状态：暂未确认/);
+    assert.doesNotMatch(x.messages.at(-1)!, /空闲|进程已退出/);
+    assert.equal(x.f.writes.length, 0);
+    assert.equal(x.store.getBoundSession(principal.conversationId)?.threadId, x.f.id);
+  });
   test(`${kind}: help, status and terminal history use runtime capabilities, without native messages`, async t => {
     const x = await fixture(t, kind); await x.send("/help"); await x.send("/status"); await x.send("/history");
     assert.ok(x.messages.some(m => m.includes("终端状态"))); assert.ok(x.messages.some(m => m.includes("不是结构化对话历史")));

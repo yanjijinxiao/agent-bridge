@@ -2016,6 +2016,7 @@ export class AccountManager {
         return !this.releaseOwner && !this.runtimeConfigurationChanging && !this.stoppingAll
           && Boolean(entry?.service && !entry.controller?.signal.aborted && ["starting", "running"].includes(entry.status));
       },
+      offlineDevice: (message, host) => this.entries.get(accountId)?.service?.offlineForwardingDevice(message, host),
       automatic: message => {
         if (message.source || message.interaction) return false;
         const command = parseCommand(message.text);

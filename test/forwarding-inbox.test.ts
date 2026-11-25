@@ -90,7 +90,7 @@ const input: ChannelMessage = { id: "provider-source", senderId: "actor", replyT
   references: [{ type: "text", text: "quoted /stop is data", attachments: [], availability: "available" }],
   raw: { token: "provider-callback-secret", event: { sessionWebhook: "https://secret.invalid" } } };
 const settle = async () => { for (let i = 0; i < 4; i++) await new Promise<void>(r => setImmediate(r)); };
-function fixture(t: test.TestContext) {
+function fixture(t: test.TestContext, offlineDevice?: (message: ChannelMessage, host: string) => string | undefined) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-forwarding-inbox-")), file = path.join(root, "inbox.json");
   let now = 1000, canDispatch = true, automatic = true;
   let target: ForwardingTarget | undefined = { sessionId: "session", threadId: "thread", hostId: "local", workspace: root, mode: "session", generation: "one", roots: [] };
@@ -102,7 +102,7 @@ function fixture(t: test.TestContext) {
   const make = () => {
     receipts = new InboundReceiptJournal(path.join(root, "receipts.jsonl"), [], { onAccepted: r => inbox.accepted(r) });
     return inbox = new ForwardingInbox({ filePath: file, receipts, target: () => target, automatic: () => automatic,
-      ordersInput: message => ordersPromptInput(message.text),
+      offlineDevice, ordersInput: message => ordersPromptInput(message.text),
       canDispatch: () => canDispatch, now: () => now, notice: async (_m, text) => { notices.push(text); },
       dispatch: m => receipts.handle(m, () => action(m)) });
   };
@@ -113,6 +113,18 @@ function fixture(t: test.TestContext) {
     advance() { now += 2001; }, restart() { inbox.stop(); return make(); },
     saved() { return JSON.parse(fs.readFileSync(file, "utf8")).rows as Record<string, any>; } };
 }
+
+test("pending notices name the original offline device for both a failed preflight and a later ordered input", async t => {
+  const f = fixture(t, (_message, host) => host === "local" ? "旧终端" : undefined);
+  f.action = async () => { throw new CodexCommunicationError("preflight", "peer/discover"); };
+  await f.inbox.receive(input);
+  const later = { ...input, id: "next-source" };
+  await f.inbox.receive(later); await f.inbox.receive(later);
+  assert.equal(f.notices.length, 2);
+  assert(f.notices.every(text => text.includes("旧终端") && text.includes("离线")));
+  assert(f.inbox.items("room").every(item => item.state === "pending" && item.target?.hostId === "local"));
+  assert.equal(f.receipts.receipt(later.id)?.phase, "received");
+});
 
 test("after a definite start race and restart, the original ordinary message is steered once rather than started or queued", async t => {
   const f = fixture(t), store = new RuntimeStateStore(resolveStatePaths(path.join(f.root, "state")));

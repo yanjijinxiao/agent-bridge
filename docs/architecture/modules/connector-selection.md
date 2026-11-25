@@ -16,6 +16,10 @@
 
 ## 状态与并发
 
+`/status` 和别名 `/where` 使用现有会话绑定。Connector 离线时，Gateway 从本机读取绑定和收件箱计数，把运行状态标为待确认。设备在线时，Codex 保留原生诊断，Herdr 保留终端状态。读取结束时再次核对绑定和查看权限。
+
+目录选择与原设备断连可以同时发生。`/sessions` 读取所选设备；如果它离线，回复会给出 `/connect` 导航。`/session R编号` 和 `/session 会话ID --host 主机ID` 由目录处理器核对目标与权限，不向旧绑定请求能力描述。`/session new` 仍走所选设备，`/session rename|close` 仍走原绑定。
+
 RuntimeStateStore 保存偏好且不改 activeSessionIds/activeProjectIds。Bridge 的设备快照只保存稳定身份，不持有授权。切换使该用户当前聊天的项目/会话列表失效，异步查询及创建在应用结果前重新核对选择代次，避免 A→B→A 返回旧结果。每次目录操作及使用缓存时重检权限；普通输入和后台任务不读取此偏好。
 
 设备在线状态由 Registry 的实际连接提供，名称不作为身份，同名设备展示独立编号及主机身份。首次迁移仅增加空偏好字段，不重写绑定、授权或 Codex 配置。

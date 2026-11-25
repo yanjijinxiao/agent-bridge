@@ -18,3 +18,9 @@ export type PeerBridgePort = {
   label(hostId: string): string;
   isOnline?(hostId: string): boolean;
 };
+
+/** A missing registration is only evidence of an offline Connector for a known route. */
+export function offlineConnectorLabel(peer: PeerBridgePort | undefined, hostId: string): string | undefined {
+  if ((hostId.startsWith("peer:") || peer?.isRouted?.(hostId)) && peer?.isOnline?.(hostId) === false)
+    return peer.label(hostId);
+}

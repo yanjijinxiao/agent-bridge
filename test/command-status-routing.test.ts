@@ -13,10 +13,10 @@ import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.j
 import { APP_SERVER_BACKEND_CAPABILITIES } from "../src/codex/backend.js";
 import { CodexBackendRouter } from "../src/codex/runner.js";
 
-function fixture(t: TestContext, options: { slow?: boolean; slowTaskboard?: boolean } = {}) {
+function fixture(t: TestContext, options: { slow?: boolean; slowTaskboard?: boolean; offline?: boolean } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "command-status-")); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new RuntimeStateStore(resolveStatePaths(root));
-  const project = store.createProject("Gateway", root), session = store.createSession("group", root, "Original", project.id);
+  const project = store.createProject("Gateway", root, options.offline ? { hostId: "peer:old:herdr-app" } : undefined), session = store.createSession("group", root, "Original", project.id);
   store.setSessionThread(session.id, "thread");
   const replies: string[] = [], prompts: string[] = [], reads: unknown[] = [];
   const never = () => new Promise<never>(() => {});
@@ -29,6 +29,8 @@ function fixture(t: TestContext, options: { slow?: boolean; slowTaskboard?: bool
     async listQueuedSubmissions() { return { data: items }; },
     async run() { assert.fail("must not start a direct task"); }, async submitThreadMessage() { assert.fail("explicit queue must not become steer"); } };
   const service = new BridgeService({ stateStore: store, config: { ...defaultConfig(root), allowedSenderIds: ["alice"], model: "configured-model" }, runner: runner as never,
+    peer: options.offline ? { isOnline: () => false, label: () => "原 Herdr 设备", hosts: () => [], connect: never } : undefined,
+    forwardingStatus: () => ({ waiting: 2, unconfirmed: 0, held: 1 }),
     channelCapabilities: never,
     taskboard: options.slow || options.slowTaskboard ? { projectForWorkspace: never } as never : undefined,
     channel: createChannelClient("generic", TEXT_CAPABILITIES, { async resolveReferences(message) { if (options.slow) assert.fail("diagnostics must not fetch quoted messages"); return message; }, async sendText(input) { replies.push(input.text); return { messageId: "sent" }; } }) });
@@ -59,6 +61,53 @@ test("status bypasses stalled skill discovery and uses only bounded, isolated di
   assert.match(f.replies[0], /关联信息暂不可读取/); assert.ok(!f.replies[0].includes("model: (Codex default)"));
   assert.equal(f.prompts.length, 0);
   assert.equal(f.reads.length, 2); for (const observation of f.reads as any[]) { assert.equal(observation.purpose, "status"); assert.equal(observation.timeoutMs, 3000); }
+});
+
+test("offline binding answers status/where locally before discovery and preserves the original receipt target", async t => {
+  const f = fixture(t, { offline: true });
+  const discover = t.mock.method(f.runner, "backendInfo", () => { throw Error("peer/discover"); });
+  for (const command of ["/status", "/where"]) {
+    await f.send(command, command);
+    const reply = f.replies.at(-1)!;
+    assert.match(reply, /Original/); assert.match(reply, /原 Herdr 设备（离线）/);
+    assert.match(reply, /运行状态：暂未确认/); assert.match(reply, /2 条已保存待转发/);
+  }
+  assert.equal(discover.mock.callCount(), 0); assert.deepEqual(f.reads, []);
+  assert.equal(f.store.getBoundSession("group")?.threadId, "thread");
+  const message = { id: "input", text: "hi", senderId: "alice", replyTargetId: "group", attachments: [], raw: {} };
+  assert.equal(f.service.offlineForwardingDevice(message, "peer:old:herdr-app"), "原 Herdr 设备");
+  assert.equal(f.service.offlineForwardingDevice({ ...message, senderId: "stranger" }, "peer:old:herdr-app"), undefined);
+});
+
+test("unavailable discovery still shows saved binding without guessing Codex capabilities", async t => {
+  const f = fixture(t);
+  t.mock.method(f.runner, "backendInfo", () => { throw Error("peer/discover"); });
+  await f.send("/status");
+  assert.match(f.replies[0], /Original/); assert.match(f.replies[0], /状态暂不可读取/);
+  assert.doesNotMatch(f.replies[0], /正在执行|Codex default/); assert.deepEqual(f.reads, []);
+});
+
+test("help remains a local control with both the bound device offline and extension discovery stalled", { timeout: 4000 }, async t => {
+  const f = fixture(t, { offline: true, slow: true });
+  const discover = t.mock.method(f.runner, "backendInfo", () => { throw Error("peer/discover"); });
+  await f.send("/h");
+  const reply = f.replies.join("\n");
+  assert.match(reply, /常用命令/); assert.match(reply, /运行能力暂不可读取/);
+  assert.match(reply, /\/connect/); assert.match(reply, /\/status/); assert.match(reply, /扩展清单暂时无法读取/);
+  assert.doesNotMatch(reply, /默认安全插话|^\/model\b/m);
+  assert.equal(discover.mock.callCount(), 0); assert.deepEqual(f.prompts, []);
+  assert.equal(f.store.getBoundSession("group")?.threadId, "thread");
+});
+
+test("status distinguishes an unbound chat eligible for a default session from an explicit detach", async t => {
+  const f = fixture(t);
+  f.service.configureFirstContact({ onUnbound: "create", groupScope: "member", connector: "host29" });
+  await f.service.handleMessage({ id: "fresh", senderId: "alice", conversationKind: "direct", text: "/status", attachments: [], raw: {} });
+  assert.match(f.replies.at(-1)!, /发送普通消息即可创建默认会话/);
+  f.store.leaveSession("group");
+  await f.send("/status");
+  assert.doesNotMatch(f.replies.at(-1)!, /即可创建默认会话/);
+  assert.equal(f.store.getBoundSession("group"), undefined);
 });
 
 test("status cannot present a late observation after binding reset", async t => {
