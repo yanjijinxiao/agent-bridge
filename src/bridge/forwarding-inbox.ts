@@ -14,6 +14,7 @@ const attachment = z.object({ kind: z.enum(["image", "file", "video", "audio"]),
 const messageSchema = z.object({ id: z.string().min(1), senderId: z.string().min(1), replyTargetId: z.string().optional(),
   text: z.string(), attachments: z.array(attachment), raw: z.record(z.string(), z.unknown()),
   mention: z.object({ userId: z.string(), name: z.string().optional() }).optional(),
+  firstContactHost: z.string().min(1).optional(), firstContactId: z.string().uuid().optional(),
   conversationKind: z.enum(["direct", "group"]).optional(), source: z.literal("native-menu").optional(),
   contextToken: z.string().optional(), interaction: z.object({ kind: z.literal("card"), messageId: z.string() }).optional(),
   unsupportedMessageType: z.string().optional(), references: z.array(z.object({ messageId: z.string().optional(),
@@ -248,7 +249,14 @@ export class ForwardingInbox {
         row.state = "held"; this.save();
         await this.inform(row, "这条操作消息已保存，但重启前的处理阶段无法安全确认，未自动重复执行。"); return;
       }
-      if (!equal(row.target, this.options.target(row.message))) {
+      const currentTarget = this.options.target(row.message);
+      // Concurrent first messages can be claimed before creation. Only accept
+      // the native binding committed with their frozen creation generation.
+      if (!row.target && currentTarget && row.message.firstContactId
+        && currentTarget.generation === row.message.firstContactId && currentTarget.hostId === row.message.firstContactHost) {
+        row.target = structuredClone(currentTarget); this.save();
+      }
+      if (!equal(row.target, currentTarget)) {
         row.state = "held"; this.save();
         await this.inform(row, "消息内容已保存，但目标绑定已改变；未转发到新的会话，需要核对原消息目标。"); return;
       }
@@ -257,7 +265,7 @@ export class ForwardingInbox {
       // independent controls (/status, /stop, approvals) still bypass it.
       const conversation = row.message.replyTargetId ?? row.message.senderId;
       const preceding = Object.entries(this.rows).slice(0, Object.keys(this.rows).indexOf(key)).some(([priorKey, prior]) => this.ordered(prior)
-        && (prior.message.replyTargetId ?? prior.message.senderId) === conversation && equal(prior.target, row.target)
+        && (prior.message.replyTargetId ?? prior.message.senderId) === conversation && (equal(prior.target, row.target) || Boolean(prior.message.firstContactId && prior.message.firstContactId === row.target?.generation))
         && !["accepted", "handled"].includes(this.options.receipts.receipt(prior.message.id)?.phase ?? "received")
         // A retained unknown/held record is an audit obligation, not a live
         // handoff. Preserve it without replaying it or locking this chat forever.

@@ -6,6 +6,9 @@ export type ChannelMessage = {
   mention?: import("./types.js").ChannelMention;
   /** Conversation used for replies and session bindings; defaults to senderId in a DM. */
   replyTargetId?: string;
+  /** Trusted source policy at claim time. Only ordinary, unbound input may start a session. */
+  firstContactHost?: string;
+  firstContactId?: string;
   /** Provider-confirmed context only. Absence must not be inferred to be a DM. */
   conversationKind?: "direct" | "group";
   source?: "native-menu";

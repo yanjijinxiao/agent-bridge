@@ -21,14 +21,23 @@ test("isolated production Gateway browser gap scenarios", { skip: !process.env.C
   const taskboardPort = (reservation.address() as net.AddressInfo).port; await new Promise<void>(resolve => reservation.close(() => resolve()));
   saveConfig(paths, { ...defaultConfig(root), taskboardEnabled: false, taskboardUrl: `http://127.0.0.1:${taskboardPort}` });
   saveAccount(paths, { accountId: "account", token: "fixture", baseUrl: "https://fixture.invalid", userId: "owner", enabled: false });
-  const runner = { async listProjects() { return { backend: "app-server", projects: [] }; }, async getHistory() { return []; },
+  const runner = { async warmUp() {}, async listProjects() { return { backend: "app-server", projects: [] }; }, async getHistory() { return []; },
     async inspectThread(threadId: string) { return { threadId, cwd: root, persistence: "active", runtimeStatus: "idle", activeFlags: [] }; }, close() {} };
   const manager = new AccountManager({ paths, configProvider: () => loadConfig(paths), runnerFactory: () => runner as never, ideProjectsProvider: () => [] });
   const project = manager.createProject("account", "LongProject".repeat(20), root);
   const session = manager.createSession("account", "conversation".repeat(30), root, "LongTitle".repeat(30), project.id);
   const store = (manager as any).storeFor("account"); store.setSessionThread(session.id, "native-thread-".repeat(20));
   let starts = 0;
-  const lifecycle = new TaskboardLifecycle(path.join(root, "taskboard"), async input => { starts++; assert.equal(process.pid, gatewayPid); return startEmbeddedTaskboard(input); });
+  let transitionFault: "start" | "stop" | undefined;
+  const lifecycle = new TaskboardLifecycle(path.join(root, "taskboard"), async input => {
+    starts++; assert.equal(process.pid, gatewayPid);
+    if (transitionFault === "start") { transitionFault = undefined; throw Error("fixture start rejected"); }
+    const service = await startEmbeddedTaskboard(input);
+    return { ...service, async close() {
+      if (transitionFault === "stop") { transitionFault = undefined; throw Error("fixture stop rejected"); }
+      await service.close();
+    } };
+  });
   const gatewayPid = process.pid;
   const options = { paths, accountManager: manager, port: 0, onTaskboardConfig: (config: any) => lifecycle.apply(config),
     codexCheck: async () => ({ ready: true, version: "fixture" }), codexRuntimeCheck: async () => ({}) as never,
@@ -82,6 +91,44 @@ test("isolated production Gateway browser gap scenarios", { skip: !process.env.C
       await evaluate("window.releaseSettings?.();window.fetch=settingsFetch;renderSettings();document.querySelector('[data-view=sessions]').click()");
     }
   });
+  for (const failed of ["settings", "knowledge"]) {
+    await t.test(`WEB-01.2: concurrent settings and knowledge drafts survive a late ${failed} rejection`, async () => {
+      await evaluate(`window.savedTransport = window.fetch.bind(window);
+        window.formResponses = {};
+        window.fetch = async (url, init) => {
+          const form = url === '/api/config' && init?.method === 'PUT' ? 'settings'
+            : url === '/api/knowledge-bases' && init?.method === 'POST' ? 'knowledge' : undefined;
+          if (!form) return savedTransport(url, init);
+          await new Promise(resolve => formResponses[form] = resolve);
+          if (form === '${failed}') return Response.json({error:'fixture rejection'}, {status:409});
+          if (form === 'settings') return savedTransport(url, init);
+          return Response.json({knowledgeBase:{id:'two-forms-fixture',accountId:'account'}});
+        };
+        document.querySelector('[data-view=settings]').click();
+        document.querySelector('#settingsForm').requestSubmit();`);
+      try {
+        await eventually(() => evaluate("Boolean(formResponses.settings)"), "settings request missing");
+        await evaluate(`document.querySelector('#defaultCwdInput').value='/later-settings-draft';
+          document.querySelector('[data-view=knowledge]').click();openNewKnowledgeBaseDialog();
+          document.querySelector('#knowledgeBaseNameInput').value='First version';
+          document.querySelector('#knowledgeBaseRootInput').value='/fixture/wiki';
+          document.querySelector('#knowledgeBaseForm').requestSubmit();`);
+        await eventually(() => evaluate("Boolean(formResponses.knowledge)"), "knowledge request missing");
+        await evaluate("document.querySelector('#knowledgeBaseNameInput').value='Later knowledge draft'");
+        for (const current of [failed, failed === "settings" ? "knowledge" : "settings"]) {
+          await evaluate(`formResponses.${current}()`);
+          const selector = current === "knowledge" ? "#saveKnowledgeBaseButton" : "#settingsForm button[type=submit]";
+          await eventually(() => evaluate(`!document.querySelector('${selector}').disabled`), "form stayed busy");
+          assert.equal(await evaluate("document.querySelector('#knowledgeBaseNameInput').value"), "Later knowledge draft");
+          assert.equal(await evaluate("document.querySelector('#defaultCwdInput').value"), "/later-settings-draft");
+        }
+        assert.equal(await evaluate("document.querySelector('#knowledgeBaseDialog').open"), true);
+        assert.equal(loadConfig(paths).defaultCwd, root);
+      } finally {
+        await evaluate("window.fetch=savedTransport;Object.values(formResponses).forEach(release=>release());document.querySelector('#knowledgeBaseDialog').close();renderSettings();document.querySelector('[data-view=sessions]').click()");
+      }
+    });
+  }
   await t.test("WEB-02.4: hidden controls stay hidden under production styles and return when applicable", async () => {
     await evaluate("openRemoveAccountDialog({accountId:'account',channel:'dingtalk'})");
     try {
@@ -145,6 +192,95 @@ test("isolated production Gateway browser gap scenarios", { skip: !process.env.C
     assert.equal(starts, 1); assert.equal(process.pid, gatewayPid); assert.equal(loadConfig(paths).taskboardEnabled, true);
     assert.equal((await fetch(`http://127.0.0.1:${taskboardPort}/health`)).status, 200);
     assert.equal(await evaluate("document.querySelector('#taskboardFrame').src"), `http://127.0.0.1:${taskboardPort}/`);
+  });
+  await t.test("TB-01.3: the management page preserves a real task across failed stop, confirmed stop and failed start", async () => {
+    const board = `http://127.0.0.1:${taskboardPort}`;
+    const result = await fetch(board + "/api/tasks", {method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({projectId:"local", title:"Preserve this stored task",status:"todo"})});
+    assert.equal(result.status,201,await result.clone().text());
+    const { task } = await result.json() as { task: { id:string } };
+    assert.ok(task.id);
+    const health = async () => { try { return (await fetch(board+"/health")).status; } catch { return 0; } };
+    const saveOff = () => evaluate(`document.querySelector('[data-view=settings]').click();
+      document.querySelector('#taskboardEnabledInput').checked=false;document.querySelector('#settingsForm').requestSubmit()`);
+    const saved = () => eventually(()=>evaluate("!document.querySelector('#settingsForm button[type=submit]').disabled"),"settings remained busy");
+    transitionFault = "stop"; await saveOff(); await saved();
+    assert.equal(await health(),200);assert.equal(loadConfig(paths).taskboardEnabled,true);
+    assert.equal(await evaluate("Boolean(document.querySelector('#toastRegion .toast.is-error'))"),true);
+    await saveOff(); await saved();
+    assert.equal(loadConfig(paths).taskboardEnabled,false); assert.equal(await health(),0);
+    await evaluate("document.querySelector('[data-view=taskboard]').click()");
+    transitionFault = "start"; await evaluate("document.querySelector('#taskboardEnable').click()");
+    await eventually(()=>evaluate("!document.querySelector('#taskboardEnable').disabled"),"failed start remained busy");
+    assert.equal(loadConfig(paths).taskboardEnabled,false);
+    assert.equal(await evaluate("document.querySelector('#taskboardFrame').hasAttribute('src')"),false);
+    assert.equal(await health(),0);
+    await evaluate("document.querySelector('#taskboardEnable').click()");
+    await eventually(()=>evaluate("Boolean(document.querySelector('#taskboardFrame').getAttribute('src'))"),"workbench failed to recover");
+    assert.equal(loadConfig(paths).taskboardEnabled,true);assert.equal(await health(),200);
+    const recovered=await fetch(board+"/api/tasks/"+encodeURIComponent(task.id));
+    assert.equal(recovered.status,200);assert.match(await recovered.text(), /Preserve this stored task/);
+  });
+  await t.test("a late comment receipt in the real management iframe stays with its original task", async () => {
+    const board = "http://127.0.0.1:" + taskboardPort;
+    const tasks: { id: string; identifier: string; title: string }[] = [];
+    for (const title of ["Source task", "Destination task"]) {
+      const response = await fetch(board + "/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: "local", title, status: "todo" }) });
+      assert.equal(response.status, 201);
+      tasks.push((await response.json()).task);
+    }
+    let frameContext: number | undefined;
+    const scriptErrors: string[] = [];
+    const off = browser.onEvent((method, { context, exceptionDetails }) => {
+      if (method === "Runtime.exceptionThrown") scriptErrors.push(exceptionDetails.exception?.description ?? exceptionDetails.text);
+      if (method === "Runtime.executionContextCreated" && context.origin === board && context.auxData?.isDefault)
+        frameContext = context.id;
+    });
+    try {
+      await call("Runtime.disable"); await call("Runtime.enable");
+      await eventually(() => frameContext, "embedded Taskboard did not open its own document");
+      const frame = async (expression: string) => {
+        const result = await call("Runtime.evaluate", { contextId: frameContext, expression, returnByValue: true, awaitPromise: true });
+        if (result.exceptionDetails) throw Error(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text);
+        return result.result.value;
+      };
+      const open = async (task: typeof tasks[number]) => {
+        await frame(`history.pushState(null, "", "?project=local&issue="+${JSON.stringify(task.identifier)});dispatchEvent(new PopStateEvent("popstate"))`);
+        await eventually(() => frame(`document.body.textContent.includes(${JSON.stringify(task.title)}) && Boolean(document.querySelector(".comment-composer textarea"))`), "selected task is not visible")
+          .catch(error => { throw Error(error.message + " " + scriptErrors.join("\n")); });
+      };
+      await eventually(() => frame("Boolean(document.querySelector('#root')?.firstElementChild)"), "embedded app did not mount");
+      await open(tasks[0]);
+      await frame(`{
+        const original = window.fetch.bind(window);
+        window.fetch = async function(resource, options) {
+          const response = await original(resource, options);
+          const url = new URL(resource instanceof Request ? resource.url : resource, location.href);
+          if (options?.method === "POST" && url.pathname === ${JSON.stringify("/api/tasks/" + tasks[0].id + "/comments")})
+            await new Promise(resolve => { window.releaseSourceComment = resolve; });
+          return response;
+        };
+        document.querySelector('.comment-composer textarea').focus();
+      }`);
+      await call("Input.insertText", { text: "Source comment only" });
+      await frame("document.querySelector('.comment-composer button[type=submit]').click()");
+      await eventually(() => frame("typeof window.releaseSourceComment === 'function'"), "real server did not acknowledge source comment");
+      await evaluate("document.querySelector('[data-view=settings]').click();document.querySelector('[data-view=taskboard]').click()");
+      await open(tasks[1]);
+      await eventually(() => frame("document.querySelector('.comment-composer textarea')?.value === ''"), "new task did not get its own fresh composer");
+      await frame("document.querySelector('.comment-composer textarea').focus()");
+      await call("Input.insertText", { text: "Unsubmitted destination draft" });
+      await frame("window.releaseSourceComment();new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))");
+      assert.equal(await frame("document.querySelector('.comment-composer textarea').value"), "Unsubmitted destination draft");
+      for (const [i, task] of tasks.entries()) {
+        const response = await fetch(board + "/api/tasks/" + task.id + "/comments");
+        assert.equal(response.status, 200);
+        const { comments } = await response.json();
+        assert.deepEqual(comments.map((comment: {body:string}) => comment.body), i ? [] : ["Source comment only"]);
+      }
+      assert.equal(await evaluate("document.querySelector('#taskboardFrame').src"), board + "/");
+    } finally { off(); }
   });
   await t.test("WEB-02.3: actual Gateway management views, long identifiers, forms and IDE buttons fit a 375px Chrome viewport", async () => {
     manager.renameSession("account", session.id, "LongTitle".repeat(30)); await evaluate("refreshData(false)");

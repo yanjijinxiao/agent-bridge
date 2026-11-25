@@ -79,6 +79,21 @@ test("HELP-04: configuration narrows topic visibility without losing explicit di
   assert.match(channelHelpText([], "session", noObservation), /^\/follow[^\n]*状态查看、关闭等本地操作仍可用/m);
 });
 
+test("single-command help explains creation, detachment, queue ownership, question replies and IDE access", () => {
+  const topics = {
+    new: ["--standalone", "--project", "下一条消息才启动任务"],
+    unbind: ["仅解绑当前 IM 对话", "不停止任务", "群内每人独立", "只解除你在本群的绑定", "全群共用"],
+    queue: ["/queue list", "/queue cancel", "取消自己的待执行项"],
+    answer: ["/answer Q编号 回答内容", "--option 1", "只回复原请求"],
+    ide: ["固定入口", "/ide status", "/ide identity", "/ide auth"]
+  };
+  for (const [name, phrases] of Object.entries(topics)) {
+    const text = channelHelpText([], "/" + name, codex);
+    assert.deepEqual([...new Set(heads(text))], [name]);
+    for (const phrase of phrases) assert.ok(text.includes(phrase), name + ": " + phrase);
+  }
+});
+
 for (const kind of ["herdr-app", "herdr-tui"] as const) {
   test(`HELP-05: ${kind} shares topics while retaining honest terminal, capability and record semantics`, () => {
     const runtime = { kind, endpointId: "fixture", version: "test", protocol: { name: "test" },

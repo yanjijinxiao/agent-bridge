@@ -1,3 +1,4 @@
+import { InboundFileBatch } from "./inbound-file-batch.js";
 import crypto from "node:crypto";
 import { addressedCommandText } from "./command-text.js";
 import { turnStatusHeading } from "./turn-status.js";
@@ -647,6 +648,7 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
     const supplied = message.attachments;
     if (supplied.length > 20) throw new Error("DingTalk message has too many attachments");
     const output: ChannelMessage["attachments"] = [];
+    const files = new InboundFileBatch();
     for (const [index, attachment] of supplied.entries()) {
       if (attachment.path) { output.push(attachment); continue; }
       try {
@@ -660,9 +662,10 @@ export class DingTalkChannelAdapter implements ChannelAdapter, ChannelTextClient
           : sanitizeFileName(attachment.label) || `dingtalk-file-${index + 1}`;
         fs.mkdirSync(this.inboundDir, { recursive: true });
         const filePath = uniqueDingTalkInboundPath(this.inboundDir, message.id, label);
-        fs.writeFileSync(filePath, downloaded.buffer, { flag: "wx", mode: 0o600 });
+        files.write(filePath, downloaded.buffer);
         output.push({ ...attachment, label, item: {}, path: filePath });
       } catch (error) {
+        files.discard();
         if (error instanceof InboundMediaTooLargeError) throw error;
         throw new Error(`DingTalk inbound ${attachment.kind} download failed; check attachment access and download-code validity`);
       }

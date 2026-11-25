@@ -32,6 +32,7 @@ test("IDE-08.5: real GitLens displays line authorship and full commit hover", {
     "workbench.startupEditor": "none", "workbench.secondarySideBar.defaultVisibility": "hidden",
     "security.workspace.trust.enabled": false, // This fixture owns every file in the temporary workspace.
     "gitlens.currentLine.enabled": true, "gitlens.hovers.enabled": true, "gitlens.hovers.currentLine.over": "line",
+    "editor.codeLens": false,
     "gitlens.showWelcomeOnInstall": false, "gitlens.showWhatsNewAfterUpgrades": false, "telemetry.telemetryLevel": "off",
     "editor.fontSize": 16, "editor.lineHeight": 24
   }));
@@ -70,7 +71,16 @@ test("IDE-08.5: real GitLens displays line authorship and full commit hover", {
   await call("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 2, ...filePosition });
   await call("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 2, ...filePosition });
   await eventually(() => evaluate("document.body.innerText.includes('Gateway Test Author')"), "GitLens authorship did not activate", 30000);
-  const position = await evaluate("(()=>{const r=document.querySelector('.view-line').getBoundingClientRect();return {x:r.left+120,y:r.top+r.height/2}})()");
+  // Wait for the actual first line of the fixture. The status bar can already
+  // show the author while Monaco is still laying out the newly opened editor.
+  const position = await eventually(() => evaluate(`(() => {
+    const line = [...document.querySelectorAll('.view-line')].find(e => e.textContent.includes('greeting('));
+    const token = line && [...line.querySelectorAll('span')].find(e => !e.children.length && e.textContent.includes('export'));
+    if (!token) return;
+    const rect = token.getBoundingClientRect();
+    const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+    if (line.contains(document.elementFromPoint(x, y))) return { x, y };
+  })()`), "first source line is not visible", 10000);
   await call("Input.dispatchMouseEvent", { type: "mouseMoved", x: 0, y: 0 });
   await call("Input.dispatchMouseEvent", { type: "mouseMoved", ...position });
   const hover = await eventually(() => evaluate("[...document.querySelectorAll('.monaco-hover')].filter(e=>getComputedStyle(e).display!=='none').map(e=>e.textContent).find(t=>t.includes('Expected full commit details'))"), "GitLens commit hover missing", 20000);

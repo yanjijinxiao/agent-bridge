@@ -66,7 +66,14 @@ async function fixture(t: test.TestContext, endpoints = false) {
   access.setAccessAuthority({ isSubjectAllowed: s => admitted && s.principal.actorId === "owner",
     personalSubject: (account, actor) => { if (account !== "account" || actor !== "owner" || !admitted) throw Error("denied"); return subject; } });
   await access.reload(false); const entry = manager.entry("account", "s")!, foreign = manager.entry("other", "other")!;
-  t.after(async () => { await access.close(); await manager.close(); upstream.closeAllConnections(); await new Promise<void>(r => upstream.close(() => r())); fs.rmSync(root, { recursive: true, force: true }); });
+  t.after(async () => {
+    await access.close();
+    await manager.close();
+    upstream.closeAllConnections();
+    await new Promise<void>(r => upstream.close(() => r()));
+    // Chrome's helper can finish writing its disposable profile just after exit.
+    await fs.promises.rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 });
+  });
   const begin = async () => {
     const r = await fetch(entry.url), page = await r.text();
     const request = /name="request" value="([^"]+)"/.exec(page)?.[1];

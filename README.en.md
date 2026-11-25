@@ -28,6 +28,8 @@ The local administration console binds to `127.0.0.1` and is not a multi-user lo
 
 ## Choose your setup
 
+DingTalk administrators can enable a separate Codex session for each participant in a group. The first message starts a session on the configured Connector. Progress and result cards show the session and machine on their existing status line. [Configuration and routing](docs/architecture/member-sessions.md)
+
 | Goal | Start here |
 | --- | --- |
 | Connect your computer to someone else's Gateway | “Connect to an existing Gateway” below and the [Connector guide](./docs/gateway-peers.md) |
@@ -188,9 +190,9 @@ See the [local run guide](./docs/local-run.md) for background services, updates,
 
 ### Groups and permissions
 
-**A group has one shared current binding, not a separate binding per member or an exclusive lock for the first binder.** Admitted participants can ordinarily unbind or switch; choosing their own Connector session still requires their own device grant. Switching changes where subsequent group messages go. It does not stop the previous task or transfer another person's device permissions. Resource-sharing guests also have a binding path for entering/leaving their permitted resources; roles are not an ownership lock.
+Groups share a session binding by default. When an admitted participant switches sessions, subsequent group messages go to the new session and the previous task continues. DingTalk accounts can also enable a separate binding for each member. In that mode, switching or unbinding affects only that person's subsequent messages in that group. Selecting a device requires access to it. Guests can join or leave the resources shared with them.
 
-Personally admitted users default to controller unless an explicit personal chat role overrides it. `/role` shows the current role; `/access` shows personal/current-chat admission. Admission administrators must explicitly use `/access all` in a bot direct message for an account-wide view, not in a group. Use separate direct messages or dedicated groups for independent tasks; replies already posted to a group are visible to its members.
+Personally admitted users default to controller unless an explicit chat role overrides it. Use `/role` to check your role and `/access` to check admission for yourself and the current chat. Admission administrators can use `/access all` in a direct message to the bot to see all requests for the channel. Messages posted in a group are visible to its members under either binding mode. Use a direct message for private work.
 
 ### Combine messages and attachments
 
@@ -231,7 +233,7 @@ Common commands:
 | `/sessions all` | Explicitly list all accessible sources; `--host ID` is a temporary filter |
 | `/access` | Show personal/current-chat admission |
 | `/ide` | Open the current project IDE if enabled |
-| `/unbind` | Unbind this chat without stopping the task |
+| `/unbind` | Remove your binding in per-member mode, or the group's binding in shared mode. The task keeps running |
 
 Model, reasoning effort and Plan controls update the bound native Codex thread. Gateway does not persist execution overrides or reapply old choices on continuation/restart. Later changes in Codex App remain authoritative. Legacy `/model default` and `/effort default` only refresh native settings; progress preferences, bindings and forwarding receipts stay Gateway-owned.
 

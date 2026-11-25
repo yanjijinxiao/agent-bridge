@@ -1,3 +1,4 @@
+import { InboundFileBatch } from "./inbound-file-batch.js";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -57,7 +58,8 @@ export async function resolveWeComAttachments(message: ChannelMessage, options: 
   if (!options.inboundDir) throw new Error("企业微信附件目录尚未配置。");
   const limit = Math.min(options.maxInboundBytes ?? 100 * 1024 * 1024, 100 * 1024 * 1024);
   if (!Number.isSafeInteger(limit) || limit < 1) throw new Error("企业微信附件大小限制无效。");
-  const created: string[] = [], result: ChannelAttachment[] = [];
+  const files = new InboundFileBatch();
+  const result: ChannelAttachment[] = [];
   try {
     for (const attachment of message.attachments) {
       if (attachment.path) { result.push(attachment); continue; }
@@ -78,16 +80,12 @@ export async function resolveWeComAttachments(message: ChannelMessage, options: 
       const label = sanitizeFileName(name).slice(0, 180) || attachment.label;
       fs.mkdirSync(options.inboundDir, { recursive: true, mode: 0o700 });
       const target = path.join(options.inboundDir, `${crypto.randomUUID()}-${label}`);
-      const fd = fs.openSync(target, "wx", 0o600);
-      // Own the new file before writing: ENOSPC can leave a partial file even
-      // when writeFileSync throws. Cleanup must never touch earlier downloads.
-      created.push(target);
-      try { fs.writeFileSync(fd, bytes); } finally { fs.closeSync(fd); }
+      files.write(target, bytes);
       result.push({ ...attachment, item: {}, label, path: target });
     }
     return result;
   } catch {
-    for (const file of created) { try { fs.rmSync(file, { force: true }); } catch { /* A failed cleanup must not submit an incomplete input. */ } }
+    files.discard();
     throw new Error("企业微信附件下载、解密或保存失败，消息未提交；请检查大小限制或重新发送原文件。");
   }
 }

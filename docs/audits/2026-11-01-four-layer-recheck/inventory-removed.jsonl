@@ -1,0 +1,1 @@
+{"path":"src/state/knowledge.ts","commit":"42dae52fe70638a2fe260a9641c6fe67c14edcc6","reason":"2026-11-04 移除 Gateway 自建记忆功能及其状态模块。"}

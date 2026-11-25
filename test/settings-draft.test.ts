@@ -36,6 +36,38 @@ test("a second settings submit cannot race the pending write", async () => {
   const h = fixture(); const first = h.save(); const second = h.save();
   h.confirm(); await Promise.all([first, second]); assert.equal(h.calls.length, 1); assert.equal(h.button.disabled, false);
 });
+test("first-contact settings preserve saved devices, hide unsupported routes and ignore stale account responses", async () => {
+  const fields: Record<string, any> = {};
+  const field = (key: string) => fields[key] ??= {value:"",options:[],
+    replaceChildren(option: unknown) { this.options = [option]; }, add(option: unknown) { this.options.push(option); }};
+  class Option {
+    constructor(public textContent: string, public value: string, public defaultSelected = false, public selected = false) {}
+  }
+  const context = vm.createContext({document:{addEventListener() {},querySelector:field},window:{},AbortSignal,Option});
+  vm.runInContext(source, context);
+  const stale = Promise.withResolvers<unknown>();
+  context.api = () => stale.promise;
+  const owner = field("#editingRemarkAccountId"), device = field("#firstContactConnector");
+  owner.value = "first";
+  const old = context.populateFirstContact({channel:"dingtalk",accountId:"first"});
+  assert.equal(field("#firstContactScope").value,"conversation");
+  assert.equal(device.required,false);
+  owner.value = "current";
+  context.api = async () => ({routes:[
+    {hostId:"saved",label:"我的机器",online:false}, {hostId:"fresh",label:"新设备",online:true},
+    {hostId:"terminal",label:"终端",online:true,supportsFirstContact:false}
+  ]});
+  await context.populateFirstContact({channel:"dingtalk",accountId:"current",
+    firstContact:{onUnbound:"create",groupScope:"member",connector:"saved"}});
+  stale.resolve({routes:[{hostId:"stale",online:true}]}); await old;
+  assert.deepEqual(device.options.map((o: Option) => o.value), ["","saved","fresh"]);
+  assert.equal(device.options[1].selected,true); assert.match(device.options[1].textContent,/我的机器.*离线/);
+  assert.equal(device.required,true);
+  const action = field("#firstContactAction"); action.value = "manual"; action.onchange();
+  assert.equal(device.required,false);
+  await context.populateFirstContact({channel:"weixin",accountId:"other"});
+  assert.equal(field("#firstContactFields").disabled,true);
+});
 test("unchanged settings accept the confirmed values and failure retains the draft for explicit retry", async () => {
   const h = fixture(); const save = h.save(); h.confirm(); await save;
   assert.equal(h.field("#defaultCwdInput").value, "/confirmed");

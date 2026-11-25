@@ -1,3 +1,4 @@
+import { firstContactSchema, type FirstContactPolicy } from "../channels/conversation-binding.js";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
@@ -55,6 +56,7 @@ export type FeishuAccount = {
 
 export type DingTalkAccount = {
   channel: "dingtalk";
+  firstContact?: FirstContactPolicy;
   accountId: string;
   clientId: string;
   clientSecret: string;
@@ -105,7 +107,7 @@ const credential = z.string().min(1);
 const accountSchema = z.union([
   z.object({ ...commonAccountFields, channel: z.literal("weixin").optional(), token: credential,
     baseUrl: credential, cdnBaseUrl: z.string().default(DEFAULT_CDN_BASE_URL), botId: z.string().optional(), userId: z.string().optional() }),
-  z.object({ ...commonAccountFields, channel: z.literal("dingtalk"), clientId: credential, clientSecret: credential,
+  z.object({ ...commonAccountFields, channel: z.literal("dingtalk"), firstContact: firstContactSchema.optional(), clientId: credential, clientSecret: credential,
     cardTemplateId: z.string().optional(), cardContentKey: z.string().optional(), networkFamily: z.enum(["auto", "ipv4", "ipv6"]).optional() }),
   z.object({ ...commonAccountFields, channel: z.literal("feishu"), appId: credential, appSecret: credential }),
   z.object({ ...commonAccountFields, channel: z.literal("wecom"), botId: credential, secret: credential })
@@ -167,7 +169,9 @@ export function saveScannedAccount(
     ...(existing?.webhookUrl ? { webhookUrl: existing.webhookUrl } : {}),
     ...(existing?.webhookProvider ? { webhookProvider: existing.webhookProvider } : {}),
     ...(previous.modeSettings ? { modeSettings: normalizeChannelModeSettings(previous.modeSettings) } : {}),
-    enabled: true
+    // A scan rotates credentials. Only account lifecycle operations may
+    // re-enable a configured account an administrator stopped while polling.
+    enabled: existing?.enabled ?? true
   } : { ...scanned, botId };
   saveAccount(paths, account);
   if (retained) forgetRetainedAccount(paths, retained);
@@ -282,6 +286,7 @@ export function setAccountEnabled(paths: StatePaths, accountId: string, enabled:
 }
 
 export type AccountSettingsPatch = {
+  firstContact?: FirstContactPolicy;
   displayName: string;
   webhookUrl?: string | null;
   webhookProvider?: WebhookProvider;
@@ -293,6 +298,10 @@ export type AccountSettingsPatch = {
 export function setAccountSettings(paths: StatePaths, accountId: string, patch: AccountSettingsPatch): ChannelAccount {
   const account = loadAccount(paths, accountId);
   const updated: ChannelAccount = { ...account };
+  if (patch.firstContact !== undefined) {
+    if (updated.channel !== "dingtalk") throw Error("首次对话策略仅支持钉钉账号");
+    updated.firstContact = firstContactSchema.parse(patch.firstContact);
+  }
   const displayName = patch.displayName.trim();
   if (displayName) {
     updated.displayName = displayName;

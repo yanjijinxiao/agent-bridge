@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import http from "node:http";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -23,8 +24,101 @@ import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.j
 import { APP_SERVER_BACKEND_CAPABILITIES, EXEC_BACKEND_CAPABILITIES } from "../src/codex/backend.js";
 import { CodexCommunicationError } from "../src/codex/communication-error.js";
 import type { NormalizedWeixinMessage } from "../src/weixin/messages.js";
+import { AppServerRequestMonitor } from "../src/server/app-server-request-monitor.js";
+import { LoginManager } from "../src/server/login-manager.js";
 
-function setup(t: test.TestContext, options: { taskboardClient?: object; taskCards?: boolean; llmWiki?: object; root?: string;
+test("a QR confirmation arriving after account stop refreshes credentials without restarting its monitor", async t => {
+  const f = setup(t);
+  const started = await f.manager.startAccount("account-one");
+  const scanned = loadAccount(f.paths, started.accountId);
+  if (scanned.channel && scanned.channel !== "weixin") throw Error("Expected Weixin fixture");
+  const waiting = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const login = new LoginManager({ paths: f.paths, accountManager: f.manager,
+    qrDataUrlFactory: async () => "fixture",
+    sessionFactory: async () => ({ qrContent: "fixture", expiresAt: new Date(Date.now() + 60000).toISOString(),
+      async poll() {
+        waiting.resolve();
+        await release.promise;
+        return { status: "confirmed", account: { ...scanned, token: "renewed", enabled: true } };
+      },
+    }) as never });
+  const qr = await login.start();
+  const pending = login.poll(qr.id);
+  await waiting.promise;
+  await f.manager.stopAccount(started.accountId);
+  const starts = f.starts.length;
+  release.resolve();
+  const result = await pending;
+  assert.equal(result.status, "confirmed");
+  assert.equal(result.account?.enabled, false);
+  const stored = loadAccount(f.paths, started.accountId);
+  assert.equal(stored.enabled, false);
+  assert.equal((stored as typeof scanned & { token: string }).token, "renewed");
+  assert.equal(f.starts.length, starts);
+  assert.equal((await f.manager.refreshAccount(started.accountId)).status, "stopped");
+  assert.equal(f.starts.length, starts);
+  await f.manager.startAccount(started.accountId);
+  assert.equal(f.starts.length, starts + 1);
+});
+
+test("concurrent refresh and stop release the actual monitor socket even when retired cleanup reports failure", { timeout: 12000 }, async t => {
+  let port = 0;
+  const listening = Array.from({ length: 3 }, () => Promise.withResolvers<void>());
+  const firstClosing = Promise.withResolvers<void>(), allowClose = Promise.withResolvers<void>();
+  const events: string[] = [];
+  let starts = 0;
+  const { manager } = setup(t, { adapterFactory: () => ({
+    client: createChannelClient("weixin", TEXT_CAPABILITIES, { async sendText() { return { messageId: "sent" }; } }),
+    async monitor({ signal }) {
+      const index = starts++;
+      const abort = Promise.withResolvers<void>();
+      const onAbort = () => abort.resolve();
+      signal?.addEventListener("abort", onAbort, { once: true });
+      if (signal?.aborted) onAbort();
+      const server = net.createServer(socket => socket.end(String(index)));
+      try {
+        await new Promise<void>((resolve, reject) => {
+          server.once("error", reject);
+          server.listen(port, "127.0.0.1", resolve);
+        });
+        port = (server.address() as net.AddressInfo).port;
+        events.push("open:" + index); listening[index].resolve();
+        await abort.promise;
+        if (index === 0) { firstClosing.resolve(); await allowClose.promise; }
+      } finally {
+        signal?.removeEventListener("abort", onAbort);
+        if (server.listening) await new Promise<void>(resolve => server.close(() => resolve()));
+        events.push("close:" + index);
+      }
+      if (index === 0) throw Error("retired transport cleanup failed");
+    }
+  }) });
+  const readOwner = () => new Promise<string>((resolve, reject) => {
+    const socket = net.connect(port, "127.0.0.1");
+    let body = "";
+    socket.on("data", data => { body += data; });
+    socket.once("end", () => resolve(body)); socket.once("error", reject);
+  });
+  await manager.startAccount("account-one"); await listening[0].promise;
+  assert.equal(await readOwner(), "0");
+  const refreshing = manager.refreshAccount("account-one");
+  try {
+    await firstClosing.promise;
+    const stopping = manager.stopAccount("account-one");
+    assert.equal(await readOwner(), "0");
+    allowClose.resolve();
+    await Promise.all([refreshing, stopping]);
+  } finally { allowClose.resolve(); }
+  await assert.rejects(readOwner(), {code: "ECONNREFUSED"});
+  assert.deepEqual(events, ["open:0", "close:0", "open:1", "close:1"]);
+  await manager.startAccount("account-one"); await listening[2].promise;
+  assert.equal(await readOwner(), "2");
+  await manager.stopAccount("account-one");
+  await assert.rejects(readOwner(), {code: "ECONNREFUSED"});
+});
+
+function setup(t: test.TestContext, options: { nativeMonitorRetryMs?: number; taskboardClient?: object; taskCards?: boolean; llmWiki?: object; root?: string;
   config?: Partial<ReturnType<typeof defaultConfig>>;
   adapterFactory?: ConstructorParameters<typeof AccountManager>[0]["adapterFactory"] } = {}) {
   const root = options.root ?? fs.mkdtempSync(path.join(os.tmpdir(), "codex-weixin-manager-"));
@@ -194,6 +288,7 @@ function setup(t: test.TestContext, options: { taskboardClient?: object; taskCar
       return { start() {}, stop() {} } as never;
     },
     codexDesktopApprovalMonitorFactory: (handlers) => {
+      if (options.nativeMonitorRetryMs) return new AppServerRequestMonitor(() => runner as never, handlers, options.nativeMonitorRetryMs);
       desktopApprovalHandler = handlers.onApproval;
       approvalResultHandler = handlers.onResult;
       questionHandler = handlers.onUserInput;
@@ -2010,4 +2105,130 @@ test("running account receives the same admission service and a remote decision 
   assert.ok(f.bridges.get("account-one")!.stateStore.listPairedSenderIds().includes("new-person"));
   assert.equal(f.manager.ideApprovals.registrationStatus({ ...principal, actorId: "new-person" }), "allowed");
   assert.equal(f.runs.length, 0);
+});
+
+for (const retirement of ["rebind", "rebind-and-return", "replace-account"] as const) {
+  for (const kind of ["question", "approval"] as const) {
+    test("late " + kind + " answer stays on its original instance after " + retirement, async t => {
+      const f = setup(t);
+      const original = seedApprovalBinding(f.paths, "account-one", "one-room");
+      await f.manager.startAll();
+      t.after(() => f.manager.stopAll());
+      const old = (f.manager as any).entries.get("account-one").service;
+      const entered = Promise.withResolvers<void>();
+      const release = Promise.withResolvers<void>();
+      const method = kind === "question" ? "requestUserInput" : "requestApproval";
+      const outcomes: string[][] = [];
+      t.mock.method(old, method, async (recipient: string) => {
+        assert.equal(recipient, "one-room");
+        entered.resolve();
+        await release.promise;
+        return kind === "question" ? { question: { answers: ["old answer"] } } : "accept";
+      });
+      const report = kind === "question" ? "reportUserInputResult" : "reportApprovalResult";
+      t.mock.method(old, report, async (recipient: string, _request: unknown, state: string) => { outcomes.push([recipient, state]); });
+      const question = boundQuestion(), approval = boundApproval();
+      const pending = kind === "question" ? f.emitDesktopQuestion(question) : f.emitDesktopApproval(approval);
+      await entered.promise;
+      try {
+        if (retirement !== "replace-account") {
+          const store = f.bridges.get("account-one")!.stateStore;
+          const next = store.createSession("one-room", f.root, "replacement");
+          store.setSessionThread(next.id, "new-thread");
+          if (retirement === "rebind-and-return") store.activateSession(original.id);
+        } else {
+          await f.manager.refreshAccount("account-one");
+          assert.notEqual((f.manager as any).entries.get("account-one").service, old);
+        }
+      } finally {
+        release.resolve();
+      }
+      assert.equal(await pending, undefined, "a retired answer cannot reach the native executor");
+      if (kind === "question") await f.emitQuestionResult(question, "confirmed");
+      else await f.emitApprovalResult(approval, "confirmed");
+      assert.deepEqual(outcomes, [["one-room", kind === "question" ? "suspended" : "withdrawn"]]);
+      assert.deepEqual(f.questionResults, []);
+      assert.deepEqual(f.approvalResults, []);
+    });
+  }
+}
+
+test("late text and attachment receipts retain the original bot instance across an account refresh", async t => {
+  const started = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  let next = 0, pinned = -1;
+  const sends: Array<[number,string,string]> = [];
+  const { manager, bridges } = setup(t, { adapterFactory: () => {
+    const instance = ++next;
+    async function send(kind: string, to: string) {
+      sends.push([instance,kind,to]);
+      if (instance === pinned) {
+        if (sends.length === 2) started.resolve();
+        await release.promise;
+      }
+      return { messageId: instance + "-" + kind };
+    }
+    return {
+      client: createChannelClient("weixin", { ...TEXT_CAPABILITIES, outbound: { ...TEXT_CAPABILITIES.outbound, file: "available" } }, {
+        sendText: input => send("text", input.toUserId), sendMedia: input => send("file", input.toUserId)
+      }),
+      async monitor({signal}) {
+        if (!signal?.aborted) await new Promise<void>(resolve => signal?.addEventListener("abort", () => resolve(), {once:true}));
+      }
+    };
+  }});
+  await manager.startAccount("account-one");
+  t.after(() => manager.stopAll());
+  pinned = next;
+  const original = bridges.get("account-one")!.channel!;
+  const a = original.sendText({toUserId:"old-room",text:"old"});
+  const b = original.sendMedia!({toUserId:"old-room",kind:"file",path:"isolated-test-file"});
+  await started.promise;
+  try {
+    await manager.refreshAccount("account-one");
+    const fresh = bridges.get("account-one")!.channel!;
+    assert.notEqual(original, fresh);
+    const newReceipt = await fresh.sendText({toUserId:"new-room",text:"new"});
+    assert.equal(newReceipt.messageId, next + "-text");
+  } finally { release.resolve(); }
+  assert.deepEqual((await Promise.all([a,b])).map(x => x.messageId), [pinned + "-text", pinned + "-file"]);
+  assert.deepEqual(sends, [[pinned,"text","old-room"],[pinned,"file","old-room"],[next,"text","new-room"]]);
+});
+
+test("archiving a followed thread removes its native listener and retry target until explicit recovery", async t => {
+  const f = setup(t, { nativeMonitorRetryMs: 15 });
+  const activeObservers = new Set<string>();
+  const attempts: string[] = [];
+  let archived = false;
+  Object.assign(f.runner, {
+    async readThreadSnapshot(threadId: string, hostId: string) {
+      const persistence = archived && hostId === "local" ? "archived" : "active";
+      return { state: { threadId, persistence, runtimeStatus: "idle", activeFlags: [] }, turns: [] };
+    },
+    interactionSubscriptionReady(_id: string, hostId: string) { return activeObservers.has(hostId); },
+    async observeThreadInteractions(_id: string, hostId: string) { attempts.push(hostId); activeObservers.add(hostId); },
+    async unobserveThreadInteractions(_id: string, hostId: string) { activeObservers.delete(hostId); }
+  });
+  const original = seedApprovalBinding(f.paths, "account-one", "first-chat");
+  seedApprovalBinding(f.paths, "account-two", "other-chat", { hostId: "other" });
+  await f.manager.startAll();
+  const bridge = f.bridges.get("account-one")!;
+  const session = bridge.stateStore.getSession(original.id)!;
+  const sync = () => bridge.sessionFollow!.synchronize(session);
+  await sync();
+  assert.deepEqual([...activeObservers].sort(), ["local", "other"]);
+  archived = true;
+  const result = await sync();
+  assert.equal(result.status, "suspended");
+  assert.equal(result.resultDelivery?.pending, 0);
+  assert.deepEqual([...activeObservers], ["other"]);
+  const count = attempts.length;
+  await new Promise(resolve => setTimeout(resolve, 80));
+  assert.equal(attempts.length, count, "the shared retry timer must skip the retired host/thread");
+  assert.equal(bridge.stateStore.getBoundSession("first-chat")?.id, original.id);
+  assert.equal(f.sent.length, 0);
+  archived = false;
+  await sync();
+  assert.deepEqual([...activeObservers].sort(), ["local", "other"]);
+  assert.equal(attempts.length, count + 1);
 });

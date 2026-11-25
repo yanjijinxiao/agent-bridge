@@ -1304,8 +1304,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         expectedTurnId: turnId,
         ...(input.clientUserMessageId ? { clientUserMessageId: input.clientUserMessageId } : {})
       })) as Record<string, unknown>;
-      if (response.turnId !== turnId) throw new CodexCommunicationError("submission", "turn/steer", input.threadId, undefined,
-        { code: "InvalidAcknowledgement" });
+      if (response?.turnId !== turnId || (response.threadId !== undefined && response.threadId !== input.threadId)) {
+        throw new CodexCommunicationError("submission", "turn/steer", input.threadId, undefined, { code: "InvalidAcknowledgement" });
+      }
       return { status: "accepted", threadId: input.threadId, turnId };
     } catch (error) {
       throw normalizeSteerError(error, input.threadId, turnId);

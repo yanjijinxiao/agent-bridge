@@ -15,7 +15,7 @@ export function completedCardForMentions(checkpoint?: ChannelStreamCheckpoint): 
   const failed = outcome === "failed", stopped = outcome === "interrupted", detached = outcome === "detached", continued = outcome === "continued";
   const terminal = outcome.startsWith("terminal-") || outcome === "input-not-sent";
   const decorate = (text: string) => checkpoint.statusHeader ? withTurnStatus(text,
-    checkpoint.terminal!.outcome ?? (checkpoint.terminal!.error ? "failed" : "completed")) : text;
+    checkpoint.terminal!.outcome ?? (checkpoint.terminal!.error ? "failed" : "completed"), checkpoint.headingContext) : text;
   return { messageId: page.messageId, text: decorate(checkpoint.terminal.text),
     summary: decorate([checkpoint.statusHeader ? "" : failed ? "本轮执行失败。" : stopped ? "本轮已停止。" : detached ? "已退出当前绑定。"
       : continued ? "本轮进展已转入后续卡片。" : terminal ? "终端状态已更新；这不是任务成功回执。" : "本轮处理已结束。",

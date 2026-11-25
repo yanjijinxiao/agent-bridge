@@ -89,7 +89,8 @@ test("real code-server workspace, profile and browser authorization", {
   await check("IDE-02.1: actual workbench opens both Git roots and its terminal starts in the selected root", async () => {
     await eventually(() => evaluate("document.body.innerText.includes('alpha') && document.body.innerText.includes('beta')"), "multi-root explorer missing");
     await command("Source Control: Focus on Changes View");
-    await eventually(() => evaluate("document.querySelector('.scm-view')?.innerText.includes('alpha') && document.querySelector('.scm-view')?.innerText.includes('beta')"), "both Git repositories did not appear");
+    // The real Git extension discovers repositories asynchronously after the workbench opens.
+    await eventually(() => evaluate("document.querySelector('.scm-view')?.innerText.includes('alpha') && document.querySelector('.scm-view')?.innerText.includes('beta')"), "both Git repositories did not appear", 30_000);
     await command("Terminal: Create New Terminal");
     await eventually(() => evaluate("Boolean(document.querySelector('.terminal-wrapper .xterm'))"), "actual terminal did not open");
     const cwdReceipt = path.join(root, "terminal-cwd.txt");

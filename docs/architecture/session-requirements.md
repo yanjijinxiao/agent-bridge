@@ -1,5 +1,7 @@
 # 本 session 的需求与决定索引
 
+2026-11-25 的 BIND-06 和 DEL-11 记录群内每人独立会话、未绑定时的可选默认设备，以及在原任务卡状态行追加会话和机器。两张截图中的原正文布局纳入逐项对照。[架构与用例](member-sessions.md) · [四层检查](../audits/2026-11-25-member-sessions.md)
+
 2026-11-09 对三段可恢复历史重新提炼。按时间顺序核对了 894 条用户记录，并针对接受方案、取消范围、术语解释回读相邻公开答复。这里的 U0001～U0894 是本次用户记录序号，与旧审计的 `sourceRecords` 不是同一编号。来源范围和阅读限制见[本次审计](../audits/2026-11-09-session-documentation/README.md)。不在仓库复制聊天原文、员工 ID、群标识、私有链接或设备凭据。
 
 本索引回答“用户要求过什么、后来如何改变、现在由谁负责”。它不替代功能合同、代码或测试，也不把有映射的要求标为完整验收。仅截图而无足够文字的报告沿用已有图片检查和缺失记录，不从文件名猜故障。
@@ -24,8 +26,8 @@
 
 | 内容 | 权威记录 | 使用方式 |
 | --- | --- | --- |
-| Gateway 共用功能及 Codex 行为 | [需求与 case](gateway-requirements.json)、[人读功能合同](gateway-contracts.md) | 96 项要求、482 个 case；逐 case 的状态、测试名和边界优先于汇总段落 |
-| Herdr TUI / App 适配 | [Herdr 功能与测试基线](../audits/2026-11-07-herdr-adapters/production-requirements.json)、[实现及实测清单](../audits/2026-11-07-herdr-adapters/production-checklist.md)；HDR-18 由 [单卡窗口合同与 case](../audits/2026-11-09-herdr-terminal-window/README.md) 取代 | 20 项 HDR 合同；基线 JSON 中 HDR-18 的阶段分类和旧测试名是历史记录，不代表当前实现。沿用各自精确测试名和环境边界，不混加为“116 项全部验收” |
+| Gateway 共用功能及 Codex 行为 | [需求与 case](gateway-requirements.json)、[人读功能合同](gateway-contracts.md) | 98 项要求、489 个 case。各项的状态、命名测试及验证边界见[本轮复核](../audits/2026-11-25-evidence-reconciliation.md) |
+| Herdr TUI / App 适配 | [Herdr 功能与测试基线](../audits/2026-11-07-herdr-adapters/production-requirements.json)、[实现及实测清单](../audits/2026-11-07-herdr-adapters/production-checklist.md)；HDR-18 由 [单卡窗口合同与 case](../audits/2026-11-09-herdr-terminal-window/README.md) 取代 | 20 项 HDR 合同；基线 JSON 中 HDR-18 的阶段分类和旧测试名是历史记录，不代表当前实现。沿用各自精确测试名和环境边界，分别记录验证范围 |
 | 模块、函数和调用关系 | [实现职责图](gateway-implementation-map.md)、各模块说明、[精选函数合同](function-contracts.jsonl) | 函数记录只证明所列版本/范围；不能批量换 hash 冒充重读 |
 | 待办与取消范围 | [剩余清单](remaining-work.md)、本文决定表 | 部分覆盖、已确认缺陷、未开发、用户取消分别表示 |
 | 用户操作方法 | [探探 Codex 教程](../tantan-connector-guide.md)、[Herdr 教程](../herdr-connector-guide.md)、[README](../../README.md) | 教程解释使用步骤和真实功能，不承担长篇发布日志或内部审计 |
@@ -77,7 +79,7 @@
 | U0316、U0351、U0546–U0551 | 多绑定的主交互入口、审批来源和回复目标要明确；Web 总览支持核对关系，换绑/解绑后旧异步回复不得回到新目标 | BIND-02、BIND-03、BIND-04、BIND-05；[绑定准入](modules/bindings-access.md) |
 | U0735–U0742 | `/connect`、`/access` 默认只显示当前机器人、当前聊天、当前用户有权看的范围。跨聊天管理需明确管理员私聊入口，隐藏展示不等于新增授权 | AUTH-01、AUTH-02、PEER-02；[权限展示](modules/bindings-access.md) |
 | U0736–U0741、U0771–U0772 | 首次 Connector 自助登记/配对关联已核验用户。设备凭据本机生成、保存，不要求群里分发 device.token；移除手工领凭据不等于删除设备认证 | PEER-01.4、PEER-02；[设备传输](modules/peer-transport.md) |
-| U0756、U0762 | 谁提供 session 谁批准共享；同群另一人不能借公共聊天任意解绑或接管别人的 session。个人准入、会话角色、设备授权与资源共享分别检查 | PEER-02、BIND-02、AUTH-01；[绑定准入](modules/bindings-access.md) |
+| U0756、U0762 | 谁提供会话谁批准共享。群共用模式下，参与者可以换绑到自己有权使用的会话。成员模式下，只切换自己在该群的绑定。两种模式都单独检查设备权限、会话共享及聊天角色 | PEER-02、BIND-02、AUTH-01；[绑定准入](modules/bindings-access.md) |
 | U0779–U0784 | `/connect use` 的目录选择按用户/聊天/账号持久化，影响 `/sessions`、项目和新建；临时 host 查询不改默认。换目录设备与换执行绑定是两项操作 | CAT-05；[Connector 选择](modules/connector-selection.md) |
 | U0767、U0819 | 探探从 SQL Engine 扩大为 MaxCompute 及下属部门个人准入；是部署名单快照，不是产品硬编码部门、自动通讯录同步或管理员授权 | [部署准入记录](../audits/2026-11-06-maxcompute-admission/README.md)、[绑定准入](modules/bindings-access.md) |
 
@@ -143,7 +145,7 @@
 
 ## 仍需保留的限制
 
-- 本次只对照历史和文档，未重新逐行审查全部实现，也未重新执行所有 case。原 95 项部分覆盖保持不变，Herdr 的实测/版本边界仍在独立清单。
+- 11 月 9 日梳理历史和文档时，95 项场景仍为部分覆盖。后续逐行审查、回归结果和当前剩余项见[四层审计清单](remaining-work.md)。Herdr 的实测环境和版本另有独立记录。
 - DEL-09.5 与 DEL-09.6 的现有场景文字重复。保留 ID 避免破坏旧引用，不能把它们当两种不同能力；是否合并需核对各自测试和既有审计后迁移。
 - 早期只存在截图的报告、已丢失图片，以及某个环境当时是否已安装扩展，不由文本复核认证。旧“已完成”答复不代替可验证的代码和回执。
 - “有 case”“case 当时通过”“当前代码仍满足”“真实客户端看见”分别记录。新遗漏先进入功能合同和验证缺口，不为了凑齐数量升级状态。

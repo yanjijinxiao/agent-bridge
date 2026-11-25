@@ -1,3 +1,4 @@
+import { guardNativeWrite } from "../src/codex/write-guard.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { prepareTurnSubmission, TurnSubmission, TurnDeliveryError, TurnAttachmentError } from "../src/bridge/turn-submission.js";
@@ -82,4 +83,21 @@ test("a Gateway callback failure after native acceptance cannot become a task fa
   await assert.rejects(submission.run({ async run(input) {
     await input.onTurnStarted?.({ threadId: 'thread', turnId: 'accepted' }); throw Error('state commit conflict');
   } }, { cwd: '/work', prompt: 'test' }), TurnApplicationError);
+});
+
+test("turn submission preserves the transport write check and the original actor across local admission checks", async () => {
+  const source = { accountId: "account", conversationId: "group", actorId: "member" };
+  const checks: string[] = [];
+  const guard = Object.assign(() => { checks.push("input"); }, {
+    source, beforeWrite: async () => { checks.push("transport"); }
+  });
+  const submission = new TurnSubmission();
+  await submission.run({ async run(input) {
+    assert.deepEqual(input.assertCurrent?.source, source);
+    return guardNativeWrite(input.assertCurrent, async () => {
+      checks.push("write");
+      return { threadId: "thread", turnId: "turn", text: "ok", raw: "" };
+    });
+  } }, { cwd: "/work", prompt: "continue", assertCurrent: guard }, () => { checks.push("binding"); });
+  assert.deepEqual(checks, ["input", "binding", "input", "binding", "transport", "input", "binding", "write"]);
 });

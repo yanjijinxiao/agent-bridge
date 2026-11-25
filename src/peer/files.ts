@@ -157,23 +157,32 @@ export class PeerFiles {
         const index = readJsonFile<Record<string, string[]>>(path.join(this.stateDir, "file-host-paths.json"), {});
         remoteLease = await remote.fetchOutputFile(p.path, { hostId: "local", threadId: p.threadId, maxBytes: p.maxBytes,
           allowedRoots: this.hostOutputAllowed(grant) ? undefined : [state.cwd, ...(index[JSON.stringify([grant.id, p.threadId, ...(remote.filesystemId ? [remote.filesystemId] : [])])] ?? [])] });
-        try { await this.checkFilesystem(p.threadId, state.filesystemScope); authorize?.(p.threadId); if (!owner.open) throw new PeerError("offline", "File transfer connection closed"); }
-        catch (error) { await remoteLease.dispose(); throw error; }
       }
-      const file = fs.realpathSync(remoteLease?.path ?? p.path);
-      if (!remote && !this.hostOutputAllowed(grant) && !inside(fs.realpathSync(state.cwd), file) && !inside(inbound, file))
-        throw new PeerError("path", "Output file must belong to the selected session workspace or its received attachments");
-      if (fs.lstatSync(remoteLease?.path ?? p.path).isSymbolicLink()) throw new PeerError("path", "Output file must not be a symbolic link");
-      let opened: ReturnType<typeof open>;
-      try { opened = open(file, p.maxBytes); } catch (error) { await remoteLease?.dispose(); throw error; }
-      const { fd, stat } = opened;
+      // This request owns the host copy until add() transfers it to a connection lease.
+      let opened: ReturnType<typeof open> | undefined;
       try {
+        if (remoteLease) {
+          await this.checkFilesystem(p.threadId, state.filesystemScope);
+          authorize?.(p.threadId);
+          if (!owner.open) throw new PeerError("offline", "File transfer connection closed");
+        }
+        const source = remoteLease?.path ?? p.path, file = fs.realpathSync(source);
+        if (!remote && !this.hostOutputAllowed(grant) && !inside(fs.realpathSync(state.cwd), file) && !inside(inbound, file))
+          throw new PeerError("path", "Output file must belong to the selected session workspace or its received attachments");
+        if (fs.lstatSync(source).isSymbolicLink()) throw new PeerError("path", "Output file must not be a symbolic link");
+        opened = open(file, p.maxBytes);
+        const { fd, stat } = opened;
         const expected = digest(fd, stat.size), current = fs.statSync(file);
-        if (current.dev !== stat.dev || current.ino !== stat.ino || current.size !== stat.size || current.mtimeMs !== stat.mtimeMs || fs.realpathSync(remoteLease?.path ?? p.path) !== file)
+        if (current.dev !== stat.dev || current.ino !== stat.ino || current.size !== stat.size || current.mtimeMs !== stat.mtimeMs || fs.realpathSync(source) !== file)
           throw new PeerError("changed", "Output file changed before transfer");
+        const filename = name(inside(inbound, file) ? path.basename(file).replace(/^[a-f0-9]{64}-/, "") : p.path);
         return { id: this.add({ kind: "download", owner, grantId: grant.id, threadId: p.threadId, filesystemScope: state.filesystemScope, fd, size: stat.size, offset: 0, expected, stat, dispose: remoteLease?.dispose }),
-          size: stat.size, hash: expected, name: name(inside(inbound, file) ? path.basename(file).replace(/^[a-f0-9]{64}-/, "") : p.path) };
-      } catch (error) { fs.closeSync(fd); await remoteLease?.dispose(); throw error; }
+          size: stat.size, hash: expected, name: filename };
+      } catch (error) {
+        try { if (opened) fs.closeSync(opened.fd); }
+        finally { await remoteLease?.dispose(); }
+        throw error;
+      }
     }
     const p = z.object({ id: z.string().uuid(), offset: sizeSchema.optional(), data: z.string().max(Math.ceil(FILE_CHUNK_BYTES / 3) * 4).optional() }).strict().parse(payload);
     const lease = this.leases.get(p.id);

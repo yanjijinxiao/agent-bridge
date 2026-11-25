@@ -24,6 +24,7 @@ test("serializes controls across actors and deduplicates accepted and uncertain 
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const file = path.join(root, "controls.json");
   const journal = new SessionControlJournal(file);
+  const target = { hostId: "local", threadId: "thread", turnId: "turn" };
   let active = 0;
   let calls = 0;
   const action = async () => {
@@ -34,15 +35,17 @@ test("serializes controls across actors and deduplicates accepted and uncertain 
     return { status: "accepted" as const, threadId: "thread", turnId: "turn" };
   };
   await Promise.all([
-    journal.steer("local/thread", "actor-a/message-1", action),
-    journal.steer("local/thread", "actor-a/message-1", action),
-    journal.steer("local/thread", "actor-b/message-2", action)
+    journal.steer(target, "actor-a/message-1", action),
+    journal.steer(target, "actor-a/message-1", action),
+    journal.steer(target, "actor-b/message-2", action)
   ]);
   assert.equal(calls, 2);
-  await assert.rejects(journal.steer("local/thread", "lost-response", async () => { throw new Error("connection closed"); }));
+  await assert.rejects(journal.steer(target, "lost-response", async () => { throw new Error("connection closed"); }));
   const restarted = new SessionControlJournal(file);
-  await restarted.steer("local/thread", "actor-a/message-1", action);
-  await assert.rejects(restarted.steer("local/thread", "lost-response", action), /结果尚未确认/);
+  await restarted.steer(target, "actor-a/message-1", action);
+  await assert.rejects(restarted.steer(target, "lost-response", action), /结果尚未确认/);
+  await assert.rejects(restarted.steer({ ...target, turnId: "later" }, "actor-a/message-1", action),
+    { name: "CodexCommunicationError", code: "invalid-receipt" });
   assert.equal(calls, 2, "an ambiguous write must not be retried");
 });
 

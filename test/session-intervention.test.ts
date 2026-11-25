@@ -36,7 +36,10 @@ test("enforces roles on commands, scopes pending choices, rejects stale turns an
         return input.cursor ? {
           messages: [{ id: "old", role: "user", text: "更早的输入" }]
         } : {
-          messages: [{ id: "recent", role: "assistant", text: "最近的结论" }],
+          messages: [{ id: "recent", role: "assistant", text: [
+            "最近的结论", ...["one.ts", "two.ts"].map(file =>
+              '::code-comment{title="Review" body="Check the key." file="/repo/src/' + file + '" start=4}')
+          ].join("\n\n") }],
           nextCursor: "older-snapshot-cursor"
         };
       },
@@ -58,6 +61,9 @@ test("enforces roles on commands, scopes pending choices, rejects stale turns an
   assert.match(replies.at(-1)!, /需要 controller/);
   await send("alice", "/history 1");
   assert.match(replies.at(-1)!, /最近的结论/);
+  for (const file of ["one.ts", "two.ts"]) assert.ok(replies.at(-1)!.includes("src/" + file + ":4"));
+  assert.equal(replies.at(-1)!.split("Check the key.").length - 1, 1);
+  assert.doesNotMatch(replies.at(-1)!, /::code-comment/);
   await send("alice", "/history more");
   assert.match(replies.at(-1)!, /更早的输入/);
   assert.doesNotMatch(replies.at(-1)!, /最近的结论/);

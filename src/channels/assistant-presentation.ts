@@ -1,13 +1,13 @@
 import { Lexer, type Token } from "marked";
 
-type Annotation = { title: string; body: string; file: string; start?: number; priority?: number };
+type Annotation = { title: string; body: string; file: string; start?: number; end?: number; priority?: number };
 const marker = "::code-comment{";
-const comparable = (text: string) => text.replace(/[\s`*_]/g, "");
 /** IM cannot mount Desktop widgets. Project them to inert prose at one shared
  * boundary; literal code and quoted source examples remain opaque. */
 export function presentAssistantText(source: string): string {
   if (!source.includes(marker)) return source;
   let preceding = "";
+  const seen = new Set<string>();
   const prose = (text: string) => {
     let output = "", cursor = 0;
     while (true) {
@@ -24,12 +24,17 @@ export function presentAssistantText(source: string): string {
       cursor = parsed.end;
       const value = parsed.value;
       if (!value) { output += "\n\n代码批注格式无效，请查看原会话中的批注。\n\n"; continue; }
-      // Exact repetition can be omitted, never infer semantic equivalence from
-      // a filename or discard additional findings/recommendations.
-      if (value.body && comparable(preceding + output).includes(comparable(value.body))) continue;
-      const location = compactSourceLocation(value.file + (value.start ? `:${value.start}` : ""));
+      // The same remedy can apply at several source locations. Keep each
+      // finding, but quote its exact description only once in the visible text.
+      const key = JSON.stringify(value);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const repeatedBody = `\n\n${(preceding + output).trim()}\n\n`.includes(`\n\n${value.body}\n\n`);
+      const body = value.body && !repeatedBody ? `\n\n${value.body}` : "";
+      const location = compactSourceLocation(value.file + (value.start ? `:${value.start}` : ""))
+        + (value.end ? `–${value.end}` : "");
       const title = value.title.replace(/[\r\n]+/g, " ").replace(/\*+/g, "");
-      output += `\n\n**${title}**\n${location}\n\n${value.body}\n\n`;
+      output += `\n\n**${title}**\n${location}${body}\n\n`;
     }
   };
   return projectAssistantProse(source, prose, true);
@@ -84,9 +89,11 @@ function annotation(source: string, offset: number): { end: number; value?: Anno
   while (at < source.length && at - offset < 64_000) {
     while (/\s/.test(source[at] ?? "") && at < source.length) at++;
     if (source[at] === "}") {
-      const { title, body, file, start, priority } = fields;
+      const { title, body, file, start, end, priority } = fields;
       return { end: at + 1, ...(typeof title === "string" && typeof body === "string" && typeof file === "string"
-        ? { value: { title, body, file, ...(typeof start === "number" && start > 0 ? { start } : {}), ...(typeof priority === "number" ? { priority } : {}) } } : {}) };
+        ? { value: { title, body, file, ...(typeof start === "number" && start > 0
+          ? { start, ...(typeof end === "number" && end > start ? { end } : {}) } : {}),
+          ...(typeof priority === "number" ? { priority } : {}) } } : {}) };
     }
     const key = /^([a-zA-Z]+)\s*=\s*/.exec(source.slice(at));
     if (!key) return;

@@ -35,3 +35,9 @@ CTRL-03.3的queue-delivery-integration沿真实NativeQueueCoordinator、Bridge�
 队列执行完成和结果送达分开结算。Bridge 从 Hub 取得真实 boolean 投递回执；NativeQueueCoordinator 只在确认送达后写 delivered。未送达保留 completed + lifecycleVersion 2，下一次只观察原 turn，不再 queue/start。原生失败/中断也通过同一 Hub 完成日志确认，迟到回执不新建卡。兼容原有不返回值的隔离调用者；真实 Bridge 显式返回确认值。只有未知外部交接才进入 deliveryUnconfirmed，不把可证明的未送达误当作需要重跑任务。
 
 原生历史明确返回 completedAt=null 时，终态标签不构成结束回执；最新轮次如此则本次快照暂缓，旧的此类历史项从有限观察窗口排除，不据此结算。真正带结束时间的停止/完成仍正常处理，较旧服务省略字段保持兼容。该检查发生在本地等待者与 Hub 结算之前，防止历史读时尚未结束、状态读时已空闲的交错。
+
+### 指定轮次的介入回执
+
+显式介入在读取活动轮次时固定主机、线程和轮次。原生 `turn/steer` 的标准回执只含轮次 ID；若传输还返回线程 ID，两者必须与请求一致。Connector 的归一化回执必须同时提供正确的线程、轮次和接受状态。SessionControlJournal 在写入接受记录和恢复已有记录时都核对目标。回执不符时，这次尝试按结果未确认处理，保留原卡和绑定，重复收到同一消息也不会再提交。普通续聊由原生服务选择活动轮次，其回执以实际返回的轮次为准。
+
+TurnSubmission 合并聊天绑定检查与传输传入的写入检查，并保留原成员身份和异步写前检查。测试在 App Server 握手期间改变角色、个人准入及账号运行状态，直接记录标准输入上实际发出的 `turn/steer` 和 `thread/queue/add`。

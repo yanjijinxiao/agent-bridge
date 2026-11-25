@@ -1,12 +1,14 @@
 # 当前 Connector 与目录范围
 
-当前 Connector 是个人在当前聊天中的目录偏好，不是会话绑定、执行器选择算法或新增授权。Gateway 按 accountId + conversationId + actorId 保存稳定 hostId；配对及资源访问继续由 PeerRegistry 授权，普通输入继续沿原有 conversation → session → host/thread 边路由。
+当前 Connector 决定这个人在当前聊天查询哪台设备的目录。Gateway 按账号、实际聊天和发言人保存所选 hostId，PeerRegistry 校验设备授权。普通输入使用已有绑定的 host 和 thread。群内可以共用一条绑定，也可以按成员分别绑定。
+
+管理员为未绑定成员开启自动建会话后，首条普通消息使用账号配置的默认 Connector。成员的目录偏好仍独立保存。专供首次对话的设备只向所属绑定提供会话操作。详见[群成员独立会话](../member-sessions.md)。
 
 ## 命令合同
 
 - `/connect` 显示当前聊天本人已授权设备、当前选择及在线状态，并提供切换按钮和 C 编号；不改变群绑定。
 - `/connect use C2` 使用最新设备列表的稳定身份。按钮附带列表版本；过期、旧版本或已失效授权拒绝，不能按变化后的数组位置选另一台。
-- `/connect use local` 返回 Gateway 本地目录，仅原有 Gateway 准入用户可用；不获得其他权限。
+- `/connect use local` 选择管理员已配置且本人有权访问的本机 Connector。设备未配置时，命令会提示改选已连接设备。
 - `/connect 配对码` 保持原有设备确认过程，成功后记录该设备为当前目录来源。
 - `/sessions`、搜索、无项目筛选和 `/project` 使用当前 Connector 的所有已授权目标主机；一个 Connector 只显示一个设备选项，展开后的会话/项目继续保留各自 hostId。`/sessions all` 显式聚合可访问来源；`/sessions --host ...` 仅临时查询，翻页沿用快照，不改变默认选择。
 - 没有偏好时，唯一已授权设备自动选中并持久化；多设备要求 `/connect` 选择；没有设备保持原有本地目录行为。已保存设备离线或撤权时保留偏好并明确报错，不回退到其他设备。

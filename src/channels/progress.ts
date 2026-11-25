@@ -41,6 +41,7 @@ export type ChannelStreamCheckpoint = {
   /** Terminal delivery may be retried, but progress must never resume. */
   terminal?: { text: string; error: boolean; outcome?: TurnOutcome };
   statusHeader?: true;
+  headingContext?: string;
   activity?: TurnActivity;
   /** A delivery-error notice is not a replacement answer/card. Persist its receipt. */
   terminalNoticeSent?: boolean;
@@ -74,6 +75,7 @@ export class ChannelTurnTextStream {
   private terminal?: ChannelStreamCheckpoint["terminal"];
   private presentationCorrection?: ChannelStreamCheckpoint["presentationCorrection"];
   private readonly statusHeader: boolean;
+  private readonly headingContext?: string;
   /** Native loading is a transport capability, not a Markdown layout choice.
    * Restored pre-header page plans must still receive trusted activity. */
   private readonly activityMetadata: boolean;
@@ -113,6 +115,7 @@ export class ChannelTurnTextStream {
     private readonly toUserId: string,
     private readonly persistence?: {
       restore?: ChannelStreamCheckpoint;
+      headingContext?: string;
       save: (checkpoint: ChannelStreamCheckpoint) => void;
       contextToken?: string;
       onTextDelivered?: (part: { messageId: string; text: string }) => void;
@@ -127,6 +130,7 @@ export class ChannelTurnTextStream {
     const saved = persistence?.restore;
     // A pre-upgrade partially delivered result owns its exact page layout.
     this.statusHeader = saved?.statusHeader ?? (!saved?.resultPageBytes && client.capabilities?.turnStatusHeader === "available");
+    this.headingContext = this.statusHeader ? saved?.headingContext ?? (saved?.resultPageBytes ? undefined : persistence?.headingContext) : undefined;
     this.activityMetadata = this.statusHeader || client.capabilities?.turnStatusHeader === "available" || persistence?.interruptControl !== undefined;
     this.supported = saved?.resultPresentation === "native-text" ? false
       : saved?.resultPresentation === "card" || Boolean(saved?.messageId || saved?.bootstrap || saved?.creationAttempted) || (persistence?.progressEnabled !== false && (client.capabilities
@@ -180,6 +184,7 @@ export class ChannelTurnTextStream {
       ...(this.communicationNotice ? { communicationNotice: this.communicationNotice } : {}),
       ...(this.recoveryNotice ? { recoveryNotice: this.recoveryNotice } : {}),
       ...(this.presentationCorrection ? { presentationCorrection: { ...this.presentationCorrection } } : {}),
+      ...(this.headingContext ? { headingContext: this.headingContext } : {}),
       ...(this.statusHeader ? { statusHeader: true as const } : {}),
       ...(this.activityMetadata || this.activity === "waiting-result" ? { activity: this.activity } : {}),
       toolActivity: { ...this.toolActivity },
@@ -348,7 +353,7 @@ export class ChannelTurnTextStream {
   async finalize(text: string, error = false, recovery: { recoverBootstrap?: boolean; confirmUncertainDelivery?: boolean; existingOnly?: boolean; outcome?: TurnOutcome } = {}): Promise<boolean> {
     const content = this.terminalWindow && !this.terminal
       ? renderTerminalWindow(this.terminalWindow.text,
-        this.terminalBudget() - (this.statusHeader ? TURN_STATUS_BYTES : 0), "", text.trim(), value => this.measureTerminal(value))
+        this.terminalBudget() - (this.statusHeader ? TURN_STATUS_BYTES + Buffer.byteLength(this.headingContext ? " · " + this.headingContext : "") : 0), "", text.trim(), value => this.measureTerminal(value))
       : text.trim();
     if (this.finished) return true;
     // A shutdown-detached writer must not poison the checkpoint that its
@@ -375,9 +380,9 @@ export class ChannelTurnTextStream {
     if (this.suspended || this.terminalBlocked) return false;
     this.resultPageBytes ??= this.terminalWindow ? this.terminalBudget() : this.client.capabilities?.resultPageBytes ?? DEFAULT_RESULT_PAGE_BYTES;
     this.resultPresentation ??= this.supported ? "card" : "native-text";
-    const pages = resultPages(this.terminal!.text, this.resultPageBytes, this.statusHeader ? TURN_STATUS_BYTES : 0)
+    const pages = resultPages(this.terminal!.text, this.resultPageBytes, this.statusHeader ? TURN_STATUS_BYTES + Buffer.byteLength(this.headingContext ? " · " + this.headingContext : "") : 0)
       .map(page => this.statusHeader ? { ...page, text: withTurnStatus(page.text,
-        this.terminal!.outcome ?? (this.terminal!.error ? "failed" : "completed")) } : page);
+        this.terminal!.outcome ?? (this.terminal!.error ? "failed" : "completed"), this.headingContext) } : page);
     // Historical recovery may update acknowledged cards, but must not create
     // new notifications (including continuation pages or native text). Check
     // the complete layout before updating page 1 so partial recovery is quiet.
@@ -697,7 +702,7 @@ export class ChannelTurnTextStream {
 
   private progressFacts(): Parameters<typeof renderTurnProgressCard>[0] {
     const current = this.progressEntries.filter(entry => progressKind(entry) === "update").at(-1);
-    return { activity: this.visibleActivity(), elapsed: formatTurnElapsed(Date.now() - this.startedAt),
+    return { activity: this.visibleActivity(), headingContext: this.headingContext, elapsed: formatTurnElapsed(Date.now() - this.startedAt),
       current: current || this.thought || "等待新的可展示进展。",
       thought: current && !/^(?:正在理解任务并规划下一步|正在等待当前步骤返回结果|正在应用并检查代码修改|正在分析刚完成步骤的结果并决定下一步|正在分析失败原因并寻找可行的下一步|正在处理当前步骤并决定下一步|正在组织最终回复)/.test(this.thought)
         ? this.thought : undefined,

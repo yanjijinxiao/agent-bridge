@@ -13,7 +13,7 @@ import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.j
 import { APP_SERVER_BACKEND_CAPABILITIES } from "../src/codex/backend.js";
 import { CodexBackendRouter } from "../src/codex/runner.js";
 
-function fixture(t: TestContext, options: { slow?: boolean } = {}) {
+function fixture(t: TestContext, options: { slow?: boolean; slowTaskboard?: boolean } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "command-status-")); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new RuntimeStateStore(resolveStatePaths(root));
   const project = store.createProject("Gateway", root), session = store.createSession("group", root, "Original", project.id);
@@ -30,7 +30,7 @@ function fixture(t: TestContext, options: { slow?: boolean } = {}) {
     async run() { assert.fail("must not start a direct task"); }, async submitThreadMessage() { assert.fail("explicit queue must not become steer"); } };
   const service = new BridgeService({ stateStore: store, config: { ...defaultConfig(root), allowedSenderIds: ["alice"], model: "configured-model" }, runner: runner as never,
     channelCapabilities: never,
-    taskboard: options.slow ? { projectForWorkspace: never } as never : undefined,
+    taskboard: options.slow || options.slowTaskboard ? { projectForWorkspace: never } as never : undefined,
     channel: createChannelClient("generic", TEXT_CAPABILITIES, { async resolveReferences(message) { if (options.slow) assert.fail("diagnostics must not fetch quoted messages"); return message; }, async sendText(input) { replies.push(input.text); return { messageId: "sent" }; } }) });
   const send = (text: string, id = "message") => service.handleMessage({ id, senderId: "alice", replyTargetId: "group", text: addressedCommandText(text), attachments: [], raw: {} });
   return { send, replies, prompts, reads, store, session, service, runner };
@@ -66,6 +66,19 @@ test("status cannot present a late observation after binding reset", async t => 
   f.runner.inspectThread = async () => { entered.resolve(); return release.promise; };
   const pending = f.send("/status"); await entered.promise; f.store.resetSession(f.session.id); release.resolve({ threadId: "thread", runtimeStatus: "active", activeFlags: [] }); await pending;
   assert.match(f.replies[0], /绑定已改变/); assert.ok(!f.replies[0].includes("正在执行"));
+});
+
+test("status returns native execution details while only the Taskboard lookup hangs", { timeout: 3500 }, async t => {
+  const f = fixture(t, { slowTaskboard: true });
+  const start = performance.now();
+  await f.send("/status");
+  assert.ok(performance.now() - start < 2500);
+  assert.equal(f.replies.length, 1);
+  assert.match(f.replies[0], /native-model/);
+  assert.match(f.replies[0], /关联信息暂不可读取/);
+  assert.doesNotMatch(f.replies[0], /运行状态：暂未确认/);
+  assert.equal(f.reads.length, 2);
+  assert.deepEqual(f.prompts, []);
 });
 
 test("queue admission rejects reset/rebind ABA during preparation", async t => {

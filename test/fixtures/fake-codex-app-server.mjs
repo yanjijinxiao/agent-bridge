@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import readline from "node:readline";
+import fs from "node:fs";
+import { setTimeout as delay } from "node:timers/promises";
 
 const rl = readline.createInterface({ input: process.stdin });
 const projectApiEnabled = !process.argv.includes("--without-project-api");
@@ -11,6 +13,8 @@ let initialized = false;
 let experimentalApiEnabled = false;
 let nextTurn = 1;
 const activeTurns = new Map();
+const initializeGate = process.argv.find(arg => arg.startsWith("--initialize-gate="))?.slice("--initialize-gate=".length);
+if (initializeGate) activeTurns.set("control-thread", "control-turn");
 const pendingApprovals = new Map();
 const pendingToolCalls = new Map();
 const pendingUserInputs = new Map();
@@ -102,8 +106,11 @@ function historyTurns(activeTurnId) {
   ];
 }
 
-rl.on("line", (line) => {
+rl.on("line", async (line) => {
   const message = JSON.parse(line);
+  if (initializeGate && message.method) {
+    fs.appendFileSync(initializeGate + ".wire", message.method + "\n");
+  }
   if (process.argv.includes("--lifecycle-only") && message.method === "turn/start") {
     fail(message.id, "Lifecycle-only management must not start a model turn"); return;
   }
@@ -158,6 +165,7 @@ rl.on("line", (line) => {
   if (message.method === "thread/resume" && message.params.approvalPolicy !== undefined) resumedApprovalPolicy = message.params.approvalPolicy;
 
   if (message.method === "initialize") {
+    while (initializeGate && !fs.existsSync(initializeGate)) await delay(5);
     if (message.jsonrpc) {
       fail(message.id, "jsonrpc header must be omitted");
       return;
@@ -912,6 +920,10 @@ rl.on("line", (line) => {
     const prompt = message.params?.input?.[0]?.text;
     if (message.params?.input?.[0]?.type !== "text" || typeof prompt !== "string") {
       fail(message.id, "turn/steer requires text input");
+      return;
+    }
+    if (prompt === "fixture-conflicting-thread") {
+      respond(message.id, { threadId: "different-thread", turnId: activeTurnId });
       return;
     }
     respond(message.id, { turnId: activeTurnId });

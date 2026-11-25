@@ -15,7 +15,7 @@ if (args.includes("--list-extensions")) {
 }
 if (args.includes("--install-extension")) {
   if (plan.delayInstallMs) await new Promise(resolve => setTimeout(resolve, plan.delayInstallMs));
-  if (plan.failInstall) { console.error("fixture private stderr must not escape"); process.exit(1); }
+  if (plan.failInstall) { console.error("fixture private stderr ticket=MARK_EXTENSION must not escape"); process.exit(1); }
   if (!plan.omitInstall) {
     fs.mkdirSync(extensions, { recursive: true });
     const file = path.join(extensions, "fixture-installed.json");

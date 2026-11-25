@@ -15,9 +15,63 @@ import { openHostSocketRelay } from "../src/hosts/socket-relay.js";
 import { runtimePeerFixture } from "./runtime-peer-fixture.js";
 import { principal } from "./peer-fixture.js";
 import { ConnectorIDEHostTransport } from "../src/peer/ide-transport.js";
+import { SharedWorkspaceHost } from "../src/peer/shared-workspace.js";
+import { ProcessIDEHostTransport } from "../src/ide/transport.js";
 import type { ScriptHost } from "../src/hosts/script-host.js";
 import { runtimeFilesystemScope } from "../src/agents/filesystem-scope.js";
 const exec = promisify(execFile);
+
+test("remote shared editor preserves UTF-8 across stdout chunks", async () => {
+  const text = "共享目录 📁";
+  const payload = Buffer.from(JSON.stringify({ text }));
+  const split = payload.indexOf(Buffer.from("共")) + 1;
+  // Wait for the parent's READY acknowledgement between writes so the two
+  // halves of the Chinese character cannot arrive in the same data event.
+  const host = new SharedWorkspaceHost("fixture", undefined, async () => ({
+    command: process.execPath,
+    args: ["-e", `
+      const data = Buffer.from(process.argv[1], "base64");
+      const split = Number(process.argv[2]);
+      process.stdout.write(Buffer.concat([Buffer.from("READY\\n"), data.subarray(0, split)]));
+      process.stdin.once("data", () => {
+        process.stdout.end(data.subarray(split));
+        process.stdin.destroy();
+      });
+    `, payload.toString("base64"), String(split)]
+  }));
+  const response = await host.workspace({ path: "/fixture", dev: 1, ino: 1 },
+    "workspace.read", { path: "note.txt" }, () => {});
+  assert.deepEqual(response, { text });
+});
+
+test("IDE host preserves a multibyte workspace path split across startup events", async t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ide-utf8-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const id = "project";
+  const workspaceFile = path.join(dir, "工作区", id, "project.code-workspace");
+  const signal = path.join(dir, "profile-received");
+  const receipt = Buffer.from("CIG_SOCKET " + JSON.stringify({ socket: "/fixture.sock", workspaceFile }) + "\n");
+  const cut = receipt.indexOf(Buffer.from("工")) + 1;
+  const transport = new ProcessIDEHostTransport({ resolveHostCommand: async () => ({
+    command: process.execPath,
+    args: ["-e", `
+      const fs = require("node:fs"), data = Buffer.from(process.argv[1], "base64");
+      const cut = Number(process.argv[2]);
+      process.stdout.write(Buffer.concat([Buffer.from('CIG_PROFILE {"phase":"ready","installed":[]}\\n'), data.subarray(0, cut)]));
+      const timer = setInterval(() => {
+        if (!fs.existsSync(process.argv[3])) return;
+        clearInterval(timer);
+        process.stdout.write(data.subarray(cut));
+      }, 5);
+      process.stdin.resume();
+    `, receipt.toString("base64"), String(cut), signal]
+  }) });
+  const launched = await transport.launch({ hostId: "fixture", workspace: dir, id, binary: "fixture",
+    rootPaths: [dir, path.join(dir, "子目录")], extensions: [], settings: {},
+    onProfile: () => fs.writeFileSync(signal, "") });
+  try { assert.equal(launched.workspaceFile, workspaceFile); }
+  finally { await launched.stop(); }
+});
 
 test("filesystem scope keeps program state orthogonal but rejects resource, directory and project substitution", () => {
   const resource = { ref: { endpointId: "app", id: "dev/t1" }, projectId: "dev/s1", machine: "dev", cwd: "/work",

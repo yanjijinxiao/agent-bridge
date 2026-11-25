@@ -1,5 +1,9 @@
 # 需求与 case 核对表
 
+本轮复验原有 78 个部分覆盖的场景，新增 38 项通过。当前清单含 449 个已验场景及 40 个部分覆盖场景。[逐项验收结果](../audits/2026-11-25-pending-acceptance-results.md)
+
+同群多人首次对话、审批隔离、重启和卡片标题属于单独的增量回归，可以启用临时 App Server 核实真实会话历史。[用例与测试边界](member-sessions.md)
+
 2026-11-23 新增 NATIVE-02.10，13 项覆盖原执行主机有界读取、真实核心冷恢复、Connector 回执和收件箱。现场两份记录经只读验证。详见[四层检查](../audits/2026-11-23-native-permission-source.md)。
 
 2026-11-10 引用排查新增 IN-05.6：卡片可见文本树、旧富文本容器及缺失措辞的十项直接测试，连同相邻回归共 120 项通过。旧版九项新增解析测试中五项失败；本次未还原截图对应的原始 Stream 报文，也未实现机器人自动查询历史消息。当前通用清单 461 case，历史汇总保留原检查点；见[调查记录](../audits/2026-11-10-dingtalk-quotes.md)。
@@ -28,54 +32,56 @@ Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audi
 
 | 要求 | 模块 | 场景数 | 已记录窄边界通过 | 部分覆盖 | 未映射 |
 | --- | --- | ---: | ---: | ---: | ---: |
-| NATIVE-01 · 一套完整原生接口 | native | 5 | 4 | 1 | 0 |
+| NATIVE-01 · 一套完整原生接口 | native | 6 | 5 | 1 | 0 |
 | NATIVE-02 · 同一原生核心与权限继承 | native | 10 | 9 | 1 | 0 |
 | NATIVE-03 · 全部控制按主机路由 | native | 7 | 5 | 2 | 0 |
 | NATIVE-04 · 轻读与历史隔离 | native | 3 | 3 | 0 | 0 |
-| NATIVE-05 · 线程和轮次状态正交 | native | 7 | 6 | 1 | 0 |
+| NATIVE-05 · 线程和轮次状态正交 | native | 7 | 7 | 0 | 0 |
 | NATIVE-06 · 长任务不因静默超时 | native | 3 | 3 | 0 | 0 |
-| IN-01 · 普通消息透明转发 | inbound | 5 | 3 | 2 | 0 |
-| IN-02 · 可靠接收与持久交接 | inbound | 9 | 8 | 1 | 0 |
+| IN-01 · 普通消息透明转发 | inbound | 5 | 4 | 1 | 0 |
+| IN-02 · 可靠接收与持久交接 | inbound | 10 | 9 | 1 | 0 |
 | IN-03 · 未知前序不永久阻塞 | inbound | 4 | 4 | 0 | 0 |
 | IN-04 · 群命令归一化 | inbound | 3 | 2 | 1 | 0 |
-| IN-05 · 入站附件和引用 | inbound | 4 | 1 | 3 | 0 |
+| IN-05 · 入站附件和引用 | inbound | 5 | 2 | 3 | 0 |
 | IN-06 · 跨主机资源 | inbound | 6 | 3 | 3 | 0 |
 | STATE-01 · 状态唯一与原子持久化 | state | 6 | 5 | 1 | 0 |
 | STATE-02 · 账号生命周期和身份 | state | 4 | 2 | 2 | 0 |
 | STATE-03 · 兼容迁移与私有数据 | state | 3 | 1 | 2 | 0 |
-| BIND-01 · 未绑定与精确解绑 | binding | 3 | 1 | 2 | 0 |
+| BIND-01 · 未绑定与精确解绑 | binding | 3 | 3 | 0 | 0 |
 | BIND-02 · 绑定是执行上下文权威 | binding | 5 | 3 | 2 | 0 |
-| BIND-03 · 统一生命周期失效 | binding | 4 | 1 | 3 | 0 |
+| BIND-03 · 统一生命周期失效 | binding | 4 | 2 | 2 | 0 |
 | BIND-04 · 主交互与来源路由 | binding | 3 | 2 | 1 | 0 |
 | BIND-05 · 绑定总览 | binding | 3 | 3 | 0 | 0 |
+| BIND-06 · 钉钉账号的群内个人会话与首次建会话 | binding | 5 | 5 | 0 | 0 |
 | CAT-01 · 完整普通会话目录 | catalog | 7 | 6 | 1 | 0 |
-| CAT-02 · 顺序、分页与稳定选择 | catalog | 5 | 5 | 0 | 0 |
-| CAT-03 · 项目身份与创建 | catalog | 5 | 4 | 1 | 0 |
+| CAT-02 · 顺序、分页与稳定选择 | catalog | 6 | 6 | 0 | 0 |
+| CAT-03 · 项目身份与创建 | catalog | 5 | 5 | 0 | 0 |
 | CAT-04 · 历史与详情 | catalog | 4 | 3 | 1 | 0 |
-| CTRL-01 · 普通忙时 steer | controls | 4 | 1 | 3 | 0 |
+| CTRL-01 · 普通忙时 steer | controls | 4 | 3 | 1 | 0 |
 | CTRL-02 · Codex 原生持久队列 | controls | 4 | 3 | 1 | 0 |
 | CTRL-03 · 队列恢复和取消 | controls | 5 | 4 | 1 | 0 |
 | CTRL-04 · 停止及目标身份 | controls | 5 | 5 | 0 | 0 |
-| CTRL-05 · 状态与帮助 | controls | 6 | 4 | 2 | 0 |
+| CTRL-05 · 状态与帮助 | controls | 14 | 14 | 0 | 0 |
 | AUTH-01 · IM个人和群准入 | access | 3 | 1 | 2 | 0 |
 | AUTH-02 · 远程准入审批 | access | 5 | 5 | 0 | 0 |
 | INT-01 · 原生审批全范围 | interactions | 8 | 8 | 0 | 0 |
-| INT-02 · 真实审批与内部审核 | interactions | 5 | 4 | 1 | 0 |
+| INT-02 · 真实审批与内部审核 | interactions | 11 | 10 | 1 | 0 |
 | INT-03 · 提问、表单与安全URL | interactions | 5 | 4 | 1 | 0 |
 | INT-04 · 答案及决定回执 | interactions | 4 | 4 | 0 | 0 |
-| INT-05 · 异步状态不卡主线 | interactions | 3 | 2 | 1 | 0 |
+| INT-05 · 异步状态不卡主线 | interactions | 3 | 3 | 0 | 0 |
 | REC-01 · systemError自动恢复 | recovery | 4 | 3 | 1 | 0 |
 | REC-02 · 容量恢复 | recovery | 5 | 4 | 1 | 0 |
 | DEL-01 · 执行、送达和显示独立 | delivery | 8 | 6 | 2 | 0 |
 | DEL-02 · 单卡分阶段持久化 | delivery | 4 | 3 | 1 | 0 |
 | DEL-03 · 不追加文本兜底 | delivery | 3 | 2 | 1 | 0 |
-| DEL-04 · 历史不当新任务 | delivery | 3 | 2 | 1 | 0 |
+| DEL-04 · 历史不当新任务 | delivery | 3 | 3 | 0 | 0 |
 | DEL-05 · 分段而非任务完成 | delivery | 3 | 2 | 1 | 0 |
 | DEL-06 · 最终参与者原生提醒 | delivery | 3 | 2 | 1 | 0 |
 | DEL-07 · 长回答完整可读 | delivery | 3 | 2 | 1 | 0 |
-| DEL-08 · 进展真实且简洁 | delivery | 11 | 8 | 3 | 0 |
+| DEL-08 · 进展真实且简洁 | delivery | 13 | 10 | 3 | 0 |
 | DEL-09 · Markdown语义完整 | delivery | 7 | 2 | 5 | 0 |
 | DEL-10 · 复制按用户任务 | delivery | 3 | 1 | 2 | 0 |
+| DEL-11 · 任务卡状态行显示会话与机器 | delivery | 2 | 1 | 1 | 0 |
 | CHAN-01 · 四种IM统一前端 | channel | 4 | 2 | 2 | 0 |
 | CHAN-02 · 网络生命周期有界 | channel | 3 | 3 | 0 | 0 |
 | CHAN-03 · 媒体发送不误判 | channel | 10 | 10 | 0 | 0 |
@@ -121,11 +127,11 @@ Connector 省略 CA 的 PEER-01.3 增量见[证书检查与线上验证](../audi
 | KB-02 · 移除 Gateway 自建长期记忆 | knowledge | 4 | 4 | 0 | 0 |
 | CAT-05 · 个人当前 Connector 目录选择 | catalog | 4 | 4 | 0 | 0 |
 | NAT-07 · Gateway 全部执行统一到 Connector | native | 11 | 11 | 0 | 0 |
-| CTRL-06 · 原生执行设置唯一权威 | controls | 6 | 0 | 6 | 0 |
+| CTRL-06 · 原生执行设置唯一权威 | controls | 6 | 6 | 0 | 0 |
 | VER-01 · 接口、运行日志及制品统一版本管理 | release | 13 | 13 | 0 | 0 |
 | VER-02 · Agent Bridge 改名与 scoped npm 统一产品版本 | release | 3 | 3 | 0 | 0 |
 
-2026-11-08 从需求 JSON 同步：96 项要求、459 个场景，364 项有列明边界的验证记录，95 项保留部分覆盖限制。本表仅汇总已有记录，不刷新历史验证结论。
+2026-11-25 续检后，98 项要求共 489 个场景，其中 411 项在列明边界内通过，78 项保留具体待验条件。本轮补验了四渠道的引用分派、指定轮次回执、写入前撤权、千轮历史恢复、旁路快照时序、审批回执丢失后的重连及 IDE 表单等待期间的编辑。[本轮证据](../audits/2026-11-25-input-follow-review.md)
 
 2026-11-04 链接直达增量：IDE-14.1–14.3，3 个场景均有直接测试映射，5 个测试（含全新 Chrome）通过。启用账号可持链接进入；未启用账号保留 IDE-13 的本人确认。详见 [增量检查](../audits/2026-11-04-ide-link-access/README.md)。
 

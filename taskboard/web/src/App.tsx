@@ -1206,11 +1206,12 @@ export function App() {
       selectedDeviceWorkspacePath,
     )
       .then((scan) => {
+        if (controller.signal.aborted) return;
         setDevelopmentScan(scan);
         if (scan.workspacePath) rememberDeviceWorkspacePath(selectedProjectId, scan.workspacePath);
       })
       .catch((error) => {
-        if ((error as Error).name !== "AbortError") {
+        if (!controller.signal.aborted && (error as Error).name !== "AbortError") {
           setDevelopmentScan({ workspacePath: selectedDeviceWorkspacePath ?? null, contexts: [] });
         }
       })

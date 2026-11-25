@@ -13,6 +13,7 @@ import { ChannelTurnTextStream } from "../src/channels/progress.js";
 import { meaningfulProgress, progressKind } from "../src/channels/progress-summary.js";
 import { TurnAudienceJournal } from "../src/bridge/turn-audience.js";
 import { InteractionRoutingJournal } from "../src/bridge/interaction-routing.js";
+import { eventually } from "./helpers/gap-browser.js";
 
 const scope = { hostId: "local", threadId: "thread", turnId: "failed" };
 
@@ -275,3 +276,36 @@ for(const phase of ['checking','settling']) test(`capacity ${phase} only reads n
     assert.equal(f.calls.length,0);assert.equal(f.terminals.length,0);
   }finally{release.resolve();}
 });
+
+for (const change of ["stable", "generation", "role", "queue"] as const) {
+  test(`the final native queue observation honors a concurrent ${change} change before capacity continuation`, async t => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "capacity-guard-"));
+    const gate = path.join(dir, "queue");
+    const runner = new AppServerCodexRunner({
+      requestTimeoutMs: 15000,
+      transport: { command: process.execPath, mode: "remote-daemon",
+        args: [path.join(import.meta.dirname, "fixtures/fake-capacity-app-server.mjs"), "--queue-gate=" + gate] },
+    });
+    t.after(async () => {
+      fs.writeFileSync(gate, "stop");
+      await runner.close();
+      fs.rmSync(dir, { recursive: true, force: true });
+    });
+    let generation = 1, controller = true, accepted = 0;
+    const result = runner.resumeAfterCapacity({ ...scope, failedTurnId: "failed", clientUserMessageId: "stable-attempt",
+      assertCurrent() { if (generation !== 1 || !controller) throw Error("source changed"); },
+      onTurnStarted() { accepted++; },
+    }).then(() => undefined, (error: Error) => error);
+    // Observe the actual queue read in the spawned process before mutating its source.
+    await eventually(() => fs.existsSync(gate + ".waiting"), "native process did not reach the queue read");
+    if (change === "generation") generation++;
+    if (change === "role") controller = false;
+    fs.writeFileSync(gate, change);
+    const err = await result;
+    if (change === "stable") assert.ifError(err);
+    else assert.match(String(err), /queue takes precedence|source changed/);
+    const starts = fs.existsSync(gate + ".starts") ? fs.readFileSync(gate + ".starts", "utf8").trim().split("\n") : [];
+    assert.equal(starts.length, change === "stable" ? 1 : 0);
+    assert.equal(accepted, starts.length);
+  });
+}

@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -993,6 +994,10 @@ export function AiChat({ available, projectId, issueId }: AiChatProps) {
   const skillMenuRef = useRef<HTMLDivElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const composerGenerationRef = useRef(0);
+  // An existing conversation can stay selected while the parent changes
+  // project or issue. Retire work started by the previous composer context
+  // before handling input on the new view, including a return to the old one.
+  useLayoutEffect(() => { composerGenerationRef.current += 1; }, [projectId, issueId]);
   const composerRevisionRef = useRef(0);
   const submittingRef = useRef(false);
   const messagesRef = useRef<HTMLDivElement>(null);

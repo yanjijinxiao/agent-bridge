@@ -1,3 +1,4 @@
+import { bindingRecipient } from "../channels/conversation-binding.js";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import { isDeepStrictEqual } from "node:util";
@@ -27,6 +28,9 @@ export type ManagedSession = {
   threadId?: string;
   /** Topology generation; human activity has a separate expiry generation. */
   executionGeneration?: string;
+  /** Immutable provenance for card headings. */
+  createdByFirstContact?: true;
+  explicitlySelected?: true;
   lastPromptPreview?: string;
   /** Legacy migration input only; normalize removes these native-owned settings. */
   model?: string;
@@ -100,6 +104,7 @@ export type RuntimeState = {
   syncKey?: string;
   processedMessageIds: string[];
   contextTokens: Record<string, string>;
+  firstContacts?: Record<string, { id: string; hostId: string; actorId: string }>;
   sessions: ManagedSession[];
   projects: ManagedProject[];
   knowledgeBases: ManagedKnowledgeBase[];
@@ -158,10 +163,14 @@ export class RuntimeStateStore {
     if (this.state && revision === this.revision) return;
     if (this.state && this.revision && !revision) throw Error("账号状态文件丢失，未初始化为空状态。");
     const loaded = readJsonObjectFile<Partial<RuntimeState>>(this.paths.statePath, {});
-    for (const key of ["activeSessionIds", "activeQaSessionIds", "activeProjectIds", "contextTokens", "conversationRoles"] as const) {
+    // Missing fields in older schemas acquire defaults below. A present field
+    // with a different container type must never migrate into an empty table.
+    for (const key of ["activeSessionIds", "activeQaSessionIds", "activeProjectIds", "contextTokens", "conversationRoles",
+      "sessionPageSizes", "connectorSelections", "authorizedConversationsByActor", "bindingActivity", "interactionModes", "firstContacts"] as const) {
       if (loaded[key] !== undefined && !isJsonObject(loaded[key])) throw new Error(`Invalid runtime ${key}; original state preserved`);
     }
-    for (const key of ["sessions", "projects", "knowledgeBases", "pairedSenderIds"] as const) {
+    for (const key of ["sessions", "projects", "knowledgeBases", "pairedSenderIds",
+      "processedMessageIds", "detachedSessionSenders", "pendingDeliveries"] as const) {
       if (loaded[key] !== undefined && !Array.isArray(loaded[key])) throw new Error(`Invalid runtime ${key}; original state preserved`);
     }
     const before = structuredClone(loaded);
@@ -224,11 +233,12 @@ export class RuntimeStateStore {
   get standaloneWorkspacesDir(): string { return path.join(path.dirname(this.paths.statePath), "workspaces", "standalone"); }
 
   roleFor(conversationId: string, actorId: string): "viewer" | "participant" | "controller" | undefined {
-    const roles = this.state.conversationRoles[conversationId];
+    const roles = this.state.conversationRoles[bindingRecipient(conversationId)];
     return roles && Object.hasOwn(roles, actorId) ? roles[actorId] : undefined;
   }
 
   setRole(conversationId: string, actorId: string, role: "viewer" | "participant" | "controller"): void {
+    conversationId = bindingRecipient(conversationId);
     if (!Object.hasOwn(this.state.conversationRoles, conversationId)) {
       Object.defineProperty(this.state.conversationRoles, conversationId, { value: {}, enumerable: true, writable: true, configurable: true });
     }
@@ -249,12 +259,39 @@ export class RuntimeStateStore {
     this.save();
   }
 
+  /** Reserve once before native creation. Connector operation receipts use this
+   * id after a crash, including a crash before the local binding was committed. */
+  reserveFirstContact(address: string, hostId: string, actorId: string) {
+    const reservations = this.state.firstContacts ??= {};
+    const prior = Object.hasOwn(reservations, address) ? reservations[address] : undefined;
+    if (prior?.hostId === hostId) return { ...prior };
+    const reservation = { id: crypto.randomUUID(), hostId, actorId };
+    Object.defineProperty(reservations, address, { value: reservation, enumerable: true, configurable: true, writable: true });
+    try { this.save(); }
+    catch (error) {
+      // save() reloads existing files after conflicts. On a first write there
+      // may be no durable state to reload, so undo this pending reservation.
+      if (this.state.firstContacts === reservations) {
+        if (prior) reservations[address] = prior;
+        else delete reservations[address];
+      }
+      throw error;
+    }
+    return { ...reservation };
+  }
+
+  firstContactReservation(address: string) {
+    const records = this.state.firstContacts;
+    return records && Object.hasOwn(records, address) ? { ...records[address] } : undefined;
+  }
+
   leaveSession(senderId: string, reason: "manual" | "idle" = "manual"): void {
     this.detachSessionSelection(senderId, reason);
     this.save();
   }
 
   private detachSessionSelection(senderId: string, reason: "manual" | "idle"): void {
+    if (this.state.firstContacts) delete this.state.firstContacts[senderId];
     const endedSessionId = this.getBoundSession(senderId)?.id;
     for (const session of [this.mutableActiveSession(senderId), this.mutableActiveQaSession(senderId)]) {
       if (session) {
@@ -801,7 +838,7 @@ export class RuntimeStateStore {
     projectId?: string,
     mode: "session" | "qa" = "session",
     knowledgeBaseId?: string,
-    context?: { standalone?: boolean; hostId?: string; membershipUnknown?: boolean; unknownWorkspace?: boolean }
+    context?: { standalone?: boolean; hostId?: string; membershipUnknown?: boolean; unknownWorkspace?: boolean; firstContact?: { threadId: string; generation: string } }
   ): ManagedSession {
     const now = new Date().toISOString();
     if (context?.unknownWorkspace && (workspace !== "" || !context.standalone || mode !== "session" || projectId))
@@ -819,18 +856,21 @@ export class RuntimeStateStore {
     const number = this.state.sessions.filter((session) => session.senderId === senderId).length + 1;
     const session: ManagedSession = {
       id: crypto.randomUUID(),
+      ...(context?.firstContact && { createdByFirstContact: true as const, threadId: context.firstContact.threadId, executionGeneration: context.firstContact.generation }),
       senderId,
       title: cleanTitle(title) ?? `会话 ${number}`,
       workspace: resolvedWorkspace,
       ...(context?.unknownWorkspace ? { workspaceState: "unknown" as const } : {}),
       ...(project ? { projectId: project.id } : {}),
-      ...(context?.standalone ? { projectBinding: context.membershipUnknown ? "unknown" as const : "none" as const } : {}),
+      ...(context?.standalone ? { projectBinding: context.unknownWorkspace || context.membershipUnknown ? "unknown" as const : "none" as const } : {}),
       ...(context?.hostId ? { hostId: context.hostId } : {}),
       mode: mode === "qa" ? "qa" : "session",
       ...(mode === "qa" && knowledgeBaseId ? { knowledgeBaseId } : {}),
       createdAt: now,
       updatedAt: now
     };
+    if (context?.firstContact) this.state.interactionModes[senderId] = "session";
+    if (this.state.firstContacts) delete this.state.firstContacts[senderId];
     this.state.sessions.push(session);
     this.state.detachedSessionSenders = this.state.detachedSessionSenders.filter(id => id !== senderId);
     if (project) this.state.activeProjectIds[senderId] = project.id;
@@ -871,6 +911,7 @@ export class RuntimeStateStore {
 
   activateSession(sessionId: string): ManagedSession {
     const session = this.mutableSession(sessionId);
+    if (session.createdByFirstContact) session.explicitlySelected = true;
     if (this.getBoundSession(session.senderId)?.id !== session.id) session.executionGeneration = crypto.randomUUID();
     if (typeof session.followBeforeDetach === "boolean") {
       session.follow = session.followBeforeDetach;
@@ -915,22 +956,27 @@ export class RuntimeStateStore {
   reconcileThreadProject(threadId: string, hostId: string, projectId: string | undefined, cwd?: string, unknownWorkspace?: boolean): void {
     if (unknownWorkspace && projectId) throw new Error("Unknown workspace cannot grant a project directory");
     if (projectId && (this.mutableProject(projectId).hostId ?? "local") !== hostId) throw new Error("项目主机不一致");
+    const observedCwd = cwd && path.isAbsolute(cwd) ? cwd : undefined;
     let changed = false;
     for (const session of this.state.sessions) {
       if (session.threadId !== threadId || session.mode === "qa"
         || (session.hostId ?? this.getProject(session.projectId ?? "")?.hostId ?? "local") !== hostId) continue;
       const bound = this.getBoundSession(session.senderId)?.id === session.id;
-      const unknown = unknownWorkspace ?? (!cwd && session.workspaceState === "unknown");
-      const workspace = unknown ? "" : cwd && path.isAbsolute(cwd) ? cwd : session.workspace;
+      const unknown = unknownWorkspace === true || (!observedCwd && session.workspaceState === "unknown");
+      if (unknown && projectId) continue;
+      const workspace = unknown ? "" : observedCwd ?? session.workspace;
+      // A missing terminal directory stays unknown after reload. Observing the
+      // same resource again must not retire its active execution generation.
+      const projectBinding = projectId ? undefined : unknown ? "unknown" : "none";
       if (session.projectId !== projectId || session.workspace !== workspace
         || unknown !== (session.workspaceState === "unknown")
-        || (projectId ? session.projectBinding === "none" : session.projectBinding !== "none")) {
+        || session.projectBinding !== projectBinding) {
         session.executionGeneration = crypto.randomUUID();
         session.hostId = hostId; session.workspace = workspace;
         if (unknown) session.workspaceState = "unknown";
         else delete session.workspaceState;
         if (projectId) { session.projectId = projectId; delete session.projectBinding; }
-        else { delete session.projectId; session.projectBinding = "none"; }
+        else { delete session.projectId; session.projectBinding = projectBinding; }
         changed = true;
       }
       if (bound) {
@@ -1123,6 +1169,7 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
       ? value.approvalSequence! : 0,
     sessionPageSizes: value.sessionPageSizes && typeof value.sessionPageSizes === "object" && !Array.isArray(value.sessionPageSizes)
       ? Object.fromEntries(Object.entries(value.sessionPageSizes).filter(([, size]) => isSessionPageSize(size))) : {},
+    ...(value.firstContacts !== undefined && { firstContacts: normalizeFirstContacts(value.firstContacts) }),
     connectorSelections: normalizeConnectorSelections(value.connectorSelections),
     pairedSenderIds: Array.isArray(value.pairedSenderIds) ? value.pairedSenderIds : [],
     conversationRoles: Object.fromEntries(Object.entries(value.conversationRoles ?? {}).map(([chat, roles]) => [
@@ -1154,6 +1201,19 @@ function normalizeRuntimeState(value: Partial<RuntimeState>): RuntimeState {
     normalized[key] = Object.assign(Object.create(null), normalized[key]);
   }
   return normalized;
+}
+
+/** Cannot discard a corrupt creation ticket: its native request may have already succeeded. */
+function normalizeFirstContacts(value: unknown): NonNullable<RuntimeState["firstContacts"]> {
+  if (!isJsonObject(value)) throw new Error("Invalid first contact reservations");
+  const records: NonNullable<RuntimeState["firstContacts"]> = Object.create(null);
+  for (const [key, record] of Object.entries(value)) {
+    if (!key || !isJsonObject(record) || typeof record.id !== "string" || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(record.id)
+      || typeof record.hostId !== "string" || !record.hostId || typeof record.actorId !== "string" || !record.actorId)
+      throw new Error("Invalid first contact reservation");
+    records[key] = { id: record.id, actorId: record.actorId, hostId: record.hostId };
+  }
+  return records;
 }
 
 /** Corrupt saved selection must not silently reroute a query/create to local. */

@@ -10,6 +10,7 @@ import { phaseActivity, phaseParagraphs, type PhaseProgress } from "./phase-prog
 type ProgressFacts = {
   activity: TurnActivity;
   elapsed: string;
+  headingContext?: string;
   current: string;
   thought?: string;
   recent: readonly string[];
@@ -48,6 +49,7 @@ function progressParts(input: ProgressFacts) {
   const tools = input.tools;
   const metadata = [input.elapsed];
   if (tools.failed) metadata.push(`工具异常 ${tools.failed} 次（非任务终态）`);
+  if (input.headingContext) metadata.push(input.headingContext);
   const icon = { running: "⏳", "waiting-input": "💬", "waiting-approval": "🔐", "waiting-external": "💬", recovering: "↻", unconfirmed: "⚠️", "waiting-result": "📨" }[input.activity];
   const current = progressProse(input.notice || input.current, 360);
   const thought = input.thought && progressProse(input.thought, 160);

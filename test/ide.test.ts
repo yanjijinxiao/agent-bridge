@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import net from "node:net";
@@ -568,6 +569,53 @@ test("multi-root canonical checks reject retargeting, missing members and projec
   await assert.rejects(manager.open(entry.id), /missing/); assert.equal(transport.launches.length, 0);
   transport.canonicalDirectory = async (_host, directory) => { if (directory === "/farming") target = { ...target, rootPaths: ["/bridge", "/third"] }; return directory; };
   await assert.rejects(manager.canonicalForTrust(entry.id), /项目已改变/);
+});
+
+test("reordering Git roots and renaming a project during browser approval preserve its entry, grant and running IDE", async t => {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "ide-reordered-roots-")));
+  const roots = ["a", "b"].map(name => path.join(root, name));
+  for (const dir of roots) {
+    fs.mkdirSync(dir);
+    execFileSync("git", ["init", "--quiet", dir]);
+  }
+  let target: IDEWorkspace = { owner: "owner", projectId: "p", sessionId: "s", nativeThreadId: "thread",
+    hostId: "local", workspace: roots[0], rootPaths: roots, projectName: "before" };
+  const transport = new FakeTransport();
+  const manager = new WorkspaceIDEManager({ root, transport, resolve: () => target });
+  const port = await freePort(), origin = `http://127.0.0.1:${port}`;
+  manager.configStore.save({ ...config(manager.configStore, port), publicOrigin: origin });
+  const access = new IDEAccessServer(manager);
+  t.after(async () => { await access.close(); fs.rmSync(root, { recursive: true, force: true }); });
+  await access.reload(false);
+  const entry = manager.entry("account", "s")!;
+  const first = await fetch(entry.url + "?auth_check=1");
+  const proof = first.headers.getSetCookie().map(cookie => cookie.split(";")[0]).join("; ");
+  await first.text();
+  const [request] = access.pendingAccess();
+  const scope = manager.authorizationScope(entry.id);
+  transport.canonicalDirectory = async (_host, dir) => {
+    if (dir === roots[1]) target = { ...target, rootPaths: [...roots].reverse(), projectName: "renamed" };
+    return fs.realpathSync(dir);
+  };
+  await access.approveAccess(request.id, entry.id, true);
+  const granted = await fetch(entry.url + "?auth_check=1", { headers: { Cookie: proof }, redirect: "manual" });
+  const cookies = granted.headers.getSetCookie().map(cookie => cookie.split(";")[0]).join("; ");
+  await granted.text();
+  const page = await fetch(entry.url, { headers: { Cookie: cookies } });
+  const form = await page.text();
+  assert.doesNotMatch(form, /等待 Gateway 授权/);
+  const csrf = /name="csrf" value="([^"]+)"/.exec(form)?.[1];
+  assert.ok(csrf);
+  const opened = await fetch(origin + "/open/" + entry.id, { method: "POST", redirect: "manual",
+    headers: { Cookie: cookies, Origin: origin }, body: new URLSearchParams({ csrf }) });
+  await opened.text(); assert.equal(opened.status, 303);
+  target = { ...target, rootPaths: roots, projectName: "again" };
+  assert.equal(manager.entry("account", "s")!.url, entry.url);
+  assert.equal(manager.authorizationScope(entry.id), scope);
+  const again = await fetch(entry.url, { headers: { Cookie: cookies }, redirect: "manual" });
+  await again.text(); assert.equal(again.status, 303);
+  assert.equal(access.pendingAccess().length, 0);
+  assert.equal(transport.launches.length, 1);
 });
 
 test("real host helper generates a private multi-root workspace without writing config into repositories", async t => {

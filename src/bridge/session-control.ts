@@ -70,8 +70,15 @@ export class SessionControlJournal {
     }
   }
 
-  steer(key: string, messageId: string, action: () => Promise<CodexInputReceipt>, hostId?: string, origin?: TurnParticipantOrigin): Promise<CodexInputReceipt> {
-    return this.submit(key, messageId, action, hostId, origin);
+  steer(target: { hostId: string; threadId: string; turnId: string }, messageId: string,
+    action: () => Promise<CodexInputReceipt>, origin?: TurnParticipantOrigin): Promise<CodexInputReceipt> {
+    // Compare the native acknowledgement before journaling acceptance. On a
+    // duplicate the cached receipt must still identify the requested turn.
+    return this.submit(JSON.stringify([target.hostId, target.threadId]), messageId, action, target.hostId, origin, receipt => {
+      if (receipt?.status !== "accepted" || receipt.threadId !== target.threadId || receipt.turnId !== target.turnId) {
+        throw new CodexCommunicationError("submission", "turn/steer", target.threadId, undefined, { code: "InvalidAcknowledgement" });
+      }
+    });
   }
 
   acceptedPresentationInputs(): AcceptedPresentationInput[] {
@@ -81,17 +88,22 @@ export class SessionControlJournal {
       ? [receipt.presentation] : []);
   }
 
-  async submit(key: string, messageId: string, action: () => Promise<CodexInputReceipt>, presentationHostId?: string, origin?: TurnParticipantOrigin): Promise<CodexInputReceipt> {
+  async submit(key: string, messageId: string, action: () => Promise<CodexInputReceipt>, presentationHostId?: string, origin?: TurnParticipantOrigin,
+    validate?: (receipt: CodexInputReceipt) => void): Promise<CodexInputReceipt> {
     const receiptId = crypto.createHash("sha256").update(JSON.stringify([key, messageId])).digest("hex");
     return this.queue.run(key, async () => {
       this.assertAvailable();
       const receipt = this.state.receipts[receiptId];
-      if (receipt?.status === "accepted" && receipt.result) return receipt.result;
+      if (receipt?.status === "accepted" && receipt.result) {
+        validate?.(receipt.result);
+        return receipt.result;
+      }
       if (receipt) throw new CodexInterventionError(`该条消息已尝试提交，但结果尚未确认；请先核对历史，避免重复执行。\n\n${copyBlock("/history")}`);
       this.state.receipts[receiptId] = { status: "sending", ...(origin ? { origin } : {}) };
       this.save();
       try {
         const result = await action();
+        validate?.(result);
         this.state.receipts[receiptId] = { status: "accepted", result,
           ...(presentationHostId && key === JSON.stringify([presentationHostId, result.threadId])
             && result.status === "accepted" && result.turnId && result.threadId ? { presentation: {

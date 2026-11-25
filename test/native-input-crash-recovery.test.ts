@@ -52,8 +52,10 @@ for (const scenario of [
   { existing: true, completedOffline: true, recoveryCrash: false },
   { existing: false, completedOffline: true, recoveryCrash: false },
   { existing: true, completedOffline: false, recoveryCrash: true },
-  { existing: false, completedOffline: true, recoveryCrash: "after" }
-]) test(`IN-02.2: real SIGKILL acceptance recovery without replay ${JSON.stringify(scenario)}`,
+  { existing: false, completedOffline: true, recoveryCrash: "after" },
+  { existing: true, completedOffline: false, recoveryCrash: false, releaseProbe: true }
+]) test(scenario.releaseProbe ? "release command before and after recovery of a native receipt append returning ENOSPC"
+  : `IN-02.2: real SIGKILL acceptance recovery without replay ${JSON.stringify(scenario)}`,
   { skip: !process.env.CODEX_NATIVE_QUEUE_TEST_BIN || process.platform === "win32", timeout: 60000 }, async t => {
     const { existing, completedOffline, recoveryCrash } = scenario;
     const children: Array<ReturnType<typeof gateway>> = [], release = Promise.withResolvers<void>();
@@ -85,8 +87,19 @@ for (const scenario of [
     if (threadId) store.setSessionThread(session.id, threadId);
     const receiptFile = path.join(paths.runtimeDir, "fixture", "inbound-receipts.jsonl"), deliveries = path.join(f.root, "deliveries.jsonl");
     const crashMarker = path.join(f.root, "crash.json"), config = path.join(f.root, "gateway-config.json");
-    fs.writeFileSync(config, JSON.stringify({ gatewayRoot: paths.root, nativeHome: f.root, endpoint: f.endpoint, receiptFile, deliveries, crashMarker }));
-    const first = gateway(config, "crash"); children.push(first);
+    const releaseProbe = scenario.releaseProbe ? path.join(f.root, "test-management-origin") : undefined;
+    fs.writeFileSync(config, JSON.stringify({ releaseProbe, gatewayRoot: paths.root, nativeHome: f.root, endpoint: f.endpoint, receiptFile, deliveries, crashMarker }));
+    const first = gateway(config, releaseProbe ? "disk-full" : "crash"); children.push(first);
+    if (releaseProbe) {
+      const { claimRuntimeRelease } = await import("../scripts/release-local.mjs");
+      await first.ready;
+      await until(() => fs.existsSync(crashMarker));
+      const origin = new URL(fs.readFileSync(releaseProbe, "utf8"));
+      try { await assert.rejects(claimRuntimeRelease(origin, first.child.pid), /release admission HTTP 409/); }
+      catch (error) { throw Error("release before recovery: " + first.log(), { cause: error }); }
+      assert.equal(first.child.exitCode, null);
+      first.child.kill("SIGKILL");
+    }
     assert.equal((await first.exited).signal, "SIGKILL", first.log());
     const accepted = JSON.parse(fs.readFileSync(crashMarker, "utf8")).receipt;
     assert.equal(receipt(receiptFile).phase, "submitting", "the durable Gateway receipt has no acceptance yet");
@@ -122,6 +135,12 @@ for (const scenario of [
     assert.equal(receipt(receiptFile).clientUserMessageId, accepted.clientUserMessageId);
     assert.equal((await peer.request("server/diagnostics")).process.id, beforeCore);
     assert.equal(f.calls.filter((call: any) => JSON.stringify(call.input).includes("CRASH_INPUT")).length, 1);
+    if (releaseProbe) {
+      const { claimRuntimeRelease } = await import("../scripts/release-local.mjs");
+      const lease = await claimRuntimeRelease(new URL(fs.readFileSync(releaseProbe, "utf8")), second.child.pid);
+      assert.ok(lease.id);
+      await lease.cancel();
+    }
     release.resolve();
     await until(() => fs.existsSync(deliveries) && fs.readFileSync(deliveries, "utf8").includes("CRASH_RESULT"), 12000);
     const media = () => fs.readFileSync(deliveries, "utf8").trim().split("\n").map(line => JSON.parse(line)).filter(item => item.kind === "file" && item.path === outputFile);
@@ -136,3 +155,69 @@ for (const scenario of [
     assert.equal((await peer.request("server/diagnostics")).process.id, beforeCore);
     assert.equal(Object.keys(JSON.parse(fs.readFileSync(path.join(paths.runtimeDir, "fixture", "forwarding-inbox.json"), "utf8")).rows).length, 0);
   });
+
+test("an explicit unbind survives Gateway SIGKILL while the active native turn and queued input finish once", {
+  skip: !process.env.CODEX_NATIVE_QUEUE_TEST_BIN || process.platform === "win32", timeout: 60_000
+}, async t => {
+  const release = Promise.withResolvers<void>();
+  const core = await sharedNativeCore(t, async (_input, n) => {
+    if (n === 1) await release.promise;
+    return message("native result " + n, n);
+  });
+  const children: ReturnType<typeof gateway>[] = [];
+  t.after(async () => {
+    release.resolve();
+    for (const child of children) {
+      if (child.child.exitCode === null && child.child.signalCode === null) child.child.kill("SIGKILL");
+      await child.exited;
+    }
+  });
+  const owner = core.runner();
+  const { threadId } = await owner.createThread({ cwd: core.root, projectBinding: "none" });
+  const paths = resolveStatePaths(path.join(core.root, "gateway"));
+  const account = accountStatePaths(paths, "fixture");
+  saveAccount(paths, { accountId: "fixture", token: "isolated-fixture", baseUrl: "https://example.test", enabled: true });
+  const store = new RuntimeStateStore(account);
+  const session = store.createSession("room", core.root, "Detach test", undefined, "session", undefined, { standalone: true });
+  store.setSessionThread(session.id, threadId);
+  const other = store.createSession("other-room", core.root, "Other chat", undefined, "session", undefined, { standalone: true });
+  store.setSessionThread(other.id, threadId);
+  const deliveries = path.join(core.root, "deliveries.jsonl");
+  const file = path.join(core.root, "gateway-config.json");
+  fs.writeFileSync(file, JSON.stringify({ gatewayRoot: paths.root, nativeHome: core.root, endpoint: core.endpoint, deliveries }));
+  const first = gateway(file, "recover"); children.push(first); await first.ready;
+  const active = owner.run({ threadId, cwd: core.root, prompt: "keep running", clientUserMessageId: "active-source" });
+  void active.catch(() => {});
+  await until(() => core.calls.length === 1);
+  const queued = await owner.addQueuedSubmission({ threadId, prompt: "keep queued", clientUserMessageId: "queued-source" });
+  await first.command("unbind");
+  assert.ok(new RuntimeStateStore(account).isSessionDetached("room"));
+  first.child.kill("SIGKILL");
+  assert.equal((await first.exited).signal, "SIGKILL");
+  const second = gateway(file, "recover"); children.push(second); await second.ready;
+  await second.command("message-after-unbind");
+  assert.match(fs.readFileSync(deliveries, "utf8"), /未绑定任何 session/);
+  const restored = new RuntimeStateStore(account);
+  assert.equal(restored.getBoundSession("room"), undefined);
+  assert.equal(restored.getSession(session.id)?.threadId, threadId);
+  assert.equal(restored.getBoundSession("other-room")?.threadId, threadId);
+  assert.equal(restored.isSessionDetached("room"), true);
+  assert.deepEqual((await owner.listQueuedSubmissions(threadId)).data.map(item => item.id), [queued.id]);
+  release.resolve();
+  await active;
+  await until(() => core.calls.length === 2);
+  for (let i = 0; i < 100; i++) {
+    if ((await owner.getHistory(threadId)).some(item => item.clientUserMessageId === "queued-source" && item.turnStatus === "completed")) break;
+    await new Promise(resolve => setTimeout(resolve, 30));
+  }
+  const history = await owner.getHistory(threadId);
+  for (const id of ["active-source", "queued-source"]) {
+    const matched = history.filter(item => item.clientUserMessageId === id);
+    assert.equal(matched.length, 1);
+    assert.equal(matched[0].turnStatus, "completed");
+  }
+  assert.equal(core.calls.length, 2);
+  assert.equal((await owner.listQueuedSubmissions(threadId)).data.length, 0);
+  await second.command("stop");
+  assert.equal((await second.exited).code, 0);
+});

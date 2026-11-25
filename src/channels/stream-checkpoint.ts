@@ -25,6 +25,7 @@ export const channelStreamCheckpointSchema: z.ZodType<ChannelStreamCheckpoint> =
   toolActivity: z.object({ completed: count, failed: count, active: z.string().optional(), last: z.string().optional() }).strict().optional(),
   terminal: z.object({ text: z.string(), error: z.boolean(), outcome: z.enum(["completed", "failed", "interrupted", "continued", "detached",
     "session-restored", "session-unconfirmed", "terminal-idle", "terminal-exited", "terminal-error", "input-not-sent"]).optional() }).strict().optional(),
+  headingContext: z.string().max(200).optional(),
   statusHeader: z.literal(true).optional(), activity: z.enum(["running", "waiting-input", "waiting-approval", "waiting-external", "recovering", "unconfirmed", "waiting-result"]).optional(),
   terminalNoticeSent: z.boolean().optional(), terminalNoticeAttempted: z.boolean().optional(), resultPageBytes: z.number().int().positive().optional(),
   resultPresentation: z.enum(["card", "native-text"]).optional(),

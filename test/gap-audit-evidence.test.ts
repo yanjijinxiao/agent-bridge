@@ -55,6 +55,22 @@ test("AUDIT-01.2: changed content invalidates old line coverage and test evidenc
   assert.match(f.run().report.errors.join("\n"), /Missing review notes/);
 });
 
+test("a partial case reports its outstanding acceptance even when the mapped test passes", t => {
+  const f = fixture(t);
+  f.item.status = "partial";
+  const incomplete = f.run();
+  assert.equal(incomplete.code, 1);
+  assert.ok(incomplete.report.errors.includes("Partial case lacks test gap: CASE-1"));
+  Object.assign(f.item, { testGap: { obsolete: true } });
+  assert.equal(f.run().code, 1);
+  const testGap = "Compare notifications received by two different group members.";
+  Object.assign(f.item, { testGap });
+  const scoped = f.run();
+  assert.equal(scoped.code, 0);
+  assert.equal(scoped.report.summary.verifiedCases, 0);
+  assert.equal(scoped.report.cases[0].testGap, testGap);
+});
+
 test("AUDIT-01.3: prior failure, fixed pass and stale tests stay distinguishable; clean metadata cannot certify real protocol or phone acceptance", t => {
   const f = fixture(t); f.runs.unshift({ ...f.runs[0], status: "failed" });
   const report = f.run().report;
@@ -63,6 +79,42 @@ test("AUDIT-01.3: prior failure, fixed pass and stale tests stay distinguishable
   assert.equal(report.deviceAcceptance, undefined); assert.equal(report.realProtocolAcceptance, undefined);
   f.write("test/module.test.ts", "changed assertion\n");
   assert.equal(f.run().report.cases[0].tests[0].evidence, "stale-test");
+});
+
+test("AUDIT-01.2: a documented removal preserves the baseline and cannot excuse a live reference or a restored file", t => {
+  const f = fixture(t);
+  const source = "src/removed.ts";
+  f.jsonl(`${f.audit}/inventory-additions.jsonl`, [{ path: source, kind: "source", module: "module" }]);
+  f.jsonl(`${f.audit}/read-ledger.jsonl`, [...f.ledger, { ...f.ledger[0], file: source }]);
+  const before = f.run();
+  assert.equal(before.code, 1);
+  assert.equal(before.report.summary.missingRequiredFiles, 1);
+  assert.equal(before.report.coverage[1].status, "missing");
+
+  const removal = { path: source, commit: "a".repeat(40), reason: "module removed" };
+  f.jsonl(`${f.audit}/inventory-removed.jsonl`, [removal]);
+  const retired = f.run();
+  assert.equal(retired.code, 0);
+  assert.equal(retired.report.summary.retiredFiles, 1);
+  assert.equal(retired.report.summary.fullyRead, 1);
+  assert.equal(retired.report.coverage[1].status, "retired");
+  assert.equal(retired.report.coverage[1].commit, removal.commit);
+
+  f.item.implementation.push({ ...f.item.implementation[0], file: source });
+  f.item.tests.push({ file: source, name: "removed test" });
+  f.jsonl("docs/architecture/function-contracts.jsonl", [{ ...f.ledger[0], file: source, symbol: "removed", intent: "historical", cases: ["CASE-1"] }]);
+  const referenced = f.run();
+  assert.equal(referenced.code, 1);
+  assert.deepEqual(referenced.report.errors.filter((message: string) => message.startsWith("Missing required file")), [`Missing required file: ${source}`]);
+  assert.equal(referenced.report.cases[0].implementation[1].current, false);
+  assert.equal(referenced.report.cases[0].tests[1].evidence, "missing-file");
+
+  f.write(source, "restored source\n");
+  const restored = f.run();
+  assert.equal(restored.code, 1);
+  assert.equal(restored.report.summary.retiredFiles, 0);
+  assert.equal(restored.report.coverage[1].status, "unread");
+  assert.ok(restored.report.errors.includes(`Invalid inventory removal: ${source}`));
 });
 
 test("AUDIT-01.4: historical missing-image boundaries are explicit and quoted attachment commands remain task data, never control actions", async t => {
@@ -78,4 +130,21 @@ test("AUDIT-01.4: historical missing-image boundaries are explicit and quoted at
   await service.handleMessage({ id: "new-analysis", senderId: "actor", replyTargetId: "room", text, attachments: [], raw: {} });
   assert.equal(inputs.length, 1); assert.ok(inputs[0].prompt.includes(text)); assert.equal(controls, 0);
   assert.equal(store.listPairedSenderIds().includes("outsider"), false);
+});
+
+test("a misspelled case status cannot bypass evidence and gap validation", t => {
+  const f = fixture(t);
+  f.item.status = "verifed";
+  const result = f.run();
+  assert.equal(result.code, 1);
+  assert.ok(result.report.errors.includes("Unknown case status: CASE-1"));
+});
+
+test("an addition cannot count an existing baseline path a second time", t => {
+  const f = fixture(t);
+  const [existing] = fs.readFileSync(path.join(f.root, f.audit, "inventory.jsonl"), "utf8").trim().split("\n");
+  f.jsonl(f.audit + "/inventory-additions.jsonl", [JSON.parse(existing)]);
+  const result = f.run();
+  assert.equal(result.code, 1);
+  assert.ok(result.report.errors.includes("Duplicate inventory path: src/module.ts"));
 });

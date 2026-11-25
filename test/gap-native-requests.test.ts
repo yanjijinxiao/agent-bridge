@@ -40,6 +40,43 @@ function fixture(t: test.TestContext, initial: Record<string, unknown>, mode: "d
     calls: () => fs.existsSync(trace) ? fs.readFileSync(trace, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line)) : [] };
 }
 
+for (const stillPending of [true, false]) test(`restoring the primary route delivers only a freshly observed native question (pending=${stillPending})`, async t => {
+  const widget = { id: "widget", type: "agentMessage", questions: [{ title: "primary route?", options: null }] };
+  const f = fixture(t, { items: [widget] });
+  let routed = false;
+  let missed = 0;
+  const delivered: string[] = [];
+  const observer: NativeInteractionObserver = {
+    onApproval: async () => undefined,
+    onUserInput(input) {
+      if (!routed) { missed++; return Promise.resolve(undefined); }
+      delivered.push(input.requestId);
+      return new Promise(() => {});
+    },
+  };
+  const target = { hostId: "remote-original", threadId: "thread" };
+  const backend = {
+    observeThreadInteractions: (id: string, host: string, current: NativeInteractionObserver) => {
+      assert.equal(host, target.hostId); return f.runner.observeThreadInteractions(id, current);
+    },
+    unobserveThreadInteractions: (id: string) => f.runner.unobserveThreadInteractions(id),
+    interactionSubscriptionReady: (id: string) => f.runner.interactionSubscriptionReady(id),
+  };
+  const monitor = new AppServerRequestMonitor(() => backend as never, observer, 25);
+  t.after(() => monitor.stop());
+  monitor.setFollowedThreads([target]); monitor.start();
+  await until(() => missed > 0 && !f.runner.interactionSubscriptionReady("thread"));
+  const before = f.calls().length;
+  f.set({ items: stillPending ? [widget] : [] });
+  routed = true;
+  monitor.setFollowedThreads([target]);
+  await until(() => f.calls().slice(before).some(c => c.method === "thread/read") && f.runner.interactionSubscriptionReady("thread"));
+  monitor.setFollowedThreads([target]);
+  await new Promise(resolve => setTimeout(resolve, 100));
+  assert.equal(delivered.length, stillPending ? 1 : 0);
+  assert.ok(!f.calls().some(c => !c.method || ["turn/start", "turn/steer", "thread/start"].includes(c.method)));
+});
+
 for (const mode of ["daemon-proxy", "remote-daemon"] as const) for (const oversized of [false, true])
 test(`NATIVE-02.9: another cold permission read cannot retire a pending question (${mode}, oversized=${oversized})`, async t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cold-permission-budget-")), coldPath = path.join(dir, "cold.jsonl");

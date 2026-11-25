@@ -188,10 +188,14 @@ window.gatewayIDE = (() => {
     try {
       if (file.size > 512000) throw new Error("导入文件过大（最多 512 KB）");
       const kind = $("#ideProfileKind").value;
+      const settingsBefore = $("#ideProfile").value, extensionsBefore = $("#ideExtensions").value;
       const result = await api("/api/ide/profile/import", { method: "POST", body: { kind, content: await file.text() } });
-      if (result.settings !== undefined) $("#ideProfile").value = JSON.stringify(result.settings, null, 2);
-      if (result.extensions !== undefined) $("#ideExtensions").value = JSON.stringify({ recommendations: result.extensions }, null, 2);
-      $("#ideProfileImportStatus").textContent = ["已载入表单，尚未保存或安装。请核对后保存。", ...(result.warnings || [])].join(" ");
+      const editedSettings = result.settings !== undefined && $("#ideProfile").value !== settingsBefore;
+      const editedExtensions = result.extensions !== undefined && $("#ideExtensions").value !== extensionsBefore;
+      if (result.settings !== undefined && !editedSettings) $("#ideProfile").value = JSON.stringify(result.settings, null, 2);
+      if (result.extensions !== undefined && !editedExtensions) $("#ideExtensions").value = JSON.stringify({ recommendations: result.extensions }, null, 2);
+      const status = editedSettings || editedExtensions ? "已保留导入期间编辑的字段，尚未保存或安装。请核对后保存。" : "已载入表单，尚未保存或安装。请核对后保存。";
+      $("#ideProfileImportStatus").textContent = [status, ...(result.warnings || [])].join(" ");
     } catch (error) { $("#ideProfileImportStatus").textContent = `导入失败：${error.message}`; }
     finally { busy = false; $("#ideProfileFile").value = ""; }
   }
@@ -199,10 +203,6 @@ window.gatewayIDE = (() => {
     event.preventDefault(); if (busy || !current) return;
     const button = $("#ideSave"); ++refreshGeneration; busy = true; button.disabled = true;
     try {
-      const [editorSettings, editorExtensions] = await Promise.all([
-        api("/api/ide/profile/import", { method: "POST", body: { kind: "settings", content: $("#ideProfile").value } }),
-        api("/api/ide/profile/import", { method: "POST", body: { kind: "extensions", content: $("#ideExtensions").value } })
-      ]);
       const perHost = $("#idePerHostRouting").checked;
       const accessFor = hostId => {
         const value = (selector, key) => [...document.querySelectorAll(selector)].find(el => el.dataset[key] === hostId)?.value.trim() || "";
@@ -226,8 +226,7 @@ window.gatewayIDE = (() => {
           return { accountId, actorId, expiresAt: previous && Math.abs(previous.expiresAt - expiresAt) < 60000 ? previous.expiresAt : expiresAt };
         }),
         ...(perHost ? { routing: "per-host", ...($("#ideSharedIngressHost").value ? { sharedIngressHostId: $("#ideSharedIngressHost").value } : {}) } : {}),
-        ...(!perHost && $("#ideTLSEnabled").checked ? { tls: { bindAddress: $("#ideTLSAddress").value, certFile: $("#ideTLSCert").value.trim(), keyFile: $("#ideTLSKey").value.trim() } } : {}),
-        profile: { settings: editorSettings.settings, extensions: editorExtensions.extensions } };
+        ...(!perHost && $("#ideTLSEnabled").checked ? { tls: { bindAddress: $("#ideTLSAddress").value, certFile: $("#ideTLSCert").value.trim(), keyFile: $("#ideTLSKey").value.trim() } } : {}) };
       if (perHost && $("#ideLocalDirectEnabled").checked) {
         const port = Number($("#ideLocalDirectPort").value), automatic = $("#ideLocalDirectAuto").checked;
         const interfaceName = automatic ? $("#ideLocalDirectInterface").value : undefined;
@@ -237,6 +236,12 @@ window.gatewayIDE = (() => {
         if (!bindAddress || !Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("请选择本机直连 IP 和有效端口");
         config.localAccess = { bindAddress, port, publicOrigin: `https://${bindAddress.includes(":") ? `[${bindAddress}]` : bindAddress}:${port}`, ...(interfaceName ? { interfaceName } : {}) };
       }
+      // Finish reading this submission before validation yields to other edits.
+      const [editorSettings, editorExtensions] = await Promise.all([
+        api("/api/ide/profile/import", { method: "POST", body: { kind: "settings", content: $("#ideProfile").value } }),
+        api("/api/ide/profile/import", { method: "POST", body: { kind: "extensions", content: $("#ideExtensions").value } })
+      ]);
+      config.profile = { settings: editorSettings.settings, extensions: editorExtensions.extensions };
       const previous = current.config;
       const affectsExisting = previous.enabled && (!config.enabled || previous.routing !== config.routing
         || previous.sharedIngressHostId !== config.sharedIngressHostId || previous.port !== config.port || previous.publicOrigin !== config.publicOrigin

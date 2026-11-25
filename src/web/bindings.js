@@ -39,7 +39,7 @@ window.createBindingOverview = function createBindingOverview(hooks) {
     return `<article class="binding-row" aria-label="${attr(name)}对应${attr(session.title)}">
       <div class="binding-conversation"><span class="binding-column-label">钉钉 / IM 对话</span>
         <span class="binding-kind">${html(accountName(session.accountId))} · ${kind}</span>
-        <strong>${html(name)}</strong><span class="binding-id">${html(binding?.conversationId || session.senderId)}</span>
+        <strong>${html(name)}</strong><span class="binding-id">${html(binding?.member ? binding.member.chat + " · 成员 " + binding.member.actor : binding?.conversationId || session.senderId)}</span>
       </div>
       <div class="binding-session"><span class="binding-column-label">Codex session</span>
         <strong>${html(session.title)}</strong><span class="binding-id">${html(session.threadId || "尚未创建 Codex session")}</span>

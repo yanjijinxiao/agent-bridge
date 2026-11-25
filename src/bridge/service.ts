@@ -1,3 +1,5 @@
+import { sessionHeadingContext } from "../channels/turn-status.js";
+import { addressInbound, bindingRecipient, memberBinding, type FirstContactPolicy } from "../channels/conversation-binding.js";
 import { withChannelWriteLeases } from "./channel-write-leases.js";
 import { peerPrincipal, type PeerBridgePort } from "../peer/context.js";
 import { ConnectorSelection, ConnectorSelectionError } from "./connector-selection.js";
@@ -199,6 +201,7 @@ export type BridgeServiceOptions = {
   getCodexBalance?: (hostId: string) => Promise<CodexAccountBalance>;
   llmWiki?: LlmWikiMcpClientPool;
   modeSettings?: ChannelModeSettings;
+  firstContact?: FirstContactPolicy;
   listCodexProjects?: () => readonly CodexProjectCandidate[] | Promise<readonly CodexProjectCandidate[]>;
   inboundDir?: string;
   inboundReferences?: InboundReferenceStore;
@@ -272,7 +275,8 @@ export class BridgeService {
     const root = host && (this.options.peer?.connectorRoot?.(host) ?? host);
     const authorized = this.options.peer?.hosts(this.catalogPrincipal(senderId)) ?? [];
     const hosts = root ? (this.options.peer?.catalogHosts?.(root) ?? [root]).filter(h => !h.startsWith("peer:") || authorized.includes(h)) : undefined;
-    return this.options.stateStore.listProjects().filter(project => !hosts || hosts.includes(project.hostId ?? "local"));
+    return this.options.stateStore.listProjects().filter(project => !this.options.peer?.isFirstContactOnly?.(project.hostId ?? "local")
+      && (!hosts || hosts.includes(project.hostId ?? "local")));
   }
 
   private readonly actor = new AsyncLocalStorage<string>();
@@ -409,6 +413,7 @@ export class BridgeService {
           options.inputReceipts?.recoverRuntimeAccepted({ ...row.scope, clientUserMessageId: row.recovery.clientUserMessageId });
       },
       presentation: (row, save) => new ChannelTurnPresentation(this.channel, row.scope.conversationId, {
+        headingContext: this.cardSessionContext(options.stateStore.getSession(row.scope.sessionId)),
         restore: row.checkpoint, save, contextToken: options.stateStore.getContextToken(row.scope.conversationId),
         interruptControl: this.runtimeInterruptControl(row.scope.hostId),
         progressEnabled: options.stateStore.getSession(row.scope.sessionId)?.streamReplies ?? options.config.streamReplies,
@@ -478,6 +483,81 @@ export class BridgeService {
     });
   }
 
+  configureFirstContact(policy: FirstContactPolicy): void { this.options.firstContact = policy; }
+
+  /** Bind ingress identity before inbox admission; historic records retain
+   * the audience which actually received that approval or question. */
+  addressInbound(message: ChannelMessage): ChannelMessage {
+    const policy = this.options.firstContact;
+    const addressed = addressInbound(message, policy);
+    const chat = message.replyTargetId ?? message.senderId;
+    const target = addressed.replyTargetId ?? message.senderId;
+    const cmd = parseCommand(message.text);
+    if (cmd && message.conversationKind === "group" && chat !== message.senderId) {
+      const id = cmd.arg.trim().split(/\s+/)[0]?.toUpperCase();
+      const previous = target === chat ? memberBinding(chat, message.senderId) : chat;
+      if ((["answer", "skip"].includes(cmd.name) && this.userInputs.hasPendingId(previous, id))
+        || (["approve", "reject"].includes(cmd.name) && this.approvals.list().some(r => r.id === id && r.recipientId === previous))) {
+        return { ...message, replyTargetId: previous };
+      }
+    }
+    const host = policy?.onUnbound === "create" && policy.connector;
+    const store = this.options.stateStore;
+    if (!host || cmd && isReservedChannelCommandToken(cmd.name) || message.interaction || message.source || message.unsupportedMessageType
+      || !message.conversationKind || (!message.text.trim() && !message.attachments.length)
+      || !this.access.requireAccess(message.senderId, chat).allowed || !roleAllows(this.role(target, message.senderId), "participant")
+      || store.isSessionDetached(target) || store.getBoundSession(target)) return addressed;
+    const peer = this.options.peer;
+    if (peer?.isRouted?.(host) && !peer.isFirstContactOnly?.(host)) {
+      try { this.connectorSelection.assertAuthorized(this.peerIdentity(message.senderId, chat), host); }
+      catch (error) { if (error instanceof ConnectorSelectionError) return addressed; throw error; }
+    }
+    const ticket = store.reserveFirstContact(target, host, message.senderId);
+    return { ...addressed, firstContactId: ticket.id, firstContactHost: host };
+  }
+
+  private async startFirstSession(message: ChannelMessage, host: string): Promise<void> {
+    const address = message.senderId, store = this.options.stateStore;
+    await this.catalogControls.run(address, async () => {
+      if (store.getBoundSession(address)?.executionGeneration === message.firstContactId && message.firstContactId) return;
+      const ticket = store.firstContactReservation(address);
+      if (!ticket || ticket.id !== message.firstContactId) throw new CodexInterventionError("首次创建记录已改变，请核对当前会话。");
+      const principal = this.catalogPrincipal(address);
+      const origin = { ...principal, actorId: ticket.actorId };
+      const guard = this.conversationControlGuard(address, "participant");
+      const assertCurrent = () => {
+        guard();
+        if (store.firstContactReservation(address)?.id !== ticket.id
+          || this.options.firstContact?.connector !== host || this.options.firstContact.onUnbound !== "create"
+          || message.conversationKind === "group" && (this.options.firstContact.groupScope === "member") !== (address !== principal.conversationId)
+          || !this.access.requireAccess(principal.actorId, principal.conversationId).allowed || store.isSessionDetached(address))
+          throw new CodexInterventionError("首次对话设置或绑定已改变，请重新核对。");
+        if (!this.options.peer?.isRouted?.(host)) throw new ConnectorSelectionError("默认 Connector 未配置或不可用。");
+        if (origin.actorId !== principal.actorId && (address !== principal.conversationId
+          || !this.access.requireAccess(origin.actorId, origin.conversationId).allowed || !roleAllows(this.role(address, origin.actorId), "participant")))
+          throw new CodexInterventionError("首次创建来源已失效，请核对绑定。");
+        if (!this.options.peer.isFirstContactOnly?.(host)) {
+          this.connectorSelection.assertAuthorized(principal, host);
+          this.connectorSelection.assertAuthorized(origin, host);
+        }
+      };
+      assertCurrent();
+      if (this.options.peer?.isOnline?.(host) === false) throw new ForwardingDeferredError("默认 Connector 尚未上线。");
+      if (this.options.peer?.supportsFirstContact?.(host) === false)
+        throw new ConnectorSelectionError("默认设备无法创建独立的 Codex 会话，请管理员选择支持新建会话的 Codex Connector。");
+      if (!this.runner.createThread) throw Error("默认 Connector 尚未支持独立会话创建。");
+      // A shared room can acquire its next input from another authorized member.
+      // Keep the Connector creation identity while submitting the turn as its real sender.
+      const state = await peerPrincipal.run(origin, () => this.runner.createThread!({ standalone: true, title: "默认会话",
+        clientUserMessageId: ticket.id, assertCurrent }, host));
+      assertCurrent();
+      if (!state.threadId || !state.cwd || !path.isAbsolute(state.cwd) || state.internal || state.persistence !== "active")
+        throw Error("默认会话创建结果待核实。");
+      store.createSession(address, state.cwd, state.title || "默认会话", undefined, "session", undefined,
+        { standalone: true, hostId: host, firstContact: { threadId: state.threadId, generation: ticket.id } });
+    });
+  }
+
   configureModeSettings(settings: ChannelModeSettings): void {
     this.modeSettings = normalizeChannelModeSettings(settings);
     for (const [senderId, mode] of Object.entries(this.options.stateStore.snapshot.interactionModes)) {
@@ -497,8 +577,7 @@ export class BridgeService {
   }
 
   async handleMessage(message: ChannelMessage): Promise<void> {
-    return peerPrincipal.run({ accountId: this.options.accountId ?? "standalone",
-      conversationId: message.replyTargetId ?? message.senderId, actorId: message.senderId },
+    return peerPrincipal.run(this.peerIdentity(message.senderId, message.replyTargetId ?? message.senderId),
       () => this.restartWork.run(() => this.handleMessageNow(message)));
   }
 
@@ -535,7 +614,7 @@ export class BridgeService {
       ?? (this.access.isAllowed(actorId) ? "controller" : this.options.stateStore.roleFor(conversationId, "*") ?? "participant");
   }
 
-  private peerIdentity(actorId: string, conversationId: string) { return { accountId: this.options.accountId ?? "standalone", conversationId, actorId }; }
+  private peerIdentity(actorId: string, conversationId: string) { return { accountId: this.options.accountId ?? "standalone", conversationId: bindingRecipient(conversationId), actorId }; }
   private hasAccess(actorId: string, conversationId: string): boolean {
     return this.access.requireAccess(actorId, conversationId).allowed || Boolean(this.options.peer?.sharing?.admitted(this.peerIdentity(actorId, conversationId)));
   }
@@ -581,7 +660,7 @@ export class BridgeService {
     if (control?.name === "access") {
       if (!principal || !this.options.admission) { await this.reply(replyTargetId, "无法核验个人来源或准入审批服务未就绪。请从机器人私聊或已核验群聊发送。"); return; }
       try {
-        const result = this.options.admission.command(principal, replyTargetId, message.conversationKind as "direct" | "group", control.arg);
+        const result = this.options.admission.command(principal, bindingRecipient(replyTargetId), message.conversationKind as "direct" | "group", control.arg);
         if (typeof result === "string") await this.reply(replyTargetId, result); else await this.replyActionCard(replyTargetId, result);
       } catch (error) { await this.reply(replyTargetId, error instanceof Error ? error.message : "准入审批未完成，请重新查看申请。"); }
       return;
@@ -591,7 +670,7 @@ export class BridgeService {
     if (!access.allowed && !shared) {
       if (principal && this.options.admission) {
         try {
-          const request = this.options.admission.observe(principal, replyTargetId, message.conversationKind as "direct" | "group");
+          const request = this.options.admission.observe(principal, bindingRecipient(replyTargetId), message.conversationKind as "direct" | "group");
           await this.reply(replyTargetId, `尚未获准使用 Gateway。准入申请已登记（${request.id}），请联系准入审批管理员在当前聊天发送 /access，或在机器人私聊发送 /access all 处理；也可在本机管理页「待审批」处理。原消息未提交；获准后请重新发送。`);
         } catch (error) { await this.reply(replyTargetId, `准入申请未能登记：${error instanceof Error ? error.message : String(error)}。原消息未提交，请管理员检查。`); }
         return;
@@ -680,10 +759,24 @@ export class BridgeService {
       await this.reply(replyTargetId, "此操作已不可用，请发送 /help 查看当前命令。"); return;
     }
     if (!this.executionSession(replyTargetId)) {
-      await this.replySessionRequired(replyTargetId);
-      return;
+      if (!message.firstContactHost || !access.allowed || this.options.stateStore.isSessionDetached(replyTargetId)) {
+        await this.replySessionRequired(replyTargetId);
+        return;
+      }
+      if (!this.modeSettings.enabledModes.includes("session")) { await this.replyModeUnavailable(replyTargetId, "session"); return; }
+      if (!await this.requireRole(replyTargetId, "participant")) return;
+      try { await this.startFirstSession(scopedMessage, message.firstContactHost); }
+      catch (error) {
+        if (!(error instanceof ConnectorSelectionError)) throw error;
+        await this.reply(replyTargetId, error.message); return;
+      }
     }
 
+    if (message.firstContactId) {
+      const current = this.executionSession(replyTargetId);
+      if (current?.executionGeneration !== message.firstContactId || this.sessionHostId(current) !== message.firstContactHost)
+        throw new CodexInterventionError("首次消息的绑定已改变，未转交新的会话。");
+    }
     const assertMessageCurrent = this.conversationControlGuard(replyTargetId, "participant", false);
     if (!await this.requireRole(replyTargetId, "participant")) return;
     assertMessageCurrent();
@@ -1596,6 +1689,12 @@ export class BridgeService {
     }));
   }
 
+  private cardSessionContext(session?: ManagedSession): string | undefined {
+    if (!session) return;
+    const host = this.sessionHostId(session) ?? "local";
+    return sessionHeadingContext(session, this.options.peer?.label(host) ?? sessionHostLabel(host));
+  }
+
   private executionSession(senderId: string): ManagedSession | undefined {
     const session = this.options.stateStore.getBoundSession(senderId);
     if (!session) return undefined;
@@ -1846,7 +1945,7 @@ export class BridgeService {
     let observation: string | undefined, entered = false, confirmed = false;
     try {
       const hostId = this.sessionHostId(session) ?? "local";
-      const staged = await stageTurnAttachments(this.runner, items, { accountId: this.options.accountId, conversationId: message.senderId,
+      const staged = await stageTurnAttachments(this.runner, items, { accountId: this.options.accountId, conversationId: bindingRecipient(message.senderId),
         sessionId: session.id, threadId: session.threadId, hostId, maxBytes: this.options.config.maxInboundBytes });
       assertCurrent();
       const prompt = buildPromptParts(text, staged, administrative ? "Web" : channelPromptSource(this.channel.channel)).prompt;
@@ -2387,17 +2486,12 @@ export class BridgeService {
       return;
     }
     this.options.inputReceipts?.submitting({ sessionId: session.id, hostId: hostId ?? "local", threadId: session.threadId });
-    const result = await this.observeControlAudience(session, state.activeTurnId, () => this.controls.steer(
-      JSON.stringify([hostId ?? "local", session.threadId]),
-      JSON.stringify([session.id, message.senderId, this.actor.getStore(), message.id]),
-      () => this.runner.steer({
-      threadId: session.threadId!,
-      expectedTurnId: state.activeTurnId,
-      prompt,
-      cwd: session.workspace,
-      clientUserMessageId: message.id,
-      assertCurrent
-    }, hostId), hostId ?? "local", this.participantOrigin(session)));
+    const target = { hostId: hostId ?? "local", threadId: session.threadId, turnId: state.activeTurnId };
+    const result = await this.observeControlAudience(session, target.turnId, () => this.controls.steer(
+      target, JSON.stringify([session.id, message.senderId, this.actor.getStore(), message.id]),
+      () => this.runner.steer({ threadId: target.threadId, expectedTurnId: target.turnId,
+        prompt, cwd: session.workspace, clientUserMessageId: message.id, assertCurrent }, hostId),
+      this.participantOrigin(session)));
     this.options.stateStore.setSessionPromptPreview(session.id, prompt);
     await this.reply(message.senderId, [
       "已介入当前正在执行的 Codex 任务。",
@@ -2704,7 +2798,7 @@ export class BridgeService {
     const preview = buildPromptPreview(text, items) ?? text;
     const prepared = await prepareTurnSubmission({ runner: this.runner, session,
       project: session.projectId ? this.options.stateStore.getProject(session.projectId) : undefined,
-      config: this.options.config, accountId: this.options.accountId, conversationId: message.senderId,
+      config: this.options.config, accountId: this.options.accountId, conversationId: bindingRecipient(message.senderId),
       text, items, source: channelPromptSource(this.channel.channel) });
     // Native queue/add can consume immediately and has no additionalContext
     // field. Persist the same application rules with this one native item,
@@ -2782,7 +2876,7 @@ export class BridgeService {
           throw new Error("Queued session identity changed; native item was not started");
         }
         let delivered = false;
-        await peerPrincipal.run({ accountId, conversationId: receipt.conversationId, actorId: receipt.actorId }, () => this.actor.run(receipt.actorId, () => this.runCodexTurn({
+        await peerPrincipal.run({ accountId, conversationId: bindingRecipient(receipt.conversationId), actorId: receipt.actorId }, () => this.actor.run(receipt.actorId, () => this.runCodexTurn({
           id: receipt.messageId, senderId: receipt.conversationId, text: "", attachments: [], raw: {}
         }, item?.input.map(x => x.type === "text" ? x.text ?? "" : "").join("\n") ?? "", [], { receipt, starting, started,
           onResultDelivery: confirmed => { delivered = confirmed; } })));
@@ -3089,9 +3183,12 @@ export class BridgeService {
     } catch (error) {
       if (error instanceof ForwardingDeferredError) throw error;
       if (error instanceof InboundMediaTooLargeError) throw error;
-      console.error(
-        `[codex-im-gateway] inbound attachment download failed for message ${message.id}: ${error instanceof Error ? error.message : String(error)}`
-      );
+      // Provider errors may contain a signed download URL or an account
+      // credential. Keep the source correlation and bounded failure category.
+      const code = (error as NodeJS.ErrnoException | null)?.code;
+      const reason = code && ["ENOSPC", "EROFS", "EACCES", "ETIMEDOUT"].includes(code) ? code
+        : error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name) ? error.name : "unavailable";
+      console.error(`[codex-im-gateway] inbound attachment download failed for message ${message.id} (${this.channel.channel}, ${reason})`);
       throw new InboundAttachmentDownloadError();
     }
     return items;
@@ -3099,7 +3196,7 @@ export class BridgeService {
 
   private async stagePromptItems(items: PromptBufferItem[], session: ManagedSession, message: ChannelMessage): Promise<PromptBufferItem[]> {
     return stageTurnAttachments(this.runner, items, { accountId: this.options.accountId,
-      conversationId: message.senderId, sessionId: session.id, threadId: session.threadId,
+      conversationId: bindingRecipient(message.senderId), sessionId: session.id, threadId: session.threadId,
       hostId: this.sessionHostId(session), maxBytes: this.options.config.maxInboundBytes });
   }
 
@@ -3208,6 +3305,7 @@ export class BridgeService {
     const prepareReplyStream = async (acceptedTurnId?: string) => {
       if (!progressEnabled || replyStream || !stillBound()) return;
       replyStream = await this.options.createTextStream?.(session, acceptedTurnId) ?? new ChannelTurnPresentation(this.channel, message.senderId, {
+        headingContext: this.cardSessionContext(session),
         save: () => undefined, contextToken: this.options.stateStore.getContextToken(message.senderId),
         decorateProgress: text => {
           let url: string | undefined;
@@ -3244,7 +3342,7 @@ export class BridgeService {
         console.log(`[codex-im-gateway] starting Codex turn for ${message.senderId} in ${workspace}`);
         if (!queued && replyStream?.supported) await replyStream.progress("🤔 正在理解任务并规划下一步…");
         const prepared = await prepareTurnSubmission({ runner: this.runner, session, project, config: this.options.config,
-          accountId: this.options.accountId, conversationId: message.senderId, text, items: attachments,
+          accountId: this.options.accountId, conversationId: bindingRecipient(message.senderId), text, items: attachments,
           source: channelPromptSource(this.channel.channel) });
         const acceptedWork = this.restartWork.capture();
         const runInput: CodexRunnerInput = {
@@ -3488,7 +3586,7 @@ export class BridgeService {
     if (selected?.startsWith("peer:")) return projectCandidatesFromBackendCatalog(await this.runner.listProjects(selected), undefined, selected);
     const localCandidates = !principal || this.access.requireAccess(principal.actorId, principal.conversationId).allowed
       ? await this.localCodexProjectCandidates() : [];
-    const local = localCandidates.filter(p => !p.hostId?.startsWith("peer:") || paired.includes(p.hostId));
+    const local = localCandidates.filter(p => !this.options.peer?.isFirstContactOnly?.(p.hostId ?? "local") && (!p.hostId?.startsWith("peer:") || paired.includes(p.hostId)));
     if (scope === "selected") return selected ? local.filter(p => (p.hostId ?? "local") === selected) : local;
     const remote = await Promise.allSettled(paired.map(async host => projectCandidatesFromBackendCatalog(await this.runner.listProjects(host), undefined, host)));
     return [...local, ...remote.flatMap(result => result.status === "fulfilled" ? result.value : [])];
@@ -3627,7 +3725,7 @@ export class BridgeService {
           if (!binding.current()) throw new Error("Remote output binding changed");
         }
         lease = await this.runner.fetchOutputFile(action.path, { hostId, maxBytes: this.options.config.maxInboundBytes,
-          accountId: this.options.accountId, conversationId: senderId, threadId,
+          accountId: this.options.accountId, conversationId: bindingRecipient(senderId), threadId,
           ...(this.options.inboundDir ? { directory: this.options.inboundDir } : {}) });
         if (binding && !binding.current()) throw new Error("Remote output binding changed; file was not sent");
       }

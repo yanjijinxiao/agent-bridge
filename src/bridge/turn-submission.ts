@@ -1,5 +1,6 @@
 import type { CodexBridgeBackend, CodexRunnerInput, CodexRunResult } from "../codex/backend.js";
 import { CodexTurnExecutionError } from "../codex/backend.js";
+import { inheritWriteCheck } from "../codex/write-guard.js";
 import { communicationError, isCodexCommunicationFailure } from "../codex/communication-error.js";
 import type { CodexImGatewayConfig } from "../state/config.js";
 import type { ManagedProject, ManagedSession } from "../state/runtime-state.js";
@@ -68,7 +69,8 @@ export class TurnSubmission {
   private readonly receipts: ReturnType<InboundReceiptJournal["capture"]>;
   constructor(receipts?: InboundReceiptJournal, private readonly sessionId?: string) { this.receipts = receipts?.capture(); }
   async run(runner: Pick<CodexBridgeBackend, "run">, input: CodexRunnerInput, assertCurrent?: () => void): Promise<CodexRunResult> {
-    const current = () => { input.assertCurrent?.(); assertCurrent?.(); };
+    // The transport uses the original actor and may recheck it asynchronously at the write.
+    const current = inheritWriteCheck(input.assertCurrent, () => { input.assertCurrent?.(); assertCurrent?.(); });
     current();
     this.threadId = input.threadId;
     this.receipts?.submitting({ sessionId: this.sessionId, hostId: input.hostId ?? "local", threadId: input.threadId, nativeInput: true });

@@ -3,6 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { userFacingMessageHandlingError } from "../src/bridge/errors.js";
+import { CodexCommunicationError } from "../src/codex/communication-error.js";
 import { BridgeService } from "../src/bridge/service.js";
 import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.js";
 import type { ChannelActionCard } from "../src/channels/action-card.js";
@@ -24,6 +26,7 @@ function fixture(t: test.TestContext, channel: "dingtalk" | "weixin" | "feishu" 
   const texts: string[] = [], cards: ChannelActionCard[] = [], runs: CodexRunnerInput[] = [];
   let subscriptionsChanged = 0, steers = 0, sequence = 0;
   const queued: Array<{ id: string; clientUserMessageId: string; input: Array<{ type: string; text: string }> }> = [];
+  let steerReceipt: CodexInputReceipt = { status: "accepted", threadId: "thread", turnId: "old-turn" };
   const threadMessages: CodexThreadMessageInput[] = [];
   let threadMessageImpl = async (input: CodexThreadMessageInput): Promise<CodexInputReceipt> => {
     input.assertCurrent?.(); threadMessages.push(input);
@@ -43,7 +46,7 @@ function fixture(t: test.TestContext, channel: "dingtalk" | "weixin" | "feishu" 
       backendInfo() { return { id: backend, capabilities: backend === "exec" ? EXEC_BACKEND_CAPABILITIES : APP_SERVER_BACKEND_CAPABILITIES }; },
       async inspectThread() { return state; },
       async run(input: CodexRunnerInput) { runs.push(input); return runImpl(input); },
-      async steer() { steers++; return { status: "accepted", threadId: "thread", turnId: "old-turn" }; },
+      async steer() { steers++; return steerReceipt; },
       ...(nativeThreadMessages ? { submitThreadMessage: (input: CodexThreadMessageInput) => threadMessageImpl(input) } : {}),
       async getRuntimeInfo() { return {}; },
       async getHistory() { return []; },
@@ -67,6 +70,7 @@ function fixture(t: test.TestContext, channel: "dingtalk" | "weixin" | "feishu" 
     get changes() { return subscriptionsChanged; }, get steers() { return steers; },
     setState(next: Partial<CodexThreadState>) { state = { ...state, ...next }; },
     setRun(fn: typeof runImpl) { runImpl = fn; },
+    setSteerReceipt(value: CodexInputReceipt) { steerReceipt = value; },
     setThreadMessage(fn: typeof threadMessageImpl) { threadMessageImpl = fn; },
     restart() { service = build(new RuntimeStateStore(paths)); },
     send(text: string, id = String(++sequence)) { return service.handleMessage({ id, senderId: "actor", replyTargetId: "chat", text, attachments: [], raw: {} }); }
@@ -157,6 +161,27 @@ for (const channel of ["dingtalk", "weixin", "feishu"] as const) {
     await f.send("/queue 下一轮内容");
     assert.equal(f.queued.length, 1); assert.equal(f.runs.length, 0); assert.equal(f.steers, 0);
     f.restart(); await f.send("/queue list"); assert.match(f.texts.at(-1)!, /queue-1.*queued/);
+  });
+}
+
+for (const mismatch of ["thread", "turn"] as const) {
+  test(`explicit steer keeps a mismatched ${mismatch} receipt uncertain across restart`, async t => {
+    const f = fixture(t);
+    f.setSteerReceipt({ status: "accepted", threadId: mismatch === "thread" ? "other" : "thread",
+      turnId: mismatch === "turn" ? "other" : "old-turn" });
+    await assert.rejects(f.send("/steer follow up", "same-message"), error => {
+      assert.ok(error instanceof CodexCommunicationError);
+      assert.equal(error.submission, "unconfirmed"); assert.equal(error.code, "invalid-receipt");
+      assert.match(userFacingMessageHandlingError(error), /提交结果尚未确认/);
+      return true;
+    });
+    const journal = JSON.parse(fs.readFileSync(f.store.controlJournalPath, "utf8"));
+    assert.deepEqual(Object.values(journal.receipts), [{ status: "uncertain" }]);
+    f.restart();
+    await assert.rejects(f.send("/steer follow up", "same-message"), /结果尚未确认/);
+    assert.equal(f.steers, 1);
+    assert.ok(!f.texts.some(text => text.includes("已介入")));
+    assert.equal(f.runs.length + f.queued.length + f.cards.length, 0);
   });
 }
 

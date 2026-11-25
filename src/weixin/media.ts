@@ -1,3 +1,4 @@
+import { InboundFileBatch } from "../channels/inbound-file-batch.js";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -89,21 +90,28 @@ export async function downloadInboundAttachments(input: {
   fetch?: FetchLike;
 }): Promise<DownloadedInboundAttachment[]> {
   const downloaded: DownloadedInboundAttachment[] = [];
-  for (const [index, attachment] of input.attachments.entries()) {
-    downloaded.push(await downloadInboundAttachment({
-      rootDir: input.rootDir,
-      senderId: input.senderId,
-      messageId: `${input.messageId}-${index + 1}`,
-      attachment,
-      maxBytes: input.maxBytes,
-      cdnBaseUrl: input.cdnBaseUrl,
-      fetch: input.fetch
-    }));
+  const batch = new InboundFileBatch();
+  try {
+    for (const [index, attachment] of input.attachments.entries()) {
+      downloaded.push(await downloadInboundAttachment({
+        rootDir: input.rootDir,
+        senderId: input.senderId,
+        messageId: `${input.messageId}-${index + 1}`,
+        batch, attachment,
+        maxBytes: input.maxBytes,
+        cdnBaseUrl: input.cdnBaseUrl,
+        fetch: input.fetch
+      }));
+    }
+  } catch (error) {
+    batch.discard();
+    throw error;
   }
   return downloaded;
 }
 
 async function downloadInboundAttachment(input: {
+  batch: InboundFileBatch;
   rootDir: string;
   senderId: string;
   messageId: string;
@@ -126,6 +134,7 @@ async function downloadInboundAttachment(input: {
   }
   const label = labelWithExtension(input.attachment.label, input.attachment.kind, plaintext);
   const targetPath = saveInboundAttachment({
+    batch: input.batch,
     rootDir: input.rootDir,
     senderId: input.senderId,
     messageId: input.messageId,
@@ -225,6 +234,7 @@ function inferImageExtension(buffer: Buffer): string {
 }
 
 function saveInboundAttachment(input: {
+  batch: InboundFileBatch;
   rootDir: string;
   senderId: string;
   messageId: string;
@@ -242,7 +252,7 @@ function saveInboundAttachment(input: {
   const ext = parsed.ext || "";
   for (let index = 0; index < 10_000; index++) {
     const candidate = path.join(directory, `${stem}${index ? `-${index}` : ""}${ext}`);
-    try { fs.writeFileSync(candidate, plaintext, { flag: "wx", mode: 0o600 }); return candidate; }
+    try { input.batch.write(candidate, plaintext); return candidate; }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
   }
   throw new Error("Unable to allocate an inbound attachment filename");

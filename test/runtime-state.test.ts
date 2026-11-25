@@ -13,6 +13,39 @@ function createStore(t: test.TestContext): RuntimeStateStore {
   return new RuntimeStateStore(resolveStatePaths(root));
 }
 
+test("an unchanged terminal with no observed directory keeps its binding generation across reloads", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "terminal-binding-generation-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const paths = resolveStatePaths(root);
+  const store = new RuntimeStateStore(paths);
+  const session = store.createSession("chat", "", "Terminal", undefined, "session", undefined,
+    { standalone: true, hostId: "device", unknownWorkspace: true });
+  const bound = store.setSessionThread(session.id, "terminal");
+  assert.equal(bound.projectBinding, "unknown");
+  for (let i = 0; i < 2; i++) {
+    const restored = new RuntimeStateStore(paths);
+    restored.reconcileThreadProject("terminal", "device", undefined, undefined, true);
+    const current = restored.getBoundSession("chat")!;
+    assert.equal(current.projectBinding, "unknown");
+    assert.equal(current.executionGeneration, bound.executionGeneration);
+    assert.equal(current.workspace, "");
+  }
+  const restored = new RuntimeStateStore(paths);
+  const project = restored.createProject("Named project", "/work/project", { hostId: "device" });
+  for (const cwd of [undefined, "relative"]) {
+    restored.reconcileThreadProject("terminal", "device", project.id, cwd);
+    const unresolved = new RuntimeStateStore(paths).getBoundSession("chat")!;
+    assert.equal(unresolved.workspaceState, "unknown");
+    assert.equal(unresolved.projectId, undefined);
+    assert.equal(unresolved.executionGeneration, bound.executionGeneration);
+  }
+  restored.reconcileThreadProject("terminal", "device", undefined, "/work/observed", false);
+  const observed = restored.getBoundSession("chat")!;
+  assert.equal(observed.projectBinding, "none");
+  assert.equal(observed.workspace, "/work/observed");
+  assert.notEqual(observed.executionGeneration, bound.executionGeneration);
+});
+
 for (const standalone of [true, false]) test(`legacy project drift preserves the explicit ${standalone ? "independent" : "project"} session binding`, t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-binding-context-")), paths = resolveStatePaths(root);
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

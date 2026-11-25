@@ -1,3 +1,4 @@
+import { bindingRecipient } from "../channels/conversation-binding.js";
 import type { ChannelKind } from "../weixin/accounts.js";
 import { resolveWebhookProvider, type WebhookProvider } from "./webhook-provider.js";
 
@@ -118,6 +119,7 @@ export class ChannelMessageWebhook {
   publish(message: ChannelMessage): void {
     const webhookUrl = this.webhookUrl;
     if (!webhookUrl) return;
+    if (message.direction === "outbound") message = { ...message, recipientId: bindingRecipient(message.recipientId) };
     const genericPayload = {
       schemaVersion: 1,
       event: "channel.message",

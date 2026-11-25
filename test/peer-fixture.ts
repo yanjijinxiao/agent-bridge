@@ -14,7 +14,7 @@ import { hostScopedBackend } from "../src/codex/host-scoped-backend.js";
 
 export const principal: PeerPrincipal = { accountId: "bot-one", conversationId: "room-one", actorId: "owner" };
 export const token = "synthetic-device-credential-for-tests-only";
-export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExecutionOptions, "approve" | "approveOwner" | "independent" | "webIDE">> & { device?: boolean; managedHost?: string; nativeHost?: string } = {}) {
+export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExecutionOptions, "approve" | "approveOwner" | "independent" | "webIDE">> & { device?: boolean; managedHost?: string; firstContactOnly?: true; nativeHost?: string } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-peer-"));
   const thread: CodexThreadState = { threadId: "existing-native", cwd: "/device-only/workspace", title: "Local existing task",
     persistence: "active", runtimeStatus: "idle", activeFlags: [], projectMembership: "none" };
@@ -67,7 +67,7 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
   } as unknown as CodexBridgeBackend;
   const managed = options.managedHost ? { hostId: options.managedHost, grantId: crypto.randomUUID(), nodeId: "laptop", profileId: "work" } : undefined;
   const remoteManaged = managed && options.nativeHost ? { ...managed, hostId: options.nativeHost, nativeHostId: options.nativeHost, grantId: crypto.randomUUID() } : undefined;
-  const registry = new PeerRegistry(path.join(root, "server", "grants.json"), managed ? [managed, ...(remoteManaged ? [remoteManaged] : [])] : []);
+  const registry = new PeerRegistry(path.join(root, "server", "grants.json"), managed ? [{ ...managed, firstContactOnly: options.firstContactOnly }, ...(remoteManaged ? [remoteManaged] : [])] : []);
   // Production acquires the process lock in this directory before creating
   // the execution service, including hosts that never persist pairing grants.
   fs.mkdirSync(path.join(root, "client"), { mode: 0o700 });

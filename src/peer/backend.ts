@@ -1,3 +1,4 @@
+import { bindingRecipient } from "../channels/conversation-binding.js";
 import { NATIVE_CONTRACT_METHODS } from "./contract.js";
 import { RuntimeError } from "../agents/contracts.js";
 import { lifecycleFingerprint, runtimeLifecycleRecordSchema } from "../agents/lifecycle.js";
@@ -261,7 +262,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
     runtimeInterrupt: async (input, hostId = "local") => runtimeResponse(runtimeInterruptResultSchema.refine(result =>
       result.ref.endpointId === input.target.ref.endpointId && result.ref.id === input.target.ref.id),
       await invoke("runtimeInterrupt", [input], hostId, true, input), true),
-    withSource: (source, action) => peerPrincipal.run(source, action),
+    withSource: (source, action) => peerPrincipal.run({ ...source, conversationId: bindingRecipient(source.conversationId) }, action),
     async findNativeInputReceipts(scope, sources) {
       if (!registry.isRouted(scope.hostId)) return local.findNativeInputReceipts
         ? local.findNativeInputReceipts(scope, sources)
@@ -272,7 +273,7 @@ export function withPeerBackend(local: CodexBridgeBackend, registry: PeerRegistr
         // device grant, even when background recovery has no ambient principal.
         if ((!source.accountId || !source.conversationId || !source.actorId) && !registry.managedRoute(scope.hostId)) continue;
         const principal = source.accountId && source.conversationId && source.actorId
-          ? { accountId: source.accountId, conversationId: source.conversationId, actorId: source.actorId } : gatewayServicePrincipal;
+          ? { accountId: source.accountId, conversationId: bindingRecipient(source.conversationId), actorId: source.actorId } : gatewayServicePrincipal;
         const key = JSON.stringify(principal);
         const group = groups.get(key) ?? { principal, ids: new Map<string, string>() };
         // Direct submissions made before migration retain their native IDs.

@@ -1,3 +1,4 @@
+import { bindingRecipient } from "../channels/conversation-binding.js";
 import type { ChannelAttachment, ChannelMessage } from "../channels/message.js";
 import fs from "node:fs";
 import { randomUUID } from "node:crypto";
@@ -29,7 +30,7 @@ export class InboundReferenceStore {
     }
   }
   resolve(message: ChannelMessage): ChannelMessage {
-    const conversationId = message.replyTargetId ?? message.senderId;
+    const conversationId = bindingRecipient(message.replyTargetId ?? message.senderId);
     const references = message.references?.map(reference => {
       const saved = this.entries.find(entry => entry.conversationId === conversationId && entry.messageId === reference.messageId
         && Date.now() - entry.at < 7 * 24 * 60 * 60_000);
@@ -41,7 +42,7 @@ export class InboundReferenceStore {
     return { ...message, references };
   }
   remember(message: ChannelMessage, attachments: ChannelAttachment[]): void {
-    const conversationId = message.replyTargetId ?? message.senderId;
+    const conversationId = bindingRecipient(message.replyTargetId ?? message.senderId);
     const own = attachments.filter(item => !item.sourceMessageId && item.path).map(({ kind, label, path }) => ({ kind, label, path, item: {} }));
     this.entries = this.entries.filter(entry => !(entry.conversationId === conversationId && entry.messageId === message.id));
     this.entries.push({ conversationId, messageId: message.id, text: message.text, attachments: own, at: Date.now() });

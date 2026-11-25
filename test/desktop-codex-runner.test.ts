@@ -88,7 +88,8 @@ test("relays a turn to the Desktop thread owner and returns its session-log comp
   const runner = new DesktopCodexRunner({
     socketPath,
     codexHome,
-    timeoutMs: 25,
+    // This case exercises a successful handoff. The owner deadline has its own test.
+    timeoutMs: 2_000,
     completionPollIntervalMs: 10,
     busyRetryDelayMs: 10
   });

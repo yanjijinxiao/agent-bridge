@@ -6,7 +6,7 @@ import type { PeerGrant } from "./registry.js";
  * host IDs remain stable so old receipts, bindings and IDE scopes keep meaning. */
 export const managedHostSchema = z.string().min(1).max(512).refine(v => v.trim() === v && !v.startsWith("peer:") && !/[\r\n\0]/.test(v));
 export const managedExportSchema = z.object({ hostId: managedHostSchema, grantId: z.string().uuid(), nativeHostId: managedHostSchema.optional() }).strict();
-export const managedRouteSchema = managedExportSchema.extend({ nodeId: z.string().regex(/^[\w-]{1,80}$/), profileId: z.string().regex(/^[\w-]{1,80}$/) }).strict();
+export const managedRouteSchema = managedExportSchema.extend({ firstContactOnly: z.literal(true).optional(), nodeId: z.string().regex(/^[\w-]{1,80}$/), profileId: z.string().regex(/^[\w-]{1,80}$/) }).strict();
 export type ManagedConnectorRoute = z.infer<typeof managedRouteSchema>;
 export type ManagedConnectorExport = z.infer<typeof managedExportSchema>;
 export const managedTarget = (route: ManagedConnectorRoute): string => `peer:${route.nodeId}:${route.profileId}`;

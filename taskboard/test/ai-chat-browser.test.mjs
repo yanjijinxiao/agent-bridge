@@ -15,7 +15,7 @@ async function until(read, message) {
   throw new Error(message);
 }
 
-test("isolated Chrome exercises production AI and issue composers, model scope and responsive layout", { skip: !chrome, timeout: 90000 }, async t => {
+test("isolated Chrome exercises production AI and issue composers, model scope and responsive layout", { skip: !chrome, timeout: 180000 }, async t => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskboard-browser-audit-"));
   let ownedServer, ownedChild, ownedSocket;
   t.after(async () => {
@@ -216,7 +216,13 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
     // Receipt review is a real user action: it must remain readable in both
     // themes, including when the native turn completed but HTTP lost its ack.
     for (const theme of ["light", "dark"]) {
-      await evaluate(`document.documentElement.dataset.theme = ${JSON.stringify(theme)}; new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`);
+      await evaluate(`(() => {
+        const root = document.documentElement;
+        root.dataset.theme = ${JSON.stringify(theme)};
+        root.style.colorScheme = ${JSON.stringify(theme)};
+      })()`);
+      const expected = theme === "dark" ? "rgb(238, 238, 239)" : "rgb(27, 27, 27)";
+      await until(() => evaluate(`getComputedStyle(document.body).color === ${JSON.stringify(expected)}`), "theme did not reach the rendered page");
       const colors = await evaluate(`(() => {
         const style = getComputedStyle(document.querySelector('.ai-chat-submission-review button'));
         const luminance = color => {
@@ -231,14 +237,20 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
           theme: document.documentElement.dataset.theme, primary: getComputedStyle(document.body).getPropertyValue('--text-primary') };
       })()`);
       assert.equal(colors.theme, theme);
-      assert.equal(colors.foreground, theme === 'dark' ? 'rgb(238, 238, 239)' : 'rgb(27, 27, 27)', JSON.stringify(colors));
+      assert.equal(colors.foreground, expected, JSON.stringify(colors));
       assert.ok(colors.ratio >= 4.5, `${theme} receipt action contrast ${JSON.stringify(colors)} is below 4.5`);
     }
     await evaluate("audit.submissionUnknown=true;document.querySelector('.ai-chat-submission-review button').click()");
     await until(()=>evaluate("document.querySelector('.ai-chat-error')?.textContent.includes('尚无法确认')"),"unknown status must retain the original receipt");
     assert.equal(await turns(),1);
+    const submittedId = await evaluate("audit.requests.find(r=>r.method==='POST' && r.path.endsWith('/turns')).body.clientRequestId");
+    assert.ok(submittedId);
+    assert.equal(await evaluate("document.querySelector('.ai-chat-composer-editor').textContent"), "Original native input");
     await evaluate("audit.submissionUnknown=false;document.querySelector('.ai-chat-submission-review button').click()");
     await until(()=>evaluate("!document.querySelector('.ai-chat-submission-review')"),"read-only native receipt recovery did not clear the confirmed handoff");
+    const lookups = await evaluate("audit.requests.filter(r=>r.method==='GET' && r.path.includes('/submissions/')).map(r=>r.path.split('/').at(-1))");
+    assert.ok(lookups.length >= 2);
+    assert.deepEqual([...new Set(lookups)], [submittedId]);
     assert.equal(await turns(),1,"receipt recovery must issue GET only");
     assert.equal(await evaluate("document.querySelector('.ai-chat-composer-editor').textContent"),"");
     await evaluate("audit.dropTurnAck=true;document.querySelector('.ai-chat-composer-editor').focus()");
@@ -297,13 +309,18 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
     assert.equal(await turns(), 0);
   });
   await t.test("late file reads belong only to the original composer while unchanged drafts still receive their attachment", async () => {
-    for (const changed of [false, true]) {
+    for (const transition of ["same", "new", "history", "project", "return"]) for (const failed of [false, true]) {
       await open(); await ready();
+      if (transition === "history") {
+        await evaluate("document.querySelector('[aria-label=\"新建对话\"]').click()"); await ready();
+      }
       await evaluate(`(()=>{
         const NativeReader = window.FileReader; audit.fileReads = [];
         window.FileReader = class extends NativeReader {
-          readAsDataURL(file) { audit.fileReads.push(() => new Promise(resolve => {
-            this.addEventListener('loadend', resolve, {once:true}); super.readAsDataURL(file);
+          readAsDataURL(file) { audit.fileReads.push(failed => new Promise(resolve => {
+            this.addEventListener('loadend', resolve, {once:true});
+            if (failed) { this.dispatchEvent(new Event('error')); this.dispatchEvent(new Event('loadend')); }
+            else super.readAsDataURL(file);
           })); }
         };
         const input=document.querySelector('.ai-chat-panel input[type=file]'), data=new DataTransfer();
@@ -311,14 +328,27 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
         input.dispatchEvent(new Event('change', {bubbles:true}));
       })()`);
       assert.equal(await evaluate("audit.fileReads.length"), 1);
-      if (changed) {
+      if (transition === "new") {
         await evaluate("document.querySelector('[aria-label=\"新建对话\"]').click()"); await ready();
+      } else if (transition === "history") {
+        await evaluate("document.querySelector('[aria-label=\"对话历史\"]').click()");
+        await until(() => evaluate("Boolean(document.querySelector('.ai-chat-history-row > button'))"), "history list unavailable");
+        await evaluate("document.querySelector('.ai-chat-history-row > button').click()"); await ready();
+      } else if (transition === "project" || transition === "return") {
+        await evaluate("audit.project('b')");
+        await until(() => evaluate("audit.currentProject==='b'"), "project did not change"); await ready();
+        if (transition === "return") {
+          await evaluate("audit.project('a')");
+          await until(() => evaluate("audit.currentProject==='a'"), "project did not return"); await ready();
+        }
       }
+      const changed = transition !== "same";
       await evaluate("document.querySelector('.ai-chat-composer-editor').focus()");
       await call("Input.insertText", { text: changed ? "New draft" : "Original draft" });
-      await evaluate("Promise.all(audit.fileReads.splice(0).map(read=>read()))");
+      await evaluate(`Promise.all(audit.fileReads.splice(0).map(read=>read(${failed})))`);
       await evaluate("new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))");
-      assert.equal(await evaluate("document.querySelectorAll('.ai-chat-composer-attachment').length"), changed ? 0 : 1);
+      assert.equal(await evaluate("document.querySelectorAll('.ai-chat-composer-attachment').length"), !changed && !failed ? 1 : 0, transition);
+      assert.equal(await evaluate("document.body.innerText.includes('无法读取附件 late.txt')"), !changed && failed);
       assert.equal(await evaluate("document.querySelector('.ai-chat-composer-editor').textContent"), changed ? "New draft" : "Original draft");
       assert.equal(await turns(), 0);
     }
@@ -755,6 +785,49 @@ test("isolated Chrome exercises production AI and issue composers, model scope a
     await evaluate("audit.storageFull=false;document.querySelector('.comment-composer button[type=submit]').click()");
     await until(()=>evaluate("document.querySelector('.comment-inline-media textarea').value===''"),"explicit retry did not finish");
     assert.equal(await evaluate("audit.requests.filter(r=>r.method==='POST' && r.path.endsWith('/comments')).length"),1);
+  });
+  await t.test("a hosted App project switch keeps a partial upload or uncertain comment receipt on its source task", async () => {
+    for (const uncertain of [false, true]) {
+      await navigate(base + "/?view=automation-host");
+      const inFrame = expression => evaluate("document.querySelector('iframe')?.contentWindow?.eval(" + JSON.stringify(expression) + ")");
+      const open = async id => {
+        const selector = '.task-card[data-task-id="' + id + '"] .task-card-open';
+        await until(() => inFrame("Boolean(document.querySelector(" + JSON.stringify(selector) + "))"), "new project task missing");
+        await inFrame("document.querySelector(" + JSON.stringify(selector) + ").click()");
+        await until(() => inFrame("Boolean(document.querySelector('.comment-composer textarea'))"), "project task composer missing");
+      };
+      await open("task-one");
+      await inFrame("document.querySelector('.comment-composer textarea').focus()");
+      await call("Input.insertText", {text: "Original A comment"});
+      if (uncertain) {
+        await inFrame("audit.holdCommentAck=true");
+      } else {
+        await inFrame(`(() => {
+          const files = new DataTransfer();
+          for (const name of ["first.txt","last.txt"]) files.items.add(new File(["fixture"],name,{type:"text/plain"}));
+          const input=document.querySelector('.comment-composer input[type=file]');
+          input.files=files.files;input.dispatchEvent(new Event('change',{bubbles:true}));audit.holdUpload="last.txt";
+        })()`);
+      }
+      await inFrame("document.querySelector('.comment-composer button[type=submit]').click()");
+      const release = uncertain ? "releaseCommentAck" : "releaseCommentUpload";
+      await until(() => inFrame("typeof audit." + release + "==='function'"), "source operation did not reach its response");
+      await inFrame("history.pushState(null,'','?view=app&host=codex&project=b');dispatchEvent(new PopStateEvent('popstate'))");
+      await open("task-b");
+      await inFrame("document.querySelector('.comment-composer textarea').focus()");
+      await call("Input.insertText", {text:"Keep project B draft"});
+      await inFrame("audit." + release + "()");
+      await inFrame("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+      const phase = await inFrame(`Object.keys(localStorage).filter(k => k.includes('["comment","task-one"]')).map(k => JSON.parse(localStorage.getItem(k)).phase)`);
+      assert.deepEqual(phase, [uncertain ? "creating" : "uploading"]);
+      assert.equal(await inFrame("document.querySelector('.comment-composer textarea').value"), "Keep project B draft");
+      assert.equal(await inFrame("Boolean(document.querySelector('.comment-composer [role=status]'))"), false);
+      const writes = await inFrame("audit.requests.filter(r => r.method==='POST').map(r => [r.path,r.body?.filename])");
+      assert.equal(writes.filter(([p]) => p === "/api/tasks/task-one/comments").length, 1);
+      assert.equal(writes.filter(([p]) => p === "/api/tasks/task-b/comments").length, 0);
+      assert.deepEqual(writes.filter(([p]) => p.endsWith("/attachments")).map(([,name]) => name), uncertain ? [] : ["first.txt","last.txt"]);
+      await inFrame("localStorage.clear()");
+    }
   });
   await t.test("a partially uploaded comment resumes only its failed files on the same confirmed comment", async () => {
     for (const quota of [false,true]) for (const inline of [false, true]) {

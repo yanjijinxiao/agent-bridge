@@ -746,6 +746,10 @@ test("steers an active turn with an expected-turn compare guard", async (t) => {
   assert.equal(activeTurnId, "turn-1");
   assert.deepEqual(started, { threadId: "thread-steer", turnId: "turn-1" });
 
+  // The standard response only carries turnId. An explicitly contradictory
+  // thread, when supplied by a transport, cannot confirm the requested write.
+  await assert.rejects(runner.steer({ threadId: "thread-steer", expectedTurnId: activeTurnId, prompt: "fixture-conflicting-thread" }),
+    { name: "CodexCommunicationError", submission: "unconfirmed", code: "invalid-receipt" });
   assert.deepEqual(await runner.steer({
     threadId: "thread-steer",
     expectedTurnId: activeTurnId,

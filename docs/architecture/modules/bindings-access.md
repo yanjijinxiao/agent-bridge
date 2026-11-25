@@ -1,5 +1,7 @@
 # 绑定、主入口与个人准入
 
+钉钉账号可按群成员分配绑定。个人标识只用于内部路由和持久化；群准入、设备配对、附件传输及回包使用渠道真实身份。首次创建按当前来源与指定设备核对，旧绑定、退出及重启恢复的契约见[群成员绑定设计](../member-sessions.md)。
+
 当前 Connector 的个人目录偏好与群绑定独立，命令、持久化和验证合同见 [connector-selection.md](connector-selection.md)。保存设备选择不构成资源授权。
 
 绑定是一条 account/conversation → session → host/thread 的关系。项目名称、cwd、个人 actor ID 都不能替代该关系。session-execution、session-follow、interaction-routing、RuntimeStateStore 和 AccountManager 共同使用这条明确边，交互主入口只是仍有效绑定的引用。
@@ -15,6 +17,10 @@ ChannelMessage.senderId 是平台确认的操作者，replyTargetId 是当前对
 ## 状态转换
 
 明确 unbind/leave 持久退休选择并停止跟随，不删除原生任务。项目切换只保留兼容边；不能让旧选择复活。已接收的原生写入属于旧线程事实；之后来源变化仅退休旧展示，不能伪称未提交或反向改动原生状态。原生 projectMembership 的 assigned、none、unknown 分开，unknown 不扩大访问权。新绑定把它保存为 projectBinding=unknown，重载不自动补项目；继续原线程省略项目提示，也不传显式移除 none。后续权威 assigned/none 才更新关联。
+
+Herdr App 和 TUI 终端均可能没有工作目录。创建、重载、重新选择同一终端时都应保留空目录、未知项目归属和原执行代次。观察到目录变化时，才更新相关会话的目录与代次。
+
+两个群共用同一线程时，显式解绑只移除当前群的关系。Gateway 重启后的首条普通消息仍遵守该解绑记录；另一群的绑定、原生运行中的轮次和已接受的队列输入各自保留。[解绑后进程骤停回归](../../audits/2026-11-25-four-layer-followup.md)
 
 ## IM 权限展示范围（2026-11-04）
 

@@ -41,9 +41,17 @@ export function normalizeWeixinMessage(raw: WeixinRawMessage): NormalizedWeixinM
   const references: import("../channels/message.js").ChannelReference[] = [];
   for (const item of raw.item_list ?? []) {
     const quoted = referencedMessageItem(item);
-    if (!quoted) continue;
-    const metadata = item.ref_msg as Record<string, unknown>;
-    const id = metadata.message_id === undefined ? undefined : String(metadata.message_id);
+    const metadata = item.ref_msg;
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) continue;
+    const rawId = (metadata as Record<string, unknown>).message_id;
+    const id = typeof rawId === "string" ? rawId.trim() || undefined
+      : Number.isSafeInteger(rawId) ? String(rawId) : undefined;
+    // An ID-only reply may be resolved from the conversation cache. Until
+    // then it must remain visible as a reference with unavailable contents.
+    if (!quoted) {
+      if (id) references.push({ messageId: id, type: "unknown", attachments: [], availability: "metadata-only" });
+      continue;
+    }
     const text = extractTextItem(quoted);
     const media = extractDirectAttachments([quoted]).map(attachment => ({ ...attachment, sourceMessageId: id || "reference" }));
     references.push({ messageId: id, type: String(quoted.type ?? "unknown"), text, attachments: media,

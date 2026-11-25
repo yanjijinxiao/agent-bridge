@@ -258,3 +258,26 @@ for (const failure of ["channel-send", "binding-changed"] as const) test(`Gatewa
   if (failure === "binding-changed") assert.deepEqual(replies, []);
   else assert.ok(replies.some(text => text.includes("Failed to send file")));
 });
+
+test("a missing staged remote download releases the host copy before a transfer handle exists", async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "peer-missing-output-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const owner = { open: true } as PeerConnection;
+  const staging = fs.mkdtempSync(path.join(root, "staging-"));
+  let disposals = 0;
+  const files = new PeerFiles(root, async () => ({ cwd: root }), () => false, {
+    async fetchOutputFile() {
+      return { path: path.join(staging, "vanished.txt"), async dispose() {
+        disposals++;
+        await fs.promises.rmdir(staging);
+      } };
+    }
+  });
+  const grant = { id: crypto.randomUUID(), principal, hostId: "peer:test", threadId: "thread" };
+  await assert.rejects(files.call(grant, owner, "fileDownloadBegin", {
+    threadId: "thread", path: "/project/result.txt", maxBytes: 100
+  }), { code: "ENOENT" });
+  files.close(owner);
+  assert.equal(disposals, 1);
+  assert.equal(fs.existsSync(staging), false);
+});

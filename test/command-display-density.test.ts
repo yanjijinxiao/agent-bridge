@@ -50,3 +50,35 @@ test("queue listing shows 50 recent receipts and only cancellation choices for t
   assert.equal([...text.matchAll(/receipt-\d{3} · queued/g)].length, 50);
   assert.equal([...text.matchAll(/\/queue cancel receipt-\d{3}/g)].length, 50);
 });
+
+for (const paged of [true, false]) test(`history preserves fenced file examples and separates real attachments across both pages (paged RPC=${paged})`,async t=>{
+  const {parseThreadHistory}=await import("../src/codex/app-server-runner.js");
+  const {createChannelClient,TEXT_CAPABILITIES}=await import("../src/channels/client.js");
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),"history-receipts-"));
+  t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const state=new RuntimeStateStore(resolveStatePaths(dir));
+  const entity=state.createSession("actor",dir,"Bound history");state.setSessionThread(entity.id,"thread");
+  const marker="[DingTalk file: example.txt saved to /tmp/file.txt]\nInspect the saved local attachment before answering.";
+  const turns=Array.from({length:6},(_,i)=>({id:"t"+i,items:[{type:"userMessage",content:[{type:"text",
+    text:`entry-${i} quoted statement\n\n\`\`\`text\n${marker}\n\`\`\`\n\n${marker}`}]},
+    {type:"agentMessage",phase:"commentary",text:"hidden progress"},
+    {type:"agentMessage",phase:"final_answer",text:`reply-${i}\n\n\`\`\`codex-im-gateway-actions\n{"send":[{"type":"file","path":"/tmp/not-to-send"}]}\n\`\`\``}]}));
+  let bulk=0, media=0;const reads:(string|undefined)[]=[],replies:string[]=[];
+  const service=new BridgeService({config:{...defaultConfig(dir),allowedSenderIds:["actor"]},stateStore:state,
+    channel:createChannelClient("generic",TEXT_CAPABILITIES,{async sendText(input){replies.push(input.text);return {messageId:"ok"};},
+      async sendMedia(){media++;return {messageId:"unexpected"};}}),
+    runner:{async getHistoryPage(_id:string,opts:{cursor?:string}){
+      reads.push(opts.cursor);if(!paged)throw Error("method not found");
+      return opts.cursor ? {messages:parseThreadHistory({turns:turns.slice(0,3)})}
+        : {messages:parseThreadHistory({turns:turns.slice(3)}),nextCursor:"older"};
+    },async getHistory(){bulk++;return parseThreadHistory({turns});}} as never});
+  for(const [i,text] of ["/history 6","/history more"].entries())await service.handleMessage({id:"h"+i,senderId:"actor",text,raw:{}});
+  for(const [index,expect] of [[0,[3,4,5]],[1,[0,1,2]]] as const){
+    const body=replies[index];
+    assert.deepEqual([...body.matchAll(/entry-([0-9]) quoted statement/g)].map(m=>Number(m[1])),expect);
+    assert.equal(body.split(marker).length-1,3);
+    assert.equal(body.split("[文件：example.txt]").length-1,3);
+    assert.doesNotMatch(body,/hidden progress|not-to-send/);
+  }
+  assert.deepEqual(reads,paged?[undefined,"older"]:[undefined]);assert.equal(bulk,paged?0:1);assert.equal(media,0);
+});

@@ -1,3 +1,8 @@
+import { redactDiagnosticText } from "../runtime/diagnostics.js";
+import { peerPrincipal } from "../peer/context.js";
+import { sessionHeadingContext } from "../channels/turn-status.js";
+import { bindingMember, bindingRecipient, memberBinding } from "../channels/conversation-binding.js";
+import { withBindingDelivery } from "../channels/binding-delivery.js";
 import { withChannelWriteLeases } from "../bridge/channel-write-leases.js";
 import { PeerRegistry } from "../peer/registry.js";
 import { ConnectorIDEHostTransport } from "../peer/ide-transport.js";
@@ -177,7 +182,7 @@ export type AccountSession = ManagedSession & {
   responding: boolean;
   binding: SessionBindingTarget & { bound: boolean; expiry?: BindingExpiry;
     conversation?: import("../channels/types.js").ChannelConversationIdentity;
-    interaction?: InteractionRouteStatus; deliveryRoute?: "available" | "unconfirmed"; nativeUnavailable?: boolean };
+    member?: { chat: string; actor: string }; interaction?: InteractionRouteStatus; deliveryRoute?: "available" | "unconfirmed"; nativeUnavailable?: boolean };
 };
 
 export type AccountProject = ManagedProject & {
@@ -440,13 +445,38 @@ export class AccountManager {
         try { url = (await this.ide.freshEntry(accountId, sessionId))?.url; } catch { /* Optional metadata fails closed. */ }
         return withIDEEntry(text, url);
       },
-      onThreadState: (sub, state) => { this.observeThreadMembership(sub.hostId, state); },
+      onThreadState: (sub, state, previousPersistence) => {
+        this.observeThreadMembership(sub.hostId, state);
+        // Preserve the binding and result receipts while retiring watches on an unavailable thread.
+        // A later native observation can re-enable that same watch without sending any input.
+        if (previousPersistence !== state.persistence
+          && (state.persistence === "archived" || state.persistence === "missing"
+            || previousPersistence === "archived" || previousPersistence === "missing")) {
+          this.refreshNativeRequestSubscriptions();
+        }
+      },
       onSystemError: (sub, snapshot) => this.systemRecovery.offer(snapshot, sub.hostId),
       onRecoveryObservation: (sub, snapshot) => this.systemRecovery.offer(snapshot, sub.hostId),
       filePath: path.join(options.paths.runtimeDir, "thread-subscriptions.json"),
       turnAudience: this.turnAudience,
       subscriptions: () => this.threadSubscriptions(),
-      backend: () => this.runnerFor(this.configProvider()),
+      backend: sub => {
+        const runner = this.runnerFor(this.configProvider());
+        const member = bindingMember(sub.recipientId);
+        if (typeof runner.readThreadSnapshot !== "function" || (!member && !peerPrincipal.getStore())) return runner;
+        const accountId = JSON.parse(sub.key)[0] as string;
+        // A background refresh may be triggered by another member's message.
+        // Scope just the native reads to this subscription; result effects
+        // separately require their exact originating turn receipt.
+        const read = <T>(work: () => T) => member
+          ? peerPrincipal.run({ accountId, conversationId: member.chat, actorId: member.actor }, work)
+          : peerPrincipal.exit(work);
+        return {
+          readThreadSnapshot: (id, host) => read(() => runner.readThreadSnapshot(id, host)),
+          ...(runner.readThreadProvenance && { readThreadProvenance: (id: string, host?: string) => read(() => runner.readThreadProvenance!(id, host)) }),
+          ...(runner.readTurnLifecycle && { readTurnLifecycle: (id: string, turn: string, host?: string) => read(() => runner.readTurnLifecycle!(id, turn, host)) })
+        };
+      },
       onCapacityFailure: scope => this.capacityRecovery.offer(scope),
       holdsCapacityStart: scope => this.capacityRecovery.holdsStart(scope),
       acceptedInputs: () => [ ...this.sessionControls.acceptedPresentationInputs(),
@@ -505,6 +535,25 @@ export class AccountManager {
       }
     });
     this.configProvider = options.configProvider ?? (() => loadConfig(options.paths));
+    if (options.peerRegistry) options.peerRegistry.hostedSessionAuthority = (person, host, scope) => {
+      // Use the same durable reservation and binding as ingress. Never infer
+      // possession from knowing a thread id, cwd, host or the group alone.
+      const account = loadAccount(options.paths, person.accountId);
+      if (account?.channel !== "dingtalk") return false;
+      const store = this.storeFor(person.accountId);
+      store.refresh();
+      const allowed = [...this.configProvider().allowedSenderIds, ...store.listPairedSenderIds()];
+      if (!allowed.includes(person.actorId) && !allowed.includes(person.conversationId)) return false;
+      return [memberBinding(person.conversationId, person.actorId), person.conversationId].some(address => {
+        if ("threadId" in scope) {
+          const session = store.getBoundSession(address);
+          return session?.createdByFirstContact === true && session.hostId === host && session.threadId === scope.threadId;
+        }
+        const ticket = store.firstContactReservation(address);
+        return account.firstContact?.onUnbound === "create" && account.firstContact.connector === host
+          && ticket?.id === scope.reservationId && ticket.actorId === person.actorId && ticket.hostId === host;
+      });
+    };
     this.bindingExpiry = new BindingExpiryCoordinator({
       candidates: () => this.expiringBindings(), current: binding => this.bindingExpiryCurrent(binding),
       idle: binding => this.bindingExpiryIdle(binding),
@@ -681,6 +730,7 @@ export class AccountManager {
       this.assertRuntimeWritable();
       const account = loadAccount(this.options.paths, accountId);
       const existing = this.entries.get(account.accountId);
+      if (!account.enabled) return this.stopAccountOwned(account.accountId, false);
       if (existing?.status === "running" || existing?.status === "starting") {
         await this.stopAccountOwned(account.accountId, false);
       }
@@ -720,7 +770,7 @@ export class AccountManager {
     const config = this.configProvider();
     store.prepareBindingExpiry(config.bindingIdleDays);
     const adapter = this.adapterFactory(account, { inboundDir: statePaths.inboundDir, maxInboundBytes: config.maxInboundBytes });
-    const client = withChannelWriteLeases(adapter.client, this.resultRestartWork);
+    const client = withChannelWriteLeases(withBindingDelivery(adapter.client), this.resultRestartWork);
     const runner = this.runnerFor(config);
     const service = this.bridgeFactory({
       assertRuntimeWritable: () => this.assertRuntimeWritable(),
@@ -734,6 +784,7 @@ export class AccountManager {
       ideEntry: async session => (await this.ide.freshEntry(account.accountId, session.id))?.url,
       ideProgressEntry: session => this.ide.entry(account.accountId, session.id, { presentationOnly: true })?.url,
       accountId: account.accountId,
+      firstContact: account.channel === "dingtalk" ? account.firstContact : undefined,
       nativeQueue: this.nativeQueue,
       deferCapacityFailure: scope => this.capacityRecovery.offer(scope),
       requestCapacityRecovery: (scope, assertCurrent) => this.capacityRecovery.request(scope, assertCurrent),
@@ -773,13 +824,13 @@ export class AccountManager {
         return this.threadEvents.managedTurnStarted({
           key: JSON.stringify([account.accountId, session.id]),
           hostId: session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local",
-          threadId: session.threadId ?? "", recipientId: session.senderId, client, managed: true
+          threadId: session.threadId ?? "", headingContext: this.cardSessionContext(session, store), recipientId: session.senderId, client, managed: true
         }, turnId);
       },
       createTextStream: (session, acceptedTurnId) => this.threadEvents.prepareManagedStream({
         key: JSON.stringify([account.accountId, session.id]),
         hostId: session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local",
-        threadId: session.threadId ?? "", recipientId: session.senderId, client, managed: true,
+        threadId: session.threadId ?? "", headingContext: this.cardSessionContext(session, store), recipientId: session.senderId, client, managed: true,
         contextToken: store.getContextToken(session.senderId),
         onTextDelivered: (part) => webhook.publish({ direction: "outbound", id: part.messageId,
           recipientId: session.senderId, text: part.text, attachments: [] })
@@ -787,7 +838,7 @@ export class AccountManager {
       deliverTurnResult: (session, turnId, text, outcome) => this.threadEvents.managedCompletion({
         key: JSON.stringify([account.accountId, session.id]),
         hostId: session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local",
-        threadId: session.threadId ?? "", recipientId: session.senderId, client, managed: true,
+        threadId: session.threadId ?? "", headingContext: this.cardSessionContext(session, store), recipientId: session.senderId, client, managed: true,
         contextToken: store.getContextToken(session.senderId)
       }, turnId, text, outcome),
       config,
@@ -830,9 +881,18 @@ export class AccountManager {
       const authorizedConversation = message.source === "native-menu"
         ? store.getAuthorizedConversation(message.senderId)
         : undefined;
-      return authorizedConversation
-        ? { ...message, replyTargetId: authorizedConversation }
-        : message;
+      const inbound = authorizedConversation ? { ...message, replyTargetId: authorizedConversation } : message;
+      const prior = this.receiptsFor(account.accountId).receipt(inbound.id);
+      if (prior?.conversationId && prior.actorId === inbound.senderId
+        && bindingRecipient(prior.conversationId) === (inbound.replyTargetId ?? inbound.senderId)) {
+        const frozen = this.forwardingFor(account.accountId).sourceFor(prior.clientUserMessageId);
+        if (frozen) return { ...inbound, replyTargetId: frozen.replyTargetId,
+          firstContactId: frozen.firstContactId, firstContactHost: frozen.firstContactHost };
+        // A completed receipt can outlive its inbox row. A replay after
+        // changing policy must not reserve a default session as a side effect.
+        if (prior.phase === "handled" || prior.phase === "accepted") return { ...inbound, replyTargetId: prior.conversationId };
+      }
+      return service.addressInbound?.(inbound) ?? inbound;
     };
     const inbox = this.forwardingFor(account.accountId);
     const handleMessage = (message: ChannelMessage) => inbox.receive(normalizedMessage(message));
@@ -851,10 +911,10 @@ export class AccountManager {
       onCheckpoint: (checkpoint) => { if (!controller.signal.aborted && this.entries.get(account.accountId) === entry) store.setSyncKey(checkpoint); },
       onStatus: (connection) => {
         if (controller.signal.aborted || this.entries.get(account.accountId) !== entry) return;
-        entry.connection = connection;
+        entry.connection = connection.detail ? { ...connection, detail: redactDiagnosticText(connection.detail) } : connection;
         entry.status = connection.state === "connected" ? "running"
           : connection.state === "stopped" ? "stopped" : connection.state === "error" ? "error" : "starting";
-        entry.error = connection.state === "error" ? connection.detail : undefined;
+        entry.error = connection.state === "error" ? entry.connection.detail : undefined;
       },
       claimMessage: (message) => {
         // false means already durably claimed, so adapters may acknowledge a
@@ -880,7 +940,7 @@ export class AccountManager {
       }
       entry.status = "error";
       entry.connection = { state: "error", detail: "Channel monitor failed" };
-      entry.error = error instanceof Error ? error.message : String(error);
+      entry.error = redactDiagnosticText(error instanceof Error ? error.message : String(error));
     });
     inbox.start();
     return this.summary(account);
@@ -947,6 +1007,7 @@ export class AccountManager {
       throw new Error("Account display name must be 40 characters or fewer");
     }
     const account = setAccountSettings(this.options.paths, accountId, { ...patch, displayName });
+    if (patch.firstContact) this.entries.get(accountId)?.service?.configureFirstContact(patch.firstContact);
     this.entries.get(account.accountId)?.webhook?.configure(account.webhookUrl, account.webhookProvider);
     return this.summary(account);
   }
@@ -1980,7 +2041,7 @@ export class AccountManager {
       throw new ForwardingDeferredError("渠道正在切换，消息暂缓转发。");
     const store = this.storeFor(accountId), replyTargetId = message.replyTargetId ?? message.senderId;
     const allowedIds = new Set([...this.configProvider().allowedSenderIds, ...store.listPairedSenderIds()]);
-    store.rememberChannelIdentity(message.senderId, replyTargetId, allowedIds.has(message.senderId) || allowedIds.has(replyTargetId));
+    store.rememberChannelIdentity(message.senderId, bindingRecipient(replyTargetId), allowedIds.has(message.senderId) || allowedIds.has(bindingRecipient(replyTargetId)));
     entry.webhook?.publish({ direction: "inbound", id: message.id, senderId: message.senderId, text: message.text,
       attachments: message.attachments.map(({ kind, label }) => ({ kind, label })) });
     await this.receiptsFor(accountId).handle(message, () => entry.service!.handleMessage(message));
@@ -1993,9 +2054,9 @@ export class AccountManager {
     const receipts = Object.values(this.receiptsFor(accountId).snapshot()).filter(r => r.sessionId === sessionId
       && (r.hostId ?? "local") === sub.hostId && r.threadId === sub.threadId && r.turnId === turnId
       && r.conversationId === sub.recipientId && ["accepted", "handled"].includes(r.phase));
-    const queued = this.nativeQueue.list(accountId).some(r => r.sessionId === sessionId && r.hostId === sub.hostId
+    const queueReceipt = this.nativeQueue.list(accountId).find(r => r.sessionId === sessionId && r.hostId === sub.hostId
       && r.threadId === sub.threadId && r.turnId === turnId && r.conversationId === sub.recipientId);
-    return { receipts, queued, authorized: Boolean(receipts.length || queued) };
+    return { receipts, queued: Boolean(queueReceipt), queueActorId: queueReceipt?.actorId, authorized: Boolean(receipts.length || queueReceipt) };
   }
 
   /** Only outputs of an exactly acknowledged Gateway input may carry effects.
@@ -2020,7 +2081,7 @@ export class AccountManager {
         conversationId: sub.recipientId, hostId: sub.hostId, threadId: sub.threadId
       });
     }
-    const { receipts, queued } = this.nativeResultAuthority(sub, turnId);
+    const { receipts, queued, queueActorId } = this.nativeResultAuthority(sub, turnId);
     if (!receipts.length && !queued) return;
     if (!session || !entry?.service) throw new CodexInterventionError("Result application owner unavailable");
     const binding = sessionExecutionScope(store, session);
@@ -2037,7 +2098,9 @@ export class AccountManager {
       const imOrigin = queued || receipts.some(r => r.actorId !== "web-admin");
       const confirmed = await this.resultActions.apply([accountId, sessionId, sub.hostId, sub.threadId, turnId], text,
         assertCurrent, async action => {
-          if (imOrigin) await entry.service!.applyRecoveredAction(sessionId, sub, action);
+          const actorId = queueActorId ?? receipts.find(r => r.actorId !== "web-admin")?.actorId;
+          if (imOrigin && actorId) await peerPrincipal.run({ accountId, conversationId: bindingRecipient(sub.recipientId), actorId },
+            () => entry.service!.applyRecoveredAction(sessionId, sub, action));
           // Web-only attachments remain available in native/Web history; they
           // must not unexpectedly send a second message to the bound IM group.
         });
@@ -2051,9 +2114,15 @@ export class AccountManager {
     return Boolean(session && store.getBoundSession(session.senderId)?.id === session.id);
   }
 
+  private cardSessionContext(session: ManagedSession, store: RuntimeStateStore): string {
+    const host = session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local";
+    return sessionHeadingContext(session, this.options.peerRegistry?.label(host) ?? (host === "local" ? "本机" : host));
+  }
+
   private sessionSummary(accountId: string, session: ManagedSession, active: boolean): AccountSession {
     const expiry = this.storeFor(accountId).getBindingExpiry(session.senderId, this.configProvider().bindingIdleDays);
     const conversation = this.entries.get(accountId)?.client?.conversationIdentity?.(session.senderId);
+    const member = bindingMember(session.senderId);
     const followStatus = this.threadEvents.status(JSON.stringify([accountId, session.id]));
     const runtimeRecovery = followStatus.runtimeRecovery;
     let execution: RuntimeDescriptor | undefined, executionUnavailable = false;
@@ -2076,7 +2145,7 @@ export class AccountManager {
       ...(active && session.threadId && !execution && !executionUnavailable ? { followStatus } : {}),
       ...(runtimeRecovery ? { runtimeRecovery } : {}),
       binding: { ...this.storeFor(accountId).sessionBindingTarget(session), bound: active,
-        ...(conversation ? { conversation } : {}),
+        ...(conversation ? { conversation } : {}), ...(member && { member }),
         ...(active && session.threadId && !execution && !executionUnavailable ? { interaction: this.getSessionInteractionRoute(accountId, session.id),
           deliveryRoute: this.entries.get(accountId)?.client?.deliveryRouteStatus?.(session.senderId),
           nativeUnavailable: ["archived", "missing"].includes(this.threadEvents.status(JSON.stringify([accountId, session.id])).runtime?.persistence ?? "") } : {}),
@@ -2093,7 +2162,8 @@ export class AccountManager {
     if (!peers?.isPeer(scope.hostId)) return;
     for (const source of peers.sourcesForScope(scope)) {
       const entry = this.entries.get(source.accountId), store = entry?.store;
-      const session = store?.getBoundSession(source.conversationId);
+      const session = [store?.getBoundSession(memberBinding(source.conversationId, source.actorId)), store?.getBoundSession(source.conversationId)]
+        .find(s => s?.threadId === scope.threadId && (s.hostId ?? store?.getProject(s.projectId ?? "")?.hostId ?? "local") === scope.hostId);
       if (!entry || !store || !session || session.threadId !== scope.threadId
         || (session.hostId ?? store.getProject(session.projectId ?? "")?.hostId ?? "local") !== scope.hostId) continue;
       const binding = sessionExecutionScope(store, session);
@@ -2315,7 +2385,8 @@ export class AccountManager {
         result.push({
           key: JSON.stringify([accountId, session.id]), threadId: session.threadId ?? "",
           hostId,
-          recipientId: session.senderId, client: entry.client,
+          ...(bindingMember(session.senderId) && { readScope: JSON.stringify([accountId, session.senderId]) }),
+          headingContext: this.cardSessionContext(session, store), recipientId: session.senderId, client: entry.client,
           managed,
           enabled: store.getBoundSession(session.senderId)?.id === session.id && (managed || session.follow !== false),
           progressEnabled: session.streamReplies ?? config.streamReplies,
@@ -2368,8 +2439,8 @@ export class AccountManager {
     this.interactionRouting.reconcileBindings(configured, [...this.entries].filter(([, entry]) => entry.store).map(([id]) => id));
     const monitor = this.nativeRequestMonitor;
     if (!monitor) return;
-    const threadIds = this.threadSubscriptions()
-      .filter((binding) => binding.enabled && binding.threadId)
+    const threadIds = this.interactionDestinations()
+      .filter(binding => binding.threadId)
       .map((binding) => ({ hostId: binding.hostId, threadId: binding.threadId }));
     for (const task of this.externalCodexTasks.values()) {
       // Keep the legacy project-notification route for unbound Desktop tasks.
@@ -2482,6 +2553,16 @@ export class AccountManager {
     }));
   }
 
+  /** Pin both the channel instance and the binding generation while a human
+   * answers. A reconnect or a switch away and back can reuse all visible IDs. */
+  private interactionStillCurrent(accountId: string, sessionId: string, binding: ThreadSubscription, service: BridgeService): () => boolean {
+    const generation = this.storeFor(accountId).getSession(sessionId)?.executionGeneration;
+    return () => this.entries.get(accountId)?.service === service
+      && this.storeFor(accountId).getSession(sessionId)?.executionGeneration === generation
+      && this.threadSubscriptions().some(candidate => candidate.key === binding.key && candidate.enabled
+        && candidate.threadId === binding.threadId && candidate.hostId === binding.hostId);
+  }
+
   private async handleNativeUserInput(input: NativeUserInput): Promise<CodexUserInputAnswer | undefined> {
     let binding: ThreadSubscription | undefined;
     {
@@ -2505,11 +2586,11 @@ export class AccountManager {
       hostId: binding.hostId, threadId: binding.threadId }, input.request.turnId);
     const service = this.entries.get(accountId)?.service;
     if (!service) return undefined;
+    const stillCurrent = this.interactionStillCurrent(accountId, sessionId, binding, service);
     this.userInputRoutes.set(input, { service, recipientId: binding.recipientId });
     const answers = await service.requestUserInput(binding.recipientId, input.request);
-    if (!this.threadSubscriptions().some(candidate => candidate.key === binding!.key && candidate.enabled
-      && candidate.threadId === binding!.threadId && candidate.hostId === input.hostId)) {
-      await service.reportUserInputResult(binding.recipientId, input.request, "suspended");
+    if (!stillCurrent()) {
+      await this.reportNativeUserInputResult(input, "suspended");
       return undefined;
     }
     return answers;
@@ -2527,13 +2608,13 @@ export class AccountManager {
     const hostId = approval.hostId ?? "local";
     const binding = this.interactionBinding(approval.request.threadId, approval.request.turnId, hostId);
     if (binding) {
-      const [accountId] = JSON.parse(binding.key) as [string, string];
+      const [accountId, sessionId] = JSON.parse(binding.key) as [string, string];
       const service = this.entries.get(accountId)?.service;
       if (!service) return undefined;
+      const stillCurrent = this.interactionStillCurrent(accountId, sessionId, binding, service);
       this.approvalRoutes.set(approval, { service, recipientId: binding.recipientId });
       const decision = await service.requestApproval(binding.recipientId, approval.request);
-      if (!this.threadSubscriptions().some(candidate => candidate.key === binding.key && candidate.enabled
-        && candidate.threadId === binding.threadId && candidate.hostId === hostId)) {
+      if (!stillCurrent()) {
         await this.reportNativeApprovalResult(approval, "withdrawn");
         return undefined;
       }

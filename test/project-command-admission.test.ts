@@ -38,6 +38,28 @@ for (const command of ["/task list", "/qa", "/mode session"]) {
   });
 }
 
+test("a message and bare /new leave two registered projects unselected until an explicit choice", async t => {
+  const f = fixture(t);
+  f.store.createProject("First registered", "/tmp/first-project");
+  f.store.createProject("Second registered", "/tmp/second-project");
+  for (const [input, expected] of [
+    ["ordinary message", /未绑定任何 session/],
+    ["/new", /没有项目/]
+  ] as const) {
+    await f.send(input);
+    assert.match(f.replies.at(-1)!, expected);
+    assert.equal(f.store.getActiveProject("actor"), undefined);
+    assert.equal(f.store.getBoundSession("actor"), undefined);
+    assert.equal(f.store.listSessions().length, 0);
+  }
+  await f.send("/new --standalone");
+  const chosen = f.store.getBoundSession("actor");
+  assert.ok(chosen);
+  assert.equal(chosen.projectId, undefined);
+  assert.equal(path.dirname(chosen.workspace), f.store.standaloneWorkspacesDir);
+  assert.equal(f.store.listSessions().length, 1);
+});
+
 test("standalone new rechecks the retired account runtime before allocating or binding", async t => {
   const f = fixture(t);
   const pending = f.send("/new --standalone");

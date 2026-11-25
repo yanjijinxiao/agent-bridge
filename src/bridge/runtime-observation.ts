@@ -1,3 +1,4 @@
+import { bindingRecipient } from "../channels/conversation-binding.js";
 import crypto from "node:crypto";
 import { z } from "zod";
 import type { RuntimeResource, RuntimeOutput } from "../agents/contracts.js";
@@ -18,7 +19,7 @@ export type RuntimeObservationScope = z.infer<typeof scopeSchema>;
 /** Presentation metadata is not part of a Connector grant identity. In
  * particular Web origin and binding stamps must never cross that wire schema. */
 export function runtimeObservationPrincipal(scope: RuntimeObservationScope) {
-  return { accountId: scope.accountId, conversationId: scope.conversationId, actorId: scope.actorId };
+  return { accountId: scope.accountId, conversationId: bindingRecipient(scope.conversationId), actorId: scope.actorId };
 }
 const rowSchema = z.object({ id: z.string().regex(/^[a-f0-9]{64}$/), scope: scopeSchema, target: runtimeResourceSchema,
   phase: z.enum(["writing", "confirmed", "unknown", "not-sent"]), startedAt: z.number(), seenWorking: z.boolean(),

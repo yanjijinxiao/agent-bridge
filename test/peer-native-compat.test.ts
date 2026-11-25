@@ -20,8 +20,8 @@ test("Gateway restart retains a persisted peer follow binding before device regi
     { standalone: true, hostId: f.ticket.hostId });
   store.setSessionThread(session.id, f.thread.threadId);
   const offline = withPeerBackend(f.backend, new PeerRegistry(path.join(f.root, "server", "grants.json")));
-  const context = { entries: new Map([[principal.accountId, { status: "running", store, client: {} }]]),
-    runner: offline, configProvider: () => ({ codexBackend: "app-server", streamReplies: false }), isSessionResponding: () => false };
+  const context = Object.assign(Object.create(AccountManager.prototype), { options: { peerRegistry: f.registry }, entries: new Map([[principal.accountId, { status: "running", store, client: {} }]]),
+    runner: offline, configProvider: () => ({ codexBackend: "app-server", streamReplies: false }), isSessionResponding: () => false });
   const subscriptions = Reflect.apply((AccountManager.prototype as any).threadSubscriptions, context, []);
   assert.equal(subscriptions.length, 1);
   assert.equal(subscriptions[0].enabled, true);

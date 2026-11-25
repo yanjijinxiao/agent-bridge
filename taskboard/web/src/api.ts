@@ -79,7 +79,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       },
     });
   }
-  const body = (await response.json().catch(() => ({}))) as T & ApiErrorBody;
+  if (response.status === 204 || response.status === 205) return undefined as T;
+  let body: T & ApiErrorBody;
+  try {
+    body = await response.json();
+  } catch (error) {
+    // An abort after the headers arrived still belongs to the cancelled read.
+    // A successful status with an unreadable body cannot confirm a mutation.
+    if (init?.signal?.aborted) throw init.signal.reason ?? error;
+    if (error instanceof Error && error.name === "AbortError") throw error;
+    if (!response.ok) throw new ApiError(response.status, {});
+    throw new ApiError(0, { error: { code: "INVALID_RESPONSE", message: "未读到完整的任务板响应，请核对操作结果。" } });
+  }
 
   if (!response.ok) throw new ApiError(response.status, body);
   return body;

@@ -561,6 +561,12 @@
           <select id="accountDingTalkNetworkFamilyInput"><option value="auto">自动选择并在每轮固定</option><option value="ipv4">固定 IPv4</option><option value="ipv6">固定 IPv6</option></select>
           <small class="field-hint">协议在一次问答开始时确定，直到最终答案或错误结束都保持不变。</small>
         </label>
+        <fieldset class="channel-mode-settings" id="firstContactFields" hidden>
+          <legend>首次对话</legend>
+          <label>未绑定时<select id="firstContactAction"><option value="manual">提示绑定会话</option><option value="create">自动新建并处理首条消息</option></select></label>
+          <label>群聊会话归属<select id="firstContactScope"><option value="conversation">全群共用</option><option value="member">群内每人独立</option></select></label>
+          <label>默认执行设备<select id="firstContactConnector"><option value="">选择 Connector</option></select></label>
+        </fieldset>
         <fieldset class="channel-mode-settings">
           <legend>渠道工作模式</legend>
           <p>选择用户在这个渠道中可以进入的模式，并设置选择项目后的默认模式。</p>

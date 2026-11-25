@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import net from "node:net";
+import http from "node:http";
 import crypto from "node:crypto";
 import readline from "node:readline";
 import { spawn } from "node:child_process";
@@ -110,6 +111,60 @@ test("real CLI Connector code-server workbench, authorization and reconnect", {
     await access!.approveAccess(request.id, entry.id, true, undefined, subject);
     await evaluate(`setTimeout(()=>location.assign(${JSON.stringify(entry.url + "?auth_check=1")}),50); true`); await ready();
   });
+  await check("a cross-site click reuses the personal grant without rendering the approval form", async () => {
+    const source = http.createServer((_req, res) => {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(`<a id="project" href="${entry.url}">Open project</a>`);
+    });
+    await new Promise<void>((resolve, reject) => {
+      source.once("error", reject);
+      source.listen(0, "127.0.0.1", resolve);
+    });
+    const requests: Array<{ id: string; url: URL; timestamp: number }> = [];
+    const crossSiteRequests = new Set<string>();
+    let sawForm = false;
+    const stop = browser!.onEvent((method, params) => {
+      if (method === "Network.requestWillBeSent" && params.type === "Document") {
+        requests.push({ id: params.requestId, url: new URL(params.request.url), timestamp: params.timestamp });
+      }
+      if (method === "Network.requestWillBeSentExtraInfo" && (params.headers["Sec-Fetch-Site"] ?? params.headers["sec-fetch-site"]) === "cross-site") {
+        crossSiteRequests.add(params.requestId);
+      }
+      if (method === "Runtime.bindingCalled" && params.name === "reportApprovalForm") sawForm = true;
+    });
+    await call("Network.enable");
+    await call("Runtime.addBinding", { name: "reportApprovalForm" });
+    const observer = await call("Page.addScriptToEvaluateOnNewDocument", { source:
+      "new MutationObserver(() => { if (document.querySelector('[data-ide-wait]')) reportApprovalForm('shown'); }).observe(document,{childList:true,subtree:true})" });
+    try {
+      // localhost and 127.0.0.1 are distinct sites for Chrome's Strict cookies.
+      const sourceUrl = `http://localhost:${(source.address() as net.AddressInfo).port}/`;
+      await call("Page.navigate", { url: sourceUrl });
+      await eventually(() => duringNavigation("Boolean(document.getElementById('project'))"), "External link missing");
+      assert.equal(await evaluate("location.origin"), new URL(sourceUrl).origin);
+      assert.notEqual(new URL(sourceUrl).hostname, new URL(entry.url).hostname);
+      await evaluate("document.getElementById('project').click()");
+      await ready();
+      const first = requests.find(request => request.url.href === entry.url);
+      const recheck = requests.find(request => request.url.href === entry.url + "?auth_check=1");
+      assert.ok(first && recheck, JSON.stringify({
+        firstRequest: Boolean(first), immediateRecheck: Boolean(recheck),
+        crossSiteHeader: first && crossSiteRequests.has(first.id),
+        documents: requests.map(row => [row.url.hostname, row.url.pathname.split("/")[1], row.url.searchParams.has("auth_check")]),
+      }));
+      const latency = (recheck.timestamp - first.timestamp) * 1000;
+      assert.ok(latency >= 0 && latency < 3000, `same-origin recheck took ${latency} ms`);
+      assert.equal(sawForm, false);
+      assert.equal(access!.pendingAccess().length, 0);
+      t.diagnostic(`cross-site recheck ${Math.round(latency)} ms; Chrome supplied cross-site header evidence=${crossSiteRequests.has(first.id)}; workbench loaded without an approval form`);
+    } finally {
+      stop();
+      await call("Page.removeScriptToEvaluateOnNewDocument", { identifier: observer.identifier });
+      await call("Runtime.removeBinding", { name: "reportApprovalForm" });
+      source.closeAllConnections();
+      await new Promise<void>(resolve => source.close(() => resolve()));
+    }
+  });
   await check("both Git roots and an actual Linux terminal are usable through Connector", async () => {
     await eventually(() => evaluate("document.body.innerText.includes('alpha') && document.body.innerText.includes('beta')"), "Explorer roots missing");
     await command("Source Control: Focus on Changes View");
@@ -141,6 +196,17 @@ test("real CLI Connector code-server workbench, authorization and reconnect", {
     await evaluate(`setTimeout(()=>location.assign(${JSON.stringify(entry.url)}),50); true`); await ready();
     assert.equal(access!.pendingAccess().length, 0); assert.ok((await rpc("read", { file: "alpha/alpha.txt" })).startsWith("EMACS_"));
     assert.deepEqual(await rpc("status"), { nativeInputs: fixture.nativeInputs, nativeAlive: true });
+  });
+  await check("loss of the remote IDE process preserves the binding and completes the active Codex input once", async () => {
+    const turn = await rpc("begin-test-turn");
+    assert.deepEqual(await rpc("crash-test-editor"), { turn, project: fixture.nativeProjectId, inputs: fixture.nativeInputs + 1 });
+    assert.equal(manager.entry(principal.accountId, "fixture-session")?.url, entry.url);
+    const result = await rpc("finish-test-turn");
+    assert.equal(result.thread, fixture.threadId);
+    assert.equal(result.turn, turn);
+    assert.equal(result.inputs, fixture.nativeInputs + 1);
+    assert.equal(result.sources, 1);
+    assert.match(result.text, /^DONE_/);
   });
   await check("revocation blocks the old browser session", async () => {
     access!.revoke(); await evaluate(`setTimeout(()=>location.assign(${JSON.stringify(entry.url)}),50); true`);

@@ -151,9 +151,9 @@ test("completion waits for existing same-turn native receipt observations before
 
 test("accepted steer provenance survives restart; an uncertain native submission never becomes a participant", async t => {
   const file = path.join(root(t), "controls.json");
-  const controls = new SessionControlJournal(file), key = JSON.stringify(["local", "thread"]);
-  await controls.steer(key, "accepted-message", async () => ({ status: "accepted", threadId: "thread", turnId: "turn" }), "local", origin("alice"));
-  await assert.rejects(controls.steer(key, "lost-message", async () => { throw new Error("unknown"); }, "local", origin("bob")));
+  const controls = new SessionControlJournal(file), target = { hostId: "local", threadId: "thread", turnId: "turn" };
+  await controls.steer(target, "accepted-message", async () => ({ status: "accepted", threadId: "thread", turnId: "turn" }), origin("alice"));
+  await assert.rejects(controls.steer(target, "lost-message", async () => { throw new Error("unknown"); }, origin("bob")));
   const recovered = new SessionControlJournal(file).acceptedPresentationInputs();
   assert.equal(recovered.length, 1); assert.equal(recovered[0].origin?.actorId, "alice");
 });

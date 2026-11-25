@@ -20,10 +20,10 @@ for (const failure of ["source", "input-pipe"] as const) test(`IDE upload ${fail
   t.mock.method(fs, "createReadStream", () => source as unknown as fs.ReadStream);
   const script = `const fs=require('node:fs'),input=JSON.parse(Buffer.from(process.argv[1],'base64'));
     if(input.failure==='input-pipe')fs.closeSync(0);
-    fs.writeFileSync(input.marker,String(process.pid));setInterval(()=>{},1000);`;
+    fs.writeFileSync(input.marker+".tmp",String(process.pid));fs.renameSync(input.marker+".tmp",input.marker);setInterval(()=>{},1000);`;
   const rejected = assert.rejects(uploadIDEHost("local", script, { marker, failure }, "fixture", new AbortController().signal),
     failure === "source" ? /fixture source failure/ : /EPIPE|closed|write/i);
-  await until(() => fs.existsSync(marker)); pid = Number(fs.readFileSync(marker, "utf8"));
+  await until(() => fs.existsSync(marker)); pid = Number(fs.readFileSync(marker, "utf8")); assert.ok(Number.isSafeInteger(pid) && pid > 0);
   if (failure === "source") source.destroy(new Error("fixture source failure"));
   else source.write(Buffer.alloc(1024 * 1024));
   await rejected;
@@ -47,8 +47,8 @@ test("IDE upload cancellation closes its source and transfer process without an 
   t.after(() => { source.destroy(); if (pid && alive(pid)) process.kill(pid); fs.rmSync(root, { recursive: true, force: true }); });
   t.mock.method(fs, "createReadStream", () => source as unknown as fs.ReadStream);
   const rejected = assert.rejects(uploadIDEHost("local", `const fs=require('node:fs'),input=JSON.parse(Buffer.from(process.argv[1],'base64'));
-    fs.writeFileSync(input.marker,String(process.pid));process.stdin.resume();`, { marker }, "fixture", abort.signal), /abort/i);
-  await until(() => fs.existsSync(marker)); pid = Number(fs.readFileSync(marker, "utf8")); abort.abort();
+    fs.writeFileSync(input.marker+".tmp",String(process.pid));fs.renameSync(input.marker+".tmp",input.marker);process.stdin.resume();`, { marker }, "fixture", abort.signal), /abort/i);
+  await until(() => fs.existsSync(marker)); pid = Number(fs.readFileSync(marker, "utf8")); assert.ok(Number.isSafeInteger(pid) && pid > 0); abort.abort();
   await rejected; await until(() => !alive(pid!)); assert.equal(source.destroyed, true);
 });
 

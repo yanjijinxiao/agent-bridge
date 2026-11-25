@@ -394,6 +394,9 @@ export class ChannelUserInputController {
     }
     this.save();
   }
+  hasPendingId(senderId: string, id: string): boolean {
+    return this.state.records.some(record => record.senderId === senderId && record.id === id && record.status === "pending");
+  }
   hasUnsettled(senderId: string): boolean {
     return this.state.records.some(record => this.matchesBinding(senderId, record)
       && ["pending", "answered", "submitting", "unconfirmed"].includes(record.status));

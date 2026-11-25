@@ -21,15 +21,15 @@ export function diagnostic(event: string, values: Record<string, unknown> = {}, 
   const parentRequestId = parent?.requestId && values.requestId && parent.requestId !== values.requestId ? parent.requestId : undefined;
   for (const [key, value] of Object.entries({ ...parent, parentRequestId, ...values })) {
     if (fields.has(key) && (typeof value === "string" || typeof value === "number" || typeof value === "boolean"))
-      data[key] = typeof value === "string" ? redact(value).slice(0, 512) : value;
+      data[key] = typeof value === "string" ? redactDiagnosticText(value).slice(0, 512) : value;
   }
   write({ event, level, ...data });
 }
 
-function redact(value: string): string {
+export function redactDiagnosticText(value: string): string {
   return value.replace(/(?:https?|wss?):\/\/[^\s<>"']+/gi, "[url-redacted]")
     .replace(/\bBearer\s+[^\s"',}]+/gi, "Bearer [redacted]")
-    .replace(/((?:["']?)(?:token|secret|password|authorization|api[_-]?key|sessionWebhook|access[_-]?token)(?:["']?)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi, "$1[redacted]");
+    .replace(/((?:["']?)(?:token|secret|ticket|password|authorization|api[_-]?key|sessionWebhook|access[_-]?token)(?:["']?)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi, "$1[redacted]");
 }
 function write(record: Record<string, unknown>): void {
   try { output?.(JSON.stringify({ schemaVersion: CONTRACTS.log.major, timestamp: new Date().toISOString(), runtime: identity, ...record }) + "\n"); } catch { /* logging is not an execution dependency */ }
@@ -42,8 +42,10 @@ export function installDiagnostics(component: RuntimeIdentity["component"], sink
   identity = runtimeIdentity(component); output = sink;
   for (const name of ["log", "info", "warn", "error", "debug"] as const) console[name] = (...args: unknown[]) => {
     let message: string;
-    try { message = redact(format(...args)).slice(0, 8192); } catch { message = "Unformattable legacy log"; }
-    write({ event: "legacy.console", level: name === "log" ? "info" : name, ...context.getStore(), message });
+    try { message = redactDiagnosticText(format(...args)).slice(0, 8192); } catch { message = "Unformattable legacy log"; }
+    const correlation = Object.fromEntries(Object.entries(context.getStore() ?? {})
+      .filter(([, value]) => typeof value === "string").map(([key, value]) => [key, redactDiagnosticText(value).slice(0, 512)]));
+    write({ event: "legacy.console", level: name === "log" ? "info" : name, ...correlation, message });
   };
   diagnostic("runtime.started");
   return () => { for (const name of ["log", "info", "warn", "error", "debug"] as const) console[name] = previous[name];

@@ -7,6 +7,8 @@ export const peerPrincipal = new AsyncLocalStorage<PeerPrincipal>();
 export type PeerBridgePort = {
   isRouted?(hostId?: string): boolean;
   managedHosts?(): string[];
+  isFirstContactOnly?(hostId: string): boolean;
+  supportsFirstContact?(hostId: string): boolean | undefined;
   connectorRoot?(hostId: string): string;
   catalogHosts?(hostId: string): string[];
   fullIDEAvailable?(principal: PeerPrincipal, target: { hostId: string; threadId: string }): boolean;

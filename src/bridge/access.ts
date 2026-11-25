@@ -1,3 +1,5 @@
+import { bindingRecipient } from "../channels/conversation-binding.js";
+
 export type AccessDecision =
   | { allowed: true; message: string }
   | { allowed: false; message: string };
@@ -45,6 +47,7 @@ export class AccessController {
     // A conversation ID in the allowlist is an explicit group-wide ACL. Otherwise,
     // the individual actor must be allowed; card callbacks never inherit authority
     // merely because their reply target is a chat.
+    conversationId = bindingRecipient(conversationId);
     if (this.isAllowed(senderId) || this.isAllowed(conversationId)) {
       return { allowed: true, message: "sender is allowed" };
     }

@@ -1,4 +1,7 @@
 import readline from "node:readline";
+import fs from "node:fs";
+import { setTimeout as wait } from "node:timers/promises";
+const queueGate = process.argv.find(arg => arg.startsWith("--queue-gate="))?.slice("--queue-gate=".length);
 const send = value => process.stdout.write(JSON.stringify(value) + "\n");
 const failed = { id: "failed", status: "failed", items: [], error: { message: "capacity", codexErrorInfo: "serverOverloaded" } };
 const thread = { id: "thread", cwd: "/tmp/project", status: { type: process.argv.includes("--system-error") ? "systemError" : "idle" }, turns: [failed] };
@@ -7,7 +10,7 @@ function finish() {
     item: { id: "answer", type: "agentMessage", phase: "final_answer", text: "continued without replay" } } });
   send({ method: "turn/completed", params: { threadId: "thread", turn: { id: "continued", status: "completed", error: null, items: [] } } });
 }
-readline.createInterface({ input: process.stdin }).on("line", line => {
+readline.createInterface({ input: process.stdin }).on("line", async line => {
   const m = JSON.parse(line);
   if (m.id === "question" && m.result) {
     if (m.result.answers?.choice?.answers?.[0] !== "continue") throw Error("question lost during recovery");
@@ -22,6 +25,13 @@ readline.createInterface({ input: process.stdin }).on("line", line => {
     return result({ thread, model: "same-model", approvalPolicy: "on-request", sandbox: "workspace-write", cwd: "/tmp/project" });
   }
   if (m.method === "thread/turns/list") return result({ data: [failed] });
+  if (queueGate && m.method === "thread/queue/list") {
+    fs.writeFileSync(queueGate + ".waiting", "");
+    while (!fs.existsSync(queueGate)) await wait(5);
+    const queued = fs.readFileSync(queueGate, "utf8") === "queue";
+    return result({ data: queued ? [{id:"human-input"}] : [] });
+  }
+  if (queueGate && m.method === "turn/start") fs.appendFileSync(queueGate + ".starts", "start\n");
   if (m.method === "thread/queue/list") return result({ data: process.argv.includes("--queued") ? [{ id: "existing-input" }] : [],
     ...(process.argv.includes("--queue-next-page") ? { nextCursor: "unread-page" } : {}) });
   if (m.method === "thread/unsubscribe") return result({});

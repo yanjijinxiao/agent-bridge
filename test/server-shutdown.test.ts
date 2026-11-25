@@ -38,7 +38,7 @@ test("HTTP shutdown lets a normal in-flight response drain before closing", { ti
   assert.equal(await (await response).text(), "saved-once"); await closing;
 });
 
-test("SIGTERM exits the real Gateway with an unfinished HTTP request without stopping an independent executor", { timeout: 15000 }, async t => {
+test("SIGTERM exits the real Gateway with an unfinished HTTP request without stopping an independent executor", { timeout: 45000 }, async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-shutdown-")), paths = resolveStatePaths(path.join(root, "state"));
   saveConfig(paths, { ...defaultConfig(root), taskboardEnabled: false });
   // This stand-in owns its lifetime just as the separately supervised native
@@ -59,11 +59,13 @@ test("SIGTERM exits the real Gateway with an unfinished HTTP request without sto
     executor.kill("SIGTERM");
     fs.rmSync(root, { recursive: true, force: true });
   });
-  const deadline = Date.now() + 7000;
+  // A cold tsx import can be slow during the full suite. The shutdown deadline
+  // starts separately, after the listening server receives SIGTERM.
+  const deadline = Date.now() + 30000;
   const ready = () => output.split("\n").flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } })
     .find(record => record.event === "runtime.ready" && record.surface === "management");
   while (!ready() && Date.now() < deadline && child.exitCode === null) await new Promise(resolve => setTimeout(resolve, 25));
-  const record = ready(); assert.ok(record, output);
+  const record = ready(); assert.ok(record, `Gateway did not report readiness before the shutdown test.\n${output}`);
   assert.equal(record.schemaVersion, 1); assert.equal(record.runtime.component, "gateway");
   assert.equal(record.runtime.pid, child.pid); assert.ok(record.port > 0);
   socket = net.createConnection(record.port, "127.0.0.1");

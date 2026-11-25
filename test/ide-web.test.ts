@@ -276,3 +276,44 @@ test("native configuration import only stages the selected fields and reports un
   const html = fs.readFileSync(new URL("../src/web/index.html", import.meta.url), "utf8");
   assert.match(html, /textarea id="ideExtensions"/); assert.doesNotMatch(source, /extensionChoices|#ideExtensions input:checked/);
 });
+
+test("IDE settings save captures host and access fields before profile validation", async () => {
+  let saved: any;
+  const { ui, node, context } = fixture(async (_url, options) => {
+    if (options) { saved = options.body.config; return {}; }
+    return { config: { enabled: true, port: 8790, publicOrigin: "https://gateway.example.test", hosts: [],
+      profile: { settings: {}, extensions: [] } }, hosts: [], instances: [], endpoints: [] };
+  });
+  const actor = { dataset: { ideLinkActor: "bot" }, value: "original-owner" };
+  context.document.querySelectorAll = (selector: string) => {
+    if (selector === "[data-ide-link-account]:checked") return [{ dataset: { ideLinkAccount: "bot" } }];
+    if (selector === "[data-ide-link-actor]") return [actor];
+    if (selector === "[data-ide-link-deadline]") return [{ dataset: { ideLinkDeadline: "bot" }, value: "2030-01-01T12:00" }];
+    return [];
+  };
+  await ui.refresh();
+  const submitted = ui.save({ preventDefault() {} });
+  node("#idePort").value = "8791";
+  node("#ideEnabled").checked = false;
+  actor.value = "next-draft-owner";
+  await submitted;
+  assert.equal(saved.port, 8790); assert.equal(saved.enabled, true);
+  assert.equal(saved.linkAccess[0].actorId, "original-owner");
+  assert.equal(node("#idePort").value, "8791"); assert.equal(node("#ideEnabled").checked, false);
+});
+
+test("a slow IDE profile import preserves fields edited while reading the file", async () => {
+  const { ui, node } = fixture();
+  const read = Promise.withResolvers<string>();
+  node("#ideProfileKind").value = "profile";
+  node("#ideProfile").value = "{}";
+  node("#ideExtensions").value = "{}";
+  node("#ideProfileFile").files = [{ size: 150, text: () => read.promise }];
+  const loading = ui.importProfileFile();
+  node("#ideProfile").value = '{"editor.fontSize":22}';
+  read.resolve(JSON.stringify({ settings: '{"editor.fontSize":14}', extensions: '[{"identifier":{"id":"example.extension"}}]' }));
+  await loading;
+  assert.equal(node("#ideProfile").value, '{"editor.fontSize":22}');
+  assert.deepEqual(JSON.parse(node("#ideExtensions").value), { recommendations: ["example.extension"] });
+  assert.match(node("#ideProfileImportStatus").textContent, /保留/);
+});

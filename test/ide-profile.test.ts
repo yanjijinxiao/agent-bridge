@@ -101,10 +101,11 @@ test("failed automatic extension install degrades visibly; explicit prepare fail
   assert.equal(opened.status, "running"); assert.equal(opened.profile?.phase, "error");
   assert.deepEqual(opened.profile?.missing, ["tuttieee.emacs-mcx"]);
   assert.equal(opened.profile?.warning, "extensions-unavailable");
-  assert.equal(JSON.stringify(manager.list()).includes("private stderr"), false);
+  assert.doesNotMatch(JSON.stringify(manager.list()), /private stderr|MARK_EXTENSION/);
   await manager.stop(opened.id);
   await assert.rejects(manager.start(entry.id, true), /所选扩展未安装完成/);
   assert.equal(manager.list()[0].status, "error"); assert.match(manager.list()[0].error!, /Open VSX/);
+  assert.doesNotMatch(JSON.stringify(manager.list()), /MARK_EXTENSION/);
   plan({}); const prepared = await manager.start(entry.id, true);
   assert.equal(prepared.status, "stopped"); assert.equal(prepared.profile?.phase, "ready");
   const reopened = await manager.open(entry.id); assert.equal(reopened.profile?.missing.length, 0);

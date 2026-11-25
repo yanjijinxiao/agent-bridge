@@ -420,3 +420,27 @@ for (const kind of ["approval", "user-input"]) {
     assert.equal(f.core.calls.length, 1);
   });
 }
+
+test("the next AI input waits for the completed run to release its native observer before submitting once", async t => {
+  const f = await createFixture();
+  const retiring = Promise.withResolvers(), release = Promise.withResolvers();
+  t.after(async () => { release.resolve(); await f.close(); });
+  const unobserve = f.backend.unobserveThreadInteractions.bind(f.backend);
+  f.backend.unobserveThreadInteractions = async (...args) => {
+    retiring.resolve();
+    await release.promise;
+    return unobserve(...args);
+  };
+  const thread = await f.service.createThread({ projectId: "project" });
+  const first = await f.service.startTurn(thread.id, { message: "First" });
+  await retiring.promise;
+  assert.equal(f.service.getRun(first.id).status, "completed");
+  const next = f.service.startTurn(thread.id, { message: "Second", clientRequestId: randomUUID() });
+  void next.catch(() => {});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.core.calls.length, 1);
+  release.resolve();
+  const second = await next;
+  await waitFor(() => f.service.getRun(second.id).status === "completed");
+  assert.equal(f.core.calls.length, 2);
+});

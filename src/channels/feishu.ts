@@ -1,4 +1,6 @@
+import { InboundFileBatch } from "./inbound-file-batch.js";
 import crypto from "node:crypto";
+import { addAbortSignal } from "node:stream";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -12,7 +14,8 @@ import { inboundBytes } from "./inbound-bytes.js";
 import { sanitizeFileName } from "../weixin/media.js";
 import { feishuMessageReceipt, assertFeishuSuccess, feishuRecipientType as recipientType } from "./feishu-result.js";
 import { FeishuMediaSender, type FeishuMediaApi } from "./feishu-media.js";
-import { createFeishuApiClient } from "./feishu-sdk.js";
+import { requestSignal, withSignal } from "./network-request.js";
+import { createFeishuApiClient, feishuDownloadSignal } from "./feishu-sdk.js";
 import { feishuActionCard } from "./feishu-action-card.js";
 import { cardActionIdentity, formValueFromRawCardAction } from "./feishu-card-action.js";
 import { FeishuCardUpdater } from "./feishu-card-updater.js";
@@ -36,6 +39,7 @@ type FeishuAdapterOptions = {
   readonly wsClient?: Pick<Lark.WSClient, "start" | "close">;
   readonly inboundDir?: string;
   readonly maxInboundBytes?: number;
+  readonly inboundTimeoutMs?: number;
 };
 
 export class FeishuChannelAdapter implements ChannelAdapter, ChannelTextClient {
@@ -47,6 +51,7 @@ export class FeishuChannelAdapter implements ChannelAdapter, ChannelTextClient {
   private readonly cardUpdater: FeishuCardUpdater;
   private readonly inboundDir?: string;
   private readonly maxInboundBytes: number;
+  private readonly inboundTimeoutMs: number;
   private readonly mediaSender: FeishuMediaSender;
 
   constructor(account: FeishuAccount, options: FeishuAdapterOptions = {}) {
@@ -62,6 +67,7 @@ export class FeishuChannelAdapter implements ChannelAdapter, ChannelTextClient {
     });
     this.cardUpdater = new FeishuCardUpdater(this.apiClient.im.v1.message.patch);
     this.inboundDir = options.inboundDir;
+    this.inboundTimeoutMs = options.inboundTimeoutMs ?? 60_000;
     this.maxInboundBytes = options.maxInboundBytes ?? 100 * 1024 * 1024;
     this.client = createChannelClient("feishu", {
       ...TEXT_CAPABILITIES, mentions: "available", mentionBatchSize: 50, actionCardMentions: "available",
@@ -295,21 +301,35 @@ export class FeishuChannelAdapter implements ChannelAdapter, ChannelTextClient {
 
   async resolveAttachments(message: ChannelMessage): Promise<ChannelMessage["attachments"]> {
     if (!this.inboundDir) throw new Error("Feishu inbound directory is not configured");
+    const signal = requestSignal({ timeoutMs: this.inboundTimeoutMs });
     const attachments: ChannelMessage["attachments"] = [];
-    for (const attachment of message.attachments) {
-      if (attachment.path) { attachments.push(attachment); continue; }
-      const resource = await this.apiClient.im.v1.messageResource.get({
-        params: { type: attachment.kind === "image" ? "image" : "file" },
-        path: { message_id: String(attachment.item.messageId), file_key: String(attachment.item.fileKey) }
-      });
-      const bytes = await inboundBytes(resource.getReadableStream(), this.maxInboundBytes);
-      fs.mkdirSync(this.inboundDir, { recursive: true });
-      const label = sanitizeFileName(attachment.label).slice(0, 180);
-      const targetPath = path.join(this.inboundDir, `${crypto.randomUUID()}-${label}`);
-      fs.writeFileSync(targetPath, bytes, { flag: "wx", mode: 0o600 });
-      attachments.push({ ...attachment, item: {}, path: targetPath, label });
+    const files = new InboundFileBatch();
+    try {
+      for (const attachment of message.attachments) {
+        if (attachment.path) { attachments.push(attachment); continue; }
+        signal.throwIfAborted();
+        const pending = feishuDownloadSignal.run(signal, () => this.apiClient.im.v1.messageResource.get({
+          params: { type: attachment.kind === "image" ? "image" : "file" },
+          path: { message_id: String(attachment.item.messageId), file_key: String(attachment.item.fileKey) }
+        }));
+        // Third-party transports may still resolve after cancellation. Release
+        // the late response body without creating a file or accepting input.
+        void pending.then(resource => { if (signal.aborted) resource.getReadableStream().destroy(); }).catch(() => {});
+        const resource = await withSignal(pending, signal);
+        const stream = addAbortSignal(signal, resource.getReadableStream());
+        const bytes = await inboundBytes(stream, this.maxInboundBytes);
+        signal.throwIfAborted();
+        fs.mkdirSync(this.inboundDir, { recursive: true });
+        const label = sanitizeFileName(attachment.label).slice(0, 180);
+        const target = path.join(this.inboundDir, `${crypto.randomUUID()}-${label}`);
+        files.write(target, bytes);
+        attachments.push({ ...attachment, item: {}, path: target, label });
+      }
+      return attachments;
+    } catch (error) {
+      files.discard();
+      throw error;
     }
-    return attachments;
   }
 }
 

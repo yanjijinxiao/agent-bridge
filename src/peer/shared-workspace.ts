@@ -96,8 +96,9 @@ const result=sharedWorkspace(input.root,input.method,input.input,()=>{
       child.stderr.resume(); child.stdin.on("error", () => {});
       let output = "", ready = false, failure: unknown;
       const timer = setTimeout(() => { failure = fail(); child.kill("SIGKILL"); }, 30000);
-      child.stdout.on("data", bytes => {
-        output += String(bytes);
+      // Pipe chunks may split a filename or file content inside a UTF-8 character.
+      child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
+        output += chunk;
         if (Buffer.byteLength(output) > 1_000_000) { failure = fail(); child.kill("SIGKILL"); return; }
         while (output.startsWith("READY\n")) {
           ready = true; output = output.slice(6);

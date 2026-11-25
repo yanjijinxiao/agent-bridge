@@ -187,6 +187,17 @@ export class AiChatService {
     const existing = findAiSubmission(this.database, submission);
     if (existing) return existing;
     let thread = this.getThread(threadId);
+    // SQLite exposes the final result before the old observer and attachments
+    // finish retiring. Wait only for that terminal run on this thread.
+    if (!thread.currentRun) {
+      const retiring = [...this.active.entries()].find(([, record]) => record.threadId === threadId);
+      if (retiring && this.database.getAiChatRun(retiring[0])?.finishedAt) {
+        await this.completions.get(retiring[0]);
+        const replay = findAiSubmission(this.database, submission);
+        if (replay) return replay;
+        thread = this.getThread(threadId);
+      }
+    }
     if (this.#threadIsActive(thread)) {
       throw new ApiError(
         409,

@@ -148,7 +148,31 @@ window.fetch = async (input: any, init?: RequestInit) => {
       }
       result={attachment:{id:`board-file-${audit.requests.filter((r:any)=>r.body?.filename).length}`,taskId:url.pathname.split("/")[3],
         filename:body.filename,size:body.size,contentType:"application/octet-stream",createdAt:now}};
-    } else if (url.pathname.endsWith("/comments") && method === "GET") result = {comments};
+    } else if (/^\/api\/tasks\/[^/]+\/comments$/.test(url.pathname)) {
+      const taskId = url.pathname.split("/")[3];
+      if (method === "GET") result = {comments: comments.filter(c => c.taskId === taskId)};
+      else {
+        const comment = {...comments[0], ...body, taskId, id: "board-comment-" + comments.length, attachments: []};
+        comments.push(comment);
+        result = {comment};
+        if (audit.holdCommentAck) {
+          audit.holdCommentAck = false;
+          await new Promise<void>(resolve => { audit.releaseCommentAck = resolve; });
+          throw new TypeError("Fixture lost comment acknowledgement");
+        }
+      }
+    } else if (/^\/api\/comments\/[^/]+\/attachments$/.test(url.pathname) && method === "POST") {
+      const comment = comments.find(c => c.id === url.pathname.split("/")[3]);
+      if (audit.holdUpload === body.filename) {
+        audit.holdUpload = null;
+        await new Promise<void>(resolve => { audit.releaseCommentUpload = resolve; });
+        return Response.json({error:{message:"Fixture rejected upload"}}, {status: 400});
+      }
+      const attachment = {id: "board-upload-" + comment.attachments.length, taskId: comment.taskId, commentId: comment.id,
+        filename: body.filename, size: body.size, createdAt: now, contentType: "text/plain"};
+      comment.attachments.push(attachment);
+      result = {attachment};
+    }
     else if (url.pathname.endsWith("/attachments") && method === "GET") result = {attachments:[]};
     else if (url.pathname.startsWith("/api/tasks/")) {
       const current=boardTasks.find(t=>t.id===url.pathname.split("/")[3]);

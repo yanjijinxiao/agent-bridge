@@ -1190,6 +1190,7 @@ function openAccountSettingsDialog(account) {
   document.querySelector("#accountDingTalkNetworkFamilyInput").value = dingTalk ? account.networkFamily || "auto" : "auto";
   document.querySelector("#accountWebhookInput").value = "";
   document.querySelector("#accountWebhookProviderInput").value = account.webhookProvider || "generic";
+  populateFirstContact(account);
   channelModeSettings.populate(account, state.knowledgeBases, state.projects);
   updateAccountWebhookProviderPresentation();
   document.querySelector("#clearAccountWebhookInput").checked = false;
@@ -1201,6 +1202,32 @@ function openAccountSettingsDialog(account) {
   document.querySelector("#accountDialogTitle").textContent = `${accountDisplayName(account.accountId)} · 渠道设置`;
   showOwnedDialog(els.accountDialog);
   document.querySelector("#accountRemarkInput").select();
+}
+
+async function populateFirstContact(account) {
+  const fields = document.querySelector("#firstContactFields");
+  fields.disabled = fields.hidden = account.channel !== "dingtalk";
+  if (fields.hidden) return;
+  const settings = account.firstContact || {};
+  const action = document.querySelector("#firstContactAction");
+  const device = document.querySelector("#firstContactConnector");
+  document.querySelector("#firstContactScope").value = settings.groupScope || "conversation";
+  action.value = settings.onUnbound || "manual";
+  action.onchange = () => { device.required = !fields.hidden && action.value === "create"; };
+  action.onchange();
+  device.replaceChildren(new Option("选择 Connector", ""));
+  if (settings.connector) device.add(new Option(settings.connector, settings.connector, false, true));
+  try {
+    const status = await api("/api/connectors");
+    if (document.querySelector("#editingRemarkAccountId").value !== account.accountId) return;
+    for (const route of status.routes) {
+      const existing = [...device.options].find(option => option.value === route.hostId);
+      if (route.supportsFirstContact === false && !existing) continue;
+      const label = (route.label || route.hostId) + (route.supportsFirstContact === false ? "（不支持新建会话）" : route.online ? "" : "（离线）");
+      if (existing) existing.textContent = label;
+      else device.add(new Option(label, route.hostId));
+    }
+  } catch { if (document.querySelector("#editingRemarkAccountId").value === account.accountId) toast("设备列表读取失败", true); }
 }
 
 function openRemoveAccountDialog(account) {
@@ -1248,6 +1275,9 @@ async function saveAccountSettings(event) {
   const body = { displayName, webhookProvider };
   const account = state.accounts.find((item) => item.accountId === accountId);
   if (account?.channel === "dingtalk") {
+    const connector = document.querySelector("#firstContactConnector").value;
+    body.firstContact = { onUnbound: document.querySelector("#firstContactAction").value,
+      groupScope: document.querySelector("#firstContactScope").value, ...(connector ? { connector } : {}) };
     body.cardTemplateId = document.querySelector("#accountDingTalkCardTemplateInput").value.trim() || null;
     body.cardContentKey = document.querySelector("#accountDingTalkCardContentKeyInput").value.trim() || null;
     body.networkFamily = document.querySelector("#accountDingTalkNetworkFamilyInput").value;
@@ -2147,7 +2177,7 @@ function openNewSessionDialog(preselectedProject) {
     const conversations = new Map();
     for (const session of state.sessions.filter(item => item.accountId === account.accountId)) {
       const sender = session.binding?.conversationId || session.senderId;
-      if (sender) conversations.set(sender, session.binding?.conversationName || "");
+      if (sender) conversations.set(sender, [session.binding?.conversation?.name, session.binding?.member && "成员 " + session.binding.member.actor].filter(Boolean).join(" · "));
     }
     const recent = authorizedConversationId(account);
     if (recent && !conversations.has(recent)) conversations.set(recent, "");

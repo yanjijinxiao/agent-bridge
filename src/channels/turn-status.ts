@@ -24,8 +24,21 @@ const labels: Record<TurnActivity | TurnOutcome, string> = {
 export function turnStatusHeading(status: TurnActivity | TurnOutcome): string {
   return `**${labels[status]}**`;
 }
-export function withTurnStatus(text: string, status: TurnActivity | TurnOutcome): string {
-  return `${turnStatusHeading(status)}\n\n${text}`;
+/** One line appended outside the bold status. Names are plain labels, never
+ * allowed to introduce Markdown structure or break the control/footer layout. */
+export function sessionHeadingContext(session: { title: string; id?: string; threadId?: string; createdByFirstContact?: true; explicitlySelected?: true }, machine: string): string {
+  const label = (value: string) => {
+    const chars = Array.from(value.replace(/[\p{C}\s]+/gu, " ").trim());
+    const compact = chars.length > 28 ? chars.slice(0, 27).join("") + "…" : chars.join("");
+    return compact.replace(/[\\`*_\[\]<>|~]/g, "\\$&");
+  };
+  const kind = session.createdByFirstContact && !session.explicitlySelected ? "默认会话" : "绑定会话";
+  const name = session.title && session.title !== "默认会话" ? session.title : (session.threadId || session.id || "").slice(-8);
+  return [kind + (name ? " " + label(name) : ""), label(machine)].filter(Boolean).join(" · ");
+}
+
+export function withTurnStatus(text: string, status: TurnActivity | TurnOutcome, context?: string): string {
+  return `${turnStatusHeading(status)}${context ? " · " + context : ""}\n\n${text}`;
 }
 /** Preserve the pre-compact header reserve so already acknowledged result-page
  * boundaries never shift after an upgrade, even though the new strip is smaller. */

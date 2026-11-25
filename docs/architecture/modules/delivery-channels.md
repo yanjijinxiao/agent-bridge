@@ -1,10 +1,14 @@
 # 进展、卡片与渠道回执
 
+任务卡状态行追加默认或手动绑定的会话与执行机器。进展、分段、最终结果及合并 @ 卡共用首次建卡保存的归属。投递层把个人绑定还原成群收件地址。[卡片格式与测试](../member-sessions.md)
+
+从平台收回的流式卡回执必须先核对真实收件群，再保存到原成员绑定。恢复、分页续卡采用同一双向转换，并核对原卡编号。这样同群其他成员的卡不能被当作本人的续卡。
+
 DEL-08.13：旧输入接收扫描失败/超时不能禁止只读 provenance 修复。observe 总是允许该修复独立验证当前持有者及完整原生来源；原输入恢复仍控制结果副作用，repairQueueTerminals 和 closeDeliveredProgress 不因修复进展而放开。只有完整来源、活动 turn 和新鲜同 host/thread 绑定同时成立，才能校正被旧展示污染的完成记录。部分、终态或换绑证据不重新打开卡片，不发答案、不启动任务。
 
 Connector 的完整来源扫描上限为 4 GiB，保留 15 秒读取预算及 50000 个 turn 上限；在 readline 累积前逐字节块检查单行不超过 64 MiB。超限、超时、缺尾、来源不是根会话或文件身份变化均返回未知，不用尾窗口冒充完整证明。本次约 2.77 GB 现存记录的只读验证与边界测试见[四层记录](../../audits/2026-11-12-follow-receipt-repair.md)，不据此承诺任意长度历史或机器负载下均能完成。
 
-Herdr 源码中的终端观察复用 ChannelTurnPresentation，状态事实来自 RuntimeObservationController。blocked 是等待终端处理，不生成原生审批/聊天问答；idle/error/exited 是终端观察结果，不能变成“已完成任务”。中断控件按能力显示，只承诺请求；画面有界刷新、状态阶段保留，IDE 和 @ 沿用公共能力。回执未知不另建卡、不自动重发通知；见[运行模块](agent-runtime.md)与[增量四层检查](../../audits/2026-11-07-herdr-adapters/README.md)。
+Herdr 源码中的终端观察复用 ChannelTurnPresentation，状态事实来自 RuntimeObservationController。blocked 是等待终端处理，不生成原生审批/聊天问答；idle/error/exited 是终端观察结果，不能变成“已完成任务”。中断控件按能力显示，只承诺请求；最新终端画面在同一张卡上有界刷新；状态行、IDE 和 @ 沿用公共能力。回执未知不另建卡、不自动重发通知；见[运行模块](agent-runtime.md)与[增量四层检查](../../audits/2026-11-07-herdr-adapters/README.md)。
 
 TurnPresentation/ThreadEventHub 保存按 host/thread/turn、阶段、卡片和页的展示状态。进展摘要、commentary、公开工具状态与最终答案分开，长任务持续刷新；原生 running/terminal 决定执行状态，渠道回执决定平台接收。Task 卡用普通字号状态与原生 loading，不额外附大标题冒充新答案。
 
@@ -29,6 +33,8 @@ ThreadEventHub 将 inputRecoveryFailure 与当前快照 syncFailure 分开。旧
 DingTalk/Feishu/Wecom/Weixin 适配器解释平台事件身份和业务回执；HTTP 成功不等于业务成功。入站 claim 失败不能 ack。附件类型/大小/总超时均在边界检查；网络重试受总预算约束，上传或发送阶段未知不以换 IPv4/IPv6 等方式重复业务写。typing 不等于消息交接，不锁 Gateway 重启。
 
 control-card-delivery 新增四个原版失败场景，覆盖 action/goal form 的创建/更新未知；正常 text-only 路线仍由原 ChannelClient 测试保留。channel-write-leases、turn-presentation、DingTalk/progress、result-pages、copyable 及媒体 journal 测试覆盖各层。当前本机与平台 API 测试不能证明真实手机的每个像素或消息已经可见。
+
+代码审查批注由 `presentAssistantText` 统一转换。进度摘要、最终结果、定向提醒卡和会话历史须保留每条批注的位置。文件、行范围或标识符不同的批注分别展示；完全相同的批注只展示一次。代码围栏和引用中的示例按原文保留。[多位置批注回归](../../audits/2026-11-25-four-layer-followup.md)
 
 ## 此次补测的联合边界
 
@@ -87,3 +93,13 @@ DEL-09.7：activeDingTalkLayout 在流式页脚的独立末段显示可信的运
 ## 关闭过程回复与接收事实
 
 /stream off 依既有契约只发送最终结果，不创建进行中的 AI 卡。会话未设置时继承全局配置，不能把不显示卡片误诊为 Connector 离线或输入未提交。钉钉“思考中”表情属于消息处理生命周期，不能作为原生接受/执行/结束事实；排查以精确 clientUserMessageId/host/thread/turn 回执与结果投递为准。2026-11-12 探探截图的 review 已接收并产生原生输出，全局 streamReplies=false 是没有过程卡的配置原因；另一 Herdr 观察流的 runtime 错误与它分开归因。现场只读核对元数据，没有重发任务或变更该用户的展示设置。
+
+跟随已有线程时，恢复后的强制同步沿用持久化的历史边界。即使快照换了一批一千条历史记录，较早且首次看见的轮次也不会触发补发。原生完成通知先于或晚于未加载线程的 interrupted 快照到达时，只有原生结果能结束原卡。对应场景为 DEL-04.2 和 NATIVE-05.2。
+
+微信按批次保存同步游标。测试在读取批次、处理完第一条、写游标前和持久化后分别终止独立进程，再检查下一次轮询的起始游标以及每条原消息的处理次数。平台侧重投和用户实际收件需要各自的回执。扫码期间停用账号的持久状态由账号管理器维护。
+
+### 一条消息包含多个入站附件
+
+钉钉、微信、企微和飞书分别负责解析供应商凭据、下载和检查大小。四者共用 InboundFileBatch，把本次以独占模式创建的文件登记在同一批次，权限为 0600。第二个附件超时、超限或写盘中断时，适配器清理本次已经创建的文件，再将错误交回消息处理层。已存在的文件、其他消息的文件及调用方传入的现有路径均保留。
+
+飞书的一条消息共用一个下载时限（默认 60 秒），覆盖等待资源响应和读取正文。SDK 只把本次取消信号传给消息资源下载请求，账号共享的令牌请求单独完成。迟到的数据流会关闭。隔离回归同时核对真实 SDK 的 HTTP 连接已关闭、原有文件内容及进程没有提交残缺输入。证据见[入站附件场景 IN-05.3](../../audits/2026-11-25-pending-acceptance-results.md)。

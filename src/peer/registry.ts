@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import { hostedSessionRequest, type HostedSessionAuthority } from "./hosted-session.js";
 import { PEER_CAPABILITIES } from "../runtime/versions.js";
 import crypto from "node:crypto";
 import { z } from "zod";
@@ -13,7 +15,7 @@ import { peerGrantSchema } from "./sharing-types.js";
 import { PeerSharingGateway } from "./sharing-gateway.js";
 import type { IDEHostContext } from "../ide/transport.js";
 import type { PeerEnrollment } from "./credentials.js";
-import { managedGrant, managedTarget, validateManagedRoutes, type ManagedConnectorRoute } from "./managed-route.js";
+import { gatewayServicePrincipal, managedGrant, managedTarget, validateManagedRoutes, type ManagedConnectorRoute } from "./managed-route.js";
 import { diagnostic } from "../runtime/diagnostics.js";
 
 const principalSchema = z.object({ accountId: z.string().min(1).max(512), conversationId: z.string().min(1).max(512), actorId: z.string().min(1).max(512) }).strict();
@@ -47,6 +49,14 @@ const samePrincipal = (a: PeerPrincipal, b: PeerPrincipal) => a.accountId === b.
 /** Device authentication does not grant every bot participant session access. */
 export class PeerRegistry implements PeerBridgePort {
   readonly sharing: PeerSharingGateway;
+  hostedSessionAuthority?: HostedSessionAuthority;
+  private readonly fileScope = new AsyncLocalStorage<{ hostId: string; threadId: string }>();
+  isFirstContactOnly(hostId: string): boolean { return this.managedRoute(hostId)?.firstContactOnly === true; }
+  supportsFirstContact(hostId: string): boolean | undefined {
+    const description = this.host(hostId)?.description;
+    return description && description.info.id === "app-server" && !description.thread
+      && !!description.management && description.info.capabilities.threadLifecycle === true;
+  }
   private readonly entries = new Map<string, Host>();
   private grants: PeerGrant[];
   private readonly tickets = new Map<string, { hostId: string; host: Host; connection: PeerConnection; expiresAt: number; enrollment?: PeerEnrollment }>();
@@ -58,7 +68,7 @@ export class PeerRegistry implements PeerBridgePort {
     this.sharing = new PeerSharingGateway(this, stateFile + ".sharing");
   }
   managedRoute(hostId = "local"): ManagedConnectorRoute | undefined { return this.managedRoutes.find(r => r.hostId === hostId); }
-  managedHosts(): string[] { return this.managedRoutes.map(r => r.hostId); }
+  managedHosts(): string[] { return this.managedRoutes.filter(r => !r.firstContactOnly).map(r => r.hostId); }
   connectorRoot(hostId: string): string {
     const route = this.managedRoute(hostId);
     return route ? this.managedRoutes.find(r => managedTarget(r) === managedTarget(route) && !r.nativeHostId)?.hostId ?? hostId : this.host(hostId)?.parent ?? hostId;
@@ -76,6 +86,7 @@ export class PeerRegistry implements PeerBridgePort {
   }
   status() {
     const versions = (id: string) => { const host = this.host(id); return { ...structuredClone(host?.versions ?? { compatibility: "legacy", runtime: null }),
+      supportsFirstContact: this.supportsFirstContact(id),
       nativeHosts: (host?.description.hosts ?? []).map(item => ({ nativeHostId: item.nativeHostId,
         hostId: item.managedHost ?? peerNativeHost(this.connectorRoot(id), item.nativeHostId) })) }; };
     return { mode: "connector-only" as const, routes: [
@@ -235,6 +246,7 @@ export class PeerRegistry implements PeerBridgePort {
     const person = context.subject?.principal;
     if (!person || person.accountId !== context.accountId || !context.threadId || this.host(hostId)?.description.fullIDE !== 1) return;
     const managed = this.managedRoute(hostId);
+    if (managed?.firstContactOnly) return;
     if (managed) return managedGrant(managed, { accountId: person.accountId, actorId: person.actorId, conversationId: "gateway-ide" });
     return this.grantsAt(hostId).find(g => !g.delegation && g.principal.accountId === person.accountId
       && g.principal.actorId === person.actorId && (g.scope === "device" || g.threadId === context.threadId));
@@ -270,8 +282,13 @@ export class PeerRegistry implements PeerBridgePort {
     if ((method.startsWith("fileUpload") && !principal) || (principal
       && (principal.accountId !== scope.accountId || principal.conversationId !== scope.conversationId)))
       throw new PeerError("access", "File transfer has no authorized chat identity");
-    if (this.managedRoute(hostId)) return peerPrincipal.run(principal ?? { accountId: scope.accountId, conversationId: scope.conversationId, actorId: "gateway-delivery" },
-      () => this.invoke<T>(hostId, method, [payload]));
+    if (this.managedRoute(hostId)) {
+      const source = principal ?? { accountId: scope.accountId, conversationId: scope.conversationId, actorId: "gateway-delivery" };
+      if (this.isFirstContactOnly(hostId) && payload && typeof payload === "object" && "threadId" in payload && payload.threadId !== scope.threadId)
+        throw new PeerError("scope", "附件与绑定的会话不匹配");
+      return this.fileScope.run({ hostId, threadId: scope.threadId }, () =>
+        peerPrincipal.run(source, () => this.invoke<T>(hostId, method, [payload])));
+    }
     const candidates = this.grantsAt(hostId).filter(g => g.principal.accountId === scope.accountId
       && g.principal.conversationId === scope.conversationId && (!principal || samePrincipal(g.principal, principal))
       && (!g.delegation || g.delegation.version === 2 && g.delegation.expiresAt > Date.now())
@@ -288,6 +305,12 @@ export class PeerRegistry implements PeerBridgePort {
       && (!selectedGrantId || g.id === selectedGrantId)
       && (!g.delegation || g.delegation.version === 2 && g.delegation.expiresAt > Date.now() && (!target || target === g.threadId)));
     const managed = this.managedRoute(hostId);
+    if (managed?.firstContactOnly && principal && principal !== gatewayServicePrincipal) {
+      const file = method.startsWith("file") ? this.fileScope.getStore() : undefined;
+      const scope = file?.hostId === hostId ? { threadId: file.threadId } : hostedSessionRequest(method, args);
+      if (!scope || !this.hostedSessionAuthority?.(principal, hostId, scope))
+        throw new PeerError("access", "此默认设备仅允许在当前聊天使用自己的默认会话。");
+    }
     const grant = managed ? managedGrant(managed, principal) : (target ? candidates.find(g => g.delegation && g.threadId === target) : candidates.find(g => !g.delegation)) ?? candidates[0];
     if (!grant || write && !principal && !managed) throw new PeerError("access", "当前用户或入口未获准操作这个远程会话，请先通过 /connect 绑定。");
     const host = this.host(hostId);

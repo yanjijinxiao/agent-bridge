@@ -6,6 +6,26 @@ import test from "node:test";
 import { ThreadEventHub, type ThreadSubscription } from "../src/server/thread-event-hub.js";
 import type { CodexThreadSnapshot } from "../src/codex/backend.js";
 
+test("a follow scan isolates native reads across member authorities even for the same thread", async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-follow-members-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const members: ThreadSubscription[] = ["a","b"].map(key => ({ key, readScope:key, hostId:"local",threadId:"thread",
+    recipientId:key, managed:false, client:{async sendText() { return {messageId:"fixture"}; }} }));
+  const calls: string[] = [];
+  const hub = new ThreadEventHub({filePath:path.join(root,"follow.json"),subscriptions:() => members,backend:sub => ({
+    async readThreadSnapshot(): Promise<CodexThreadSnapshot> {
+      calls.push(sub.key);
+      if (sub.key === "b") throw Error("member access unavailable");
+      return {state:{threadId:"thread",persistence:"active",runtimeStatus:"idle",activeFlags:[]},turns:[]};
+    }
+  })});
+  t.after(() => hub.stop());
+  await hub.refresh();
+  assert.deepEqual(calls.sort(),["a","b"]);
+  assert.equal(hub.status("a").status,"synced");
+  assert.equal(hub.status("b").status,"failed");
+});
+
 test("systemError follow reports the real normalized reason without synthesizing a task completion or new card", async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-follow-system-error-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -562,3 +582,71 @@ test("retries the original terminal card after restart without resending its ans
   assert.equal(notices.length, 1);
   await restarted.stop();
 });
+
+test("a thousand historical turns and newly visible older IDs stay silent across restart and forced sync", async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-large-follow-history-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const outputs: Array<{ text: string; finalize?: boolean }> = [];
+  const sub: ThreadSubscription = {
+    key: "group", hostId: "local", threadId: "thread", recipientId: "group", managed: false,
+    client: { resumableTextStream: true, async sendText(x) { outputs.push(x); return { messageId: "text" }; },
+      async startTextStream(x) { outputs.push(x); return { messageId: "active-card" }; },
+      async updateTextStream(x) { outputs.push(x); } }
+  };
+  const history = (index: number): CodexThreadSnapshot["turns"][number] => ({
+    id: "history-" + index, status: "completed", startedAt: new Date(1_700_000_000_000 + index * 1000).toISOString(),
+    messages: [{ role: "assistant", id: "answer-" + index, text: "archived answer " + index }]
+  });
+  let snapshot: CodexThreadSnapshot = { state: { threadId: "thread", runtimeStatus: "idle", persistence: "active", activeFlags: [] },
+    turns: Array.from({ length: 1000 }, (_, i) => history(i + 1)) };
+  const make = () => new ThreadEventHub({ filePath: path.join(root, "follow.json"), subscriptions: () => [sub],
+    backend: () => ({ readThreadSnapshot: async () => snapshot }) });
+  let hub = make(); t.after(() => hub.stop());
+  await hub.refresh(); await hub.synchronize(sub.key); await hub.stop();
+  assert.equal(outputs.length, 0);
+  hub = make();
+  // The next window overlaps only one saved ID and reveals previously unseen older IDs.
+  snapshot.turns = [...Array.from({ length: 1000 }, (_, i) => history(i - 999)), history(1000)];
+  await hub.synchronize(sub.key); await hub.refresh();
+  assert.equal(outputs.length, 0);
+  snapshot = { state: { ...snapshot.state, runtimeStatus: "active", activeTurnId: "live" },
+    turns: [history(1000), { id: "live", status: "inProgress", messages: [] }] };
+  await hub.refresh();
+  await hub.completion("local", "thread", "live", "唯一新结果");
+  snapshot = { state: { threadId: "thread", runtimeStatus: "idle", persistence: "active", activeFlags: [] },
+    turns: [history(0), { id: "live", status: "completed", messages: [{ role: "assistant", text: "唯一新结果", id: "answer" }] }] };
+  await hub.stop(); hub = make();
+  await hub.synchronize(sub.key); await hub.completion("local", "thread", "live", "唯一新结果");
+  assert.deepEqual(outputs.filter(x => x.finalize).map(x => x.text), ["唯一新结果"]);
+  assert.ok(outputs.every(x => !x.text.includes("archived answer")));
+});
+
+for (const order of ["rollout-first", "completion-first"] as const) {
+  test(`an interrupted rollout and confirmed native completion finalize the original card once (${order})`, async t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-rollout-order-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const finals: string[] = [], starts: string[] = [];
+    const sub: ThreadSubscription = { key: "group", hostId: "local", threadId: "thread", recipientId: "group", managed: false,
+      client: { resumableTextStream: true, async sendText() { assert.fail("unexpected separate message"); },
+        async startTextStream(x) { starts.push(x.text); return { messageId: "original" }; },
+        async updateTextStream(x) { assert.equal(x.messageId, "original"); if (x.finalize) finals.push(x.text); } } };
+    let snapshot: CodexThreadSnapshot = { state: { threadId: "thread", persistence: "active", runtimeStatus: "active",
+      activeFlags: [], activeTurnId: "turn" }, turns: [{ id: "turn", status: "inProgress", messages: [] }] };
+    const hub = new ThreadEventHub({ filePath: path.join(root, "follow.json"), subscriptions: () => [sub],
+      backend: () => ({ readThreadSnapshot: async () => snapshot }) });
+    t.after(() => hub.stop());
+    await hub.refresh(); await hub.activity("local", "thread", "turn", "正在执行");
+    snapshot = { state: { threadId: "thread", persistence: "active", runtimeStatus: "notLoaded", activeFlags: [] },
+      turns: [{ id: "turn", status: "interrupted", messages: [{ role: "assistant", id: "stale", text: "旁路旧文本" }] }] };
+    if (order === "rollout-first") {
+      await hub.synchronize(sub.key); assert.deepEqual(finals, []);
+      snapshot.state = { ...snapshot.state, runtimeStatus: "active", activeTurnId: "turn" };
+      assert.equal((await hub.synchronize(sub.key)).status, "unconfirmed");
+      assert.deepEqual(finals, []);
+    }
+    await hub.completion("local", "thread", "turn", "原生结果");
+    await hub.synchronize(sub.key);
+    await hub.completion("local", "thread", "turn", "原生结果");
+    assert.equal(starts.length, 1); assert.deepEqual(finals, ["原生结果"]);
+  });
+}

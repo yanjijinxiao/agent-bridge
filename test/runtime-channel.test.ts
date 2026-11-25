@@ -84,6 +84,10 @@ for (const kind of ["herdr-tui", "herdr-app"] as const) {
     assert.equal(bound.threadId, x.f.id); assert.equal(bound.workspace, ""); assert.equal(bound.workspaceState, "unknown");
     assert.equal(bound.projectId, undefined); x.store.refresh();
     assert.equal(x.store.getActiveSession(principal.conversationId)!.workspace, "");
+    await x.send(`/session ${x.f.id} --host ${x.f.ticket.hostId}`, "observe-same-unknown-resource");
+    const unchanged = x.store.getActiveSession(principal.conversationId)!;
+    assert.equal(unchanged.projectBinding, "unknown");
+    assert.equal(unchanged.executionGeneration, bound.executionGeneration);
     await x.send("/history", "screen-unknown"); assert.ok(x.messages.some(m => m.includes("当前终端画面")));
     const file = path.join(x.f.root, "attachment.txt"); fs.writeFileSync(file, "test");
     await assert.rejects(x.f.as(() => x.f.facade.stageAttachments!([{ path: file, label: "attachment.txt", kind: "file" }],

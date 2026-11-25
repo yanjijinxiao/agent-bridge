@@ -22,11 +22,14 @@ export type ThreadSubscription = {
   hostId: string;
   threadId: string;
   recipientId: string;
+  /** Native reads can be shared only between subscriptions with the same authority. */
+  readScope?: string;
   client: ChannelTextClient;
   managed: boolean;
   enabled?: boolean;
   /** /stream controls progress presentation, not the binding or final answer. */
   progressEnabled?: boolean;
+  headingContext?: string;
   contextToken?: string;
   onTextDelivered?: (part: { messageId: string; text: string }) => void;
 };
@@ -76,7 +79,7 @@ type Options = {
   resultReady?: (sub: ThreadSubscription, turnId: string, text: string) => boolean;
   decorateFinal?: (sub: ThreadSubscription, text: string) => string | Promise<string>;
   decorateProgress?: (sub: ThreadSubscription, text: string) => string;
-  onThreadState?: (sub: ThreadSubscription, state: CodexThreadState) => void;
+  onThreadState?: (sub: ThreadSubscription, state: CodexThreadState, previousPersistence?: CodexThreadState["persistence"]) => void;
   onSystemError?: (sub: ThreadSubscription, snapshot: CodexThreadSnapshot) => void;
   onRecoveryObservation?: (sub: ThreadSubscription, snapshot: CodexThreadSnapshot) => void;
   onCapacityFailure?: (scope: { hostId: string; threadId: string; turnId: string }) => boolean;
@@ -84,7 +87,7 @@ type Options = {
   turnAudience?: TurnAudienceJournal;
   filePath: string;
   subscriptions: () => ThreadSubscription[];
-  backend: () => Pick<CodexBridgeBackend, "readThreadSnapshot"> & Partial<Pick<CodexBridgeBackend, "readTurnLifecycle" | "readThreadProvenance">>;
+  backend: (subscription: ThreadSubscription) => Pick<CodexBridgeBackend, "readThreadSnapshot"> & Partial<Pick<CodexBridgeBackend, "readTurnLifecycle" | "readThreadProvenance">>;
   legacyQueueTerminal?: (sub: ThreadSubscription, turnId: string) => boolean;
   /** Recovery projection of existing native receipts, not an execution queue. */
   acceptedInputs?: () => readonly AcceptedPresentationInput[];
@@ -254,7 +257,7 @@ export class ThreadEventHub {
     if (!sub || sub.enabled === false || !sub.threadId) return this.status(key);
     if (this.stopped) return { ...this.status(key), status: "failed",
       failure: { code: "unavailable", message: "Gateway 正在停止，未执行同步；请在服务恢复后重试。" } };
-    const work = this.observe(sub, () => this.options.backend().readThreadSnapshot(sub.threadId, sub.hostId), true, options);
+    const work = this.observe(sub, () => this.options.backend(sub).readThreadSnapshot(sub.threadId, sub.hostId), true, options);
     this.manualSyncs.set(key, work);
     try { return await work; }
     finally { if (this.manualSyncs.get(key) === work) this.manualSyncs.delete(key); }
@@ -295,15 +298,15 @@ export class ThreadEventHub {
     }
     const snapshots = new Map<string, Promise<CodexThreadSnapshot>>();
     await Promise.all(subscriptions.map(async (sub) => {
-      if (!sub.threadId || typeof this.options.backend().readThreadSnapshot !== "function") return;
+      if (!sub.threadId || typeof this.options.backend(sub).readThreadSnapshot !== "function") return;
       const prior = this.states[sub.key];
       if (prior?.hostId === sub.hostId && prior.threadId === sub.threadId && prior.runtime?.persistence === "archived"
         && prior.lastAttemptAt && Date.now() - Date.parse(prior.lastAttemptAt) < 5 * 60_000) return;
       const manual = this.manualSyncs.get(sub.key);
       if (manual) { await manual; return; }
-      const key = JSON.stringify([sub.hostId, sub.threadId]);
+      const key = JSON.stringify([sub.hostId, sub.threadId, sub.readScope]);
       if (!snapshots.has(key)) snapshots.set(key, Promise.resolve().then(() =>
-        this.options.backend().readThreadSnapshot(sub.threadId, sub.hostId)));
+        this.options.backend(sub).readThreadSnapshot(sub.threadId, sub.hostId)));
       await this.observe(sub, () => snapshots.get(key)!);
     }));
     this.save();
@@ -527,16 +530,16 @@ export class ThreadEventHub {
    * legacy child-output pollution. This scan never blocks /status or ingress. */
   private requestProvenanceRepair(sub: ThreadSubscription, snapshot: CodexThreadSnapshot): void {
     const state = this.state(sub), activeId = snapshot.state.activeTurnId;
-    const read = this.options.backend().readThreadProvenance;
+    const read = this.options.backend(sub).readThreadProvenance;
     if (!read || sub.managed || state.provenanceVersion === 3 || this.provenanceRepairs.has(sub.key)
       || Date.now() < (this.provenanceRetryAt.get(sub.key) ?? 0)
       || snapshot.state.runtimeStatus !== "active" || !activeId
       || !state.completed.length && !state.baseline?.length && !state.retired?.length && (!state.turnId || state.turnId === activeId)) return;
     const work = (async () => {
-      const provenance = await boundedRead(read.call(this.options.backend(), sub.threadId, sub.hostId), this.options.readTimeoutMs ?? 25000);
+      const provenance = await boundedRead(read.call(this.options.backend(sub), sub.threadId, sub.hostId), this.options.readTimeoutMs ?? 25000);
       if (this.stopped || !this.isLive(sub) || !provenance?.complete || provenance.threadId !== sub.threadId
         || !provenance.turns.some(turn => turn.id === activeId && turn.status === "inProgress")) return;
-      const fresh = await boundedRead(this.options.backend().readThreadSnapshot(sub.threadId, sub.hostId), this.options.readTimeoutMs ?? 25000);
+      const fresh = await boundedRead(this.options.backend(sub).readThreadSnapshot(sub.threadId, sub.hostId), this.options.readTimeoutMs ?? 25000);
       const active = fresh.turns.find(turn => turn.id === activeId && turn.status === "inProgress");
       if (fresh.state.threadId !== sub.threadId || fresh.state.persistence !== "active"
         || fresh.state.runtimeStatus !== "active" || fresh.state.activeTurnId !== activeId || !active) return;
@@ -598,7 +601,7 @@ export class ThreadEventHub {
     });
   }
   private async repairQueueTerminals(sub: ThreadSubscription, requestedTurnId?: string): Promise<void> {
-    const read = this.options.backend().readTurnLifecycle;
+    const read = this.options.backend(sub).readTurnLifecycle;
     if (!this.options.legacyQueueTerminal || !read || !sub.client.resumableTextStream || !sub.client.updateTextStream) return;
     const state = this.state(sub);
     const candidates = [
@@ -619,7 +622,7 @@ export class ThreadEventHub {
       const checkpoint = item.checkpoint!, originalId = checkpoint.messageId;
       if (!originalId) continue;
       try {
-        const observed = await this.options.backend().readTurnLifecycle!(sub.threadId, item.id, sub.hostId);
+        const observed = await this.options.backend(sub).readTurnLifecycle!(sub.threadId, item.id, sub.hostId);
         if (!this.isLive(sub) || observed.source === "unknown" || observed.status === "unknown" || observed.status === "interrupted") continue;
         if (item.current && state.checkpoint !== checkpoint || !item.current && !item.explicit && state.pendingTerminals?.[item.id]?.checkpoint !== checkpoint) continue;
         const scope = { bindingKey: sub.key, conversationId: sub.recipientId, hostId: sub.hostId, threadId: sub.threadId, turnId: item.id };
@@ -676,8 +679,9 @@ export class ThreadEventHub {
   private async reconcile(sub: ThreadSubscription, snapshot: CodexThreadSnapshot, force = false, options: FollowSyncOptions = {}, resultsReady = true): Promise<void> {
     if (!this.isLive(sub)) return;
     const state = this.state(sub);
+    const previousPersistence = state.runtime?.persistence;
     state.runtime = snapshot.state;
-    this.options.onThreadState?.(sub, snapshot.state);
+    this.options.onThreadState?.(sub, snapshot.state, previousPersistence);
     if (snapshot.state.runtimeStatus !== "systemError") this.options.onRecoveryObservation?.(sub, snapshot);
     if (snapshot.state.activeTurnId && this.options.holdsCapacityStart?.({ hostId: sub.hostId,
       threadId: sub.threadId, turnId: snapshot.state.activeTurnId })) return;
@@ -987,7 +991,7 @@ export class ThreadEventHub {
       this.save();
       if (sub.progressEnabled === false) return;
       const stream = new ChannelTurnPresentation(this.presentationClient(sub, undefined, undefined, assertSource), sub.recipientId, {
-        restore: record.checkpoint, contextToken: sub.contextToken,
+        headingContext: sub.headingContext, restore: record.checkpoint, contextToken: sub.contextToken,
         decorateProgress: this.options.decorateProgress ? text => this.options.decorateProgress!(sub, text) : undefined,
         save: checkpoint => {
           assertSource?.();
@@ -1175,7 +1179,7 @@ export class ThreadEventHub {
         && !this.options.resultReady?.(sub, turnId, pending.sourceText)) continue;
       const work = (async () => {
       const stream = new ChannelTurnPresentation(this.presentationClient(sub), sub.recipientId, {
-        restore: pending.checkpoint, contextToken: sub.contextToken, onTextDelivered: sub.onTextDelivered, progressEnabled: sub.progressEnabled,
+        headingContext: sub.headingContext, restore: pending.checkpoint, contextToken: sub.contextToken, onTextDelivered: sub.onTextDelivered, progressEnabled: sub.progressEnabled,
         save: checkpoint => {
           if (this.stopped || !this.isLive(sub) || state.pendingTerminals?.[turnId] !== pending) throw new Error("Old result binding changed");
           pending.checkpoint = checkpoint; compactArchivedSummaries(state); this.save();
@@ -1229,7 +1233,7 @@ export class ThreadEventHub {
     const client = this.presentationClient(captured, barrier, (method, args) => method === "updateTextStream"
       && this.closingPresentations.has(stream!) && Boolean((args[0] as { finalize?: boolean } | undefined)?.finalize));
     stream = new ChannelTurnPresentation(client, sub.recipientId, {
-      restore, contextToken: sub.contextToken, onTextDelivered: sub.onTextDelivered, progressEnabled: sub.progressEnabled,
+      headingContext: sub.headingContext, restore, contextToken: sub.contextToken, onTextDelivered: sub.onTextDelivered, progressEnabled: sub.progressEnabled,
       ...(this.options.decorateProgress ? { decorateProgress: (text: string) => this.isLive(sub) ? this.options.decorateProgress!(sub, text) : text } : {}),
       save: (checkpoint) => {
         if (!this.isLive(captured) && !this.closingPresentations.has(stream!)) return;

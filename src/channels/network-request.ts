@@ -24,7 +24,7 @@ export async function fetchWithBudget(fetchImpl: Fetch, input: string | URL, ini
   return boundedResponse(response, signal, maxBytes);
 }
 
-async function withSignal<T>(pending: Promise<T>, signal: AbortSignal): Promise<T> {
+export async function withSignal<T>(pending: Promise<T>, signal: AbortSignal): Promise<T> {
   signal.throwIfAborted();
   return new Promise<T>((resolve, reject) => {
     const abort = () => { signal.removeEventListener("abort", abort); reject(signal.reason); };

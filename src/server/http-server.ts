@@ -1,7 +1,9 @@
+import { firstContactSchema } from "../channels/conversation-binding.js";
 import { channelPrincipalSchema } from "../channels/principal.js";
 import { AdmissionConflictError, admissionId, admissionVersion } from "../bridge/admission.js";
 import { TurnDeliveryError, TurnApplicationError } from "../bridge/turn-submission.js";
 import { productVersion as runtimeProductVersion, runtimeIdentity } from "../runtime/versions.js";
+import { redactDiagnosticText } from "../runtime/diagnostics.js";
 import { withHttpContract } from "../runtime/http-contract.js";
 import { cleanupResources } from "./cleanup.js";
 import { trackHTTPShutdown } from "./http-shutdown.js";
@@ -77,6 +79,7 @@ const channelModeSettingsSchema = z.object({
   }
 });
 const accountSettingsSchema = z.object({
+  firstContact: firstContactSchema.optional(),
   displayName: z.string().max(40),
   webhookUrl: webhookUrlSchema.nullable().optional(),
   webhookProvider: z.enum(WEBHOOK_PROVIDERS).optional(),
@@ -1112,8 +1115,9 @@ function errorStatus(error: unknown, message: string): number {
 }
 
 function requestErrorMessage(error: unknown): string {
-  if (error instanceof z.ZodError) return error.issues[0]?.message ?? "Invalid request";
-  return error instanceof Error ? error.message : String(error);
+  const message = error instanceof z.ZodError ? error.issues[0]?.message ?? "Invalid request"
+    : error instanceof Error ? error.message : String(error);
+  return redactDiagnosticText(message);
 }
 
 function sendJson(response: ServerResponse, status: number, value: unknown): void {
@@ -1214,7 +1218,7 @@ function serveSessionAttachment(
       response.removeHeader("Content-Length");
       response.removeHeader("Content-Range");
       response.removeHeader("Content-Disposition");
-      sendJson(response, 500, { error: error.message });
+      sendJson(response, 500, { error: requestErrorMessage(error) });
     } else {
       response.destroy(error);
     }
@@ -1270,6 +1274,6 @@ export async function checkCodex(codexBin: string): Promise<{ ready: boolean; ve
     });
     return { ready: true, version: result.stdout.trim() || result.stderr.trim() || codexBin };
   } catch (error) {
-    return { ready: false, error: error instanceof Error ? error.message : String(error) };
+    return { ready: false, error: requestErrorMessage(error) };
   }
 }

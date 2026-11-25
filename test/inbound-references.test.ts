@@ -3,12 +3,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { FeishuChannelAdapter } from "../src/channels/feishu.js";
+import { decodeWeComQuote } from "../src/channels/wecom-inbound.js";
 import { decodeDingTalkInbound } from "../src/channels/dingtalk-inbound.js";
 import { InboundReferenceStore, referenceContext } from "../src/bridge/inbound-references.js";
 import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.js";
 import { normalizeWeixinMessage } from "../src/weixin/messages.js";
 import { responseBytes } from "../src/channels/inbound-bytes.js";
 import type { ChannelMessage } from "../src/channels/message.js";
+import { APP_SERVER_BACKEND_CAPABILITIES, type CodexSteerInput } from "../src/codex/backend.js";
 import { BridgeService } from "../src/bridge/service.js";
 
 for(const raw of ["{invalid", "{}", '[{"conversationId":"chat","messageId":"original","text":"unsafe","at":1,"attachments":{}}]'])
@@ -125,4 +128,174 @@ test("Bridge checks actor ACL before reference reads/downloads and stages quoted
   assert.match(prompts[0], /用户引用/);
   assert.match(prompts[0], /\/remote\/inbound\/MCT.md/);
   assert.doesNotMatch(prompts[0], /secret|Users\/|bridge-reference-/);
+});
+
+function activeReferenceFixture(t: test.TestContext, channel: "dingtalk" | "weixin" | "feishu" | "wecom") {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "bridge-quoted-controls-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const store = new RuntimeStateStore(resolveStatePaths(root));
+  const project = store.createProject("Project", root);
+  const session = store.createSession("chat", root, "Original", project.id);
+  store.setSessionThread(session.id, "thread");
+  const file = path.join(root, "quoted-attachment");
+  fs.writeFileSync(file, "fixture");
+  const inputs: string[] = [];
+  const replies: string[] = [];
+  const service = new BridgeService({ config: { ...defaultConfig(root), allowedSenderIds: ["actor"], streamReplies: false },
+    stateStore: store, inboundDir: root,
+    channel: createChannelClient(channel, { ...TEXT_CAPABILITIES,
+      inbound: { image: "available", file: "available", audio: "available", video: "available" } }, {
+      async sendText(message) { replies.push(message.text); return { messageId: "reply" }; },
+      async resolveAttachments(message) { return message.attachments.map(item => ({ ...item, path: file })); }
+    }),
+    runner: {
+      backendInfo: () => ({ id: "app-server", capabilities: APP_SERVER_BACKEND_CAPABILITIES }),
+      async inspectThread() { return { threadId: "thread", persistence: "active", runtimeStatus: "active", activeTurnId: "existing", activeFlags: [] }; },
+      async steer(input: CodexSteerInput) {
+        assert.equal(input.threadId, "thread"); assert.equal(input.expectedTurnId, "existing");
+        inputs.push(input.prompt);
+        return { status: "accepted", threadId: "thread", turnId: "existing" };
+      },
+      async stop() { assert.fail("quoted stop reached native control"); },
+      async run() { assert.fail("quote opened another turn"); }
+    } as never
+  });
+  return async (message: ChannelMessage, expectedReference: string, command: string) => {
+    const before = inputs.length;
+    await service.handleMessage(message);
+    assert.equal(inputs.length, before + 1, message.id);
+    const [current, reference] = inputs.at(-1)!.split("以下是用户引用的消息内容");
+    assert.ok(current.includes("解读引用") && !current.includes(command), message.id);
+    assert.ok(reference.includes(expectedReference), message.id);
+    assert.doesNotMatch(reference, /private-media/);
+    assert.match(replies.at(-1)!, /已介入/);
+  };
+}
+
+test("DingTalk quoted controls in every supported message type stay in the active turn as reference data", async t => {
+  const check = activeReferenceFixture(t, "dingtalk");
+  for (const command of ["/stop", "/approve A1"]) {
+    for (const type of ["text", "markdown", "reply", "richText", "actionCard", "interactiveCard", "file", "picture"]) {
+      // Media has no command body. Encode the text as a nested original reply,
+      // while exercising the real attachment resolver for this enclosing quote.
+      const nested = { msgId: "nested", msgType: "text", content: { text: command } };
+      const content = type === "richText" ? { richText: [{ text: command }] }
+        : type === "file" || type === "picture" ? { downloadCode: "private-media", fileName: "quote.md", repliedMsg: nested }
+        : { text: command };
+      const message = decodeDingTalkInbound({ msgtype: "text", text: { content: "解读引用", repliedMsg: { msgId: "quoted", msgType: type, content } } });
+      await check({ ...message, id: command + type, senderId: "actor", replyTargetId: "chat", raw: {} }, command, command);
+    }
+  }
+});
+
+function currentMessage(id: string): ChannelMessage {
+  return { id, senderId: "actor", replyTargetId: "chat", text: "解读引用", attachments: [], raw: {} };
+}
+
+test("Weixin text, voice, media and unknown quotes remain data in an active turn", async t => {
+  const check = activeReferenceFixture(t, "weixin");
+  for (const command of ["/stop", "/approve A1"]) {
+    const media = { encrypt_query_param: "private-media" };
+    const variants = [
+      [{ type: 1, text: command }, command],
+      [{ type: 1, text_item: { text: command } }, command],
+      [{ type: 3, voice_item: { text: command } }, command],
+      [{ type: 2, image_item: { media } }, "[附件] image"],
+      [{ type: 3, voice_item: { media } }, "[附件] voice.silk"],
+      [{ type: 4, file_item: { media, file_name: command } }, "[附件] " + command],
+      [{ type: 5, video_item: { media } }, "[附件] video.mp4"],
+      [{ type: 999 }, "未取得原始内容"]
+    ] as const;
+    for (const [index, [quoted, expected]] of variants.entries()) {
+      const message = normalizeWeixinMessage({ from_user_id: "actor", message_id: command + index,
+        item_list: [{ type: 1, text_item: { text: "解读引用" }, ref_msg: { message_id: "original", message_item: quoted } }] })!;
+      await check({ ...message, replyTargetId: "chat" }, expected, command);
+    }
+  }
+});
+
+test("WeCom quoted controls, mixed media, voice and unavailable originals remain data in an active turn", async t => {
+  const check = activeReferenceFixture(t, "wecom");
+  for (const command of ["/stop", "/approve A1"]) {
+    const media = { url: "https://example.invalid/private-media" };
+    const text = { msgtype: "text", text: { content: command } };
+    const image = { msgtype: "image", image: media };
+    const variants = [
+      [text, command], [{ msgtype: "voice", voice: { content: command } }, command],
+      [{ msgtype: "mixed", mixed: { msg_item: [text, image] } }, command],
+      [image, "[附件] image.jpg"], [{ msgtype: "video", video: media }, "[附件] video.mp4"],
+      [{ msgtype: "file", file: media }, "[附件] file"], [{ msgtype: "unknown" }, "引用缺少正文"]
+    ] as const;
+    for (const [index, [quoted, expected]] of variants.entries()) {
+      await check({ ...currentMessage(command + index), references: decodeWeComQuote(quoted) }, expected, command);
+    }
+  }
+});
+
+test("Feishu parent text, media and inaccessible originals stay in the reference section of the active turn", async t => {
+  const check = activeReferenceFixture(t, "feishu");
+  let original = { message_id: "original", chat_id: "chat", msg_type: "text", body: { content: "" } };
+  const adapter = new FeishuChannelAdapter({ channel: "feishu", accountId: "fixture", appId: "app", appSecret: "fixture", enabled: true, savedAt: "" }, {
+    apiClient: { im: { v1: { message: { async get() { return { code: 0, data: { items: [original] } }; } } } } } as never,
+    wsClient: { async start() {}, close() {} }
+  });
+  for (const command of ["/stop", "/approve A1"]) {
+    const variants = [
+      ["text", { text: command }, "chat", command],
+      ["file", { file_key: "private-media", file_name: command }, "chat", "[附件] " + command],
+      ["image", { image_key: "private-media" }, "chat", "[附件] image.png"],
+      ["text", { text: command }, "other-chat", "无法取得引用原文"],
+      ["unknown", { text: command }, "chat", "无法取得引用原文"]
+    ] as const;
+    for (const [index, [type, content, chat, expected]] of variants.entries()) {
+      original = { message_id: "original", chat_id: chat, msg_type: type, body: { content: JSON.stringify(content) } };
+      const message = await adapter.resolveReferences({ ...currentMessage(command + index),
+        references: [{ messageId: "original", type: "unknown", attachments: [], availability: "metadata-only" }] });
+      if (chat !== "chat" || type === "unknown") assert.ok(!referenceContext(message).includes(command));
+      await check(message, expected, command);
+    }
+  }
+});
+
+test("provider quote decode distinguishes a filename or bare reference from downloadable content on all four channels",async()=>{
+  const {decodeWeComContent}=await import("../src/channels/wecom-inbound.js");
+  const base=(id:string)=>({id,senderId:"actor",replyTargetId:"chat",text:"inspect",attachments:[],raw:{}});
+  const partial=(message:ChannelMessage)=>{
+    assert.equal(message.references?.length,1);
+    assert.equal(message.references[0].availability,"metadata-only");
+    assert.equal(message.references[0].attachments.length,0);
+    assert.match(referenceContext(message),/未取得|缺少|无法取得|未提供/);
+  };
+  const name="fixture.txt";
+  for (const onlyName of [false,true]) {
+    const dd=decodeDingTalkInbound({msgtype:"text",text:{content:"inspect",repliedMsg:{
+      msgId:"original",msgType:"file",...(onlyName?{content:{fileName:name}}:{})}}});
+    partial({...base("dd"),references:dd.references});
+    const wx=normalizeWeixinMessage({message_id:"wx",from_user_id:"actor",item_list:[{
+      type:1,text_item:{text:"inspect"},ref_msg:{message_id:"original",...(onlyName?{message_item:{type:4,file_item:{file_name:name}}}:{})}}]})!;
+    partial(wx);
+    assert.equal(wx.references?.[0].messageId,"original");
+    partial({...base("wc"),references:decodeWeComQuote(onlyName?{msgtype:"file",file:{filename:name}}:{msgid:"original"})});
+    const fsAdapter=new FeishuChannelAdapter({channel:"feishu",accountId:"f",appId:"f",appSecret:"f",enabled:true,savedAt:""},{
+      apiClient:{im:{v1:{message:{async get(){return {code:0,data:{items:onlyName?[{message_id:"original",chat_id:"chat",msg_type:"file",body:{content:JSON.stringify({file_name:name})}}]:[]}};}}}}} as never, wsClient:{async start(){},close(){}}
+    });
+    partial(await fsAdapter.resolveReferences({...base("fs"),references:[{messageId:"original",type:"unknown",availability:"metadata-only",attachments:[]}]}));
+  }
+  assert.equal(decodeDingTalkInbound({msgtype:"file",content:{fileName:name,downloadCode:"fixture"}}).attachments.length,1);
+  assert.equal(normalizeWeixinMessage({from_user_id:"actor",message_id:"direct",item_list:[{type:4,file_item:{file_name:name,media:{encrypt_query_param:"fixture"}}}]})!.attachments.length,1);
+  assert.equal(decodeWeComContent({msgtype:"file",file:{url:"https://example.invalid/test"}}).attachments.length,1);
+  const ready = Promise.withResolvers<(event: unknown) => Promise<void>>();
+  const received: ChannelMessage[] = [];
+  const adapter = new FeishuChannelAdapter({channel:"feishu",accountId:"f",appId:"f",appSecret:"f",enabled:true,savedAt:""},
+    {apiClient:{im:{v1:{message:{}}}} as never,wsClient:{async start(input){
+      ready.resolve((input.eventDispatcher as any).handles.get("im.message.receive_v1"));
+    },close(){}}});
+  const stop=new AbortController();
+  const monitor=adapter.monitor({signal:stop.signal,async onMessage(message){received.push(message);}});
+  try {
+    const dispatch=await ready.promise;
+    await dispatch({sender:{sender_id:{open_id:"actor"}},message:{message_id:"direct-file",chat_id:"chat",chat_type:"p2p",
+      message_type:"file",content:JSON.stringify({file_key:"fixture",file_name:name})}});
+    assert.equal(received[0].attachments[0].label,name);
+  } finally { stop.abort(); await monitor; }
 });

@@ -620,6 +620,8 @@ test("DingTalk group mentions preserve slash command routing without changing or
     { text: "<@bot-open-id>/queue请先检查", expected: "/queue请先检查" },
     { text: "@头头这是说明，不是命令 /status", expected: "@头头这是说明，不是命令 /status" },
     { text: "`@头头/status`", expected: "`@头头/status`" },
+    { text: "李明 提醒 @探探 和 @头头 看一下", expected: "李明 提醒 @探探 和 @头头 看一下" },
+    { text: "`@探探/status` 由 @李明 复核", expected: "`@探探/status` 由 @李明 复核" },
     { text: "@机器人", expected: "@机器人" },
     { text: "email@example.com /stop", expected: "email@example.com /stop" },
     { text: "@机器人 /session existing-thread", expected: "@机器人 /session existing-thread", conversationType: "1" }

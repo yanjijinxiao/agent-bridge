@@ -178,7 +178,7 @@ export class ChannelTurnPresentation implements TurnReplyStream {
     this.current = this.makeStream({ startedAt: checkpoint.startedAt, progressEntries: [],
       thought: "", answerPreview: checkpoint.answerPreview, finished: false,
       ...(checkpoint.activity ? { activity: checkpoint.activity } : {}),
-      ...(checkpoint.statusHeader ? { statusHeader: true } : {}) });
+      ...(checkpoint.statusHeader ? { statusHeader: true, headingContext: checkpoint.headingContext } : {}) });
     this.oldStreams.set(id, old);
     try { this.save(); } catch (error) {
       this.current = old; this.previous.pop(); this.oldStreams.delete(id);

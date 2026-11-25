@@ -3,6 +3,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
+import { AppServerCodexRunner } from "../src/codex/app-server-runner.js";
 import { BridgeService } from "../src/bridge/service.js";
 import { InboundReceiptJournal } from "../src/bridge/inbound-receipts.js";
 import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.js";
@@ -12,7 +15,13 @@ import { resolveStatePaths } from "../src/state/paths.js";
 import { RuntimeStateStore } from "../src/state/runtime-state.js";
 
 for (const action of ["ordinary-download", "queue-download", "steer-staging", "queue-staging", "ordinary-inspect", "steer-inspect", "ordinary-reference", "queue-reference", "steer-reference"] as const) {
-  for (const changeBinding of [false, true]) test(`${action}: ${changeBinding ? "a replaced source binding cannot retarget the prepared attachment" : "an unchanged source reaches the intended native mutation"}`, async t => {
+  const scopes = {
+    original: "an unchanged source reaches the intended native mutation",
+    replaced: "a replaced source binding cannot retarget the prepared attachment",
+    restored: "returning to the original project cannot revive a retired input",
+  };
+  for (const [scope, title] of Object.entries(scopes)) test(`${action}: ${title}`, async t => {
+    const changeBinding = scope !== "original";
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-attachment-origin-")), file = path.join(root, "fixture.txt");
     t.after(() => fs.rmSync(root, { recursive: true, force: true })); fs.writeFileSync(file, "attachment fixture");
     const store = new RuntimeStateStore(resolveStatePaths(path.join(root, "state")));
@@ -55,6 +64,7 @@ for (const action of ["ordinary-download", "queue-download", "steer-staging", "q
     if (changeBinding) {
       const second = store.createProject("Second", root, { sourceProjectId: "project-b" });
       const replacement = store.createSession("actor", root, "Second", second.id); store.setSessionThread(replacement.id, "thread-b");
+      if (scope === "restored") store.activateSession(original.id);
     }
     release.resolve(); await pending.catch(() => {});
     assert.deepEqual(writes, changeBinding ? [] : [{ method: action.split("-")[0] === "ordinary" ? "run" : action.split("-")[0], threadId: "thread-a" }]);
@@ -63,7 +73,7 @@ for (const action of ["ordinary-download", "queue-download", "steer-staging", "q
     const restarted = new InboundReceiptJournal(receiptsPath);
     assert.equal(restarted.receipt(message.id)?.phase, changeBinding ? "received" : "unconfirmed");
     assert.equal(restarted.claim(message), changeBinding);
-    if (changeBinding) assert.equal(store.getBoundSession("actor")?.threadId, "thread-b");
+    assert.equal(store.getBoundSession("actor")?.threadId, scope === "replaced" ? "thread-b" : "thread-a");
   });
 }
 
@@ -90,3 +100,49 @@ test("a local command with a persisted side effect keeps its unknown receipt whe
   assert.equal(restarted.receipt(message.id)?.phase, "unconfirmed");
   assert.equal(restarted.claim(message), false);
 });
+
+for (const command of ["steer", "queue"] as const) {
+  for (const change of ["unchanged", "role", "admission", "account-stop"] as const) {
+    test(`${command} checks ${change} when the App Server handshake completes`, { timeout: 10_000 }, async t => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-native-guard-"));
+      const gate = path.join(root, "connected");
+      const script = fileURLToPath(new URL("./fixtures/fake-codex-app-server.mjs", import.meta.url));
+      const runner = new AppServerCodexRunner({ requestTimeoutMs: 4000, transport: {
+        command: process.execPath, args: [script, "--initialize-gate=" + gate], mode: "remote-daemon"
+      } });
+      t.after(async () => { await runner.close(); fs.rmSync(root, { recursive: true, force: true }); });
+      const store = new RuntimeStateStore(resolveStatePaths(root));
+      const project = store.createProject("Project", root);
+      const session = store.createSession("actor", root, "Session", project.id);
+      store.setSessionThread(session.id, "control-thread");
+      store.setPairedSenderIds(["actor"]);
+      const service = new BridgeService({
+        stateStore: store, config: { ...defaultConfig(root), streamReplies: false, allowedSenderIds: [] },
+        channel: createChannelClient("generic", TEXT_CAPABILITIES, { async sendText() { return { messageId: "reply" }; } }),
+        runner: { backendInfo: () => ({ id: "app-server", capabilities: APP_SERVER_BACKEND_CAPABILITIES }),
+          inspectThread: async () => ({ threadId: "control-thread", persistence: "active", runtimeStatus: "active",
+            activeTurnId: "control-turn", activeFlags: [] }),
+          steer: runner.steer.bind(runner), addQueuedSubmission: runner.addQueuedSubmission.bind(runner)
+        } as never
+      });
+      const result = service.handleMessage({ senderId: "actor", id: "input", text: "/" + command + " continue", raw: {} })
+        .then(() => undefined, (error: Error) => error);
+      const wire = gate + ".wire";
+      // appendFile creates the file before it writes the method. Wait for
+      // the actual handshake record before releasing the native barrier.
+      for (let i = 0; i < 500 && (!fs.existsSync(wire) || fs.statSync(wire).size === 0); i++) await delay(5);
+      assert.equal(fs.readFileSync(wire, "utf8").trim(), "initialize");
+      if (change === "role") store.setRole("actor", "actor", "viewer");
+      if (change === "admission") service.removeSender("actor");
+      if (change === "account-stop") service.suspendUserInputs();
+      fs.writeFileSync(gate, "");
+      const error = await result;
+      const methods = fs.readFileSync(wire, "utf8").trim().split("\n");
+      const writeMethod = command === "steer" ? "turn/steer" : "thread/queue/add";
+      assert.equal(methods.filter(method => method === writeMethod).length, change === "unchanged" ? 1 : 0);
+      assert.ok(!methods.includes("turn/start"));
+      if (change === "unchanged") assert.ifError(error);
+      assert.equal(store.getSession(session.id)?.threadId, "control-thread");
+    });
+  }
+}

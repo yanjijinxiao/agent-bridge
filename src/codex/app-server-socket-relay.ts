@@ -210,7 +210,8 @@ socket.on("data", (chunk) => {
     if (end > MAX_HEADER_BYTES) return fail(new Error("WebSocket upgrade headers are too large"));
     const headers = headerBuffer.subarray(0, end).toString("utf8");
     append(headerBuffer.subarray(end + 4)); headerBuffer = Buffer.alloc(0);
-    if (!headers.startsWith("HTTP/1.1 101")) return fail(new Error("WebSocket upgrade was rejected: " + headers.split("\r\n")[0]));
+    const status = /^HTTP\/1\.1 (\d{3})(?: |\r\n)/.exec(headers + "\r\n");
+    if (status?.[1] !== "101") return fail(new Error("WebSocket upgrade was rejected" + (status ? ": HTTP " + status[1] : "")));
     upgraded = true;
     for (const line of queued.splice(0)) send(line);
   } else append(chunk);

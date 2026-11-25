@@ -9,7 +9,7 @@ import type { ChannelStreamCheckpoint } from "../src/channels/progress.js";
 
 const first = "https://203.0.113.1/workspace/project", second = "https://203.0.113.2/workspace/project";
 
-for (const mode of ["https", "sdk"] as const) test(`DEL-09.3: ${mode} repeated task projection keeps one control region, retained summary and bounded whitespace through restart/wait/final`, async t => {
+for (const mode of ["https", "sdk"] as const) for (const legacy of [false, true]) test(`DEL-09.3: ${mode}${legacy ? "" : " with session context"} repeated task projection keeps one control region, retained summary and bounded whitespace through restart/wait/final`, async t => {
   const calls: Array<{ kind: string; body: any }> = [];
   // A component-state model verifies region selection/ownership, not native
   // rendering. Only a real DingTalk client can verify its cursor and widgets.
@@ -41,12 +41,14 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.3: ${mode} repeated t
     },
     async updateTextStream(input) { await transport.update({ ...base, ...input, outTrackId: input.messageId, finalize: input.finalize ?? false }); }
   });
-  const make = (restore?: ChannelStreamCheckpoint) => new ChannelTurnPresentation(client, "room", { restore, save() {},
+  const make = (restore?: ChannelStreamCheckpoint) => new ChannelTurnPresentation(client, "room", { restore, headingContext: restore ? "另一会话 · 另一机器" : "绑定会话 测试 · Mac mini", save() {},
     decorateProgress: text => withIDEEntry(text, url, { atEnd: true }) });
   let stream = make(); t.after(() => stream.suspend());
   const view = () => JSON.parse(values.sys_full_json_obj).order.map((key: string) => values[key]).join("\n\n");
-  const running = (expected?: string) => {
+  const running = (expected?: string, hasHeader = true) => {
     assert.equal(values.flowStatus, "2");
+    if (hasHeader) assert.match(values.staticMsgContent, /绑定会话 测试 · Mac mini/);
+    else assert.doesNotMatch(values.staticMsgContent, /Mac mini|另一机器/);
     assert.deepEqual(JSON.parse(values.sys_full_json_obj).order, ["staticMsgContent", "msgContent"]);
     assert.doesNotMatch(values.staticMsgContent, /当前进展|公开摘要|任务仍在执行/);
     assert.deepEqual(Lexer.lex(values.staticMsgContent).map(token => token.type), ["paragraph"], "rewrites never replace native block widgets");
@@ -103,13 +105,15 @@ for (const mode of ["https", "sdk"] as const) test(`DEL-09.3: ${mode} repeated t
   await stream.setActivity("running"); await stream.flush(); running(first);
   url = second; await stream.synchronize(); running(second); assert.ok(!view().includes(first));
   const { statusHeader: _legacyHeader, ...saved } = stream.checkpoint(); await stream.suspend();
-  stream = make({ ...saved, resultPageBytes: 6000, resultPresentation: "card" });
-  url = undefined; await stream.synchronize(); running();
+  stream = make({ ...saved, statusHeader: legacy ? undefined : true, headingContext: legacy ? undefined : saved.headingContext, resultPageBytes: 6000, resultPresentation: "card" });
+  url = undefined; await stream.synchronize(); running(undefined, !legacy);
   assert.equal(stream.checkpoint().messageId, id); assert.equal(calls.filter(call => call.kind === "create").length, 1);
   assert.doesNotMatch(JSON.stringify(stream.checkpoint()), /203\.0\.113|progressLayout/);
   const final = withIDEEntry("| Option | 值 |\n|---|---|\n| `expiration_timestamp` | Timestamp |\n\n```java\nclass Config {}\n```", second);
   await stream.finalize(final);
-  assert.equal(values.flowStatus, "3"); assert.match(view(), /expiration_timestamp/);
+  assert.equal(values.flowStatus, "3");
+  if (!legacy) assert.match(view(), /已完成\*\* · 绑定会话 测试 · Mac mini/);
+  assert.match(view(), /expiration_timestamp/);
   assert.equal(Lexer.lex(view()).filter(token => token.type === "code")[0].text, "class Config {}");
   assert.equal(view().split("[打开项目 Web IDE]").length - 1, 1); assert.doesNotMatch(view(), /\/stop/);
   assert.equal(calls.filter(call => call.kind === "stream").at(-1)!.body.content, "回复已整理。");

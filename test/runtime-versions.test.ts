@@ -212,3 +212,32 @@ test("VER-13: sealed artifact version survives metadata replacement until a new 
   const next = JSON.parse(execFileSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", read + `console.log(JSON.stringify(runtimeIdentity('connector')));`], { encoding: "utf8" }));
   assert.equal(next.productVersion, "2.0.0"); assert.notEqual(next.instanceId, initial.runtime.instanceId);
 });
+
+for (const component of ["gateway", "connector"] as const) {
+  test(component + " filters signed URLs and labeled credentials in structured fields, legacy messages and diagnostic context", t => {
+    const records: string[] = [];
+    const restore = installDiagnostics(component, row => records.push(row));
+    t.after(restore);
+    withDiagnosticContext({ requestId: "ordinary-correlation", hostId: "https://fixture.test/?ticket=SAMPLE_CONTEXT" }, () => {
+      diagnostic("test.failed", { code: "ticket=SAMPLE_FIELD", method: "thread/list" });
+      console.error("fixture error", { ticket: "SAMPLE_LOG", accessToken: "SAMPLE_ACCESS" });
+    });
+    assert.doesNotMatch(records.join(""), /SAMPLE_/);
+    const rows = records.map(row => JSON.parse(row));
+    assert.equal(rows.filter(row => row.requestId === "ordinary-correlation").length, 2);
+    assert.ok(rows.some(row => row.method === "thread/list"));
+  });
+}
+test("management project discovery errors omit labeled credentials and signed URLs while preserving the failure reason", async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "management-diagnostic-"));
+  const paths = resolveStatePaths(root);
+  const server = await startLocalHttpServer({ paths, accountManager: {} as never, port: 0,
+    codexProjectsProvider: async () => { throw Error("catalog unavailable ticket=SAMPLE_TICKET apiKey=SAMPLE_KEY https://fixture.test/?signature=SAMPLE_SIGNATURE"); }
+  });
+  t.after(async () => { await server.close(); fs.rmSync(root, {recursive:true, force:true}); });
+  const response = await fetch(server.url + "/api/codex-projects");
+  assert.equal(response.status, 500);
+  const body = await response.text();
+  assert.match(body, /catalog unavailable/);
+  assert.doesNotMatch(body, /SAMPLE_/);
+});

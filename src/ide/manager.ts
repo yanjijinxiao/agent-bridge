@@ -188,11 +188,11 @@ export class WorkspaceIDEManager {
   }
   async canonicalForTrust(id: string, subject?: IDEAccessSubject): Promise<IDECanonicalWorkspace> {
     if (!this.canAccess(id, subject)) throw new Error("当前浏览器身份未获该 Connector 的完整 IDE 授权");
-    const base = this.resolve(id), expected = digest(base);
+    const base = this.resolve(id), expected = workspaceObservationKey(base);
     const current = await this.refresh(id);
-    if (!current || digest(current) !== expected || digest(this.resolve(id)) !== expected) throw new Error("项目目录已改变，请同步 session 后重新授权");
+    if (!current || workspaceObservationKey(current) !== expected || workspaceObservationKey(this.resolve(id)) !== expected) throw new Error("项目目录已改变，请同步 session 后重新授权");
     const directory = await this.canonical(base, this.hostContext(id, subject));
-    if (digest(this.resolve(id)) !== expected) throw new Error("项目已改变，未授权目录");
+    if (workspaceObservationKey(this.resolve(id)) !== expected) throw new Error("项目已改变，未授权目录");
     return directory;
   }
   async start(id: string, prepare = false, trustWorkspace = false, trustedDirectory?: string, trustedRootPaths?: readonly string[], subject?: IDEAccessSubject): Promise<IDEInstanceStatus> {
@@ -211,7 +211,7 @@ export class WorkspaceIDEManager {
     check();
     const target = await this.refresh(id);
     check();
-    if (!target || target.hostId !== base.hostId || target.owner !== base.owner || digest(base) !== digest(this.resolve(id))) throw new Error("项目上下文已改变，未启动 IDE");
+    if (!target || target.hostId !== base.hostId || target.owner !== base.owner || workspaceObservationKey(base) !== workspaceObservationKey(this.resolve(id))) throw new Error("项目上下文已改变，未启动 IDE");
     const { config, host } = this.host(target);
     const binary = !this.transport.ownsInstallation?.(target.hostId) && host.autoInstall && host.binary === "code-server" ? await this.installer.binary(target.hostId) : host.binary;
     check();
@@ -219,7 +219,7 @@ export class WorkspaceIDEManager {
     const { workspace, rootPaths } = await this.canonical(target, context);
     if (trustWorkspace && (workspace !== trustedDirectory || JSON.stringify(rootPaths && [...rootPaths].sort()) !== JSON.stringify(trustedRootPaths && [...trustedRootPaths].sort())))
       throw new Error("实际目录与已信任目录不一致，请重新核对授权");
-    if (digest(base) !== digest(this.resolve(id))) throw new Error("项目目录已改变，未启动 IDE");
+    if (workspaceObservationKey(base) !== workspaceObservationKey(this.resolve(id))) throw new Error("项目目录已改变，未启动 IDE");
     check();
     const instanceId = this.identity(target, workspace, trustWorkspace, rootPaths);
     const inflight = this.pending.get(instanceId);
@@ -285,7 +285,7 @@ export class WorkspaceIDEManager {
       if (expected !== instance.id || instance.status !== "running" || !instance.launch?.alive()) continue;
       // Alias/symlink mapping is recorded only following a successful resolution.
       const opened = this.opened.get(`${id}:${trustWorkspace}`);
-      if (opened?.instanceId !== instance.id || opened.target !== digest(target)) continue;
+      if (opened?.instanceId !== instance.id || opened.target !== workspaceObservationKey(target)) continue;
       instance.lastUsedAt = Date.now(); return { instanceId: instance.id, socketPath: instance.launch.socketPath, workspace: instance.workspace,
         ...(instance.workspaceFile ? { workspaceFile: instance.workspaceFile } : {}) };
     }
@@ -301,10 +301,10 @@ export class WorkspaceIDEManager {
   }
   private readonly opened = new Map<string, { instanceId: string; target: string }>();
   async open(id: string, trustWorkspace = false, trustedDirectory?: string, trustedRootPaths?: readonly string[], subject?: IDEAccessSubject): Promise<IDEInstanceStatus> {
-    const base = this.resolve(id), target = digest(base), generation = this.generation, hostGeneration = this.hostGenerations.get(base.hostId) ?? 0;
+    const base = this.resolve(id), target = workspaceObservationKey(base), generation = this.generation, hostGeneration = this.hostGenerations.get(base.hostId) ?? 0;
     const instance = await this.start(id, false, trustWorkspace, trustedDirectory, trustedRootPaths, subject);
     this.host(base);
-    if (target !== digest(this.resolve(id)) || this.closing || this.reconfiguring.has(base.hostId) || generation !== this.generation
+    if (target !== workspaceObservationKey(this.resolve(id)) || this.closing || this.reconfiguring.has(base.hostId) || generation !== this.generation
       || hostGeneration !== (this.hostGenerations.get(base.hostId) ?? 0)) throw new Error("项目或 IDE 配置已改变，请刷新后重试");
     this.opened.set(`${id}:${trustWorkspace}`, { instanceId: instance.id, target }); return instance;
   }
@@ -351,6 +351,14 @@ export class WorkspaceIDEManager {
   config(): IDEConfig { return this.configStore.config(); }
   authorizationFile(): string { return path.join(this.options.root, "ide", "authorization.json"); }
 }
+/** Async preparation must still belong to the same session, thread and
+ * workspace. Display names and the order of equivalent roots may change while
+ * the browser is confirming access or reusing an already running editor. */
+function workspaceObservationKey(target: IDEWorkspace): string {
+  return digest([target.owner, target.hostId, target.projectId, target.workspace,
+    target.sessionId, target.nativeThreadId, [...(target.rootPaths ?? [target.workspace])].sort()]);
+}
+
 function digest(value: unknown): string { return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 32); }
 function publicInstance({ launch: _, ...instance }: Instance): IDEInstanceStatus { return instance; }
 function healthy(socketPath: string, timeoutMs: number): Promise<boolean> {

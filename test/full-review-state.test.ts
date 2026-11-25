@@ -1,14 +1,37 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { RuntimeStateStore } from "../src/state/runtime-state.js";
+import { emptyRuntimeState, RuntimeStateStore } from "../src/state/runtime-state.js";
 import { resolveStatePaths } from "../src/state/paths.js";
 import { AdmissionService } from "../src/bridge/admission.js";
 import { InboundReceiptJournal } from "../src/bridge/inbound-receipts.js";
 
 function temp(t: test.TestContext) { const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-full-review-")); t.after(() => fs.rmSync(root, { recursive: true, force: true })); return root; }
+test("damaged historical collection containers preserve the original file on refresh and cold start", t => {
+  const paths = resolveStatePaths(temp(t));
+  const store = new RuntimeStateStore(paths);
+  const historic = { pairedSenderIds: ["person"], activeSessionIds: { room: "native-session" } };
+  const fields = { ...emptyRuntimeState(), firstContacts: {} };
+  const hash = (value: Buffer) => createHash("sha256").update(value).digest("hex");
+  for (const [field, expected] of Object.entries(fields)) {
+    if (typeof expected !== "object") continue;
+    for (const wrong of [Array.isArray(expected) ? {} : [], null, "truncated"]) {
+      const original = Buffer.from(JSON.stringify({ ...historic, [field]: wrong }));
+      fs.writeFileSync(paths.statePath, original);
+      for (const load of [() => store.refresh(), () => store.refresh(), () => new RuntimeStateStore(paths)]) {
+        assert.throws(load, Error, field);
+        assert.equal(hash(fs.readFileSync(paths.statePath)), hash(original), field);
+      }
+    }
+  }
+  fs.writeFileSync(paths.statePath, JSON.stringify(historic));
+  store.refresh();
+  assert.deepEqual(store.snapshot.pairedSenderIds, ["person"]);
+  assert.deepEqual(store.snapshot.activeSessionIds, historic.activeSessionIds);
+});
 test("refresh remains fail-closed on every read after malformed external state, without accepting its revision", t => {
   const paths = resolveStatePaths(temp(t)), store = new RuntimeStateStore(paths);
   store.setPairedSenderIds(["before"]);

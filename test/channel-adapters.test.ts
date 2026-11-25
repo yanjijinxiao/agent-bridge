@@ -11,6 +11,8 @@ import { FeishuChannelAdapter } from "../src/channels/feishu.js";
 import { FeishuCardUpdater } from "../src/channels/feishu-card-updater.js";
 import { WeComChannelAdapter } from "../src/channels/wecom.js";
 import { WeixinChannelAdapter } from "../src/channels/weixin.js";
+import { normalizeWeixinMessage } from "../src/weixin/messages.js";
+import { decodeWeComContent, decodeWeComQuote } from "../src/channels/wecom-inbound.js";
 import { DingTalkChannelAdapter } from "../src/channels/dingtalk.js";
 import { DingTalkCardRouting } from "../src/channels/dingtalk-card-routing.js";
 import { createChoiceCard } from "../src/channels/action-card.js";
@@ -178,6 +180,29 @@ test("Feishu only group inbound messages carry mention authority, not a DM or it
       message: { message_id: chat_type, chat_id: "oc_chat", chat_type, message_type: "text", content: '{"text":"hello"}', parent_id: "quoted" }
     });
     assert.deepEqual(received[0].mention, { userId: "ou_human" }); assert.equal(received[1].mention, undefined);
+  } finally { abort.abort(); await monitor; }
+});
+
+test("Weixin, WeCom and Feishu preserve names, bot aliases, quoted text and inline commands in ordinary content", async () => {
+  const examples = ["李明 提醒 @探探 和 @头头 看一下", "> @助手 /stop", "`@探探/status` 由 @李明 复核"];
+  let dispatcher: any;
+  const seen: ChannelMessage[] = [];
+  const abort = new AbortController();
+  const adapter = new FeishuChannelAdapter(accounts[2] as never, { apiClient: { im: { v1: { message: {} } } } as never,
+    wsClient: { async start(input) { dispatcher = input.eventDispatcher; }, close() {} } });
+  const monitor = adapter.monitor({ signal: abort.signal, async onMessage(message) { seen.push(message); } });
+  try {
+    await tick();
+    for (const [index, text] of examples.entries()) {
+      const id = String(index);
+      assert.equal(normalizeWeixinMessage({ message_id: id, from_user_id: "person", text })?.text, text);
+      const content = { msgtype: "text", text: { content: text } };
+      assert.equal(decodeWeComContent(content).text, text);
+      assert.equal(decodeWeComQuote(content)?.[0].text, text);
+      await dispatcher.handles.get("im.message.receive_v1")({ sender: { sender_id: { open_id: "person" } },
+        message: { message_id: id, chat_id: "room", chat_type: "group", message_type: "text", content: JSON.stringify({ text }) } });
+    }
+    assert.deepEqual(seen.map(message => message.text), examples);
   } finally { abort.abort(); await monitor; }
 });
 

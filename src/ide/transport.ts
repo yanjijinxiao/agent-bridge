@@ -178,8 +178,8 @@ export class ProcessIDEHostTransport implements IDEHostTransport {
         processChild.once("close", code => input.prepare && code === 0 && prepared ? finish(undefined, "") : finish(new Error(profile?.warning === "extensions-unavailable"
           ? "所选扩展未安装完成；请检查 Open VSX 网络、扩展兼容性及目录权限后重试。"
           : "IDE 主机进程已退出；请检查 code-server、Node 和 SSH 配置")));
-        processChild.stdout?.on("data", chunk => {
-          buffer = (buffer + String(chunk)).slice(-32_000);
+        processChild.stdout?.setEncoding("utf8").on("data", (chunk: string) => {
+          buffer = (buffer + chunk).slice(-32_000);
           let newline: number;
           while ((newline = buffer.indexOf("\n")) !== -1) {
             const line = buffer.slice(0, newline); buffer = buffer.slice(newline + 1);

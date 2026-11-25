@@ -107,3 +107,13 @@ for (const glibc of ["2.17", "2.28", "2.39"]) test(`Linux ARM64 installation use
   if (glibc === "2.17") { assert.equal(state?.phase, "error"); assert.equal(downloaded, undefined); assert.deepEqual(f.calls, []); }
   else { assert.equal(state?.phase, "ready"); assert.deepEqual(downloaded, asset); assert.deepEqual(f.calls, ["prepare", "activate"]); }
 });
+
+test("IDE installer excludes upstream credential markers from management status and its saved failure", async t => {
+  const f = fixture(t, { download: async () => { throw Error("ticket=MARK_IDE signed https://fixture.test/?token=MARK_SIGNED"); } });
+  f.installer.begin("remote");
+  const state = await f.installer.wait("remote");
+  assert.equal(state?.phase, "error");
+  assert.match(state?.error ?? "", /安装失败/);
+  assert.doesNotMatch(JSON.stringify(f.installer.list()), /MARK_/);
+  assert.doesNotMatch(fs.readFileSync(path.join(f.root, "ide", "installations.json"), "utf8"), /MARK_/);
+});
