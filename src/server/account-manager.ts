@@ -1,7 +1,7 @@
 import { redactDiagnosticText } from "../runtime/diagnostics.js";
 import { peerPrincipal } from "../peer/context.js";
 import { sessionHeadingContext } from "../channels/turn-status.js";
-import { bindingMember, bindingRecipient, memberBinding } from "../channels/conversation-binding.js";
+import { bindingMember, bindingRecipient, allowsUnboundSession, memberBinding } from "../channels/conversation-binding.js";
 import { withBindingDelivery } from "../channels/binding-delivery.js";
 import { withChannelWriteLeases } from "../bridge/channel-write-leases.js";
 import { PeerRegistry } from "../peer/registry.js";
@@ -550,7 +550,7 @@ export class AccountManager {
           return session?.createdByFirstContact === true && session.hostId === host && session.threadId === scope.threadId;
         }
         const ticket = store.firstContactReservation(address);
-        return account.firstContact?.onUnbound === "create" && account.firstContact.connector === host
+        return account.firstContact?.connector === host && allowsUnboundSession(options.peerRegistry?.unboundSessionPolicy(host), account.firstContact, host, store.isSessionDetached(address))
           && ticket?.id === scope.reservationId && ticket.actorId === person.actorId && ticket.hostId === host;
       });
     };

@@ -12,6 +12,16 @@ test("old Connector configuration still chooses Codex without a runtime fallback
   const parsed = connectorConfigSchema.parse({ url, nodeId: "fixture", tokenFile: "device.token" });
   assert.equal(parsed.backend, "app-server"); assert.equal(parsed.runtime, undefined); assert.equal(parsed.appServerTransport, "daemon");
 });
+test("only a full Codex Connector can opt into first-message creation", () => {
+  for (const mode of ["manual", "create", "create-when-unbound"])
+    assert.equal(connectorConfigSchema.parse({ url, onUnbound: mode }).onUnbound, mode);
+  assert.equal(connectorConfigSchema.safeParse({ url, onUnbound: "invalid" }).success, false);
+  assert.equal(connectorConfigSchema.safeParse({ url, onUnbound: "create", threadId: "fixed" }).success, false);
+  for (const runtime of [tui, app]) {
+    assert.equal(connectorConfigSchema.safeParse({ url, runtime, backend: runtime.kind, onUnbound: "create-when-unbound" }).success, false);
+    assert.equal(connectorConfigSchema.safeParse({ url, runtime, backend: runtime.kind, onUnbound: "manual" }).success, true);
+  }
+});
 for (const runtime of [tui, app]) {
   test(`${runtime.kind}: explicit single runtime configuration is accepted`, () => {
     const parsed = connectorConfigSchema.parse({ url, backend: runtime.kind, runtime });

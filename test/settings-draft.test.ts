@@ -51,10 +51,10 @@ test("first-contact settings preserve saved devices, hide unsupported routes and
   owner.value = "first";
   const old = context.populateFirstContact({channel:"dingtalk",accountId:"first"});
   assert.equal(field("#firstContactScope").value,"conversation");
-  assert.equal(device.required,false);
+  assert.ok(!device.required);
   owner.value = "current";
   context.api = async () => ({routes:[
-    {hostId:"saved",label:"我的机器",online:false}, {hostId:"fresh",label:"新设备",online:true},
+    {hostId:"saved",label:"我的机器",online:false}, {hostId:"fresh",label:"新设备",online:true,onUnbound:"create-when-unbound"},
     {hostId:"terminal",label:"终端",online:true,supportsFirstContact:false}
   ]});
   await context.populateFirstContact({channel:"dingtalk",accountId:"current",
@@ -62,9 +62,8 @@ test("first-contact settings preserve saved devices, hide unsupported routes and
   stale.resolve({routes:[{hostId:"stale",online:true}]}); await old;
   assert.deepEqual(device.options.map((o: Option) => o.value), ["","saved","fresh"]);
   assert.equal(device.options[1].selected,true); assert.match(device.options[1].textContent,/我的机器.*离线/);
-  assert.equal(device.required,true);
-  const action = field("#firstContactAction"); action.value = "manual"; action.onchange();
-  assert.equal(device.required,false);
+  assert.ok(!device.required);
+  assert.match(device.options[2].textContent,/未绑定时新建/);
   await context.populateFirstContact({channel:"weixin",accountId:"other"});
   assert.equal(field("#firstContactFields").disabled,true);
 });

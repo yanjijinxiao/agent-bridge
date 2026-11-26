@@ -1209,23 +1209,21 @@ async function populateFirstContact(account) {
   fields.disabled = fields.hidden = account.channel !== "dingtalk";
   if (fields.hidden) return;
   const settings = account.firstContact || {};
-  const action = document.querySelector("#firstContactAction");
   const device = document.querySelector("#firstContactConnector");
   document.querySelector("#firstContactScope").value = settings.groupScope || "conversation";
-  action.value = settings.onUnbound || "manual";
-  action.onchange = () => { device.required = !fields.hidden && action.value === "create"; };
-  action.onchange();
   device.replaceChildren(new Option("选择 Connector", ""));
   if (settings.connector) device.add(new Option(settings.connector, settings.connector, false, true));
   try {
     const status = await api("/api/connectors");
     if (document.querySelector("#editingRemarkAccountId").value !== account.accountId) return;
+    const modes = { manual: "手动绑定", create: "仅首次新建", "create-when-unbound": "未绑定时新建" };
     for (const route of status.routes) {
       const existing = [...device.options].find(option => option.value === route.hostId);
       if (route.supportsFirstContact === false && !existing) continue;
       const label = (route.label || route.hostId) + (route.supportsFirstContact === false ? "（不支持新建会话）" : route.online ? "" : "（离线）");
-      if (existing) existing.textContent = label;
-      else device.add(new Option(label, route.hostId));
+      const description = route.onUnbound ? label + " · " + modes[route.onUnbound] : label;
+      if (existing) existing.textContent = description;
+      else device.add(new Option(description, route.hostId));
     }
   } catch { if (document.querySelector("#editingRemarkAccountId").value === account.accountId) toast("设备列表读取失败", true); }
 }
@@ -1276,7 +1274,8 @@ async function saveAccountSettings(event) {
   const account = state.accounts.find((item) => item.accountId === accountId);
   if (account?.channel === "dingtalk") {
     const connector = document.querySelector("#firstContactConnector").value;
-    body.firstContact = { onUnbound: document.querySelector("#firstContactAction").value,
+    body.firstContact = { ...(connector && account.firstContact?.connector === connector && account.firstContact.onUnbound
+      ? { onUnbound: account.firstContact.onUnbound } : {}),
       groupScope: document.querySelector("#firstContactScope").value, ...(connector ? { connector } : {}) };
     body.cardTemplateId = document.querySelector("#accountDingTalkCardTemplateInput").value.trim() || null;
     body.cardContentKey = document.querySelector("#accountDingTalkCardContentKeyInput").value.trim() || null;

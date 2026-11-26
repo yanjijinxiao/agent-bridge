@@ -6,7 +6,7 @@ import { readBuildInfo } from "./build-info.js";
 /** One inventory, independent compatibility domains. Product releases do not
  * change wire meaning; capabilities do not prove which artifact is running. */
 export const CONTRACTS = Object.freeze({
-  http: Object.freeze({ major: 1, minor: 0 }), peer: Object.freeze({ major: 1, minor: 0 }),
+  http: Object.freeze({ major: 1, minor: 0 }), peer: Object.freeze({ major: 1, minor: 1 }),
   execution: Object.freeze({ major: 1, minor: 2 }), nativeAdapter: Object.freeze({ major: 1, minor: 2 }),
   log: Object.freeze({ major: 1, minor: 0 })
 } as const);

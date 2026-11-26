@@ -15,7 +15,7 @@ function directory(t: TestContext) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "peer-enrollment-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true })); return root;
 }
-const description = { profileId: "default", label: "New device", independent: true, fullIDE: 1,
+const description = { profileId: "default", label: "New device", independent: true, fullIDE: 1, onUnbound: "manual",
   info: { id: "app-server", capabilities: {} } };
 async function fixture(t: TestContext, enrollment = true) {
   const root = directory(t), storeFile = path.join(root, "devices.json"), grantsFile = path.join(root, "grants.json");
@@ -81,10 +81,12 @@ test("enrollment is quarantined until IM guard plus device confirmation; reconne
   assert.equal(first.ticket.enrollment, true); assert.equal(f.store.has("new-device"), false);
   assert.deepEqual(f.registry.fullIDEHosts(), []); assert.deepEqual(f.registry.hosts(principal), []);
   assert.throws(() => f.registry.description(first.ticket.hostId));
+  assert.equal(f.registry.unboundSessionPolicy(first.ticket.hostId), undefined);
   await assert.rejects(first.connection.request("execution.call", {}), /unavailable/);
   let guards = 0;
   await f.registry.connect(first.ticket.code, principal, () => { guards++; });
   assert.equal(guards, 2); assert.equal(approvals, 1);
+  assert.equal(f.registry.unboundSessionPolicy(first.ticket.hostId), "manual");
   assert.equal(f.store.matches("new-device", token), true);
   assert.deepEqual(f.registry.hosts(principal), [first.ticket.hostId]);
   assert.ok(f.registry.fullIDEHosts().includes(first.ticket.hostId));

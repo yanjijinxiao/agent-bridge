@@ -4442,12 +4442,12 @@
         1629,
         1638
       ],
-      "contract": "允许显式无绑定；/unbind 与兼容 /leave、Web 精确解绑共用同一事务，只移除目标关系。",
+      "contract": "允许显式无绑定；/unbind 与兼容 /leave、Web 精确解绑共用同一事务，只移除目标关系。手动绑定与仅首次新建策略保留解绑状态。当前 Connector 的每次未绑定时自动新建策略允许下一条普通消息在该设备上开启全新会话，后续普通消息使用新绑定。详见 member-sessions.md。",
       "implementationReview": "pending",
       "cases": [
         {
           "id": "BIND-01.1",
-          "scenario": "未绑定普通消息给指引，不自动建线程",
+          "scenario": "手动绑定策略下未绑定普通消息给指引，不自动建线程",
           "status": "verified",
           "tests": [
             {

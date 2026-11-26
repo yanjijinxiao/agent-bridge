@@ -6,7 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import { AccountManager } from "../src/server/account-manager.js";
 import type { ThreadEventHub } from "../src/server/thread-event-hub.js";
-import { firstContactSchema, memberBinding, addressInbound, bindingRecipient } from "../src/channels/conversation-binding.js";
+import { allowsUnboundSession, firstContactSchema, memberBinding, addressInbound, bindingRecipient } from "../src/channels/conversation-binding.js";
 import { RuntimeStateStore } from "../src/state/runtime-state.js";
 import { accountStatePaths, resolveStatePaths } from "../src/state/paths.js";
 import { defaultConfig } from "../src/state/config.js";
@@ -23,6 +23,16 @@ import { message as modelMessage, sharedNativeCore, until } from "./fixtures/sha
 import { peerFixture } from "./peer-fixture.js";
 
 const policy = { onUnbound: "create", groupScope: "member", connector: "local" } as const;
+test("device policy takes precedence; old first-contact behavior applies only to the old default Connector", () => {
+  for (const detached of [true, false]) {
+    assert.equal(allowsUnboundSession(undefined, undefined, "local", detached), false);
+    assert.equal(allowsUnboundSession("manual", policy, "local", detached), false);
+    assert.equal(allowsUnboundSession(undefined, policy, "local", detached), !detached);
+    assert.equal(allowsUnboundSession(undefined, policy, "other", detached), false);
+    assert.equal(allowsUnboundSession("create-when-unbound", undefined, "other", detached), true);
+  }
+  assert.throws(() => firstContactSchema.parse({ ...policy, onUnbound: "create-when-unbound" }));
+});
 const message = (actor: string, chat: string, text: string, kind: "group" | "direct" = "group"): ChannelMessage => ({
   id: crypto.randomUUID(), text, senderId: actor, replyTargetId: chat, conversationKind: kind, attachments: [], raw: {}
 });
@@ -118,7 +128,13 @@ for (const variant of ["existing managed","first-contact-only","native core"] as
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "member-ingress-")), paths = resolveStatePaths(root);
   saveAccount(paths, { accountId: "ding", channel: "dingtalk", clientId: "bot", clientSecret: "fixture", enabled: false, firstContact: policy });
   const state = () => new RuntimeStateStore(accountStatePaths(paths, "ding"));
-  const peer = await peerFixture(t, { device: true, managedHost: "local", firstContactOnly });
+  const device: { device: true; managedHost: string; firstContactOnly?: true; onUnbound?: "manual" | "create-when-unbound" } = { device: true, managedHost: "local", firstContactOnly };
+  const peer = await peerFixture(t, device);
+  const setDeviceMode = async (mode: typeof device.onUnbound) => {
+    device.onUnbound = mode;
+    await peer.reconnect(true);
+    assert.equal(peer.registry.unboundSessionPolicy("local"), mode);
+  };
   assert.equal(peer.registry.supportsFirstContact("local"),true);
   assert.equal(peer.registry.supportsFirstContact("missing"),undefined);
   const core = variant === "native core" ? await sharedNativeCore(t) : undefined;
@@ -188,6 +204,22 @@ for (const variant of ["existing managed","first-contact-only","native core"] as
       assert.ok(history.includes("MEMBER_" + own + "_TEST_INPUT"));
       assert.ok(!history.includes("MEMBER_" + other + "_TEST_INPUT"));
     }
+    await setDeviceMode("create-when-unbound");
+    const dmBefore = state().getBoundSession("dm-a")!;
+    await send(message("a", "dm-a", "/unbind", "direct"));
+    assert.match(replies.at(-1)!, /下一条普通消息/);
+    await app.stopAll(); app = manager(); await app.startAccount("ding", false);
+    await send(message("a", "dm-a", "/status", "direct"));
+    assert.equal(state().getBoundSession("dm-a"), undefined);
+    const input = message("a", "dm-a", "AFTER_UNBIND_NEW", "direct");
+    await send(input); assert.equal(monitor.claimMessage!(input), false);
+    const fresh = state().getBoundSession("dm-a")!;
+    assert.notEqual(fresh.threadId, dmBefore.threadId);
+    await send(message("a", "dm-a", "AFTER_UNBIND_CONTINUE", "direct"));
+    const history = JSON.stringify(await core.runner().getHistory(fresh.threadId!));
+    assert.match(history, /AFTER_UNBIND_NEW/); assert.match(history, /AFTER_UNBIND_CONTINUE/);
+    assert.doesNotMatch(JSON.stringify(await core.runner().getHistory(dmBefore.threadId!)), /AFTER_UNBIND/);
+    assert.equal(peer.management.length, 5);
     return;
   }
   await send(message("a","g","/stream off"));
@@ -284,6 +316,29 @@ for (const variant of ["existing managed","first-contact-only","native core"] as
   await until(() => peer.runs.at(-1)?.prompt.includes("等待原设备"));
   assert.equal(peer.management.length,7);
   assert.equal(peer.runs.at(-1)?.threadId,state().getBoundSession(memberBinding("offline","b"))?.threadId);
+
+  await setDeviceMode("create-when-unbound");
+  const address = memberBinding("g", "a");
+  await send(message("a", "g", "/help")); assert.equal(state().firstContactReservation(address), undefined);
+  const staleInput = message("a", "g", "STALE_AFTER_DETACH");
+  assert.equal(monitor.claimMessage!(staleInput), true);
+  await send(message("a", "g", "/unbind"));
+  await assert.rejects(monitor.onMessage(staleInput), /改变|核对/);
+  const downgraded = message("a", "g", "POLICY_CHANGED");
+  assert.equal(monitor.claimMessage!(downgraded), true);
+  await setDeviceMode("manual");
+  await assert.rejects(monitor.onMessage(downgraded), /改变|核对/);
+  assert.equal(peer.management.length, 7);
+  await setDeviceMode("create-when-unbound");
+  const afterDetach = [message("a", "g", "fresh first"), message("a", "g", "fresh second")];
+  for (const m of afterDetach) assert.equal(monitor.claimMessage!(m), true);
+  const runsBeforeRecreate = peer.runs.length;
+  await Promise.all(afterDetach.map(m => monitor.onMessage(m)));
+  await until(() => peer.runs.length === runsBeforeRecreate + 2);
+  const fresh = state().getBoundSession(address)!;
+  assert.equal(peer.management.length, 8); assert.notEqual(fresh.threadId, a.threadId);
+  assert.deepEqual(peer.runs.slice(runsBeforeRecreate).map(run => run.threadId), [fresh.threadId, fresh.threadId]);
+  assert.equal(state().getBoundSession(memberBinding("g","b"))?.threadId, b.threadId);
 });
 
 

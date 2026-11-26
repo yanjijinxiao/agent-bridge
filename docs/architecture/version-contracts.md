@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | 发布制品 | package.json 产品号；封存清单的 commit/sourceHash/builtAt/productVersion | 程序加载时固定，不能被磁盘后续替换重新标号 |
 | Gateway HTTP | contracts.http，当前 1.0 | 管理端、IDE 前置入口、共享目录入口；不改 Code Server 上游协议 |
-| Connector RPC | contracts.peer 1.0 / execution 1.2 | protocol.negotiate；已有 v1 envelope、权限检查和回执语义保留 |
+| Connector RPC | contracts.peer 1.1 / execution 1.2 | protocol.negotiate；已有 v1 envelope、权限检查和回执语义保留 |
 | 原生适配 | contracts.nativeAdapter，当前 1.2 | 表示本项目适配约定；上游实际 userAgent 来自 initialize |
 | 运行日志 | contracts.log，当前 1.0 | stderr JSONL；schemaVersion 为主版本，完整版本在 runtime.contracts.log |
 | 持久数据 | 各存储 schema 的已有版本与迁移程序 | grants、设备凭据、共享记录、消息回执不能随程序版本强行改号或回退 |
@@ -25,6 +25,8 @@
 - 旧 Connector 可以继续使用既有 v1 能力，但管理接口明确显示 legacy/version-unreported。不能从功能标志猜测其 Git commit，也不能自动升级、改执行器或重发任务。
 - HTTP 保留现有 URL 和响应体，统一附版本及请求 ID 响应头。未带版本的旧客户端按当前 v1 兼容；显式声明不支持的 major 时在业务执行前返回版本错误。
 - 文件、管理、共享、IDE 等能力仍独立声明，数字从统一契约清单取得。能力开关不是产品版本；旧共享授权等持久格式保持原迁移和拒绝降级的规则，不批量重写历史文件。
+
+Peer 1.1 的 `peer.register` 增加可选 `onUnbound`，由认证后的 Connector 为其节点和 profile 声明策略。旧 Connector 的注册格式保持有效。需配置新字段时先升级 Gateway，旧 Gateway 的严格校验会拒绝含此字段的注册。
 
 ## 日志与排障
 

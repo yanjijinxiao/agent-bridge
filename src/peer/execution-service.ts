@@ -64,6 +64,7 @@ export type PeerExecutionOptions = {
   approve: (grant: PeerGrant) => Promise<boolean>;
   approveOwner?: (confirmation: OwnerConfirmation) => Promise<boolean>;
   webIDE?: PeerIDEConfig;
+  onUnbound?: PeerDescription["onUnbound"];
   managedRoute?: ManagedConnectorExport;
   codexHome?: string;
   nativeHostId?: string;
@@ -143,6 +144,7 @@ export class PeerExecutionService {
       projectCatalog: !options.threadId && info.capabilities.projectCatalog,
       projects: !options.threadId && info.capabilities.projects };
     const service = new PeerExecutionService(options, { profileId: options.profileId, label: options.label,
+      ...(options.onUnbound && { onUnbound: options.onUnbound }),
       ...(options.managedRoute ? { managedHost: options.managedRoute.hostId } : {}),
       writeGuard: PEER_CAPABILITIES.writeGuard,
       ...(native ? { nativeContract: PEER_CAPABILITIES.nativeContract } : { runtimeContract: PEER_CAPABILITIES.runtimeContract }),

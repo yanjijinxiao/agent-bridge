@@ -58,7 +58,7 @@ async function main(): Promise<void> {
       : loadPeerIdentity(stateDir, config.url);
     const label = config.label ?? os.hostname();
     service = await PeerExecutionService.create({ backend, threadId: config.threadId, profileId: config.profileId, label,
-      stateDir, webIDE: config.webIDE, managedRoute: config.managedRoute,
+      stateDir, onUnbound: config.onUnbound, webIDE: config.webIDE, managedRoute: config.managedRoute,
       codexHome: native ? config.codexHome ? resolve(config.codexHome) : process.env.CODEX_HOME : undefined,
       independent: !!runtime || config.appServerTransport === "daemon",
       approveOwner: confirmation => {

@@ -1,3 +1,4 @@
+import type { UnboundSessionPolicy } from "./contract.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { PeerSharingPort } from "./sharing-types.js";
 
@@ -8,6 +9,8 @@ export type PeerBridgePort = {
   isRouted?(hostId?: string): boolean;
   managedHosts?(): string[];
   isFirstContactOnly?(hostId: string): boolean;
+  unboundSessionPolicy?(hostId: string): UnboundSessionPolicy | undefined;
+  hasDeviceGrant?(principal: PeerPrincipal, hostId: string): boolean;
   supportsFirstContact?(hostId: string): boolean | undefined;
   connectorRoot?(hostId: string): string;
   catalogHosts?(hostId: string): string[];

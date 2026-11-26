@@ -14,7 +14,7 @@ import { hostScopedBackend } from "../src/codex/host-scoped-backend.js";
 
 export const principal: PeerPrincipal = { accountId: "bot-one", conversationId: "room-one", actorId: "owner" };
 export const token = "synthetic-device-credential-for-tests-only";
-export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExecutionOptions, "approve" | "approveOwner" | "independent" | "webIDE">> & { device?: boolean; managedHost?: string; firstContactOnly?: true; nativeHost?: string } = {}) {
+export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExecutionOptions, "approve" | "approveOwner" | "independent" | "webIDE" | "onUnbound">> & { device?: boolean; managedHost?: string; firstContactOnly?: true; nativeHost?: string; additionalCredentials?: Record<string, string> } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-peer-"));
   const thread: CodexThreadState = { threadId: "existing-native", cwd: "/device-only/workspace", title: "Local existing task",
     persistence: "active", runtimeStatus: "idle", activeFlags: [], projectMembership: "none" };
@@ -72,7 +72,7 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
   // the execution service, including hosts that never persist pairing grants.
   fs.mkdirSync(path.join(root, "client"), { mode: 0o700 });
   let service = await PeerExecutionService.create({ backend, threadId: options.device ? undefined : thread.threadId, label: "我的笔记本", profileId: "work", stateDir: path.join(root, "client"),
-    codexHome: path.join(root, "codex-home"), managedRoute: managed, independent: options.independent ?? true, approve: options.approve ?? (async () => true), approveOwner: options.approveOwner, webIDE: options.webIDE });
+    codexHome: path.join(root, "codex-home"), managedRoute: managed, onUnbound: options.onUnbound, independent: options.independent ?? true, approve: options.approve ?? (async () => true), approveOwner: options.approveOwner, webIDE: options.webIDE });
   let childService: PeerExecutionService | undefined;
   if (options.nativeHost) {
     fs.mkdirSync(path.join(root, "remote"));
@@ -82,8 +82,8 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
     service.description.hosts = [{ nativeHostId: options.nativeHost, managedHost: remoteManaged?.hostId }];
   }
   let serverConnection!: PeerConnection, clientConnection!: PeerConnection;
-  const server = await GatewayPeerServer.listen({ host: "127.0.0.1", port: 0, credentials: { laptop: token },
-    accept: (id, connection) => { serverConnection = connection; registry.accept(id, connection); } });
+  const server = await GatewayPeerServer.listen({ host: "127.0.0.1", port: 0, credentials: { laptop: token, ...options.additionalCredentials },
+    accept: (id, connection) => { if (id === "laptop") serverConnection = connection; registry.accept(id, connection); } });
   let next = Promise.withResolvers<{ hostId: string; code: string; expiresAt: number }>();
   const client = new GatewayPeerClient({ url: server.url, nodeId: "laptop", token, reconnectMs: 10,
     connected: async connection => {
@@ -109,7 +109,7 @@ export async function peerFixture(t: TestContext, options: Partial<Pick<PeerExec
       hostId: ticket.hostId, clientUserMessageId: "source-one", assertCurrent() {}, ...extra }),
     async reconnect(reloadService = false) {
       if (reloadService) service = await PeerExecutionService.create({ backend, threadId: options.device ? undefined : thread.threadId, label: "我的笔记本", profileId: "work", stateDir: path.join(root, "client"),
-        codexHome: path.join(root, "codex-home"), managedRoute: managed, independent: true, approve: options.approve ?? (async () => true), approveOwner: options.approveOwner, webIDE: options.webIDE });
+        codexHome: path.join(root, "codex-home"), managedRoute: managed, onUnbound: options.onUnbound, independent: true, approve: options.approve ?? (async () => true), approveOwner: options.approveOwner, webIDE: options.webIDE });
       next = Promise.withResolvers(); serverConnection.close(); return next.promise;
     }
   };

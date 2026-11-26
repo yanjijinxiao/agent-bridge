@@ -28,7 +28,7 @@ The local administration console binds to `127.0.0.1` and is not a multi-user lo
 
 ## Choose your setup
 
-DingTalk administrators can enable a separate Codex session for each participant in a group. The first message starts a session on the configured Connector. Progress and result cards show the session and machine on their existing status line. [Configuration and routing](docs/architecture/member-sessions.md)
+DingTalk administrators can enable a separate Codex session for each participant in a group. Each Connector configures `onUnbound` to require manual binding, automatically start a session only on first contact, or start a fresh session whenever a participant is unbound, including after an explicit or idle unbind. With either automatic policy, the first ordinary message starts the conversation on the selected Connector (or the account’s default device) and later messages continue it. Progress and result cards show the session and machine on their existing status line. [Configuration and routing](docs/architecture/member-sessions.md)
 
 | Goal | Start here |
 | --- | --- |

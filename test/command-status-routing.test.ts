@@ -13,7 +13,7 @@ import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.j
 import { APP_SERVER_BACKEND_CAPABILITIES } from "../src/codex/backend.js";
 import { CodexBackendRouter } from "../src/codex/runner.js";
 
-function fixture(t: TestContext, options: { slow?: boolean; slowTaskboard?: boolean; offline?: boolean } = {}) {
+function fixture(t: TestContext, options: { slow?: boolean; slowTaskboard?: boolean; offline?: boolean; devicePolicy?: "create-when-unbound" } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "command-status-")); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new RuntimeStateStore(resolveStatePaths(root));
   const project = store.createProject("Gateway", root, options.offline ? { hostId: "peer:old:herdr-app" } : undefined), session = store.createSession("group", root, "Original", project.id);
@@ -29,7 +29,7 @@ function fixture(t: TestContext, options: { slow?: boolean; slowTaskboard?: bool
     async listQueuedSubmissions() { return { data: items }; },
     async run() { assert.fail("must not start a direct task"); }, async submitThreadMessage() { assert.fail("explicit queue must not become steer"); } };
   const service = new BridgeService({ stateStore: store, config: { ...defaultConfig(root), allowedSenderIds: ["alice"], model: "configured-model" }, runner: runner as never,
-    peer: options.offline ? { isOnline: () => false, label: () => "原 Herdr 设备", hosts: () => [], connect: never } : undefined,
+    peer: options.offline ? { isOnline: () => false, label: () => "原 Herdr 设备", hosts: () => [], connect: never } : options.devicePolicy ? { unboundSessionPolicy: () => options.devicePolicy, hosts: () => [], label: (id: string) => id, connect: never } : undefined,
     forwardingStatus: () => ({ waiting: 2, unconfirmed: 0, held: 1 }),
     channelCapabilities: never,
     taskboard: options.slow || options.slowTaskboard ? { projectForWorkspace: never } as never : undefined,
@@ -107,6 +107,20 @@ test("status distinguishes an unbound chat eligible for a default session from a
   f.store.leaveSession("group");
   await f.send("/status");
   assert.doesNotMatch(f.replies.at(-1)!, /即可创建默认会话/);
+  assert.equal(f.store.getBoundSession("group"), undefined);
+});
+
+test("after idle expiry an allowed ordinary message reserves a new session and a status command leaves it unbound", async t => {
+  const f = fixture(t, { devicePolicy: "create-when-unbound" });
+  f.store.leaveSession("group", "idle");
+  f.service.configureFirstContact({ groupScope: "conversation", connector: "host29" });
+  const input = { id: "new-input", senderId: "alice", conversationKind: "group" as const, replyTargetId: "group", text: "/status", attachments: [], raw: {} };
+  assert.equal(f.service.addressInbound(input).firstContactId, undefined);
+  await f.send("/status");
+  assert.match(f.replies.at(-1)!, /发送普通消息即可创建默认会话/);
+  assert.equal(f.store.firstContactReservation("group"), undefined);
+  assert.equal(f.service.addressInbound({ ...input, senderId: "stranger", text: "hi" }).firstContactHost, undefined);
+  assert.equal(f.service.addressInbound({ ...input, text: "hi" }).firstContactHost, "host29");
   assert.equal(f.store.getBoundSession("group"), undefined);
 });
 

@@ -4,6 +4,8 @@ Gateway 的生产执行入口已统一到 Connector，同机部署也运行独�
 
 目录选择：`/connect` 展示本人当前聊天的设备，点击切换或 `/connect use C2` 保存当前 Connector，后续 `/sessions` 和 `/project` 默认查询它承载的已授权本机和远程主机，重启后仍保留。切换目录不换绑、不停止原任务；选中会话才换绑。`/sessions all` 显式聚合，`/sessions --host ...` 为临时查询。离线/撤权不自动回退；新建不能沿用其他设备目录。接口和状态边界见 [当前 Connector](architecture/modules/connector-selection.md)。
 
+自动开聊按 Connector 配置。在该设备启动配置文件顶层设置 `"onUnbound": "create-when-unbound"`，重启 Connector 后，未绑定时发来的第一条普通消息会在该设备开新会话。设为 `create` 可仅限首次开聊，设为 `manual` 可要求手动绑定。已绑定的会话继续走原目标。个人设备仍需取得当前聊天的整机授权。
+
 监听入口由管理员显式启用：未设置 `CODEX_IM_GATEWAY_PEER_CONFIG` 时不启动 Peer 监听，管理面仍可运行，但执行会提示没有可用 Connector，不回退到 Gateway 本机或 SSH 执行。多人共享与共享工作区仍需按实际部署完成独立验收。第一次使用探探可先阅读 [Connector 与使用教程](tantan-connector-guide.md)；本文主要说明通用部署和接口。
 
 服务器 A 运行 Gateway 和机器人，设备 B 主动连接 A。先配对设备，再在钉钉中查看、选择和切换 B 的 Codex 会话。本机配置无需填写 session ID，服务器按需向客户端查询会话目录。B 无需开放入站端口，A 无需 SSH 登录 B；双方需要网络互通。

@@ -1,5 +1,5 @@
 import { sessionHeadingContext } from "../channels/turn-status.js";
-import { addressInbound, bindingRecipient, memberBinding, type FirstContactPolicy } from "../channels/conversation-binding.js";
+import { addressInbound, bindingRecipient, allowsUnboundSession, memberBinding, type FirstContactPolicy } from "../channels/conversation-binding.js";
 import { withChannelWriteLeases } from "./channel-write-leases.js";
 import { offlineConnectorLabel, peerPrincipal, type PeerBridgePort } from "../peer/context.js";
 import { ConnectorSelection, ConnectorSelectionError } from "./connector-selection.js";
@@ -280,7 +280,7 @@ export class BridgeService {
   }
 
   private readonly actor = new AsyncLocalStorage<string>();
-  private readonly participant = new AsyncLocalStorage<Pick<TurnParticipantOrigin, "actorId" | "conversationId" | "mention">>();
+  private readonly participant = new AsyncLocalStorage<Pick<TurnParticipantOrigin, "actorId" | "conversationId" | "mention"> & Pick<ChannelMessage, "conversationKind">>();
   private readonly conversationWork = new Map<string, number>();
   private readonly restartWork = new RestartWork();
   private readonly turnAudience: TurnAudienceJournal;
@@ -507,19 +507,14 @@ export class BridgeService {
         return { ...message, replyTargetId: previous };
       }
     }
-    const host = policy?.onUnbound === "create" && policy.connector;
     const store = this.options.stateStore;
-    if (!host || cmd && isReservedChannelCommandToken(cmd.name) || message.interaction || message.source || message.unsupportedMessageType
+    if (cmd && isReservedChannelCommandToken(cmd.name) || message.interaction || message.source || message.unsupportedMessageType
       || !message.conversationKind || (!message.text.trim() && !message.attachments.length)
-      || !this.access.requireAccess(message.senderId, chat).allowed || !roleAllows(this.role(target, message.senderId), "participant")
-      || store.isSessionDetached(target) || store.getBoundSession(target)) return addressed;
-    const peer = this.options.peer;
-    if (peer?.isRouted?.(host) && !peer.isFirstContactOnly?.(host)) {
-      try { this.connectorSelection.assertAuthorized(this.peerIdentity(message.senderId, chat), host); }
-      catch (error) { if (error instanceof ConnectorSelectionError) return addressed; throw error; }
-    }
-    const ticket = store.reserveFirstContact(target, host, message.senderId);
-    return { ...addressed, firstContactId: ticket.id, firstContactHost: host };
+      || store.getBoundSession(target)) return addressed;
+    const route = this.firstContactRoute(target, message.senderId, message.conversationKind);
+    if (!route) return addressed;
+    const ticket = store.reserveFirstContact(target, route.host, message.senderId, route.selectionRevision);
+    return { ...addressed, firstContactId: ticket.id, firstContactHost: route.host };
   }
 
   private async startFirstSession(message: ChannelMessage, host: string): Promise<void> {
@@ -533,10 +528,11 @@ export class BridgeService {
       const guard = this.conversationControlGuard(address, "participant");
       const assertCurrent = () => {
         guard();
+        const route = this.firstContactRoute(address, principal.actorId, message.conversationKind);
         if (store.firstContactReservation(address)?.id !== ticket.id
-          || this.options.firstContact?.connector !== host || this.options.firstContact.onUnbound !== "create"
-          || message.conversationKind === "group" && (this.options.firstContact.groupScope === "member") !== (address !== principal.conversationId)
-          || !this.access.requireAccess(principal.actorId, principal.conversationId).allowed || store.isSessionDetached(address))
+          || route?.host !== host || route.selectionRevision !== ticket.selectionRevision
+          || message.conversationKind === "group" && (this.options.firstContact?.groupScope === "member") !== (address !== principal.conversationId)
+          || !this.access.requireAccess(principal.actorId, principal.conversationId).allowed)
           throw new CodexInterventionError("首次对话设置或绑定已改变，请重新核对。");
         if (!this.options.peer?.isRouted?.(host)) throw new ConnectorSelectionError("默认 Connector 未配置或不可用。");
         if (origin.actorId !== principal.actorId && (address !== principal.conversationId
@@ -600,7 +596,7 @@ export class BridgeService {
     const before = binding();
     this.conversationWork.set(conversationId, (this.conversationWork.get(conversationId) ?? 0) + 1);
     try {
-      await this.participant.run({ actorId: message.senderId, conversationId,
+      await this.participant.run({ actorId: message.senderId, conversationId, conversationKind: message.conversationKind,
         ...(message.mention ? { mention: message.mention } : {}) }, () => this.actor.run(message.senderId, () =>
         this.cardInteraction.run(message.interaction, () => this.handleInboundMessage(message))));
     } finally {
@@ -766,7 +762,7 @@ export class BridgeService {
       await this.reply(replyTargetId, "此操作已不可用，请发送 /help 查看当前命令。"); return;
     }
     if (!this.executionSession(replyTargetId)) {
-      if (!message.firstContactHost || !access.allowed || this.options.stateStore.isSessionDetached(replyTargetId)) {
+      if (!message.firstContactHost || !access.allowed) {
         await this.replySessionRequired(replyTargetId);
         return;
       }
@@ -872,7 +868,7 @@ export class BridgeService {
             const online = this.options.peer!.isOnline?.(host);
             return `C${i + 1} · ${escapeTableMarkdown(this.options.peer!.label(host))}${selected === host ? " · 当前选择" : ""} · ${online === undefined ? "连接状态未知" : online ? "在线" : "离线"}\n${escapeTableMarkdown(host)}`;
           }).join("\n\n") : "你在当前聊天尚未配对设备。请先启动 Connector，再发送终端显示的完整 /connect 配对命令。";
-          const note = `${selected && !snapshot.hosts.includes(selected) ? selected === "local" ? "当前选择：本机 Connector。\n" : "原选择已无授权，请重新选择；未自动切换设备。\n" : ""}切换只改变本人在当前聊天的目录范围，不改变会话绑定。`;
+          const note = `${selected && !snapshot.hosts.includes(selected) ? selected === "local" ? "当前选择：本机 Connector。\n" : "原选择已无授权，请重新选择；未自动切换设备。\n" : ""}切换会更新目录来源，已有会话继续使用原设备。私聊或个人群会话未绑定时，按所选设备的策略开聊。`;
           await this.replyActionCard(message.senderId, createChoiceCard({ title, body, note, fallbackText: [title, body, note].join("\n\n"),
             choices: snapshot.hosts.map((host, i) => ({ label: `切换 C${i + 1}`, command: "connect", arg: `use C${i + 1}@${snapshot.id}`, copyValue: `/connect use C${i + 1}@${snapshot.id}` })) }));
           return;
@@ -1070,9 +1066,32 @@ export class BridgeService {
     }));
   }
 
+  private firstContactRoute(address: string, actor = this.actor.getStore() ?? address, kind = this.participant.getStore()?.conversationKind) {
+    const chat = bindingRecipient(address);
+    const account = this.options.firstContact;
+    const peer = this.options.peer, store = this.options.stateStore;
+    const principal = this.peerIdentity(actor, chat);
+    // A private catalog selection cannot create a binding on behalf of a shared group.
+    const selection = kind === "direct" || chat !== address ? store.getConnectorSelection(principal) : undefined;
+    const host = selection?.hostId ?? account?.connector;
+    if (!host || !this.modeSettings.enabledModes.includes("session") || !this.access.requireAccess(actor, chat).allowed
+      || !roleAllows(this.role(address, actor), "participant")) return;
+    if (!allowsUnboundSession(peer?.unboundSessionPolicy?.(host), account, host, store.isSessionDetached(address))) return;
+    if (peer?.isFirstContactOnly?.(host)) {
+      if (host !== account?.connector) return;
+    } else if (peer?.isRouted?.(host)) {
+      if (host.startsWith("peer:") && peer.hasDeviceGrant?.(principal, host) === false) return;
+      try { this.connectorSelection.assertAuthorized(principal, host); }
+      catch (error) { if (error instanceof ConnectorSelectionError) return; throw error; }
+    }
+    return { host, selectionRevision: selection?.revision };
+  }
+
   private async replySessionRequired(senderId: string): Promise<void> {
     const expired = this.options.stateStore.getBindingExpiry(senderId, this.options.config.bindingIdleDays)?.endedReason === "idle";
-    await this.reply(senderId, copyableChoices(`${expired ? "此 IM 对话因长期没有人工消息已自动解绑；原 session 和任务均保留。\n\n" : ""}当前 IM 对话未绑定任何 session，这条消息未提交给 Codex。先查看会话列表，再使用列表给出的完整切换命令；不会自动恢复旧绑定或启动任务。`, [
+    const next = this.firstContactRoute(senderId) ? "发送普通消息即可在当前设备新建会话，也可以从会话列表中选择。"
+      : "先查看会话列表，再使用列表给出的完整切换命令；不会自动恢复旧绑定或启动任务。";
+    await this.reply(senderId, copyableChoices(`${expired ? "此 IM 对话因长期没有人工消息已自动解绑；原 session 和任务均保留。\n\n" : ""}当前 IM 对话未绑定任何 session，这条消息未提交给 Codex。${next}`, [
       { label: "查看可绑定会话", value: "/sessions" }, { label: "在当前项目新建会话（需先选择项目）", value: "/new" },
       { label: "新建独立会话", value: "/new --standalone" }, { label: "查看绑定帮助", value: "/help session" }
     ]));
@@ -2499,7 +2518,8 @@ export class BridgeService {
       if (session) this.options.stateStore.unbindSession(session.id, this.options.stateStore.sessionBindingTarget(session));
       else this.options.stateStore.leaveSession(senderId);
       this.clearConversationBindingState(senderId);
-      await this.reply(senderId, copyableChoices("当前 IM 对话已解绑，停止本对话跟随；不会删除 session、停止原任务或取消原生队列，其他对话绑定不变。解绑状态会在重启后保留。", [{ label: "选择已有会话", value: "/sessions" }, { label: "新建会话", value: "/new" }]));
+      const next = this.firstContactRoute(senderId) ? "下一条普通消息会在当前设备创建新会话，之后的消息会在新会话继续。" : "解绑状态会在重启后保留。";
+      await this.reply(senderId, copyableChoices("当前 IM 对话已解绑，停止本对话跟随；不会删除 session、停止原任务或取消原生队列，其他对话绑定不变。" + next, [{ label: "选择已有会话", value: "/sessions" }, { label: "新建会话", value: "/new" }]));
       return;
     }
     if (command.name === "role") {
@@ -3879,8 +3899,8 @@ export class BridgeService {
       `问答知识库：${knowledgeBase?.name ?? "未绑定"}`,
       `任务：${issue ? `${issue.identifier} · ${formatTaskboardStatus(issue.status)} · ${issue.title}` : taskResult.available ? "尚未绑定 Taskboard Issue" : "关联信息暂不可读取"}`,
       `会话：${session?.title ?? "未绑定任何 session"}`,
-      ...(!session ? [this.options.firstContact?.onUnbound === "create" && !this.options.stateStore.isSessionDetached(senderId) && this.modeSettings.enabledModes.includes("session")
-        ? "已开启首次对话自动创建。获准参与后，发送普通消息即可创建默认会话。"
+      ...(!session ? [this.firstContactRoute(senderId)
+        ? "发送普通消息即可创建默认会话。"
         : "普通消息不会提交；使用 /sessions 查看，/session 绑定或 /new 新建。"] : []),
       `对话状态：${runtime.collaborationMode === "plan" ? "计划协作" : runtime.collaborationMode === "default" ? "普通对话" : "原生模式暂未同步"}`,
       `工作目录：${workspace}`,

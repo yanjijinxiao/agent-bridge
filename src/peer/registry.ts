@@ -1,3 +1,4 @@
+import { unboundSessionPolicySchema, type UnboundSessionPolicy } from "./contract.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { hostedSessionRequest, type HostedSessionAuthority } from "./hosted-session.js";
 import { PEER_CAPABILITIES } from "../runtime/versions.js";
@@ -24,6 +25,7 @@ export type PeerGrant = z.infer<typeof grantSchema>;
 const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/),
   thread: z.object({ threadId: z.string().min(1), cwd: z.string().min(1), title: z.string().optional(),
     persistence: z.enum(["active", "archived"]), internal: z.literal(false).optional() }).passthrough().optional(),
+  onUnbound: unboundSessionPolicySchema.optional(),
   label: z.string().min(1).max(80).optional(),
   writeGuard: z.literal(PEER_CAPABILITIES.writeGuard).optional(),
   interactions: z.literal(PEER_CAPABILITIES.interactions).optional(),
@@ -39,7 +41,7 @@ const descriptionSchema = z.object({ profileId: z.string().regex(/^[\w-]{1,80}$/
   independent: z.boolean() }).strict().refine(value => value.info.id === "exec" || value.info.id === "app-server"
     ? !value.runtimeContract && !value.info.runtime : value.runtimeContract === 1 && value.info.runtime?.kind === value.info.id && !value.nativeContract && !value.interactions,
   "运行接口和原生会话接口能力声明不一致");
-export type PeerDescription = { profileId: string; label?: string; managedHost?: string; hosts?: { nativeHostId: string; managedHost?: string }[]; writeGuard?: 1; interactions?: 1; nativeContract?: 1; fullIDE?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
+export type PeerDescription = { profileId: string; onUnbound?: UnboundSessionPolicy; label?: string; managedHost?: string; hosts?: { nativeHostId: string; managedHost?: string }[]; writeGuard?: 1; interactions?: 1; nativeContract?: 1; fullIDE?: 1; files?: { version: 1 }; management?: { version: 1 }; sharing?: { version: 1 | 2 }; thread?: CodexThreadState & { cwd: string };
   runtimeContract?: 1; info: { id: AgentBackendId; capabilities: CodexBackendCapabilities; runtime?: RuntimeDescriptor }; independent: boolean };
 type Host = { nodeId: string; description: PeerDescription; connection?: PeerConnection; parent?: string; nativeHostId?: string;
   versions: ReturnType<PeerConnection["versionStatus"]> };
@@ -57,6 +59,21 @@ export class PeerRegistry implements PeerBridgePort {
     return description && description.info.id === "app-server" && !description.thread
       && !!description.management && description.info.capabilities.threadLifecycle === true;
   }
+  // Last authenticated registration, so a Gateway restart while the device is
+  // offline keeps pending first messages on that device. This grants no access.
+  private unboundPolicies: Map<string, UnboundSessionPolicy>;
+  unboundSessionPolicy(hostId: string): UnboundSessionPolicy | undefined {
+    const route = this.managedRoute(hostId);
+    const id = route ? managedTarget(route) : this.host(hostId)?.parent ?? hostId.replace(/:host:[0-9a-f]{24}$/, "");
+    return this.unboundPolicies.get(id);
+  }
+  private rememberUnboundPolicy(id: string, mode: UnboundSessionPolicy | undefined): void {
+    if (this.unboundPolicies.get(id) === mode) return;
+    const next = new Map(this.unboundPolicies);
+    if (mode) next.set(id, mode); else next.delete(id);
+    writeJsonFile(this.stateFile + ".unbound.json", { version: 1, policies: Object.fromEntries(next) }, { durable: true });
+    this.unboundPolicies = next;
+  }
   private readonly entries = new Map<string, Host>();
   private grants: PeerGrant[];
   private readonly tickets = new Map<string, { hostId: string; host: Host; connection: PeerConnection; expiresAt: number; enrollment?: PeerEnrollment }>();
@@ -65,6 +82,9 @@ export class PeerRegistry implements PeerBridgePort {
     validateManagedRoutes(managedRoutes);
     this.grants = z.object({ version: z.literal(1), grants: z.array(grantSchema) })
       .parse(readJsonFile(stateFile, { version: 1, grants: [] })).grants;
+    const saved = z.object({ version: z.literal(1), policies: z.record(z.string(), unboundSessionPolicySchema) }).strict()
+      .parse(readJsonFile(stateFile + ".unbound.json", { version: 1, policies: {} }));
+    this.unboundPolicies = new Map(Object.entries(saved.policies));
     this.sharing = new PeerSharingGateway(this, stateFile + ".sharing");
   }
   managedRoute(hostId = "local"): ManagedConnectorRoute | undefined { return this.managedRoutes.find(r => r.hostId === hostId); }
@@ -86,7 +106,7 @@ export class PeerRegistry implements PeerBridgePort {
   }
   status() {
     const versions = (id: string) => { const host = this.host(id); return { ...structuredClone(host?.versions ?? { compatibility: "legacy", runtime: null }),
-      supportsFirstContact: this.supportsFirstContact(id),
+      supportsFirstContact: this.supportsFirstContact(id), onUnbound: this.unboundSessionPolicy(id),
       nativeHosts: (host?.description.hosts ?? []).map(item => ({ nativeHostId: item.nativeHostId,
         hostId: item.managedHost ?? peerNativeHost(this.connectorRoot(id), item.nativeHostId) })) }; };
     return { mode: "connector-only" as const, routes: [
@@ -105,6 +125,9 @@ export class PeerRegistry implements PeerBridgePort {
   grantsForTarget(principal: PeerPrincipal, hostId: string): PeerGrant[] {
     return this.grantsAt(hostId).filter(g => samePrincipal(g.principal, principal)
       && (!g.delegation || g.delegation.version === 2 && g.delegation.expiresAt > Date.now()));
+  }
+  hasDeviceGrant(principal: PeerPrincipal, hostId: string): boolean {
+    return this.grantsForTarget(principal, hostId).some(grant => grant.scope === "device" && !grant.delegation && !grant.threadId);
   }
   sourcesForScope(scope: { hostId: string; threadId: string }): PeerPrincipal[] {
     return this.grantsAt(scope.hostId).filter(g => (g.scope === "device" || g.threadId === scope.threadId)
@@ -156,10 +179,13 @@ export class PeerRegistry implements PeerBridgePort {
         || exports.some(h => h.nativeHostId === "local")
         || (managed ? exports.some(h => !this.managedRoutes.some(r => managedTarget(r) === hostId && r.nativeHostId === h.nativeHostId && r.hostId === h.managedHost)) : exports.some(h => h.managedHost)))
         throw new PeerError("scope", "Connector native host exports do not match deployment routes");
+      if (description.onUnbound && description.onUnbound !== "manual" && (description.thread || description.info.id !== "app-server"
+        || !description.management || !description.info.capabilities.threadLifecycle)) throw new PeerError("scope", "此 Connector 无法自动新建会话");
       const host: Host = { nodeId, description, connection, versions: connection.versionStatus() };
       // Pending devices live only in the pairing ticket. They cannot publish
       // IDE/session hosts, displace a healthy connection or use old grants.
       const publish = () => {
+        this.rememberUnboundPolicy(hostId, description.onUnbound);
         this.entries.get(hostId)?.connection?.close();
         for (const [id, old] of this.entries) if (old.parent === hostId) this.entries.delete(id);
         this.entries.set(hostId, host);

@@ -1,4 +1,8 @@
+import { z } from "zod";
 import type { CodexBridgeBackend } from "../codex/backend.js";
+
+export const unboundSessionPolicySchema = z.enum(["manual", "create", "create-when-unbound"]);
+export type UnboundSessionPolicy = z.infer<typeof unboundSessionPolicySchema>;
 
 /** Every public facade port has an explicit transport policy. Adding a native
  * port without updating this map is a type error and fails the contract audit. */

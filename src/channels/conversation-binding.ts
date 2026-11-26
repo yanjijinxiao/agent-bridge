@@ -1,15 +1,24 @@
 import { z } from "zod";
+import type { UnboundSessionPolicy } from "../peer/contract.js";
 import type { ChannelMessage } from "./message.js";
 
 /** Account state is already namespaced by robot. This prefix is reserved at
  * ingress; only the binding resolver may manufacture a member address. */
 const prefix = "im-member:v1:";
 export const firstContactSchema = z.object({
-  onUnbound: z.enum(["manual", "create"]),
+  // Kept for accounts configured before Connectors published their own policy.
+  onUnbound: z.enum(["manual", "create"]).optional(),
   groupScope: z.enum(["conversation", "member"]),
   connector: z.string().trim().min(1).max(512).optional()
 }).strict().refine(p => p.onUnbound !== "create" || Boolean(p.connector), "自动创建需要指定 Connector");
 export type FirstContactPolicy = z.infer<typeof firstContactSchema>;
+
+/** Older deployments configured first contact on the account's exact default host.
+ * An explicit device policy always wins, including a device opting out. */
+export function allowsUnboundSession(device: UnboundSessionPolicy | undefined, account: FirstContactPolicy | undefined, host: string, detached: boolean): boolean {
+  const mode = device ?? (account?.connector === host ? account.onUnbound : undefined);
+  return mode === "create-when-unbound" || (mode === "create" && !detached);
+}
 
 export function memberBinding(conversation: string, actor: string): string {
   return prefix + JSON.stringify([conversation, actor]);

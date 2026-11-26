@@ -104,7 +104,7 @@ export type RuntimeState = {
   syncKey?: string;
   processedMessageIds: string[];
   contextTokens: Record<string, string>;
-  firstContacts?: Record<string, { id: string; hostId: string; actorId: string }>;
+  firstContacts?: Record<string, { id: string; hostId: string; actorId: string; selectionRevision?: string }>;
   sessions: ManagedSession[];
   projects: ManagedProject[];
   knowledgeBases: ManagedKnowledgeBase[];
@@ -261,11 +261,11 @@ export class RuntimeStateStore {
 
   /** Reserve once before native creation. Connector operation receipts use this
    * id after a crash, including a crash before the local binding was committed. */
-  reserveFirstContact(address: string, hostId: string, actorId: string) {
+  reserveFirstContact(address: string, hostId: string, actorId: string, selectionRevision?: string) {
     const reservations = this.state.firstContacts ??= {};
     const prior = Object.hasOwn(reservations, address) ? reservations[address] : undefined;
-    if (prior?.hostId === hostId) return { ...prior };
-    const reservation = { id: crypto.randomUUID(), hostId, actorId };
+    if (prior?.hostId === hostId && prior.selectionRevision === selectionRevision) return { ...prior };
+    const reservation = { id: crypto.randomUUID(), hostId, actorId, ...(selectionRevision && { selectionRevision }) };
     Object.defineProperty(reservations, address, { value: reservation, enumerable: true, configurable: true, writable: true });
     try { this.save(); }
     catch (error) {
@@ -1209,9 +1209,10 @@ function normalizeFirstContacts(value: unknown): NonNullable<RuntimeState["first
   const records: NonNullable<RuntimeState["firstContacts"]> = Object.create(null);
   for (const [key, record] of Object.entries(value)) {
     if (!key || !isJsonObject(record) || typeof record.id !== "string" || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(record.id)
-      || typeof record.hostId !== "string" || !record.hostId || typeof record.actorId !== "string" || !record.actorId)
+      || typeof record.hostId !== "string" || !record.hostId || typeof record.actorId !== "string" || !record.actorId
+      || record.selectionRevision !== undefined && (typeof record.selectionRevision !== "string" || !record.selectionRevision))
       throw new Error("Invalid first contact reservation");
-    records[key] = { id: record.id, actorId: record.actorId, hostId: record.hostId };
+    records[key] = { id: record.id, actorId: record.actorId, hostId: record.hostId, ...(record.selectionRevision && { selectionRevision: record.selectionRevision }) };
   }
   return records;
 }
