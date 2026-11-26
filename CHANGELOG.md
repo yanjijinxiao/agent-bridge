@@ -2,6 +2,11 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
+## [0.7.0] - 2026-11-26
+
+- Channel administrators can choose between one shared session per group and one session per member. In per-member mode, binding or leaving a session affects only that member in that group. Task cards identify the session and its machine.
+- Connectors can require manual binding, create a session on first contact, or create one whenever a member is unbound. Leaving a binding resets that member’s device choice for the chat. The next ordinary message uses the default Connector and its configured policy.
+
 ## [0.6.9] - 2026-11-23
 
 - Restore Codex permissions from the latest native record on the execution host. Managed local and SSH routes transfer only the verified permission fields needed for cold resume.
