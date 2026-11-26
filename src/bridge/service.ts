@@ -522,8 +522,10 @@ export class BridgeService {
       }
     }
     const store = this.options.stateStore;
+    // Channels can deliver a reply with an empty body and a separate reference.
+    // The quote is prompt material; only the outer message supplies the actor and command.
     if (cmd && isReservedChannelCommandToken(cmd.name) || message.interaction || message.source || message.unsupportedMessageType
-      || !message.conversationKind || (!message.text.trim() && !message.attachments.length)
+      || !message.conversationKind || (!message.text.trim() && !message.attachments.length && !message.references?.length)
       || store.getBoundSession(target)) return addressed;
     const route = this.firstContactRoute(target, message.senderId, message.conversationKind);
     if (!route) return addressed;

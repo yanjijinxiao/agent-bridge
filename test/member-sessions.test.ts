@@ -14,6 +14,7 @@ import { loadAccount, publicAccount, setAccountSettings, saveAccount } from "../
 import { createChannelClient, TEXT_CAPABILITIES } from "../src/channels/client.js";
 import { withBindingDelivery } from "../src/channels/binding-delivery.js";
 import { DingTalkChannelAdapter, type DingTalkAICardCreateInput, type DingTalkAICardUpdateInput } from "../src/channels/dingtalk.js";
+import { decodeDingTalkInbound } from "../src/channels/dingtalk-inbound.js";
 import { TOPIC_ROBOT, type DWClientDownStream } from "dingtalk-stream";
 import type { ChannelMessage } from "../src/channels/message.js";
 import type { ChannelMonitorOptions } from "../src/channels/types.js";
@@ -169,12 +170,24 @@ for (const variant of ["existing managed","first-contact-only","native core"] as
   await app.startAccount("ding", false);
   await send(message("a","g","/help")); assert.equal(peer.management.length, 0);
   await send(message("visitor","g","未准入")); assert.equal(peer.management.length, 0);
-  const first = message("a","g","MEMBER_A_TEST_INPUT");
+  const quoteOnly = (actor: string, quotedActor: string): ChannelMessage => ({
+    ...message(actor, "g", ""),
+    ...decodeDingTalkInbound({ msgtype: "text", text: { content: "", repliedMsg: {
+      msgId: "quoted-original", msgType: "text", senderId: quotedActor, text: { content: "/stop MEMBER_A_TEST_INPUT" }
+    } } })
+  });
+  await send(message("a", "g", ""));
+  await send(quoteOnly("visitor", "a"));
+  assert.equal(peer.management.length, 0);
+  assert.equal(peer.runs.length, 0);
+  const first = quoteOnly("a", "visitor");
   await Promise.all([send(first), send(message("b","g","MEMBER_B_TEST_INPUT"))]);
   assert.equal(monitor!.claimMessage!(first), false);
   assert.equal(peer.management.length, 2); assert.equal(peer.runs.length, 2);
   const a = state().getBoundSession(memberBinding("g","a"))!, b = state().getBoundSession(memberBinding("g","b"))!;
   assert.notEqual(a.threadId, b.threadId); assert.equal(a.createdByFirstContact, true);
+  assert.ok(peer.runs.find(run => run.threadId === a.threadId)?.prompt.includes("/stop MEMBER_A_TEST_INPUT"));
+  assert.equal(peer.stops.length, 0);
   assert.deepEqual(peer.runs.map(run => run.threadId).sort(), [a.threadId, b.threadId].sort());
   if (firstContactOnly) {
     assert.deepEqual(peer.registry.managedHosts(), []);
