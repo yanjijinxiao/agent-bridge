@@ -156,13 +156,14 @@ export class ChannelTurnPresentation implements TurnReplyStream {
   private retrySummaries(force = false): void {
     for (const segment of this.previous.filter(item => !item.checkpoint.finished).slice(0, 3)) this.closeSegment(segment, undefined, force);
   }
-  progress(text: string): Promise<boolean> { return this.run(async () => {
+  progress(text: string, replacesPreview = false): Promise<boolean> { return this.run(async () => {
     if (this.suspended) return true;
     this.retrySummaries();
+    if (replacesPreview) { this.lastAnswer = ""; this.answerPrefix = undefined; }
     let result = false;
     for (const [index, part] of this.current.progressParts(text).entries()) {
       if (index > 0 || this.current.progressWouldOverflow(part)) this.rotateProgress();
-      result = await this.current.progress(part) || result;
+      result = await this.current.progress(part, replacesPreview && index === 0) || result;
     }
     return result;
   }); }

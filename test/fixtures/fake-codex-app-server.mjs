@@ -878,7 +878,23 @@ rl.on("line", async (line) => {
       });
       activeTurns.delete(message.params.threadId);
     };
-    if (prompt === "silent-long") {
+    if (prompt === "unphased-stages") {
+      const emit = (method, extra) => send({method, params:{threadId:message.params.threadId, turnId, ...extra}});
+      for (const [index, text] of ["first check", "second check", "final result"].entries()) {
+        const id = "unphased-" + index;
+        const item = {id, type:"agentMessage", phase:null, text:"", memoryCitation:null};
+        emit("item/started", {item});
+        emit("item/agentMessage/delta",{itemId:id,delta:text});
+        emit("item/completed",{item:{...item,text},completedAtMs:Date.now()});
+        if (index === 0) {
+          const tool={type:"commandExecution",id:"check",command:"echo check",status:"inProgress"};
+          emit("item/started",{item:tool});
+          emit("item/completed",{item:{...tool,status:"completed",exitCode:0},completedAtMs:Date.now()});
+        }
+      }
+      emit("turn/completed",{turn:completedTurn(turnId,"completed")});
+      activeTurns.delete(message.params.threadId);
+    } else if (prompt === "silent-long") {
       setTimeout(sendFinal, 260);
     } else if (prompt === "sliding-timeout") {
       setTimeout(sendProgress, 120);

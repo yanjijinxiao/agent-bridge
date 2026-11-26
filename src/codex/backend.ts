@@ -387,10 +387,12 @@ export type CodexRunnerInput = {
   queueKey?: string;
   model?: string;
   effort?: string;
-  onDelta?: (delta: string) => Promise<void> | void;
+  /** Native item identity lets presentation replace a preview when a new message starts. */
+  onDelta?: (delta: string, itemId?: string) => Promise<void> | void;
   /** Bounded public item details; excludes private reasoning and reviewer data. */
   onItem?: (activity: import("./public-item.js").CodexPublicActivity) => Promise<void> | void;
-  onProgress?: (message: string) => Promise<void> | void;
+  /** The optional ID identifies an unphased preview now confirmed as intermediate. */
+  onProgress?: (message: string, previewItemId?: string) => Promise<void> | void;
   onRecovery?: (recovery: CodexTurnRecovery) => Promise<void> | void;
   onApproval?: CodexApprovalHandler;
   onApprovalResult?: CodexApprovalResultHandler;

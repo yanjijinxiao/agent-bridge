@@ -107,6 +107,24 @@ test("ownership and grants survive restart; revoked browser and execution grants
   assert.equal(fs.statSync(path.join(f.root,"client","sharing.json")).mode&0o777,0o600);
 });
 
+test("Connector forwards the item identity when a streamed preview becomes a stage", async t => {
+  const f = await fixture(t);
+  const callbacks: unknown[] = [];
+  f.run = async input => {
+    await input.onTurnStarted?.({threadId:f.thread.threadId, turnId:"phase-turn"});
+    await input.onDelta?.("预检通过", "stage-1");
+    await input.onProgress?.("预检通过", "stage-1");
+    await input.onDelta?.("最终结论", "answer-2");
+    return {text:"最终结论",threadId:f.thread.threadId,turnId:"phase-turn",raw:""};
+  };
+  const result = await f.as(() => f.facade.run(f.input({
+    onDelta:(text,id) => { callbacks.push(["preview",id,text]); },
+    onProgress:(text,id) => { callbacks.push(["progress",id,text]); }
+  })));
+  assert.equal(result.text,"最终结论");
+  assert.deepEqual(callbacks,[["preview","stage-1","预检通过"],["progress","stage-1","预检通过"],["preview","answer-2","最终结论"]]);
+});
+
 test("claiming a private session prevents another device-paired controller from reading or running it", async t => {
   const f=await fixture(t);await f.share("claim --ide");
   const ticket=await f.reconnect();await f.registry.connect(ticket.code,visitor,()=>{});

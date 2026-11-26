@@ -3353,6 +3353,7 @@ export class BridgeService {
     const inboxOwnsPreparation = !queued && this.options.ownsPendingInput?.(message.id) === true;
     if (!queued && !inboxOwnsPreparation) await prepareReplyStream();
     let streamedAnswer = "";
+    let previewItemId: string | undefined;
     let acceptedQueueTurn = false;
     let backendEntered = false;
     const submission = new TurnSubmission(this.options.inputReceipts, session.id);
@@ -3408,24 +3409,28 @@ export class BridgeService {
           } : {}),
           ...(progressEnabled ? {
             ...(replyStream?.supported || queued || inboxOwnsPreparation ? {
-              onDelta: async (delta: string) => {
+              onDelta: async (delta: string, itemId?: string) => {
                 if (!wantsProgress() || queued && !acceptedQueueTurn || !replyStream?.supported) return;
+                if (itemId && itemId !== previewItemId) streamedAnswer = "";
+                previewItemId = itemId;
                 streamedAnswer += delta;
                 const visible = visibleStreamingAnswer(streamedAnswer);
                 if (visible) await replyStream.answer(visible);
               }
             } : {}),
-            onProgress: async (progress: string) => {
+            onProgress: async (progress: string, promotedItemId?: string) => {
               if (!wantsProgress() || queued && !acceptedQueueTurn) return;
-              const progressText = progress.trim();
+              const replacesPreview = Boolean(promotedItemId && promotedItemId === previewItemId);
+              if (replacesPreview) { streamedAnswer = ""; previewItemId = undefined; }
+              const progressText = promotedItemId ? visibleStreamingAnswer(progress) : progress.trim();
               // Compaction can occur repeatedly in one long turn. Closing one
               // phase permits its next cycle without weakening replay dedup.
               if (progressText === "🧹 正在整理长会话上下文") sentProgress.delete("✅ 上下文整理完成");
               if (progressText === "✅ 上下文整理完成") sentProgress.delete("🧹 正在整理长会话上下文");
-              if (!progressText || sentProgress.has(progressText) && !replyStream?.checkpoint().recoveryNotice) return;
+              if (!progressText || !replacesPreview && sentProgress.has(progressText) && !replyStream?.checkpoint().recoveryNotice) return;
               sentProgress.add(progressText);
               if (sentProgress.size > 200) sentProgress.clear();
-              await replyStream?.progress(progressText);
+              await replyStream?.progress(progressText, replacesPreview);
             }
           } : {}),
           onApproval: (request: CodexApprovalRequest) => this.requestApproval(message.senderId, request),

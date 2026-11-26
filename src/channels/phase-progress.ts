@@ -51,11 +51,16 @@ export function activitySummary(state: PhaseProgress): string {
 
 export function phaseParagraphs(state: PhaseProgress, close = false): string[] {
   const summary = close ? activitySummary(state) : "";
-  return state.phases.flatMap((phase, index) => [
-    phase.text && progressBullet(markdownPreview(phase.text, Number.MAX_SAFE_INTEGER, { emphasis: false })),
+  const paragraphs = state.phases.flatMap((phase, index) => phase.text ? [
+    progressBullet(markdownPreview(phase.text, Number.MAX_SAFE_INTEGER, { emphasis: false })),
     (phase.summary || (index === state.phases.length - 1 ? summary : "")) &&
       progressBullet(`🛠️ ${phase.summary || summary}`)
-  ]).filter(Boolean);
+  ] : []).filter(Boolean);
+  // Work observed before the first stage has its own count. Never put that
+  // count ahead of the first actual finding or attribute it to a later stage.
+  const first = state.phases[0];
+  if (first && !first.text && first.summary) paragraphs.push(progressBullet(`🛠️ 首条进展前：${first.summary}`));
+  return paragraphs;
 }
 
 export function phaseActivity(state: PhaseProgress): string[] {

@@ -478,7 +478,8 @@ export class PeerExecutionService {
         this.assertThread(receipt.threadId, threadId); this.receipts.accepted(operationId, receipt.turnId);
         await event("onTurnStarted", [receipt]);
       },
-      onDelta: text => event("onDelta", [text]).then(() => {}), onProgress: text => event("onProgress", [text]).then(() => {}),
+      onDelta: (text, id) => event("onDelta", id ? [text, id] : [text]).then(() => {}),
+      onProgress: (text, id) => event("onProgress", id ? [text, id] : [text]).then(() => {}),
       onItem: item => event("onItem", [item]).then(() => {}),
       ...((nativeInput as any)?._dynamicToolCallback ? {
         onDynamicToolCall: (request: import("../codex/backend.js").CodexDynamicToolCall) => callback("onDynamicToolCall", [request]).then(value => z.string().parse(value))

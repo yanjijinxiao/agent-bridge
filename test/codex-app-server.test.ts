@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { AppServerCodexRunner } from "../src/codex/app-server-runner.js";
+import { AppServerCodexRunner, parseThreadHistory } from "../src/codex/app-server-runner.js";
 import { CodexThreadStateError, CodexTurnExecutionError } from "../src/codex/backend.js";
 import { userFacingMessageHandlingError } from "../src/bridge/errors.js";
 import { HybridCodexRunner } from "../src/codex/runner.js";
@@ -203,6 +203,27 @@ function pickState(state: {
     latestTurnStatus: state.latestTurnStatus
   };
 }
+
+test("unphased native messages use the next public item to distinguish stages from the final reply", async t => {
+  const runner = new AppServerCodexRunner({transport: {
+    command:process.execPath, args:[path.join(fixturesDir,"fake-codex-app-server.mjs")], mode:"remote-daemon"
+  }});
+  t.after(() => runner.close());
+  const stages: string[] = [], previews: string[] = [];
+  const result = await runner.run({prompt:"unphased-stages",cwd:"/tmp/project",
+    onDelta:(text,id) => { previews.push(id + ":" + text); },
+    onProgress:(text,id) => { if (id) stages.push(id + ":" + text); }
+  });
+  assert.deepEqual(previews,["unphased-0:first check","unphased-1:second check","unphased-2:final result"]);
+  assert.deepEqual(stages,previews.slice(0,2));
+  assert.equal(result.text,"final result");
+  const messages = parseThreadHistory({turns:[{items:[
+    {type:"agentMessage",id:"a",text:"phase A"},{type:"commandExecution",id:"b"},
+    {type:"agentMessage",id:"c",text:"phase B"},{type:"agentMessage",id:"d",text:"result"},
+    {type:"reasoning",id:"e"}
+  ]}]});
+  assert.deepEqual(messages.map(m => [m.text,m.kind]),[["phase A","progress"],["phase B","progress"],["result",undefined]]);
+});
 
 test("uses the Codex V2 initialize, thread, and turn lifecycle", async (t) => {
   const runner = new AppServerCodexRunner({

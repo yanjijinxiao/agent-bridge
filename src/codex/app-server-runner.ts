@@ -145,8 +145,8 @@ type TurnWaiter = {
 
 type TurnStream = {
   onItem?: CodexRunnerInput["onItem"];
-  onDelta?: (delta: string) => Promise<void> | void;
-  onProgress?: (message: string) => Promise<void> | void;
+  onDelta?: CodexRunnerInput["onDelta"];
+  onProgress?: CodexRunnerInput["onProgress"];
   onRecovery?: (recovery: CodexTurnRecovery) => Promise<void> | void;
   chain: Promise<void>;
 };
@@ -154,6 +154,7 @@ type TurnStream = {
 type QueuedTurnEvent = {
   type: "delta" | "progress";
   text: string;
+  itemId?: string;
 } | { type: "recovery"; recovery: CodexTurnRecovery } | { type: "item"; activity: CodexPublicActivity };
 
 type AppServerSandboxPolicy =
@@ -208,7 +209,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     submitted: boolean; notify?: CodexUserInputResultHandler; observer?: NativeInteractionObserver }>();
   private readonly turnWaiters = new Map<string, TurnWaiter>();
   private readonly turnEvents = new Map<string, DiagnosticTail>();
-  private readonly turnTexts = new Map<string, string>();
+  private readonly turnTexts = new Map<string, { text: string; unphasedItemId?: string }>();
   private readonly completedTurns = new Map<string, TurnCompletion>();
   private readonly turnStreams = new Map<string, TurnStream>();
   private readonly queuedTurnEvents = new Map<string, QueuedTurnEvent[]>();
@@ -2270,6 +2271,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
         }
       }
       const itemId = typeof item?.id === "string" ? item.id : undefined;
+      if (key) this.advanceUnphasedMessage(key, item);
       if (key && itemId && item?.type === "fileChange") {
         const threadId = String(params.threadId), turnId = String(params.turnId);
         if (this.approvalHandlersByThread.has(threadId) || this.interactionObservers.has(threadId)) {
@@ -2321,9 +2323,9 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       }
       this.clearTurnRecovery(key);
       if (this.turnStreams.has(key)) {
-        this.enqueueTurnEvent(key, { type: "delta", text: delta });
+        this.enqueueTurnEvent(key, { type: "delta", text: delta, itemId });
       } else {
-        this.queueTurnEvent(key, { type: "delta", text: delta });
+        this.queueTurnEvent(key, { type: "delta", text: delta, itemId });
       }
       return;
     }
@@ -2337,16 +2339,21 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
       const key = turnKey(threadId, turnId);
       this.appendTurnEvent(key, raw);
       const item = params.item as Record<string, unknown> | undefined;
+      // A tool may finish in parallel after the answer has started. Its start,
+      // not its late completion, establishes that the assistant continued work.
+      if (item?.type === "agentMessage") this.advanceUnphasedMessage(key, item);
       this.emitPublicItem(key, item, true);
       if (item?.type === "agentMessage" && typeof item.text === "string") {
-        if (item.phase === "commentary") {
+        const phase = item.phase ?? this.itemPhasesByTurn.get(key)?.get(String(item.id));
+        if (phase === "commentary") {
           const progress = item.text.trim();
           if (progress) {
             this.emitProgress(key, progress);
           }
         } else {
           this.clearTurnRecovery(key);
-          this.turnTexts.set(key, item.text);
+          this.turnTexts.set(key, { text: item.text, ...(!phase && typeof item.id === "string" && continuesAssistantWork(item)
+            ? { unphasedItemId: item.id } : {}) });
         }
       } else {
         const progress = describeItemProgress(item, true);
@@ -2380,7 +2387,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     const errorValue = turn?.error as Record<string, unknown> | undefined;
     const completion: TurnCompletion = {
       status,
-      text: this.turnTexts.get(key) ?? extractAgentMessageFromTurn(turn),
+      text: this.turnTexts.get(key)?.text ?? extractAgentMessageFromTurn(turn),
       raw: this.turnEvents.get(key)?.text() ?? "",
       failureCode: status === "failed" ? errorValue ? codexFailureCode(errorValue) : this.turnErrorCodes.get(key) ?? "upstream-error" : undefined,
       error: typeof errorValue?.message === "string" ? errorValue.message : undefined
@@ -2519,12 +2526,19 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     else this.queueTurnEvent(key, event);
   }
 
-  private emitProgress(key: string, text: string): void {
+  private advanceUnphasedMessage(key: string, item: Record<string, unknown> | undefined): void {
+    const previous = this.turnTexts.get(key);
+    if (!previous?.unphasedItemId || item?.id === previous.unphasedItemId || !continuesAssistantWork(item)) return;
+    this.turnTexts.delete(key);
+    if (previous.text.trim()) this.emitProgress(key, previous.text, previous.unphasedItemId);
+  }
+
+  private emitProgress(key: string, text: string, itemId?: string): void {
     this.clearTurnRecovery(key);
     if (this.turnStreams.has(key)) {
-      this.enqueueTurnEvent(key, { type: "progress", text });
+      this.enqueueTurnEvent(key, { type: "progress", text, itemId });
     } else {
-      this.queueTurnEvent(key, { type: "progress", text });
+      this.queueTurnEvent(key, { type: "progress", text, itemId });
     }
   }
 
@@ -2534,7 +2548,7 @@ export class AppServerCodexRunner implements CodexAppServerBackend {
     stream.chain = stream.chain
       .then(() => event.type === "item" ? stream.onItem?.(event.activity) : event.type === "recovery"
         ? stream.onRecovery ? stream.onRecovery(event.recovery) : stream.onProgress?.(codexRecoverySummary(event.recovery))
-        : event.type === "progress" ? stream.onProgress?.(event.text) : stream.onDelta?.(event.text))
+        : event.type === "progress" ? stream.onProgress?.(event.text, event.itemId) : stream.onDelta?.(event.text, event.itemId))
       .then(() => undefined)
       .catch((error) => {
         console.warn(`Codex ${event.type} callback failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -3292,13 +3306,27 @@ function isMissingOrArchivedThreadError(error: unknown): boolean {
   return /archiv|unarchive|not found|no rollout|does not exist|不存在|unknown thread|missing thread/i.test(message);
 }
 
+/** Only public work boundaries classify an earlier unphased message. A
+ * reasoning item, status event or late tool result supplies no such evidence. */
+function continuesAssistantWork(item: Record<string, unknown> | undefined): boolean {
+  switch (item?.type) {
+    case "agentMessage": return !Array.isArray(item.questions) || item.questions.length === 0;
+    case "commandExecution": case "fileChange": case "mcpToolCall": case "dynamicToolCall":
+    case "collabToolCall": case "collabAgentToolCall": case "webSearch": case "imageGeneration": return true;
+    default: return false;
+  }
+}
+
 function extractAgentMessageFromTurn(turn: Record<string, unknown> | undefined): string {
   const items = Array.isArray(turn?.items) ? turn.items : [];
+  let laterWork = false;
   for (let index = items.length - 1; index >= 0; index -= 1) {
     const item = items[index] as Record<string, unknown>;
-    if (item?.type === "agentMessage" && typeof item.text === "string") {
+    if (item?.type === "agentMessage" && continuesAssistantWork(item) && typeof item.text === "string"
+      && item.phase !== "commentary" && (item.phase || !laterWork)) {
       return item.text;
     }
+    laterWork ||= continuesAssistantWork(item);
   }
   return "";
 }
@@ -3310,9 +3338,11 @@ export function parseThreadHistory(thread: Record<string, unknown> | undefined):
     if (!isRecord(rawTurn)) continue;
     const turn = rawTurn;
     const items = Array.isArray(turn.items) ? turn.items : [];
+    let lastWork = items.length - 1;
+    while (lastWork >= 0 && !continuesAssistantWork(items[lastWork])) lastWork--;
     const userCreatedAt = unixSecondsToIso(turn.startedAt);
     const assistantCreatedAt = unixSecondsToIso(turn.completedAt ?? turn.startedAt);
-    for (const rawItem of items) {
+    for (const [index, rawItem] of items.entries()) {
       if (!isRecord(rawItem)) continue;
       const item = rawItem;
       const id = typeof item.id === "string" ? item.id : `${String(turn.id ?? "turn")}:${messages.length}`;
@@ -3337,7 +3367,8 @@ export function parseThreadHistory(thread: Record<string, unknown> | undefined):
           id,
           role: "assistant",
           text: item.text.trim(),
-          ...(item.phase === "commentary" ? { kind: "progress" as const } : {}),
+          ...(item.phase === "commentary" || (!item.phase && continuesAssistantWork(item) && index < lastWork)
+            ? { kind: "progress" as const } : {}),
           ...(assistantCreatedAt ? { createdAt: assistantCreatedAt } : {})
         });
       }

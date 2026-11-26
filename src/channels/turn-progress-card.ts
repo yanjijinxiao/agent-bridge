@@ -53,25 +53,29 @@ function progressParts(input: ProgressFacts) {
   const icon = { running: "⏳", "waiting-input": "💬", "waiting-approval": "🔐", "waiting-external": "💬", recovering: "↻", unconfirmed: "⚠️", "waiting-result": "📨" }[input.activity];
   const current = progressProse(input.notice || input.current, 360);
   const thought = input.thought && progressProse(input.thought, 160);
-  const sections = [`${turnStatusHeading(input.activity)} ${icon} · ${metadata.join(" · ")}`, current];
+  const sections = [`${turnStatusHeading(input.activity)} ${icon} · ${metadata.join(" · ")}`];
+  const details: string[] = [];
   if (input.phases) {
     const history = phaseParagraphs(input.phases);
     const live = phaseActivity(input.phases);
-    sections.splice(1, 1, ...history);
+    sections.push(...history);
     if (input.notice) sections.push(progressProse(input.notice, 360));
-    else if (live.length) sections.push(live.join("\n"));
-    else if (!history.length) sections.push(current);
+    else if (live.length) details.push(live.join("\n"));
+    else if (!history.length && !input.answerPreview) sections.push(current);
+  } else {
+    const isDetail = !input.notice && progressKind(input.current) !== "update";
+    if (isDetail) details.push(current);
+    else sections.push(current);
+    if (!input.notice && thought && !current.includes(thought)) details.push(`💭 ${thought}`);
+    const milestones = input.recent.filter(entry => progressKind(entry) === "update").slice(-2);
+    const errors = input.recent.filter(entry => progressKind(entry) === "failure").slice(-2);
+    const bullets = (entries: string[]) => entries.map(entry => `- ${progressProse(entry, 140).replace(/\n/g, "\n  ")}`).join("\n");
+    if (milestones.length) sections.push(bullets(milestones));
+    if (errors.length) details.push(bullets(errors));
+    if (tools.active) details.push(progressProse(tools.active, 100));
   }
-  if (!input.phases && !input.notice && thought && !current.includes(thought)) {
-    sections.push(`💭 ${thought}`);
-  }
-  // Keep errors visible without making a mobile progress card a growing log.
-  const milestones = input.recent.filter(entry => progressKind(entry) !== "failure").slice(-2);
-  const errors = input.recent.filter(entry => progressKind(entry) === "failure").slice(-2);
-  const recent = input.recent.filter(entry => milestones.includes(entry) || errors.includes(entry));
-  if (!input.phases && recent.length) sections.push(recent.map(entry => `- ${progressProse(entry, 140).replace(/\n/g, "\n  ")}`).join("\n"));
-  if (!input.phases && tools.active) sections.push(progressProse(tools.active, 100));
   if (input.answerPreview) sections.push(`回复预览（尚未完成）\n\n${markdownPreview(input.answerPreview, 600)}`);
+  sections.push(...details);
   if (input.terminalText !== undefined) {
     sections.splice(1, sections.length - 1, ...[input.notice && progressProse(input.notice, 360), input.terminalText].filter(Boolean) as string[]);
   }

@@ -239,12 +239,13 @@ export class ChannelTurnTextStream {
     return this.phase === "active" && this.messageId ? "updated" : "unavailable";
   }
 
-  async progress(text: string): Promise<boolean> {
+  async progress(text: string, replacesPreview = false): Promise<boolean> {
     if (this.finished || this.terminal || this.suspended) return true;
     const records = splitProgressRecords(text).filter(Boolean);
     if (!records.length) return false;
     const known = (content: string) => this.progressReceipts.has(crypto.createHash("sha256").update(content).digest("hex")) || this.progressEntries.includes(content);
-    if (records.length > 1 && records.every(known)) return true;
+    if (records.length > 1 && records.every(known) && !replacesPreview) return true;
+    if (replacesPreview) this.answerPreview = "";
     const applied: string[] = [];
     this.communicationNotice = undefined;
     this.recoveryNotice = undefined;

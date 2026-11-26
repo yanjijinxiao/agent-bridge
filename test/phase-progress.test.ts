@@ -31,6 +31,38 @@ function fixture(t: test.TestContext) {
 }
 const settle = () => new Promise<void>(resolve => setImmediate(resolve));
 
+test("promoting an unphased preview keeps one phase across a card restore and keeps the next reply separate", async t => {
+  const f = fixture(t);
+  await f.stream.progress("✅ 文件检查完成，退出码 0");
+  await f.stream.answer("预检通过");
+  await f.stream.progress("预检通过", true);
+  assert.equal(f.stream.checkpoint().answerPreview, "");
+  await f.restart();
+  await f.stream.progress("🔎 正在执行命令");
+  await f.stream.answer("最终结论");
+  await f.stream.flush();
+  const card = f.frames.at(-1).text;
+  assert.equal(card.split("预检通过").length, 2);
+  assert.match(card, /回复预览（尚未完成）\s+最终结论/);
+  assert.match(card, /预检通过[\s\S]*最终结论[\s\S]*正在执行命令/);
+  assert.ok(card.indexOf("预检通过") < card.indexOf("首条进展前"));
+  assert.match(card, /\/stop/);
+});
+
+test("an existing card with only tools and an answer preview puts the prose first on DingTalk", async t => {
+  const f = fixture(t);
+  await f.stream.progress("✅ 文件检查完成，退出码 0，耗时 0ms");
+  await f.stream.progress("🔎 正在执行命令");
+  await f.stream.progress("✅ 命令完成，退出码 0，耗时 466ms");
+  await f.stream.answer("预检已通过，正在核对失败原因。");
+  await f.restart(); await f.stream.synchronize();
+  const frame = f.frames.at(-1);
+  for (const body of [frame.text, frame.progressLayout.body, dingTalkProgressContent(frame.progressLayout.body)]) {
+    assert.match(body, /预检已通过[\s\S]*文件检查完成[\s\S]*正在执行命令[\s\S]*命令完成/);
+  }
+  assert.match(frame.progressLayout.footer, /\/stop[\s\S]*打开项目 Web IDE/);
+});
+
 test("commentary persists while live tool and thought activity stays bounded, then becomes a phase summary", async t => {
   const f = fixture(t);
   await f.stream.progress("第一阶段：定位根因");

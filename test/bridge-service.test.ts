@@ -1694,18 +1694,22 @@ test("streams progress and answer deltas into one channel AI Card and finalizes 
       async listProjects() { return { backend: "app-server", projects: [] }; },
       async listThreads() { return []; },
       async run(input: {
-        onProgress?: (message: string) => Promise<void>;
-        onDelta?: (delta: string) => Promise<void>;
+        onProgress?: (message: string, promotedItemId?: string) => Promise<void>;
+        onDelta?: (delta: string, itemId?: string) => Promise<void>;
       }) {
         for (const phase of ["🧹 正在整理长会话上下文", "✅ 上下文整理完成", "🧹 正在整理长会话上下文", "✅ 上下文整理完成"]) {
           await input.onProgress?.(phase);
           await new Promise(resolve => setTimeout(resolve, 550));
           assert.ok(updates.at(-1)?.text.includes(`\n\n${phase}`), "each real compaction cycle must reach the card");
         }
+        await input.onDelta?.("预检通过。", "stage-1");
+        await input.onProgress?.("预检通过。", "stage-1");
         await input.onProgress?.("正在查询资料。");
         await input.onProgress?.("🤔 正在核对查询结果并准备下一步。");
         await new Promise((resolve) => setTimeout(resolve, 550));
-        await input.onDelta?.("第一段。\n\n");
+        await input.onDelta?.("第一段。\n\n", "answer-1");
+        await new Promise(resolve => setTimeout(resolve, 550));
+        assert.doesNotMatch(updates.at(-1)!.text, /预检通过。[\s\n]*第一段。/);
         await input.onDelta?.("第二段。\n\n```codex-channel-bridge-actions\n");
         await input.onDelta?.('{"send":[]}\n```');
         return { raw: "", threadId: "thread-card", text: finalText };
