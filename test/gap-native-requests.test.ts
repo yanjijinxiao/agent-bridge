@@ -45,6 +45,7 @@ for (const stillPending of [true, false]) test(`restoring the primary route deli
   const f = fixture(t, { items: [widget] });
   let routed = false;
   let missed = 0;
+  let restoredSnapshots = 0;
   const delivered: string[] = [];
   const observer: NativeInteractionObserver = {
     onApproval: async () => undefined,
@@ -56,8 +57,11 @@ for (const stillPending of [true, false]) test(`restoring the primary route deli
   };
   const target = { hostId: "remote-original", threadId: "thread" };
   const backend = {
-    observeThreadInteractions: (id: string, host: string, current: NativeInteractionObserver) => {
-      assert.equal(host, target.hostId); return f.runner.observeThreadInteractions(id, current);
+    observeThreadInteractions: async (id: string, host: string, current: NativeInteractionObserver) => {
+      assert.equal(host, target.hostId);
+      const startedAfterRestore = routed;
+      await f.runner.observeThreadInteractions(id, current);
+      if (startedAfterRestore) restoredSnapshots++;
     },
     unobserveThreadInteractions: (id: string) => f.runner.unobserveThreadInteractions(id),
     interactionSubscriptionReady: (id: string) => f.runner.interactionSubscriptionReady(id),
@@ -70,9 +74,11 @@ for (const stillPending of [true, false]) test(`restoring the primary route deli
   f.set({ items: stillPending ? [widget] : [] });
   routed = true;
   monitor.setFollowedThreads([target]);
-  await until(() => f.calls().slice(before).some(c => c.method === "thread/read") && f.runner.interactionSubscriptionReady("thread"));
+  // The initial thread/read can precede replay of the full turn by several RPCs.
+  await until(() => restoredSnapshots > 0 && f.runner.interactionSubscriptionReady("thread"));
+  assert.ok(f.calls().slice(before).some(c => c.method === "thread/turns/list" && c.params.itemsView === "full"));
   monitor.setFollowedThreads([target]);
-  await new Promise(resolve => setTimeout(resolve, 100));
+  assert.equal(restoredSnapshots, 1);
   assert.equal(delivered.length, stillPending ? 1 : 0);
   assert.ok(!f.calls().some(c => !c.method || ["turn/start", "turn/steer", "thread/start"].includes(c.method)));
 });
