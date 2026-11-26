@@ -2,6 +2,11 @@
 
 All notable changes to Agent Bridge are documented in this file.
 
+## [0.7.1] - 2026-11-26
+
+- Codex progress cards show stage findings and the current reply preview before recent file checks and commands. Reconnecting restores the same order.
+- When a Codex provider omits the message phase, the Connector preserves the native item identity. Earlier messages stay visible as stage findings as work continues, and the final reply stays separate.
+
 ## [0.7.0] - 2026-11-26
 
 - Channel administrators can choose between one shared session per group and one session per member. In per-member mode, binding or leaving a session affects only that member in that group. Task cards identify the session and its machine.
