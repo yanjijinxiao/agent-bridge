@@ -38,6 +38,8 @@ test("binding idle clock counts authorized human messages, not sync/metadata or 
 test("idle expiry detaches only this conversation, persists, preserves native history and never implicitly rebinds", t => {
   const f = fixture(t), other = f.store.createSession("other", f.root, "other", undefined, "session", undefined, { standalone: true });
   f.store.setSessionThread(other.id, "thread");
+  const person = { accountId: "bot", conversationId: "room", actorId: "alice" };
+  f.store.setConnectorSelection(person, "peer:personal:default");
   const expected = f.expected(); t.mock.timers.tick(15 * DAY_MS - 1);
   assert.equal(f.store.expireBinding(f.session.id, expected, 15), false);
   t.mock.timers.tick(1); assert.equal(f.store.expireBinding(f.session.id, expected, 15), true);
@@ -45,6 +47,7 @@ test("idle expiry detaches only this conversation, persists, preserves native hi
   assert.equal(f.store.getBoundSession("other")?.id, other.id);
   assert.equal(f.store.getSession(f.session.id)?.threadId, "thread");
   assert.equal(f.store.getBindingExpiry("room", 15)?.endedReason, "idle");
+  assert.equal(f.store.getConnectorSelection(person)?.hostId, "peer:personal:default");
   assert.equal(new RuntimeStateStore(f.paths).getBoundSession("room"), undefined);
   assert.equal(f.store.expireBinding(f.session.id, expected, 15), false);
 });

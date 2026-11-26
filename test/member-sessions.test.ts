@@ -128,7 +128,7 @@ for (const variant of ["existing managed","first-contact-only","native core"] as
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "member-ingress-")), paths = resolveStatePaths(root);
   saveAccount(paths, { accountId: "ding", channel: "dingtalk", clientId: "bot", clientSecret: "fixture", enabled: false, firstContact: policy });
   const state = () => new RuntimeStateStore(accountStatePaths(paths, "ding"));
-  const device: { device: true; managedHost: string; firstContactOnly?: true; onUnbound?: "manual" | "create-when-unbound" } = { device: true, managedHost: "local", firstContactOnly };
+  const device: { device: true; managedHost: string; firstContactOnly?: true; onUnbound?: "manual" | "create" | "create-when-unbound" } = { device: true, managedHost: "local", firstContactOnly };
   const peer = await peerFixture(t, device);
   const setDeviceMode = async (mode: typeof device.onUnbound) => {
     device.onUnbound = mode;
@@ -206,7 +206,14 @@ for (const variant of ["existing managed","first-contact-only","native core"] as
     }
     await setDeviceMode("create-when-unbound");
     const dmBefore = state().getBoundSession("dm-a")!;
-    await send(message("a", "dm-a", "/unbind", "direct"));
+    // Restore the production shape: an existing DM with a retired private
+    // Connector. The IM command must reset only this person's scoped choice.
+    await app.stopAll();
+    const dmPrincipal = { accountId: "ding", conversationId: "dm-a", actorId: "a" };
+    state().setConnectorSelection(dmPrincipal, "peer:retired:default");
+    app = manager(); await app.startAccount("ding", false);
+    await send(message("a", "dm-a", "/leave", "direct"));
+    assert.equal(state().getConnectorSelection(dmPrincipal)?.hostId, undefined);
     assert.match(replies.at(-1)!, /下一条普通消息/);
     await app.stopAll(); app = manager(); await app.startAccount("ding", false);
     await send(message("a", "dm-a", "/status", "direct"));
@@ -280,8 +287,10 @@ for (const variant of ["existing managed","first-contact-only","native core"] as
   await send(message("a","g","/answer " + questionId + " mine"));
   await task;
   app.updateAccount("ding",{displayName:"探探",firstContact:policy});
+  await setDeviceMode("create");
   await send(message("a","g","/unbind")); await send(message("a","g","解绑后"));
   assert.equal(peer.management.length, 5); assert.equal(state().getBoundSession(memberBinding("g","a")), undefined);
+  await setDeviceMode(undefined);
   assert.equal(state().getBoundSession(memberBinding("g","b"))?.threadId, b.threadId);
   // An account policy edit affects new messages, while the accepted histories
   // and stored personal mappings stay intact when switching back.

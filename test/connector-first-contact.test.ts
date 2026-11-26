@@ -64,7 +64,19 @@ test("one Gateway routes by authenticated Connector policy across accounts, sele
   one.store.setConnectorSelection(person, other.hostId);
   await one.service.handleMessage(one.msg("continue"));
   assert.equal(a.runs.at(-1)?.threadId, original.threadId);
-  await one.service.handleMessage(one.msg("/unbind"));
+  // A legacy private device can be unregistered by the time the user leaves.
+  one.store.setConnectorSelection(person, "peer:retired:default");
+  for (const otherPerson of [{ ...person, actorId: "bob" }, { ...person, conversationId: "elsewhere" }])
+    one.store.setConnectorSelection(otherPerson, other.hostId);
+  await one.service.handleMessage(one.msg("/leave"));
+  const reset = one.store.getConnectorSelection(person)!;
+  assert.ok(reset.revision);
+  assert.equal(reset.hostId, undefined);
+  assert.equal(one.msg("first message after leave").firstContactHost, first);
+  for (const otherPerson of [{ ...person, actorId: "bob" }, { ...person, conversationId: "elsewhere" }])
+    assert.equal(one.store.getConnectorSelection(otherPerson)?.hostId, other.hostId);
+  // An explicit selection made after leave still wins, including a manual device.
+  one.store.setConnectorSelection(person, other.hostId);
   assert.equal(one.msg("manual again").firstContactHost, undefined);
   assert.equal(one.msg("member's selected device", "group").firstContactHost, undefined);
   one.service.configureFirstContact({ groupScope: "conversation", connector: first });

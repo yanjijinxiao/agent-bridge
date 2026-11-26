@@ -233,7 +233,7 @@ Common commands:
 | `/sessions all` | Explicitly list all accessible sources; `--host ID` is a temporary filter |
 | `/access` | Show personal/current-chat admission |
 | `/ide` | Open the current project IDE if enabled |
-| `/unbind` | Remove your binding in per-member mode, or the group's binding in shared mode. The task keeps running |
+| `/unbind` | Leave the current binding and reset your Connector choice in this chat to the account default. The task keeps running |
 
 Model, reasoning effort and Plan controls update the bound native Codex thread. Gateway does not persist execution overrides or reapply old choices on continuation/restart. Later changes in Codex App remain authoritative. Legacy `/model default` and `/effort default` only refresh native settings; progress preferences, bindings and forwarding receipts stay Gateway-owned.
 

@@ -8,7 +8,7 @@
 
 | 处理结论 | 命令 | 本次处理 |
 | --- | --- | --- |
-| 保留，修复会话生命周期 | `/session`、`/sessions`、`/new`、`/history`、`/follow`、`/unbind`、`/leave` | 未绑定时普通消息只提示绑定；`/unbind` 明确解绑，`/leave` 为兼容入口；不删 session、不停止任务、不自动接回旧会话 |
+| 保留，修复会话生命周期 | `/session`、`/sessions`、`/new`、`/history`、`/follow`、`/unbind`、`/leave` | `/unbind` 与 `/leave` 解除当前绑定、重置本人在本聊天的设备选择。下一条普通消息按默认 Connector 的策略开聊，原任务继续运行 |
 | 保留，修复状态及策略 | `/status`、`/policy`、`/steer`、`/queue`、`/intervene`、`/stop` | 普通消息默认安全 steer；显式 queue 使用 Codex 原生队列；list/cancel 核对和取消本聊天回执；按实际持有者校验能力，不支持时明确拒绝；重启不重发未确认消息 |
 | 保留，补齐帮助和保留字 | `/help`、`/answer` | 帮助显示后端限制；补充 `/answer`，避免与扩展冲突 |
 | 保留，受原生版本或部署能力限制 | `/approve`、`/reject`、`/plan`、`/goal`、`/balance`、`/task` | 桌面与纯 CLI 使用同一 App Server 契约；原生版本不支持时明确报告，Taskboard 未启用时标注前置条件 |

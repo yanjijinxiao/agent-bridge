@@ -260,7 +260,7 @@ Codex、Herdr 共用三层帮助：/help 只列当前可用的常用入口；/he
 
 模型、推理强度和 Plan 模式直接修改所绑定的 Codex 原生会话。Gateway 不另存执行覆盖值，普通续聊和重启不会覆盖你后来在 Codex App 中的选择；旧 `/model default`、`/effort default` 只刷新当前原生设置。过程进度、绑定和消息回执仍由 Gateway 保存。
 
-普通消息在任务运行中默认安全 `steer`，也可显式 `/queue` 或用 `/policy queue` 排到下一轮。所有操作都使用选定主机的原生 App Server，读取失败或回执不明不会切换执行器或重发。`/unbind` 解除当前绑定。当前 Connector 可配置为由下一条普通消息开启一个全新会话，其他策略下需重新选择会话或使用 `/new`。`/stream off` 关闭过程进度但保留最终结果。`/leave`、`/session new`、`/project add`、`/ide status` 等兼容写法继续可用，集中在完整帮助说明；见[渠道命令审计](./docs/channel-command-audit.md)及[帮助模块](./docs/architecture/modules/command-help.md)。
+普通消息在任务运行中默认安全 `steer`，也可显式 `/queue` 或用 `/policy queue` 排到下一轮。所有操作都使用选定主机的原生 App Server，读取失败或回执不明不会切换执行器或重发。`/unbind`（兼容 `/leave`）解除当前绑定，并将本人在这个聊天的设备选择恢复为账号默认。默认 Connector 可配置为由下一条普通消息开启一个全新会话，其他策略下需重新选择会话或使用 `/new`。`/stream off` 关闭过程进度但保留最终结果。`/leave`、`/session new`、`/project add`、`/ide status` 等兼容写法继续可用，集中在完整帮助说明；见[渠道命令审计](./docs/channel-command-audit.md)及[帮助模块](./docs/architecture/modules/command-help.md)。
 
 文字、图片和文件都发往当前绑定会话；仅切换 `/connect` 的目录来源不会改变发送目标。附件先经 Gateway 下载校验，再由 Connector 转存到会话所在主机，同机部署也遵守相同流程。纯文字不进入附件转存。若提示“附件未能转存，这条消息尚未提交”，可用 `/inbox` 核对保存记录和可用操作；这不表示原任务失败，也不会自动重发旧消息。
 

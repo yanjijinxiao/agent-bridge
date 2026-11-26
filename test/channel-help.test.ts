@@ -82,7 +82,7 @@ test("HELP-04: configuration narrows topic visibility without losing explicit di
 test("single-command help explains creation, detachment, queue ownership, question replies and IDE access", () => {
   const topics = {
     new: ["--standalone", "--project", "下一条消息才启动任务"],
-    unbind: ["仅解绑当前 IM 对话", "不停止任务", "群内每人独立", "只解除你在本群的绑定", "全群共用"],
+    unbind: ["仅解绑当前 IM 对话", "不停止任务", "设备选择恢复为账号默认", "群内每人独立", "只解除你在本群的绑定", "全群共用"],
     queue: ["/queue list", "/queue cancel", "取消自己的待执行项"],
     answer: ["/answer Q编号 回答内容", "--option 1", "只回复原请求"],
     ide: ["固定入口", "/ide status", "/ide identity", "/ide auth"]

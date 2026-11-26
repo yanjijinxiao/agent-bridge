@@ -54,13 +54,21 @@ export class ConnectorSelection {
       throw new ConnectorSelectionError(`当前 Connector「${this.peer.label(host)}」离线，已保留选择。用 /connect 查看在线设备；选择设备后，用 /sessions 查看它的会话。`);
   }
 
-  resolve(principal: PeerPrincipal): string | undefined {
-    let selected = this.store.getConnectorSelection(principal)?.hostId;
+  invalidate(principal: PeerPrincipal): void { this.snapshots.delete(this.key(principal)); }
+
+  resolve(principal: PeerPrincipal, defaultHost?: string): string | undefined {
+    const preference = this.store.getConnectorSelection(principal);
+    let selected = preference?.hostId;
     if (selected) { const root = this.peer?.connectorRoot?.(selected); if (root && this.hosts(principal).includes(root)) selected = root; }
     if (!selected) {
       const hosts = this.hosts(principal);
-      if (hosts.length > 1) throw new ConnectorSelectionError("有多个已授权 Connector，请发送 /connect 选择当前设备；查看全部可用 /sessions all。");
-      if (hosts.length === 1) { selected = hosts[0]; this.store.setConnectorSelection(principal, selected); }
+      if (defaultHost && hosts.includes(defaultHost)) selected = defaultHost;
+      else if (hosts.length > 1) throw new ConnectorSelectionError("有多个已授权 Connector，请发送 /connect 选择当前设备；查看全部可用 /sessions all。");
+      else if (hosts.length === 1) {
+        selected = hosts[0];
+        // Browsing the only visible catalog must not replace a hosted chat default.
+        if (!preference && !defaultHost) this.store.setConnectorSelection(principal, selected);
+      }
     }
     if (selected) this.assertAvailable(principal, selected);
     return selected;

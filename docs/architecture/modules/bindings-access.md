@@ -16,7 +16,7 @@ ChannelMessage.senderId 是平台确认的操作者，replyTargetId 是当前对
 
 ## 状态转换
 
-明确 unbind/leave 持久退休选择并停止跟随，不删除原生任务。项目切换只保留兼容边；不能让旧选择复活。已接收的原生写入属于旧线程事实；之后来源变化仅退休旧展示，不能伪称未提交或反向改动原生状态。原生 projectMembership 的 assigned、none、unknown 分开，unknown 不扩大访问权。新绑定把它保存为 projectBinding=unknown，重载不自动补项目；继续原线程省略项目提示，也不传显式移除 none。后续权威 assigned/none 才更新关联。
+IM 中明确 unbind/leave 时，同时重置发令人在真实聊天中的 Connector 偏好，持久退休会话选择并停止跟随，不删除原生任务。项目切换只保留兼容边；不能让旧选择复活。已接收的原生写入属于旧线程事实；之后来源变化仅退休旧展示，不能伪称未提交或反向改动原生状态。原生 projectMembership 的 assigned、none、unknown 分开，unknown 不扩大访问权。新绑定把它保存为 projectBinding=unknown，重载不自动补项目；继续原线程省略项目提示，也不传显式移除 none。后续权威 assigned/none 才更新关联。
 
 Herdr App 和 TUI 终端均可能没有工作目录。创建、重载、重新选择同一终端时都应保留空目录、未知项目归属和原执行代次。观察到目录变化时，才更新相关会话的目录与代次。
 

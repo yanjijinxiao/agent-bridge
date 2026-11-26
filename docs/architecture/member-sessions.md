@@ -10,6 +10,8 @@ Connector 的设备配置文件（启动时通过 `--config` 指定）用顶层�
 | 仅首次自动新建（`create`） | 创建默认会话 | 提示选择会话 |
 | 每次未绑定时自动新建（`create-when-unbound`） | 创建默认会话 | 在配置的 Connector 创建全新会话 |
 
+在 IM 中发送 `/leave` 或 `/unbind`，会同时解除当前绑定，并重置本人在当前聊天的 Connector 选择。重复发送也能清除旧版本留下的设备偏好。下一条普通消息按账号当时的默认设备及其策略处理。主动另选设备后使用新选择。群内其他成员和本人在其他聊天的设备偏好独立保存。Web 管理员按绑定解绑及闲置到期只处理会话绑定。
+
 三种设置下，已有绑定都继续使用原会话。更改设置和解绑本身均不创建会话。新会话由之后收到的首条普通消息触发，同一绑定范围内同时到达的消息共用一次创建。此前已绑定到旧会话的待转发输入保留原目标。已注册命令与卡片操作走原处理器，未注册斜杠文本沿用普通输入规则。
 
 ## 模块和函数契约
@@ -45,7 +47,7 @@ Connector 的设备配置文件（启动时通过 `--config` 指定）用顶层�
 ## 验证入口
 
 - `test/member-sessions.test.ts` 从账号 monitor 的 claim 和 receive 进入真实转发日志、BridgeService、WebSocket Connector 和持久化会话。覆盖双成员并发、来源重复、跨群与私聊、重启续聊、成员互答与审批、解绑、专用设备目录与跨成员权限。设置 `CODEX_NATIVE_QUEUE_TEST_BIN` 后会额外启动测试独占的原生 App Server，对照解绑前后的原生历史，核实首条与后续消息均进入新会话。模型供应方和 IM 传输为本机测试替身。
-- `test/connector-first-contact.test.ts` 核对同名设备的独立策略、两个机器人分别授权、切换与续聊、群共用路由以及 Gateway 冷启动时的策略读取。
+- `test/connector-first-contact.test.ts` 与 `test/connector-selection.test.ts` 覆盖带旧 Connector 的对话解绑、同群和跨群的个人设备选择、旧卡片、重启、目录查询和默认设备热更新。另核对同名设备的独立策略、两个机器人分别授权、切换与续聊、群共用路由以及 Gateway 冷启动时的策略读取。
 - `test/command-status-routing.test.ts` 检查闲置解绑后的状态提示、命令与普通消息的区别和未准入发送者。`test/settings-draft.test.ts` 核对管理页的默认设备和设备策略回显。
 - `test/compact-progress-design.test.ts` 比对改动前后正文、页脚和合并提醒；`test/dingtalk-progress-layout.test.ts` 检查 HTTPS 和 SDK 实际发出的组件内容、顺序、复制框数量、链接、终态及旧检查点；`test/peer-native-compat.test.ts` 包含 Connector 尚未上线的历史绑定。
 - 钉钉回调级用例调用真实适配器，输入两位成员的群消息，经过 Gateway、Connector 和原生 Codex 后，核对两张进行中卡的状态、两个不同的会话短号、最终正文、收件群和各自的 @ 名单。[四层检查记录](../audits/2026-11-25-member-sessions.md)

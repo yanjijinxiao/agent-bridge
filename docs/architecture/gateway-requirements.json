@@ -4442,7 +4442,7 @@
         1629,
         1638
       ],
-      "contract": "允许显式无绑定；/unbind 与兼容 /leave、Web 精确解绑共用同一事务，只移除目标关系。手动绑定与仅首次新建策略保留解绑状态。当前 Connector 的每次未绑定时自动新建策略允许下一条普通消息在该设备上开启全新会话，后续普通消息使用新绑定。详见 member-sessions.md。",
+      "contract": "IM 的 /unbind 和兼容 /leave 同时解除当前会话绑定并重置发令人在当前聊天的 Connector 选择。Web 精确解绑和闲置解绑只解除目标会话关系。手动绑定与仅首次新建策略保留解绑状态。当前 Connector 的每次未绑定时自动新建策略允许下一条普通消息在该设备上开启全新会话，后续普通消息使用新绑定。详见 member-sessions.md。",
       "implementationReview": "pending",
       "cases": [
         {

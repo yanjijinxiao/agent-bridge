@@ -110,6 +110,8 @@ test("exact unbind compares host, thread, conversation and current record; stale
   f.store.setSessionThread(first.id, "thread");
   const session = f.store.getSession(first.id)!;
   const expected = f.store.sessionBindingTarget(session);
+  const principal = { accountId: "standalone", conversationId: "chat", actorId: "actor" };
+  f.store.setConnectorSelection(principal, "peer:personal:default");
   for (const wrong of [{ ...expected, hostId: "local" }, { ...expected, conversationId: "other" }, { ...expected, threadId: "other-thread" }]) {
     assert.throws(() => f.store.unbindSession(first.id, wrong), SessionBindingConflictError);
     assert.equal(f.store.getBoundSession("chat")?.id, first.id);
@@ -120,6 +122,7 @@ test("exact unbind compares host, thread, conversation and current record; stale
   const target = f.store.sessionBindingTarget(second);
   assert.equal(f.store.unbindSession(second.id, target).changed, true);
   assert.equal(f.store.unbindSession(second.id, target).changed, false);
+  assert.equal(f.store.getConnectorSelection(principal)?.hostId, "peer:personal:default", "administrative exact unbind preserves personal device choice");
   assert.equal(f.store.getSession(first.id)?.threadId, "thread");
   f.store.deleteSession(second.id);
   assert.equal(f.store.getBoundSession("chat"), undefined, "deleting a detached record must not revive an older binding");

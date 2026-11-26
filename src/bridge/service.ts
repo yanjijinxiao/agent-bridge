@@ -241,6 +241,7 @@ export class BridgeService {
     selectionRevision?: string;
     hosts: string[];
   }>();
+  private catalogDefaultRevision = 0;
   private readonly projectLists = new Map<string, { id: string; createdAt: number; codes: Map<string, { projectId?: string; candidate?: CodexProjectCandidate }> }>();
 
   private catalogActorKey(senderId: string): string {
@@ -258,7 +259,7 @@ export class BridgeService {
 
   private catalogHost(senderId: string): string | undefined {
     const principal = this.catalogPrincipal(senderId);
-    const host = this.connectorSelection.resolve(principal);
+    const host = this.connectorSelection.resolve(principal, this.options.firstContact?.connector);
     if (host === "local" && !this.access.requireAccess(principal.actorId, senderId).allowed)
       throw new ConnectorSelectionError("当前授权不包含本机 Connector，请通过 /connect 选择已授权设备。");
     return host;
@@ -267,11 +268,17 @@ export class BridgeService {
   private catalogGuard(senderId: string, sourceGuard: () => void = () => {}, host?: string): () => void {
     const principal = this.catalogPrincipal(senderId);
     const selectionGuard = this.connectorSelection.guard(principal);
-    return () => { sourceGuard(); selectionGuard(); if (host) this.connectorSelection.assertAuthorized(principal, host); };
+    const defaultRevision = this.options.stateStore.getConnectorSelection(principal)?.hostId ? undefined : this.catalogDefaultRevision;
+    return () => {
+      sourceGuard();
+      selectionGuard();
+      if (defaultRevision !== undefined && defaultRevision !== this.catalogDefaultRevision)
+        throw new ConnectorSelectionError("查询期间默认 Connector 已改变，请刷新后重新选择。");
+      if (host) this.connectorSelection.assertAuthorized(principal, host);
+    };
   }
 
-  private catalogProjects(senderId: string): ManagedProject[] {
-    const host = this.options.stateStore.getConnectorSelection(this.catalogPrincipal(senderId))?.hostId;
+  private catalogProjects(senderId: string, host: string | undefined): ManagedProject[] {
     const root = host && (this.options.peer?.connectorRoot?.(host) ?? host);
     const authorized = this.options.peer?.hosts(this.catalogPrincipal(senderId)) ?? [];
     const hosts = root ? (this.options.peer?.catalogHosts?.(root) ?? [root]).filter(h => !h.startsWith("peer:") || authorized.includes(h)) : undefined;
@@ -489,7 +496,14 @@ export class BridgeService {
     return offlineConnectorLabel(this.options.peer, hostId);
   }
 
-  configureFirstContact(policy: FirstContactPolicy): void { this.options.firstContact = policy; }
+  configureFirstContact(policy: FirstContactPolicy): void {
+    if (policy.connector !== this.options.firstContact?.connector) {
+      this.catalogDefaultRevision++;
+      this.sessionLists.clear();
+      this.projectLists.clear();
+    }
+    this.options.firstContact = policy;
+  }
 
   /** Bind ingress identity before inbox admission; historic records retain
    * the audience which actually received that approval or question. */
@@ -863,12 +877,14 @@ export class BridgeService {
         if (!command.arg.trim()) {
           const snapshot = this.connectorSelection.list(principal);
           const selected = this.options.stateStore.getConnectorSelection(principal)?.hostId;
+          const defaultHost = this.options.firstContact?.connector;
           const title = "当前聊天的 Connector";
           const body = snapshot.hosts.length ? snapshot.hosts.map((host, i) => {
             const online = this.options.peer!.isOnline?.(host);
-            return `C${i + 1} · ${escapeTableMarkdown(this.options.peer!.label(host))}${selected === host ? " · 当前选择" : ""} · ${online === undefined ? "连接状态未知" : online ? "在线" : "离线"}\n${escapeTableMarkdown(host)}`;
+            return `C${i + 1} · ${escapeTableMarkdown(this.options.peer!.label(host))}${selected === host ? " · 当前选择" : !selected && host === defaultHost ? " · 账号默认" : ""} · ${online === undefined ? "连接状态未知" : online ? "在线" : "离线"}\n${escapeTableMarkdown(host)}`;
           }).join("\n\n") : "你在当前聊天尚未配对设备。请先启动 Connector，再发送终端显示的完整 /connect 配对命令。";
-          const note = `${selected && !snapshot.hosts.includes(selected) ? selected === "local" ? "当前选择：本机 Connector。\n" : "原选择已无授权，请重新选择；未自动切换设备。\n" : ""}切换会更新目录来源，已有会话继续使用原设备。私聊或个人群会话未绑定时，按所选设备的策略开聊。`;
+          const defaultNote = !selected && defaultHost && !snapshot.hosts.includes(defaultHost) ? "未绑定会话的普通消息使用账号的默认开聊设备。设备列表仅显示你有权浏览的目录。\n" : "";
+          const note = `${defaultNote}${selected && !snapshot.hosts.includes(selected) ? selected === "local" ? "当前选择：本机 Connector。\n" : "原选择已无授权，请重新选择；未自动切换设备。\n" : ""}切换会更新目录来源，已有会话继续使用原设备。私聊或个人群会话未绑定时，按所选设备的策略开聊。`;
           await this.replyActionCard(message.senderId, createChoiceCard({ title, body, note, fallbackText: [title, body, note].join("\n\n"),
             choices: snapshot.hosts.map((host, i) => ({ label: `切换 C${i + 1}`, command: "connect", arg: `use C${i + 1}@${snapshot.id}`, copyValue: `/connect use C${i + 1}@${snapshot.id}` })) }));
           return;
@@ -1220,7 +1236,7 @@ export class BridgeService {
     const candidates = catalog ?? await this.codexProjectCandidates();
     assertCurrent();
     this.synchronizeManagedProjects(candidates);
-    const projects = this.catalogProjects(senderId);
+    const projects = this.catalogProjects(senderId, selectedHost);
     const selected = this.selectProject(senderId, selector, candidates, projects);
     if (selected.error) {
       await this.reply(senderId, selected.error);
@@ -1274,7 +1290,7 @@ export class BridgeService {
       );
       return true;
     }
-    const projects = this.catalogProjects(senderId);
+    const projects = this.catalogProjects(senderId, selectedHost);
     const detail = /^detail\s+(.+)$/i.exec(input);
     if (detail) {
       const selected = this.selectProject(senderId, detail[1].trim(), candidates, projects);
@@ -2513,13 +2529,15 @@ export class BridgeService {
   private async handleInterventionSetting(senderId: string, command: ChannelCommand, sourceText = ""): Promise<void> {
     const arg = command.arg.trim();
     if (command.name === "unbind" || command.name === "leave") {
-      if (arg) { await this.reply(senderId, "用法：/unbind（兼容 /leave）；仅解绑当前 IM 对话。"); return; }
-      const session = this.executionSession(senderId);
-      if (session) this.options.stateStore.unbindSession(session.id, this.options.stateStore.sessionBindingTarget(session));
-      else this.options.stateStore.leaveSession(senderId);
+      if (arg) { await this.reply(senderId, "用法：/unbind（兼容 /leave）；解绑并重置你在当前聊天的设备选择。"); return; }
+      const principal = this.catalogPrincipal(senderId);
+      this.options.stateStore.leaveConversation(senderId, principal);
+      this.connectorSelection.invalidate(principal);
+      this.invalidateCatalogs(senderId);
       this.clearConversationBindingState(senderId);
-      const next = this.firstContactRoute(senderId) ? "下一条普通消息会在当前设备创建新会话，之后的消息会在新会话继续。" : "解绑状态会在重启后保留。";
-      await this.reply(senderId, copyableChoices("当前 IM 对话已解绑，停止本对话跟随；不会删除 session、停止原任务或取消原生队列，其他对话绑定不变。" + next, [{ label: "选择已有会话", value: "/sessions" }, { label: "新建会话", value: "/new" }]));
+      const device = this.options.firstContact?.connector ? "已恢复账号的默认 Connector。" : "已清除你在当前聊天的设备选择。";
+      const next = this.firstContactRoute(senderId) ? "下一条普通消息会在默认设备创建新会话。" : "解绑状态会在重启后保留。";
+      await this.reply(senderId, copyableChoices("当前 IM 对话已解绑，停止本对话跟随；不会删除 session、停止原任务或取消原生队列，其他对话绑定不变。" + device + next, [{ label: "选择已有会话", value: "/sessions" }, { label: "新建会话", value: "/new" }]));
       return;
     }
     if (command.name === "role") {

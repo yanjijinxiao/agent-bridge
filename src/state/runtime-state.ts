@@ -1,9 +1,10 @@
-import { bindingRecipient } from "../channels/conversation-binding.js";
+import { bindingMember, bindingRecipient } from "../channels/conversation-binding.js";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 import path from "node:path";
 
+import type { PeerPrincipal } from "../peer/context.js";
 import type { ProjectInteractionMode } from "../channels/channel-mode-settings.js";
 
 import { readJsonObjectFile, isJsonObject, writeJsonFile } from "./json-store.js";
@@ -89,11 +90,15 @@ export class SessionBindingConflictError extends Error {
   constructor() { super("绑定已改变，请刷新后确认要解绑的 IM 对话与 session。"); }
 }
 
+const connectorSelectionKey = (principal: PeerPrincipal) => JSON.stringify([principal.accountId, principal.conversationId, principal.actorId]);
+
 export type RuntimeState = {
   approvalSequence: number;
   sessionPageSizes: Record<string, number>;
-  /** Personal catalog scope only; never used to route ordinary session input. */
+  /** Personal catalog and unbound first-contact preference. Bound input follows its thread. */
   connectorSelections: Record<string, { hostId: string; revision: string }>;
+  /** Keep reset generations separate so older readers still see no selected device. */
+  connectorResetRevisions?: Record<string, string>;
   conversationRoles: Record<string, Record<string, "viewer" | "participant" | "controller">>;
   pairedSenderIds: string[];
   lastActiveSenderId?: string;
@@ -166,13 +171,15 @@ export class RuntimeStateStore {
     // Missing fields in older schemas acquire defaults below. A present field
     // with a different container type must never migrate into an empty table.
     for (const key of ["activeSessionIds", "activeQaSessionIds", "activeProjectIds", "contextTokens", "conversationRoles",
-      "sessionPageSizes", "connectorSelections", "authorizedConversationsByActor", "bindingActivity", "interactionModes", "firstContacts"] as const) {
+      "sessionPageSizes", "connectorSelections", "authorizedConversationsByActor", "bindingActivity", "interactionModes", "firstContacts", "connectorResetRevisions"] as const) {
       if (loaded[key] !== undefined && !isJsonObject(loaded[key])) throw new Error(`Invalid runtime ${key}; original state preserved`);
     }
     for (const key of ["sessions", "projects", "knowledgeBases", "pairedSenderIds",
       "processedMessageIds", "detachedSessionSenders", "pendingDeliveries"] as const) {
       if (loaded[key] !== undefined && !Array.isArray(loaded[key])) throw new Error(`Invalid runtime ${key}; original state preserved`);
     }
+    if (loaded.connectorResetRevisions && Object.entries(loaded.connectorResetRevisions).some(([key, rev]) =>
+      !validConnectorSelectionKey(key) || typeof rev !== "string" || !rev)) throw Error("Invalid Connector reset revision; original state preserved");
     const before = structuredClone(loaded);
     const normalized = normalizeRuntimeState(loaded);
     // Failed normalization must not acknowledge the new file revision.
@@ -206,14 +213,19 @@ export class RuntimeStateStore {
     return this.state.sessionPageSizes[JSON.stringify([conversationId, actorId])] ?? DEFAULT_SESSION_PAGE_SIZE;
   }
 
-  getConnectorSelection(principal: { accountId: string; conversationId: string; actorId: string }): { hostId: string; revision: string } | undefined {
-    const value = this.state.connectorSelections[JSON.stringify([principal.accountId, principal.conversationId, principal.actorId])];
-    return value && { ...value };
+  getConnectorSelection(principal: PeerPrincipal): { hostId?: string; revision: string } | undefined {
+    const key = connectorSelectionKey(principal);
+    const selected = this.state.connectorSelections[key];
+    if (selected) return { ...selected };
+    const revision = this.state.connectorResetRevisions?.[key];
+    return revision ? { revision } : undefined;
   }
 
-  setConnectorSelection(principal: { accountId: string; conversationId: string; actorId: string }, hostId: string): void {
+  setConnectorSelection(principal: PeerPrincipal, hostId: string): void {
     if (hostId !== "local" && !/^(peer|remote-ssh-discovered):\S+$/.test(hostId)) throw new Error("Invalid Connector selection");
-    this.state.connectorSelections[JSON.stringify([principal.accountId, principal.conversationId, principal.actorId])] = { hostId, revision: crypto.randomUUID() };
+    const key = connectorSelectionKey(principal);
+    this.state.connectorSelections[key] = { hostId, revision: crypto.randomUUID() };
+    if (this.state.connectorResetRevisions) delete this.state.connectorResetRevisions[key];
     this.save();
   }
 
@@ -283,6 +295,19 @@ export class RuntimeStateStore {
   firstContactReservation(address: string) {
     const records = this.state.firstContacts;
     return records && Object.hasOwn(records, address) ? { ...records[address] } : undefined;
+  }
+
+  /** An explicit IM leave retires the binding and only the issuing actor's
+   * device preference in the same write, even if the chat is already detached. */
+  leaveConversation(senderId: string, principal: PeerPrincipal): void {
+    const key = connectorSelectionKey(principal);
+    const member = bindingMember(senderId);
+    if (principal.conversationId !== (member?.chat ?? senderId) || member && principal.actorId !== member.actor)
+      throw Error("Connector reset principal does not match binding");
+    this.detachSessionSelection(senderId, "manual");
+    delete this.state.connectorSelections[key];
+    (this.state.connectorResetRevisions ??= {})[key] = crypto.randomUUID();
+    this.save();
   }
 
   leaveSession(senderId: string, reason: "manual" | "idle" = "manual"): void {
@@ -1217,13 +1242,17 @@ function normalizeFirstContacts(value: unknown): NonNullable<RuntimeState["first
   return records;
 }
 
+function validConnectorSelectionKey(key: string): boolean {
+  const identity: unknown = JSON.parse(key);
+  return Array.isArray(identity) && identity.length === 3 && identity.every(item => typeof item === "string" && item.length > 0);
+}
+
 /** Corrupt saved selection must not silently reroute a query/create to local. */
 function normalizeConnectorSelections(value: unknown): RuntimeState["connectorSelections"] {
   if (value === undefined) return {};
   if (!isJsonObject(value)) throw new Error("Invalid Connector selections; original state preserved");
   for (const [key, selection] of Object.entries(value)) {
-    const identity: unknown = JSON.parse(key);
-    if (!Array.isArray(identity) || identity.length !== 3 || !identity.every(item => typeof item === "string" && item.length > 0)
+    if (!validConnectorSelectionKey(key)
       || !isJsonObject(selection) || typeof selection.hostId !== "string" || !/^(local|(?:peer|remote-ssh-discovered):\S+)$/.test(selection.hostId)
       || typeof selection.revision !== "string" || !selection.revision)
       throw new Error("Invalid Connector selection; original state preserved");

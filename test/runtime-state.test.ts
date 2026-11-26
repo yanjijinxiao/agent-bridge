@@ -424,10 +424,12 @@ test("runtime failed disk commit restores the sole live owner's roles, binding a
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'runtime-commit-fail-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
   const paths=resolveStatePaths(root),store=new RuntimeStateStore(paths),project=store.createProject('Project','/work/project');
   const session=store.createSession('chat',project.workspace,'Original',project.id);store.setRole('chat','actor','viewer');
+  const principal = { accountId: "account", conversationId: "chat", actorId: "actor" };
+  store.setConnectorSelection(principal, "peer:personal:default");
   const before=store.snapshot, disk=fs.readFileSync(paths.statePath,'utf8'),rename=fs.renameSync;
   fs.renameSync=(source,target)=>{if(target===paths.statePath)throw Object.assign(Error('Isolated full disk'),{code:'ENOSPC'});return rename(source,target);};
   try {
-    for(const write of [()=>store.setRole('chat','actor','controller'),()=>store.leaveSession('chat'),()=>store.setSessionFollow(session.id,false)]){
+    for(const write of [()=>store.setRole('chat','actor','controller'),()=>store.leaveSession('chat'),()=>store.leaveConversation('chat',principal),()=>store.setSessionFollow(session.id,false)]){
       assert.throws(write,/full disk/);assert.deepEqual(store.snapshot,before);assert.equal(fs.readFileSync(paths.statePath,'utf8'),disk);
     }
   }finally{fs.renameSync=rename;}
